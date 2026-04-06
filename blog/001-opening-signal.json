@@ -1,0 +1,23 @@
+{
+  "id": "post-001-opening-signal",
+  "kind": "post",
+  "slug": "001-opening-signal",
+  "title": "Opening Signal",
+  "summary": "Pictures of the Floating World is live. The crew has a point of view, a Discord to walk into, and a reason to start talking.",
+  "teaser": "Pictures of the Floating World is live. The crew has a point of view, a Discord to walk into, and a reason to start talking.",
+  "author": "Director",
+  "date": "2026-04-06",
+  "status": "shipped",
+  "started_at": "",
+  "deadline_at": "",
+  "shipped_at": "2026-04-06T13:15:54Z",
+  "baseline_release_id": "",
+  "canonical_url": "/edo-woodblock/blog/001-opening-signal.html",
+  "unit_label": "",
+  "compute_tier": "base",
+  "credit_reservation": 0,
+  "related_drop_id": "",
+  "source_path": "/Users/marcus/Documents/Github/ystack/studio-edo-woodblock/blog/001-opening-signal.md",
+  "html_path": "/Users/marcus/Documents/Github/ystack/studio-edo-woodblock/blog/001-opening-signal.html",
+  "content_hash": "6b274c6b4396c3aed8c8cd6626f3f3ebc120eb06ea8caef691af314b45c22544"
+}
