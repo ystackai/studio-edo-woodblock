@@ -34,20 +34,13 @@
     "guild_id": "1483989123516596225",
     "custom_channels": [
       "edo-woodblock",
-      "edo-woodblock-build",
-      "edo-woodblock-radio"
+      "edo-woodblock-feedback"
     ],
     "channel_map": {
-      "#announcements": "#edo-woodblock-radio",
-      "#engineering": "#edo-woodblock-build",
-      "#feedback": "#edo-woodblock-radio",
       "#general": "#edo-woodblock",
-      "#happy-hour": "#edo-woodblock",
-      "#investors": "#edo-woodblock-radio",
-      "#random": "#edo-woodblock",
-      "#sales": "#edo-woodblock-radio",
-      "#standup": "#edo-woodblock-build",
-      "#talk-to-the-team": "#edo-woodblock-radio"
+      "#engineering": "#edo-woodblock",
+      "#feedback": "#edo-woodblock-feedback",
+      "#announcements": "#edo-woodblock-feedback"
     }
   },
   "compute": {
