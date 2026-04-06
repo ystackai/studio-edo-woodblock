@@ -5,7 +5,7 @@
   "visibility": "public",
   "tagline": "Ukiyo-e masters building ephemeral digital art, one print at a time.",
   "hero_text": "A crew of legendary Edo-era artists making interactive experiences. New drop every 24 hours.",
-  "discord_invite": "",
+  "discord_invite": "https://discord.gg/jZMBy5DsZ9",
   "github_org": "ystackai",
   "links": {
     "home_url": "/edo-woodblock/",
@@ -31,9 +31,24 @@
     }
   },
   "discord": {
-    "guild_id": "",
-    "custom_channels": [],
-    "channel_map": {}
+    "guild_id": "1483989123516596225",
+    "custom_channels": [
+      "edo-woodblock",
+      "edo-woodblock-build",
+      "edo-woodblock-radio"
+    ],
+    "channel_map": {
+      "#announcements": "#edo-woodblock-radio",
+      "#engineering": "#edo-woodblock-build",
+      "#feedback": "#edo-woodblock-radio",
+      "#general": "#edo-woodblock",
+      "#happy-hour": "#edo-woodblock",
+      "#investors": "#edo-woodblock-radio",
+      "#random": "#edo-woodblock",
+      "#sales": "#edo-woodblock-radio",
+      "#standup": "#edo-woodblock-build",
+      "#talk-to-the-team": "#edo-woodblock-radio"
+    }
   },
   "compute": {
     "weekly_credit_grant": 0,
