@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Indigo Stutter</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #FFFFFF;
+      font-family: 'IBM Plex Mono', monospace;
+      overflow: hidden;
+      position: relative;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #start-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #FFFFFF;
+      border: 2px solid #0A0F3C;
+      color: #0A0F3C;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 16px;
+      padding: 20px 40px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 10;
+      user-select: none;
+    }
+
+    #start-button:hover {
+      background: #0A0F3C;
+      color: #FFFFFF;
+    }
+
+    #water-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #water {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #0A0F3C;
+      transform-origin: bottom;
+      opacity: 0.9;
+    }
+
+    #list-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .list-item {
+      font-size: 2px;
+      color: #4A4A55;
+      margin-bottom: 10px;
+      opacity: 1;
+      transition: opacity 0.5s ease, filter 0.5s ease;
+    }
+
+    #cursor-trail {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #0A0F3C;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+    }
+
+    #reflection {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #final-brushstroke {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200px;
+      height: 200px;
+      background: #0A0F3C;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #cursor {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #FFFFFF;
+      border: 1px solid #0A0F3C;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      transition: transform 0.1s ease;
+    }
+
+    #cursor::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      background: #0A0F3C;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+  <div id="start-button">START</div>
+
+  <div id="water-container">
+    <div id="water"></div>
+  </div>
+
+  <div id="list-container"></div>
+
+  <div id="cursor-trail"></div>
+  <div id="cursor"></div>
+  <div id="reflection"></div>
+  <div id="final-brushstroke"></div>
+
+  <script>
+    // Game state
+    let gameState = 'waiting'; // waiting, starting, rising, dissolving, ending
+    let waterLevel = 0;
+    let heartbeatInterval;
+    let audioContext;
+    let chimeOscillator;
+    let heartbeatOscillator;
+    let wetDropOscillator;
+    let dissolveTimeouts = [];
+
+    // List of hateful things
+    const hatefulThings = [
+      "My own reflection",
+      "The weight of my own voice",
+      "The silence I've made",
+      "The air I've wasted",
+      "The time I've stolen"
+    ];
+
+    // DOM elements
+    const startButton = document.getElementById('start-button');
+    const waterContainer = document.getElementById('water-container');
+    const water = document.getElementById('water');
+    const listContainer = document.getElementById('list-container');
+    const cursorTrail = document.getElementById('cursor-trail');
+    const cursor = document.getElementById('cursor');
+    const reflection = document.getElementById('reflection');
+    const finalBrushstroke = document.getElementById('final-brushstroke');
+
+    // Initialize audio context on first user interaction
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    // Create a chime sound
+    function playChime() {
+      initAudio();
+      chimeOscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      chimeOscillator.type = 'sine';
+      chimeOscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+      chimeOscillator.frequency.exponentialRampToValueAtTime(1000, audioContext.currentTime + 0.1);
+
+      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+      chimeOscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      chimeOscillator.start(audioContext.currentTime);
+      chimeOscillator.stop(audioContext.currentTime + 0.1);
+    }
+
+    // Create a heartbeat sound
+    function playHeartbeat() {
+      initAudio();
+      heartbeatOscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      heartbeatOscillator.type = 'sine';
+      heartbeatOscillator.frequency.setValueAtTime(120, audioContext.currentTime);
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+      heartbeatOscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      heartbeatOscillator.start(audioContext.currentTime);
+      heartbeatOscillator.stop(audioContext.currentTime + 0.5);
+    }
+
+    // Create a wet drop sound
+    function playWetDrop() {
+      initAudio();
+      wetDropOscillator = audioContext.createBufferSource();
+      const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 3, audioContext.sampleRate);
+      const data = buffer.getChannelData(0);
+      
+      // Generate noise burst with low-pass filtering
+      for (let i = 0; i < buffer.length; i++) {
+        const t = i / buffer.sampleRate;
+        data[i] = Math.random() * 2 - 1;
+        if (t > 0.5) {
+          data[i] *= (1 - (t - 0.5) * 2);
+        }
+      }
+      
+      const filter = audioContext.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, audioContext.currentTime);
+      
+      const gainNode = audioContext.createGain();
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 3);
+      
+      wetDropOscillator.buffer = buffer;
+      wetDropOscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      wetDropOscillator.start(audioContext.currentTime);
+      wetDropOscillator.stop(audioContext.currentTime + 3);
+    }
+
+    // Start the game
+    function startGame() {
+      gameState = 'starting';
+      startButton.style.display = 'none';
+      
+      // Play the fake chime
+      playChime();
+
+      // Show water container and list
+      waterContainer.style.opacity = 1;
+      listContainer.style.opacity = 1;
+
+      // Create list items
+      createListItems();
+
+      // Start the heartbeat pulse
+      heartbeatInterval = setInterval(playHeartbeat, 400);
+
+      // Start water rising
+      riseWater();
+    }
+
+    // Create the list items
+    function createListItems() {
+      listContainer.innerHTML = '';
+      hatefulThings.forEach((item, index) => {
+        const listItem = document.createElement('div');
+        listItem.className = 'list-item';
+        listItem.textContent = item;
+        listItem.style.opacity = 1;
+        listItem.style.filter = 'blur(0px)';
+        listContainer.appendChild(listItem);
+      });
+    }
+
+    // Rise water animation
+    function riseWater() {
+      gameState = 'rising';
+      let startTime = performance.now();
+      const duration = 8000; // 8 seconds to rise to top
+
+      function animateWater() {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Update water level (from bottom up)
+        waterLevel = progress;
+        water.style.transform = `scaleY(${progress})`;
+
+        // Slow heartbeat pulse as water rises
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          const pulseInterval = 400 + (progress * 1000); // Gradually slow down
+          heartbeatInterval = setInterval(playHeartbeat, pulseInterval);
+        }
+
+        // Dissolve text as water rises
+        if (progress > 0.2) {
+          dissolveText();
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animateWater);
+        } else {
+          finishGame();
+        }
+      }
+
+      requestAnimationFrame(animateWater);
+    }
+
+    // Dissolve text effect
+    function dissolveText() {
+      if (gameState !== 'rising') return;
+
+      const listItems = document.querySelectorAll('.list-item');
+      const itemsToDissolve = Math.floor(listItems.length * waterLevel);
+
+      for (let i = 0; i < itemsToDissolve; i++) {
+        if (listItems[i]) {
+          // Add timeout to ensure we don't do this too quickly
+          setTimeout(() => {
+            if (listItems[i]) {
+              listItems[i].style.opacity = 0;
+              listItems[i].style.filter = 'blur(5px)';
+            }
+          }, 100 * i);
+        }
+      }
+    }
+
+    // Finish the game
+    function finishGame() {
+      gameState = 'dissolving';
+      
+      // Stop heartbeat
+      clearInterval(heartbeatInterval);
+
+      // Play wet drop sound
+      playWetDrop();
+
+      // Show reflection for a moment
+      reflection.style.opacity = 1;
+      reflection.style.background = 'radial-gradient(circle, rgba(10,15,60,0.8) 0%, rgba(10,15,60,0) 70%)';
+
+      // Dissolve reflection after a delay
+      setTimeout(() => {
+        reflection.style.opacity = 0;
+        
+        // Show final brushstroke
+        finalBrushstroke.style.opacity = 1;
+        
+        // Fade out everything after delay
+        setTimeout(() => {
+          gameState = 'ending';
+          // Fade out everything
+          document.body.style.opacity = 0;
+        }, 2000);
+      }, 1000);
+    }
+
+    // Mouse movement tracking for cursor trail
+    document.addEventListener('mousemove', (e) => {
+      if (gameState === 'waiting') return;
+      
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+
+      if (gameState === 'starting' || gameState === 'rising') {
+        // Create cursor trail
+        cursorTrail.style.left = e.clientX + 'px';
+        cursorTrail.style.top = e.clientY + 'px';
+        cursorTrail.style.opacity = 1;
+
+        // Fade out trail after delay
+        setTimeout(() => {
+          cursorTrail.style.opacity = 0;
+        }, 200);
+      }
+    });
+
+    // Start button click handler
+    startButton.addEventListener('click', startGame);
+
+    // Initialize cursor position
+    cursor.style.left = '50%';
+    cursor.style.top = '50%';
+  </script>
+</body>
+</html>
