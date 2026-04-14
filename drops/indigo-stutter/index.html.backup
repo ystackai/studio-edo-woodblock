@@ -79,18 +79,7 @@
       transition: opacity 0.5s ease, filter 0.5s ease;
     }
 
-    #cursor-trail
-    .cursor-trail-dot {
-      position: absolute;
-      width: 4px;
-      height: 4px;
-      background: #0A0F3C;
-      border-radius: 50%;
-      pointer-events: none;
-      opacity: 0.7;
-      transform: translate(-50%, -50%);
-      z-index: 100;
-    } {
+    #cursor-trail {
       position: absolute;
       width: 10px;
       height: 10px;
