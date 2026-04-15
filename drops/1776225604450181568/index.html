@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Indigo Breath</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            overflow: hidden;
+            font-family: 'Times New Roman', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        #canvas {
+            display: block;
+        }
+        
+        #message {
+            position: absolute;
+            color: white;
+            text-align: center;
+            font-size: 24px;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        #kanji {
+            position: absolute;
+            font-size: 120px;
+            opacity: 0;
+            text-align: center;
+            font-family: 'Noto Sans Japanese', sans-serif;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="message">Hold your breath...</div>
+    <div id="kanji">水</div>
+    
+    <script>
+        // Main application
+        class IndigoBreath {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.message = document.getElementById('message');
+                this.kanji = document.getElementById('kanji');
+                
+                // Set canvas to full window size
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                
+                // State management
+                this.state = 'waiting'; // waiting, hovering, slashing, success, failure
+                this.inkLine = null;
+                this.cursorTrail = [];
+                this.startTime = 0;
+                this.isSlashed = false;
+                this.shojiOpen = false;
+                this.shojiProgress = 0;
+                this.inkGrowth = 0;
+                this.inkGrowthRate = 0;
+                
+                // Audio context
+                this.audioContext = null;
+                this.audioInitialized = false;
+                this.rottingSound = null;
+                
+                // Animation control
+                this.animationId = null;
+                
+                // Procedural noise for ink texture
+                this.noiseCanvas = document.createElement('canvas');
+                this.noiseCanvas.width = 256;
+                this.noiseCanvas.height = 256;
+                this.noiseCtx = this.noiseCanvas.getContext('2d');
+                this.generateNoise();
+                
+                // Initialize
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.createInkLine();
+                this.animate();
+            }
+            
+            setupEventListeners() {
+                window.addEventListener('resize', () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                });
+                
+                window.addEventListener('mousemove', (e) => {
+                    this.handleMouseMove(e);
+                });
+                
+                window.addEventListener('mousedown', (e) => {
+                    this.handleMouseDown(e);
+                });
+                
+                window.addEventListener('mouseup', (e) => {
+                    this.handleMouseUp(e);
+                });
+                
+                window.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    this.handleTouchMove(e);
+                });
+                
+                window.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handleTouchStart(e);
+                });
+                
+                window.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.handleTouchEnd(e);
+                });
+            }
+            
+            createInkLine() {
+                this.inkLine = {
+                    x: this.canvas.width / 2,
+                    y: this.canvas.height / 2,
+                    width: 2,
+                    height: 100,
+                    color: '#0B1026',
+                    alpha: 1
+                };
+            }
+            
+            handleMouseMove(e) {
+                if (this.state === 'waiting') {
+                    this.state = 'hovering';
+                    this.startTime = Date.now();
+                    this.message.textContent = 'Breathe in. ..';
+                    this.message.style.opacity = 1;
+                    this.initAudio();
+                }
+                
+                this.updateCursorTrail(e.clientX, e.clientY);
+            }
+            
+            handleMouseDown(e) {
+                if (this.state === 'hovering') {
+                    this.state = 'slashing';
+                    this.isSlashed = true;
+                    this.playShingSound();
+                    this.message.style.opacity = 0;
+                    this.stopRottingSound();
+                    this.inkGrowthRate = 0; // Stop ink growth when slashing
+                }
+            }
+            
+            handleMouseUp(e) {
+                if (this.state === 'slashing') {
+                    // Check if the slash was fast enough (not too slow)
+                    const timeElapsed = Date.now() - this.startTime;
+                    if (timeElapsed < 1000) { // Successful slash if less than 1 second
+                        this.state = 'success';
+                        this.revealUkiyoE();
+                    } else {
+                        // Failure - ink grows too much
+                        this.state = 'failure';
+                        this.fadeToBlack();
+                    }
+                }
+            }
+            
+            handleTouchMove(e) {
+                if (this.state === 'waiting') {
+                    this.state = 'hovering';
+                    this.startTime = Date.now();
+                    this.message.textContent = 'Breathe in. ..';
+                    this.message.style.opacity = 1;
+                    this.initAudio();
+                }
+                
+                const touch = e.touches[0];
+                this.updateCursorTrail(touch.clientX, touch.clientY);
+            }
+            
+            handleTouchStart(e) {
+                if (this.state === 'hovering') {
+                    this.state = 'slashing';
+                    this.isSlashed = true;
+                    this.playShingSound();
+                    this.message.style.opacity = 0;
+                    this.stopRottingSound();
+                    this.inkGrowthRate = 0; // Stop ink growth when slashing
+                }
+            }
+            
+            handleTouchEnd(e) {
+                if (this.state === 'slashing') {
+                    // Check if the slash was fast enough (not too slow)
+                    const timeElapsed = Date.now() - this.startTime;
+                    if (timeElapsed < 1000) { // Successful slash if less than 1 second
+                        this.state = 'success';
+                        this.revealUkiyoE();
+                    } else {
+                        // Failure - ink grows too much
+                        this.state = 'failure';
+                        this.fadeToBlack();
+                    }
+                }
+            }
+            
+            updateCursorTrail(x, y) {
+                // Add point to trail
+                this.cursorTrail.push({
+                    x: x,
+                    y: y,
+                    time: Date.now()
+                });
+                
+                // Keep only last 30 points
+                if (this.cursorTrail.length > 30) {
+                    this.cursorTrail.shift();
+                }
+                
+                // If in hovering state, simulate ink growth
+                if (this.state === 'hovering') {
+                    this.inkGrowthRate = 0.005;
+                    this.inkGrowth += this.inkGrowthRate;
+                    if (this.inkGrowth > 1) this.inkGrowth = 1;
+                }
+            }
+            
+            initAudio() {
+                if (this.audioInitialized) return;
+                
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.audioInitialized = true;
+                
+                // Create the rotting ink sound
+                this.createRottingSound();
+            }
+            
+            generateNoise() {
+                const imageData = this.noiseCtx.createImageData(this.noiseCanvas.width, this.noiseCanvas.height);
+                const data = imageData.data;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    const value = Math.random() * 255;
+                    data[i] = value;     // R
+                    data[i + 1] = value;   // G
+                    data[i + 2] = value;   // B
+                    data[i + 3] = 255;     // A
+                }
+                
+                this.noiseCtx.putImageData(imageData, 0, 0);
+            }
+            
+            createRottingSound() {
+                if (!this.audioContext) return;
+                
+                // Create a low-pass filtered wet cloth tear sound
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
+                
+                oscillator.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(20, this.audioContext.currentTime + 1);
+                
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(500, this.audioContext.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(50, this.audioContext.currentTime + 1);
+                
+                gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 1);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 1);
+                
+                // Loop the sound
+                this.rottingSound = {
+                    oscillator: oscillator,
+                    gainNode: gainNode,
+                    filter: filter
+                };
+                
+                // Play continuously in hovering state
+                this.playRottingSound();
+            }
+            
+            playRottingSound() {
+                if (!this.rottingSound || !this.audioContext) return;
+                
+                // Stop any existing play
+                if (this.rottingSound.oscillator) {
+                    this.rottingSound.oscillator.stop();
+                }
+                
+                // Create new oscillator
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
+                
+                oscillator.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(20, this.audioContext.currentTime + 1);
+                
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(500, this.audioContext.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(50, this.audioContext.currentTime + 1);
+                
+                gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 1);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 1);
+                
+                // Schedule next play
+                if (this.state === 'hovering') {
+                    setTimeout(() => this.playRottingSound(), 1000);
+                }
+            }
+            
+            stopRottingSound() {
+                if (this.rottingSound) {
+                    this.rottingSound.oscillator.stop();
+                    this.rottingSound = null;
+                }
+            }
+            
+            playShingSound() {
+                if (!this.audioContext) return;
+                
+                // Create a sharp snap sound
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(500, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
+                
+                gainNode.gain.setValueAtTime(0.5, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.05);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.05);
+            }
+            
+            fadeToBlack() {
+                // Fade to black and end the session
+                this.ctx.fillStyle = '#000000';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Play wet exhale sound
+                this.playWetExhaleSound();
+            }
+            
+            playWetExhaleSound() {
+                if (!this.audioContext) return;
+                
+                // Create a slow, wet exhale sound
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(80, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(20, this.audioContext.currentTime + 2);
+                
+                gainNode.gain.setValueAtTime(0.5, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 2);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 2);
+            }
+            
+            revealUkiyoE() {
+                // Create a Ukiyo-e style pattern for the background
+                this.drawUkiyoEBackground();
+                
+                // Show kanji
+                this.kanji.style.opacity = 1;
+                this.kanji.style.transform = 'translate(-50%, -50%) scale(1)';
+                
+                // Animate kanji
+                this.animateKanji();
+            }
+            
+            drawUkiyoEBackground() {
+                // Create a background with Ukiyo-e style colors
+                const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
+                gradient.addColorStop(0, '#f0f8ff');  // Light blue
+                gradient.addColorStop(0.5, '#fff5ee'); // Seashell
+                gradient.addColorStop(1, '#f5f5dc');  // Beige
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw some Ukiyo-e style elements
+                this.ctx.globalAlpha = 0.7;
+                
+                // Draw a wave pattern
+                this.ctx.fillStyle = '#87CEEB';
+                for (let i = 0; i < 10; i++) {
+                    const x = Math.random() * this.canvas.width;
+                    const y = Math.random() * this.canvas.height;
+                    const radius = 50 + Math.random() * 100;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
+                // Draw some simple Ukiyo-e elements
+                this.ctx.fillStyle = '#ff6347';
+                this.ctx.beginPath();
+                this.ctx.arc(this.canvas.width/2, this.canvas.height/2, 100, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.fillStyle = '#32cd32';
+                this.ctx.beginPath();
+                this.ctx.arc(this.canvas.width/3, this.canvas.height/3, 50, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.globalAlpha = 1;
+            }
+            
+            animateKanji() {
+                let scale = 1;
+                const startTime = Date.now();
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / 3000; // 3 seconds
+                    
+                    if (progress >= 1) {
+                        this.kanji.style.opacity = 0;
+                        return;
+                    }
+                    
+                    // Slight shake effect
+                    const shake = Math.sin(progress * 20) * 5;
+                    this.kanji.style.transform = `translate(-50%, -50%) scale(${1 + (0.2 * Math.sin(progress * 10))}) translateX(${shake}px)`;
+                    
+                    requestAnimationFrame(animate);
+                };
+                
+                animate();
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw the void
+                this.ctx.fillStyle = '#000000';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw shoji door opening effect
+                if (!this.shojiOpen) {
+                    // Simulate the shoji door opening
+                    this.shojiProgress += 0.005;
+                    if (this.shojiProgress >= 1) {
+                        this.shojiOpen = true;
+                    }
+                    
+                    // Draw the shoji door effect
+                    const doorWidth = this.canvas.width * 0.8;
+                    const doorHeight = this.canvas.height * 0.8;
+                    const centerX = this.canvas.width / 2;
+                    const centerY = this.canvas.height / 2;
+                    
+                    // Draw left door panel
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.fillRect(centerX - doorWidth/2, centerY - doorHeight/2, doorWidth/2, doorHeight);
+                    
+                    // Draw right door panel
+                    this.ctx.fillRect(centerX, centerY - doorHeight/2, doorWidth/2, doorHeight);
+                    
+                    // Draw the center line
+                    this.ctx.fillStyle = '#0B1026';
+                    this.ctx.fillRect(centerX - 2, centerY - doorHeight/2, 4, doorHeight);
+                } else {
+                    // After shoji is open, draw the ink line and simulate growth
+                    if (this.inkLine) {
+                        this.ctx.fillStyle = this.inkLine.color;
+                        this.ctx.globalAlpha = this.inkLine.alpha;
+                        
+                        // Simulate ink growing from center
+                        const currentHeight = this.inkLine.height * (1 + this.inkGrowth * 0.5);
+                        this.ctx.fillRect(this.inkLine.x - this.inkLine.width/2, this.inkLine.y - currentHeight/2, this.inkLine.width, currentHeight);
+                        
+                        this.ctx.globalAlpha = 1;
+                    }
+                }
+                
+                // Draw cursor trail
+                if (this.cursorTrail.length > 0) {
+                    this.ctx.globalAlpha = 0.7;
+                    this.ctx.strokeStyle = '#0B1026';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    
+                    for (let i = 0; i < this.cursorTrail.length; i++) {
+                        const point = this.cursorTrail[i];
+                        if (i === 0) {
+                            this.ctx.moveTo(point.x, point.y);
+                        } else {
+                            this.ctx.lineTo(point.x, point.y);
+                        }
+                    }
+                    
+                    this.ctx.stroke();
+                    this.ctx.globalAlpha = 1;
+                }
+                
+                // Continue animation
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Start the application when the page loads
+        window.addEventListener('load', () => {
+            new IndigoBreath();
+        });
+    </script>
+</body>
+</html>
