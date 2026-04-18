@@ -3,99 +3,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Void - Syrup Latency</title>
+<title>The Void</title>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 html, body {
     width: 100%; height: 100%;
     overflow: hidden;
-    background: #0a0a0f;
+    background: #08080c;
     font-family: 'Courier New', monospace;
     cursor: none;
     user-select: none;
 }
 
-/* The Void zone - a dark pooled area */
 #void-zone {
     position: absolute;
     top: 50%; left: 50%;
-    width: 420px; height: 420px;
+    width: 360px; height: 360px;
     transform: translate(-50%, -50%);
     border-radius: 50%;
-    background: radial-gradient(circle, #1a0a2e 0%, #0d0618 60%, transparent 100%);
-    box-shadow: 0 0 80px 30px rgba(90, 40, 140, 0.15);
-    transition: box-shadow 0.4s ease;
+    background: radial-gradient(circle at 40% 38%, #1c0a32 0%, #0f061a 50%, transparent 72%);
+    box-shadow: 0 0 60px 20px rgba(80, 30, 130, 0.12);
+    transition: box-shadow 0.3s ease;
     pointer-events: none;
     z-index: 1;
 }
 
 #void-zone.active {
-    box-shadow: 0 0 120px 60px rgba(90, 40, 140, 0.35);
+    box-shadow: 0 0 140px 70px rgba(90, 35, 150, 0.3);
 }
 
-/* Boundary ring - subtle warning */
 #boundary-ring {
     position: absolute;
     top: 50%; left: 50%;
-    width: 420px; height: 420px;
+    width: 360px; height: 360px;
     transform: translate(-50%, -50%);
     border-radius: 50%;
-    border: 1.5px solid rgba(90, 40, 140, 0.2);
+    border: 1.5px solid rgba(90, 40, 140, 0.18);
     pointer-events: none;
     z-index: 2;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.25s ease;
 }
 
 #boundary-ring.visible { opacity: 1; }
 
-/* The dragged token */
 #token {
     position: absolute;
-    width: 48px; height: 48px;
+    width: 40px; height: 40px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #c8a0ff, #7b3fa0);
-    box-shadow: 0 0 20px rgba(160, 100, 255, 0.4), inset 0 -2px 6px rgba(0,0,0,0.3);
+    background: radial-gradient(circle at 35% 35%, #d0a8ff, #7b3fa0);
+    box-shadow: 0 0 18px rgba(160, 100, 255, 0.45), inset 0 -2px 6px rgba(0,0,0,0.3);
     z-index: 10;
     pointer-events: none;
     transform: translate(-50%, -50%);
     will-change: left, top;
 }
 
-/* Delayed cursor (follows token with syrup lag) */
 #cursor {
     position: absolute;
-    width: 24px; height: 24px;
+    width: 20px; height: 20px;
     border-radius: 50%;
-    border: 2px solid rgba(200, 160, 255, 0.8);
+    border: 2px solid rgba(200, 160, 255, 0.7);
     background: radial-gradient(circle, rgba(200, 160, 255, 0.3), transparent);
-    box-shadow: 0 0 12px rgba(160, 100, 255, 0.3);
+    box-shadow: 0 0 10px rgba(160, 100, 255, 0.25);
     z-index: 10;
     pointer-events: none;
     transform: translate(-50%, -50%);
-    will-change: left, top, opacity;
-    transition: opacity 0.2s;
+    will-change: left, top;
 }
 
-/* Latency meter */
 #hud {
     position: fixed;
     bottom: 24px; left: 50%;
     transform: translateX(-50%);
-    color: rgba(160, 130, 220, 0.6);
-    font-size: 12px;
+    color: rgba(160, 130, 220, 0.5);
+    font-size: 11px;
     letter-spacing: 2px;
     text-transform: uppercase;
     z-index: 20;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     pointer-events: none;
 }
 
 #hud-bar {
-    width: 160px; height: 3px;
+    width: 140px; height: 3px;
     background: rgba(90, 40, 140, 0.2);
     border-radius: 2px;
     overflow: hidden;
@@ -104,58 +98,87 @@ html, body {
 #hud-fill {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, #7b3fa0, #c8a0ff);
+    background: linear-gradient(90deg, #6b2fa0, #c8a0ff);
     border-radius: 2px;
     transition: width 0.05s linear;
 }
 
-/* Escape pressure overlay */
+#hud-label {
+    min-width: 38px;
+    text-align: right;
+}
+
 #pressure {
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at var(--mx, 50%) var(--my, 50%), transparent 30%, rgba(10, 5, 20, 0.6) 100%);
+    background: radial-gradient(ellipse at var(--mx, 50%) var(--my, 50%), transparent 25%, rgba(8, 4, 16, 0.7) 100%);
     pointer-events: none;
     z-index: 3;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s ease;
 }
 
 #pressure.active { opacity: 1; }
 
-/* Vignette pulse on heavy lag */
 #vignette {
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 4;
     opacity: 0;
-    background: radial-gradient(ellipse at center, transparent 40%, rgba(5, 0, 15, 0.8));
-    animation: vignette-pulse 2s ease-in-out infinite;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(4, 0, 12, 0.85));
 }
+
+#vignette.heavy { animation: vignette-pulse 0.5s ease-in-out infinite; }
 
 @keyframes vignette-pulse {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 0.4; }
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.6; }
 }
 
-#vignette.heavy { animation-duration: 0.6s; }
+#entrance-flash {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(120, 60, 200, 0.15), transparent 60%);
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
 
-/* Info overlay */
+#entrance-flash.visible { opacity: 1; }
+
 #info {
     position: fixed;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    color: rgba(200, 160, 255, 0.35);
-    font-size: 14px;
+    color: rgba(200, 160, 255, 0.3);
+    font-size: 13px;
     letter-spacing: 3px;
     text-transform: uppercase;
     z-index: 20;
     pointer-events: none;
     text-align: center;
-    line-height: 2;
+    line-height: 2.2;
 }
 
 #info.hidden { opacity: 0; transition: opacity 0.5s; }
+
+#void-label {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(160, 130, 220, 0.08);
+    font-size: 11px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    z-index: 2;
+    pointer-events: none;
+}
+
+#void-label.visible {
+    color: rgba(160, 130, 220, 0.2);
+}
 </style>
 </head>
 <body>
@@ -166,67 +189,74 @@ html, body {
 <div id="cursor"></div>
 <div id="pressure"></div>
 <div id="vignette"></div>
+<div id="entrance-flash"></div>
 <div id="hud">
-    <span>LATENCY</span>
-    <div id="hud-bar"><div id="hud-fill"></div></div>
-    <span id="hud-value">0ms</span>
+     <span>LATENCY</span>
+     <div id="hud-bar"><div id="hud-fill"></div></div>
+     <span id="hud-label">0ms</span>
 </div>
-<div id="info">move into the void</div>
+<div id="info">drag into the void</div>
 
 <script>
 (function() {
-    // Config
-    var VOID_CENTER = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    var VOID_RADIUS = 210;
-    var SYRUP_LAG = 150;
-    var LERP_SPEED = 0.18;
+    'use strict';
 
-    // State
-    var mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
-    var tokenX = VOID_CENTER.x, tokenY = VOID_CENTER.y;
-    var cursorX = VOID_CENTER.x, cursorY = VOID_CENTER.y;
-    var inVoid = false;
-    var dragActive = false;
-    var hasEnteredOnce = false;
-    var lagBuffer = [];
+    // ── HARD-CODED CONFIG (non-tunable) ─────────────────────
+    var VOID_CENTER_X  = window.innerWidth  / 2;
+    var VOID_CENTER_Y  = window.innerHeight / 2;
+    var VOID_RADIUS    = 180;
+    var MAX_LATENCY_MS = 150;              // exact lock point
+    var RAMP_DURATION  = 600;              // ms to ramp from 0 → 150ms (non-linear)
+    var LERP_OUTSIDE   = 0.32;             // buttery-smooth outside void
 
-    // DOM refs
-    var $token      = document.getElementById('token');
-    var $cursor     = document.getElementById('cursor');
-    var $voidZone   = document.getElementById('void-zone');
-    var $ring       = document.getElementById('boundary-ring');
-    var $pressure   = document.getElementById('pressure');
-    var $vignette   = document.getElementById('vignette');
-    var $hudFill    = document.getElementById('hud-fill');
-    var $hudValue   = document.getElementById('hud-value');
-    var $info       = document.getElementById('info');
+    // ── STATE ───────────────────────────────────────────────
+    var mouseX = VOID_CENTER_X;
+    var mouseY = VOID_CENTER_Y;
+    var tokenX = VOID_CENTER_X;
+    var tokenY = VOID_CENTER_Y;
+    var cursorX = VOID_CENTER_X;
+    var cursorY = VOID_CENTER_Y;
 
-    // Helpers
+    var inVoid       = false;
+    var enteredAt    = 0;                 // timestamp of void entry
+    var latencyMs    = 0;                 // current effective latency
+    var isEngaged    = false;             // true once full 150ms lock reached
+    var hasEntered   = false;
+
+    // Position history buffer (stores every frame)
+    var history = [];                     // [{x, y, t}]
+
+    // ── DOM REFS ────────────────────────────────────────────
+    var $token        = document.getElementById('token');
+    var $cursor       = document.getElementById('cursor');
+    var $voidZone     = document.getElementById('void-zone');
+    var $ring         = document.getElementById('boundary-ring');
+    var $pressure     = document.getElementById('pressure');
+    var $vignette     = document.getElementById('vignette');
+    var $flash        = document.getElementById('entrance-flash');
+    var $hudFill      = document.getElementById('hud-fill');
+    var $hudLabel     = document.getElementById('hud-label');
+    var $info         = document.getElementById('info');
+    var $voidLabel    = document.getElementById('void-label');
+
+    // ── HELPERS ─────────────────────────────────────────────
     function dist(x1, y1, x2, y2) {
         return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
     }
+    function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
-    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
-    // Input
+    // ── INPUT ───────────────────────────────────────────────
     document.addEventListener('mousemove', function(e) {
         mouseX = e.clientX;
         mouseY = e.clientY;
     });
 
-    document.addEventListener('mousedown', function(e) {
-        dragActive = true;
+    document.addEventListener('mousedown', function() {
         $info.classList.add('hidden');
     });
 
-    document.addEventListener('mouseup', function() {
-        dragActive = false;
-    });
-
-    // Touch support
     document.addEventListener('touchstart', function(e) {
         e.preventDefault();
-        dragActive = true;
         mouseX = e.touches[0].clientX;
         mouseY = e.touches[0].clientY;
         $info.classList.add('hidden');
@@ -238,93 +268,123 @@ html, body {
         mouseY = e.touches[0].clientY;
     }, { passive: false });
 
-    document.addEventListener('touchend', function() {
-        dragActive = false;
-    });
+    // ── NON-LINEAR RAMP CURVE ───────────────────────────────
+    // Smoothstep-like but biased toward heavy resistance at end.
+    // Starts gentle, then SNAPS hard near full engagement — simulating
+    // syrup thickening as you push deeper.
+    function rampEasing(t) {
+        if (t <= 0) return 0;
+        if (t >= 1) return 1;
+        var p = t * t * (3 - 2 * t);       // smoothstep base
+        var q = Math.pow(p, 1.8);           // bias curve: heavy late-phase
+        return clamp(q, 0, 1);
+    }
 
-    // Main loop
+    // ── MAIN LOOP ───────────────────────────────────────────
     var lastTime = performance.now();
-    var frameCount = 0;
 
     function loop(now) {
         requestAnimationFrame(loop);
 
-        var dt = Math.min((now - lastTime) / 16.67, 3);
+        var dt = Math.min((now - lastTime) / 16.667, 4);
         lastTime = now;
-        frameCount++;
 
-        var mouseDistFromCenter = dist(mouseX, mouseY, VOID_CENTER.x, VOID_CENTER.y);
-        var wasInVoid = inVoid;
-        inVoid = mouseDistFromCenter < VOID_RADIUS;
+        // Track position history every frame
+        history.push({ x: tokenX, y: tokenY, t: now });
 
-        // Void entry tracking
-        if (inVoid && !wasInVoid) {
-            hasEnteredOnce = true;
-            lagBuffer = [];
+        // Prune old samples beyond double max latency (safety margin)
+        while (history.length > 1 && (now - history[0].t) > MAX_LATENCY_MS * 2.5) {
+            history.shift();
         }
 
-        // Token position: follows real mouse, but clamped/resisted inside void
+        // ── VOID DETECTION ────────────────────────────────
+        var mouseDist = dist(mouseX, mouseY, VOID_CENTER_X, VOID_CENTER_Y);
+        var wasInVoid = inVoid;
+        inVoid = mouseDist < VOID_RADIUS;
+
+        if (inVoid && !wasInVoid) {
+            hasEntered = true;
+            enteredAt  = now;
+            latencyMs  = 0;
+            isEngaged  = false;
+            history    = [];               // reset buffer clean on entry
+
+            $flash.style.setProperty('--mx', (mouseX / window.innerWidth * 100) + '%');
+            $flash.style.setProperty('--my', (mouseY / window.innerHeight * 100) + '%');
+            $flash.classList.add('visible');
+            setTimeout(function() { $flash.classList.remove('visible'); }, 600);
+        }
+
+        // ── LATENCY CALCULATION (non-linear ramp → lock at 150ms) ─
         if (inVoid) {
-            var dx = VOID_CENTER.x - mouseX;
-            var dy = VOID_CENTER.y - mouseY;
-            var pullStrength = clamp(0.02 * (1 + frameCount * 0.003), 0.02, 0.08);
+            var elapsed = now - enteredAt;
+            var rampT   = clamp(elapsed / RAMP_DURATION, 0, 1);
+            latencyMs   = MAX_LATENCY_MS * rampEasing(rampT);
 
-            tokenX += dx * pullStrength * dt;
-            tokenY += dy * pullStrength * dt;
-
-            // Hard clamp: keep token inside void
-            var tokenDist = dist(tokenX, tokenY, VOID_CENTER.x, VOID_CENTER.y);
-            if (tokenDist > VOID_RADIUS - 24) {
-                var angle = Math.atan2(tokenY - VOID_CENTER.y, tokenX - VOID_CENTER.x);
-                tokenX = VOID_CENTER.x + Math.cos(angle) * (VOID_RADIUS - 24);
-                tokenY = VOID_CENTER.y + Math.sin(angle) * (VOID_RADIUS - 24);
+            if (rampT >= 1) {
+                isEngaged = true;
+                latencyMs = MAX_LATENCY_MS;    // HARD LOCK at exactly 150ms
             }
         } else {
-            // Outside void: token follows mouse directly
+            // Leave void — immediately dissolve latency
+            isEngaged  = false;
+            latencyMs *= Math.pow(0.7, dt);    // exponential decay to 0
+        }
+
+        // ── TOKEN: follows mouse position (with slight smoothing) ─
+        if (inVoid) {
+            var lerpIn = 0.45;
+            tokenX += (mouseX - tokenX) * lerpIn * dt;
+            tokenY += (mouseY - tokenY) * lerpIn * dt;
+
+            // Hard wall: clamp token to void boundary
+            var tDist = dist(tokenX, tokenY, VOID_CENTER_X, VOID_CENTER_Y);
+            if (tDist > VOID_RADIUS - 20) {
+                var angle = Math.atan2(tokenY - VOID_CENTER_Y, tokenX - VOID_CENTER_X);
+                tokenX = VOID_CENTER_X + Math.cos(angle) * (VOID_RADIUS - 20);
+                tokenY = VOID_CENTER_Y + Math.sin(angle) * (VOID_RADIUS - 20);
+            }
+        } else {
             tokenX = mouseX;
             tokenY = mouseY;
         }
 
-        // Cursor: delayed follow of token with syrup lag
-        var localDx = tokenX - VOID_CENTER.x;
-        var localDy = tokenY - VOID_CENTER.y;
-        var distFromCenter = dist(tokenX, tokenY, VOID_CENTER.x, VOID_CENTER.y);
+        // ── CURSOR: delayed follower using historical data ──
+        if (inVoid && history.length >= 2) {
+            // Look back `latencyMs` into the past.
+            // Early ramp: cursor follows closely (~0ms delay, barely syrupy).
+            // Full engagement: cursor is locked 150ms behind — escape impossible.
+            var targetTime = now - latencyMs;
 
-        // Store token positions in a circular buffer (150ms buffer)
-        lagBuffer.push({ x: tokenX, y: tokenY, t: now });
+            // Binary search backward for sample closest to targetTime
+            var idx = history.length - 1;
+            while (idx > 0 && history[idx].t > targetTime) idx--;
+            if (idx <= 0) idx = 0;
 
-        // Remove samples older than SYRUP_LAG + margin
-        while (lagBuffer.length > 0 && (now - lagBuffer[0].t) > SYRUP_LAG + 50) {
-            lagBuffer.shift();
-        }
+            var prev = history[idx];
+            var next = history[Math.min(idx + 1, history.length - 1)];
+            var segDur = next.t - prev.t;
+            var blend = segDur > 0 ? (targetTime - prev.t) / segDur : 0;
 
-        if (inVoid && lagBuffer.length >= 2) {
-            var oldSample = lagBuffer[0];
-            var age = now - oldSample.t;
-            var progress = clamp(age / SYRUP_LAG, 0, 1);
-
-            // Non-linear easing: heavy resistance at start (like pulling through syrup)
-            var easedProgress = Math.pow(progress, 0.45);
-
-            cursorX = oldSample.x + (tokenX - oldSample.x) * easedProgress;
-            cursorY = oldSample.y + (tokenY - oldSample.y) * easedProgress;
-        } else if (inVoid && lagBuffer.length === 1) {
-            cursorX = lagBuffer[0].x;
-            cursorY = lagBuffer[0].y;
+            cursorX = prev.x + (next.x - prev.x) * clamp(blend, 0, 1);
+            cursorY = prev.y + (next.y - prev.y) * clamp(blend, 0, 1);
+        } else if (inVoid && history.length === 1) {
+            cursorX = history[0].x;
+            cursorY = history[0].y;
         } else {
-            // Normal lerp outside void
-            var lerp = LERP_SPEED * dt;
-            cursorX += (tokenX - cursorX) * lerp;
-            cursorY += (tokenY - cursorY) * lerp;
+            // Outside void: smooth buttery follow
+            var lerpSpeed = LERP_OUTSIDE * dt;
+            cursorX += (tokenX - cursorX) * lerpSpeed;
+            cursorY += (tokenY - cursorY) * lerpSpeed;
         }
 
-        // Visual updates
-        $token.style.left = tokenX + 'px';
-        $token.style.top  = tokenY + 'px';
-        $cursor.style.left = cursorX + 'px';
-        $cursor.style.top  = cursorY + 'px';
+        // ── VISUAL UPDATES ──────────────────────────────────
+        $token.style.left   = tokenX + 'px';
+        $token.style.top    = tokenY   + 'px';
+        $cursor.style.left  = cursorX + 'px';
+        $cursor.style.top   = cursorY   + 'px';
 
-        // Visual feedback
+        // Void visuals
         if (inVoid) {
             $voidZone.classList.add('active');
             $ring.classList.add('visible');
@@ -332,34 +392,50 @@ html, body {
             document.body.style.setProperty('--mx', (mouseX / window.innerWidth * 100) + '%');
             document.body.style.setProperty('--my', (mouseY / window.innerHeight * 100) + '%');
 
-            var depth = distFromCenter / VOID_RADIUS;
-            $vignette.classList.toggle('heavy', depth > 0.3);
+            var depth = clamp(mouseDist / VOID_RADIUS, 0, 1);
+            $vignette.classList.toggle('heavy', isEngaged && depth > 0.25);
+            $voidLabel.classList.toggle('visible', isEngaged);
+
+            // Token dims with depth (feels swallowed)
+            var tokenAlpha = 1 - depth * 0.45;
+            var cursorAlpha = 0.5 + (1 - depth) * 0.4;
+            $token.style.opacity   = clamp(tokenAlpha, 0.2, 1);
+            $cursor.style.opacity  = clamp(cursorAlpha, 0.35, 0.95);
+
+            // Cursor size breathes with latency tension
+            var scaleBase = isEngaged ? 1 + depth * 0.3 : 1;
+            var breathe   = Math.sin(now / 200) * 0.08;
+            $cursor.style.transform = 'translate(-50%, -50%) scale(' + (scaleBase + breathe) + ')';
         } else {
             $voidZone.classList.remove('active');
             $ring.classList.remove('visible');
             $pressure.classList.remove('active');
             $vignette.classList.remove('heavy');
+            $voidLabel.classList.remove('visible');
+            $token.style.opacity   = 1;
+            $cursor.style.opacity  = 1;
+            $cursor.style.transform = 'translate(-50%, -50%) scale(1)';
         }
 
-        // HUD latency display
-        if (inVoid) {
-            var displayLag = Math.round(SYRUP_LAG + SYRUP_LAG * distFromCenter / VOID_RADIUS);
-            displayLag = clamp(displayLag, SYRUP_LAG, 300);
-            $hudValue.textContent = displayLag + 'ms';
-            $hudFill.style.width = clamp((displayLag / 300) * 100, 0, 100) + '%';
+        // ── HUD ─────────────────────────────────────────────
+        var displayLatency = Math.round(latencyMs);
+        $hudLabel.textContent = displayLatency + 'ms';
+        $hudFill.style.width = (clamp(displayLatency / MAX_LATENCY_MS, 0, 1) * 100) + '%';
+
+        // ── ESCAPE PREVENTION / PANIC INDUCTION ────────────
+        if (inVoid && latencyMs > 50) {
+            var trailDist = dist(cursorX, cursorY, tokenX, tokenY);
+            $cursor.style.boxShadow = '0 0 ' + (8 + trailDist * 0.3) + 'px rgba(160, 100, 255, ' + clamp(trailDist / 100, 0.15, 0.7) + ')';
         } else {
-            $hudValue.textContent = '0ms';
-            $hudFill.style.width = '0%';
+            $cursor.style.boxShadow = '0 0 10px rgba(160, 100, 255, 0.25)';
         }
 
-        // Token/cursor opacity based on depth
-        if (inVoid) {
-            var d = distFromCenter / VOID_RADIUS;
-            $token.style.opacity = 1 - d * 0.4;
-            $cursor.style.opacity = 0.6 + (1 - d) * 0.4;
+        // Full-screen darkening as engagement deepens (panic induction)
+        if (isEngaged) {
+            var darkness = clamp(dist(cursorX, cursorY, tokenX, tokenY) / 120 * 0.3, 0, 0.35);
+            document.body.style.background = 'rgb(' + Math.round(8 - darkness * 4) + ',' + Math.round(8 - darkness * 4) + ',' + Math.round(12 - darkness * 6) + ')';
         } else {
-            $token.style.opacity = 1;
-            $cursor.style.opacity = 1;
+            document.body.style.background = '#08080c';
         }
     }
 
