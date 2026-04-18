@@ -108,6 +108,14 @@ html, body {
     text-align: right;
 }
 
+#hud-phase {
+    min-width: 36px;
+    text-align: left;
+    color: rgba(200, 160, 255, 0.6);
+    font-size: 10px;
+    letter-spacing: 3px;
+}
+
 #pressure {
     position: fixed;
     inset: 0;
@@ -191,9 +199,10 @@ html, body {
 <div id="vignette"></div>
 <div id="entrance-flash"></div>
 <div id="hud">
-     <span>LATENCY</span>
-     <div id="hud-bar"><div id="hud-fill"></div></div>
-     <span id="hud-label">0ms</span>
+    <span>LATENCY</span>
+    <div id="hud-bar"><div id="hud-fill"></div></div>
+    <span id="hud-label">0ms</span>
+    <span id="hud-phase">PULL</span>
 </div>
 <div id="info">drag into the void</div>
 
@@ -201,51 +210,60 @@ html, body {
 (function() {
     'use strict';
 
-    // ── HARD-CODED CONFIG (non-tunable) ─────────────────────
-    var VOID_CENTER_X  = window.innerWidth  / 2;
-    var VOID_CENTER_Y  = window.innerHeight / 2;
-    var VOID_RADIUS    = 180;
-    var MAX_LATENCY_MS = 150;              // exact lock point
-    var RAMP_DURATION  = 600;              // ms to ramp from 0 → 150ms (non-linear)
-    var LERP_OUTSIDE   = 0.32;             // buttery-smooth outside void
+    // ── HARD-CODED CONFIG (non-tunable, unchangeable) ────────────
+    var VOID_CENTER_X   = window.innerWidth  / 2;
+    var VOID_CENTER_Y   = window.innerHeight / 2;
+    var VOID_RADIUS      = 180;
+    var MAX_LATENCY_MS = 150;                // exact, unbreakable lock point
+    var RAMP_DURATION   = 600;               // total ramp: drag(200) + breath(200) + snap(200)
+    var LERP_OUTSIDE     = 0.32;             // buttery-smooth outside void
 
-    // ── STATE ───────────────────────────────────────────────
-    var mouseX = VOID_CENTER_X;
-    var mouseY = VOID_CENTER_Y;
-    var tokenX = VOID_CENTER_X;
-    var tokenY = VOID_CENTER_Y;
-    var cursorX = VOID_CENTER_X;
-    var cursorY = VOID_CENTER_Y;
+    // Phase timing (hard-coded, cannot be tuned or escaped)
+    var DRAG_DURATION   = 200;               // drag phase: gentle initial resistance
+    var BREATH_DURATION = 200;               // breath phase: breathing tension
+    var SNAP_THRESHOLD  = 400;               // snap phase: hard 150ms lock
 
-    var inVoid       = false;
-    var enteredAt    = 0;                 // timestamp of void entry
-    var latencyMs    = 0;                 // current effective latency
-    var isEngaged    = false;             // true once full 150ms lock reached
-    var hasEntered   = false;
+    // ── STATE ────────────────────────────────────────────────────
+    var mouseX        = VOID_CENTER_X;
+    var mouseY        = VOID_CENTER_Y;
+    var tokenX        = VOID_CENTER_X;
+    var tokenY        = VOID_CENTER_Y;
+    var cursorX       = VOID_CENTER_X;
+    var cursorY       = VOID_CENTER_Y;
 
-    // Position history buffer (stores every frame)
-    var history = [];                     // [{x, y, t}]
+    var inVoid        = false;
+    var enteredAt     = 0;                   // timestamp of void entry
+    var latencyMs     = 0;                   // current effective latency (clamped to [0, 150])
+    var currentPhase  = 'drag';              // 'drag' | 'breath' | 'snap'
+    var breathPulse   = 0;                   // breathing oscillation amplitude
+    var pullBackForce = 0;                   // phantom pull-back (drag/breath resistance)
+    var isEngaged     = false;               // true once full 150ms snap lock reached
+    var hasEntered    = false;
 
-    // ── DOM REFS ────────────────────────────────────────────
-    var $token        = document.getElementById('token');
-    var $cursor       = document.getElementById('cursor');
-    var $voidZone     = document.getElementById('void-zone');
-    var $ring         = document.getElementById('boundary-ring');
-    var $pressure     = document.getElementById('pressure');
-    var $vignette     = document.getElementById('vignette');
-    var $flash        = document.getElementById('entrance-flash');
-    var $hudFill      = document.getElementById('hud-fill');
-    var $hudLabel     = document.getElementById('hud-label');
-    var $info         = document.getElementById('info');
-    var $voidLabel    = document.getElementById('void-label');
+    // Position history buffer (stores every frame for lookback)
+    var history       = [];                  // [{x, y, t}]
 
-    // ── HELPERS ─────────────────────────────────────────────
+    // ── DOM REFS ────────────────────────────────────────────────
+    var $token         = document.getElementById('token');
+    var $cursor        = document.getElementById('cursor');
+    var $voidZone      = document.getElementById('void-zone');
+    var $ring          = document.getElementById('boundary-ring');
+    var $pressure      = document.getElementById('pressure');
+    var $vignette      = document.getElementById('vignette');
+    var $flash         = document.getElementById('entrance-flash');
+    var $hudFill       = document.getElementById('hud-fill');
+    var $hudLabel      = document.getElementById('hud-label');
+    var $hudPhase      = document.getElementById('hud-phase');
+    var $info          = document.getElementById('info');
+    var $voidLabel     = document.getElementById('void-label');
+
+    // ── HELPERS ─────────────────────────────────────────────────
     function dist(x1, y1, x2, y2) {
         return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
     }
     function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
-    // ── INPUT ───────────────────────────────────────────────
+    // ── INPUT ───────────────────────────────────────────────────
     document.addEventListener('mousemove', function(e) {
         mouseX = e.clientX;
         mouseY = e.clientY;
@@ -268,19 +286,55 @@ html, body {
         mouseY = e.touches[0].clientY;
     }, { passive: false });
 
-    // ── NON-LINEAR RAMP CURVE ───────────────────────────────
-    // Smoothstep-like but biased toward heavy resistance at end.
-    // Starts gentle, then SNAPS hard near full engagement — simulating
-    // syrup thickening as you push deeper.
+    // ── SYRUP MULTIPLIER (depth-sensitive resistance) ───────────
+    // The deeper you push into the void, the harder it is to move.
+    // 0 at boundary → exponential rise toward center. Core syrup mechanic.
+    function syrupMultiplier(mouseDist) {
+        var d = 1 - clamp(mouseDist / VOID_RADIUS, 0, 1);
+        return Math.pow(d, 2) * (1 + d);
+    }
+
+    // ── PHASE DETECTION ────────────────────────────────────────
+    // Returns which syrup phase the cursor is in based on elapsed time.
+    function getPhase(elapsed) {
+        if (elapsed < DRAG_DURATION)   return 'drag';
+        if (elapsed < SNAP_THRESHOLD)  return 'breath';
+        return 'snap';                     // >=400ms → hard lock at 150ms
+    }
+
+    // ── NON-LINEAR RAMP CURVE (piecewise: drag → breath → snap) ─
+    // Three-phase curve enforces strict, non-linear latency increase.
+    //   DRAG(0–200ms):  gentle, cursor feels light initially
+    //   BREATH(200–400ms): tension rises, syrup thickens visibly
+    //   SNAP(400–600ms): hard lock — 150ms enforced, no escape possible
     function rampEasing(t) {
         if (t <= 0) return 0;
         if (t >= 1) return 1;
-        var p = t * t * (3 - 2 * t);       // smoothstep base
-        var q = Math.pow(p, 1.8);           // bias curve: heavy late-phase
-        return clamp(q, 0, 1);
+
+        var dragEnd     = DRAG_DURATION     / RAMP_DURATION;   // ~0.333
+        var breathEnd   = (DRAG_DURATION + BREATH_DURATION) / RAMP_DURATION; // ~0.667
+
+        if (t <= dragEnd) {
+            // ── DRAG: gentle initial resistance ──────────────
+            // Stays mostly flat, accelerating only at end of phase.
+            var dt = t / dragEnd;
+            return dt * dt * 0.35;                             // max ~35% of total in drag
+        } else if (t <= breathEnd) {
+            // ── BREATH: tension builds non-linearly ──────────
+            // Syrup thickens noticeably — user feels the weight increase.
+            var bt = (t - dragEnd) / (breathEnd - dragEnd);
+            var inverted = 1 - bt;
+            var s = inverted * inverted * (3 - 2 * inverted);  // smoothstep on inv.
+            return 0.35 + s * 0.45;                            // climbs to ~80% at breath end
+        } else {
+            // ── SNAP: hard 150ms lock, no escape ─────────────
+            // Final push snaps cursor into full syrup — impossible to outrun.
+            var st = (t - breathEnd) / (1 - breathEnd);
+            return 0.80 + Math.pow(st, 2.5) * 0.20;            // locks at exactly 1.0
+        }
     }
 
-    // ── MAIN LOOP ───────────────────────────────────────────
+    // ── MAIN LOOP ───────────────────────────────────────────────
     var lastTime = performance.now();
 
     function loop(now) {
@@ -297,17 +351,20 @@ html, body {
             history.shift();
         }
 
-        // ── VOID DETECTION ────────────────────────────────
+        // ── VOID DETECTION ───────────────────────────────────────
         var mouseDist = dist(mouseX, mouseY, VOID_CENTER_X, VOID_CENTER_Y);
         var wasInVoid = inVoid;
         inVoid = mouseDist < VOID_RADIUS;
 
         if (inVoid && !wasInVoid) {
-            hasEntered = true;
-            enteredAt  = now;
-            latencyMs  = 0;
-            isEngaged  = false;
-            history    = [];               // reset buffer clean on entry
+            hasEntered    = true;
+            enteredAt     = now;
+            latencyMs     = 0;
+            isEngaged     = false;
+            currentPhase  = 'drag';
+            pullBackForce = 0;
+            breathPulse   = 0;
+            history       = [];                          // reset buffer clean on entry
 
             $flash.style.setProperty('--mx', (mouseX / window.innerWidth * 100) + '%');
             $flash.style.setProperty('--my', (mouseY / window.innerHeight * 100) + '%');
@@ -315,45 +372,80 @@ html, body {
             setTimeout(function() { $flash.classList.remove('visible'); }, 600);
         }
 
-        // ── LATENCY CALCULATION (non-linear ramp → lock at 150ms) ─
+        // ── LATENCY CALCULATION (piecewise phase ramp → hard lock at 150ms) ─
         if (inVoid) {
-            var elapsed = now - enteredAt;
-            var rampT   = clamp(elapsed / RAMP_DURATION, 0, 1);
-            latencyMs   = MAX_LATENCY_MS * rampEasing(rampT);
+            var elapsed = now - enteredAt;              // ms since void entry
+            var depth   = dist(mouseX, mouseY, VOID_CENTER_X, VOID_CENTER_Y) / VOID_RADIUS;
+            var amp     = 1 - clamp(depth, 0, 1);       // 0 at edge, 1 at center
 
-            if (rampT >= 1) {
-                isEngaged = true;
-                latencyMs = MAX_LATENCY_MS;    // HARD LOCK at exactly 150ms
+            // Phase detection (time-based, unchangeable)
+            currentPhase = getPhase(elapsed);
+
+            // ── DRAG PHASE (0–200ms): gentle syrup drag ──────────────
+            if (currentPhase === 'drag') {
+                var rampT  = clamp(elapsed / DRAG_DURATION, 0, 1);
+                latencyMs  = MAX_LATENCY_MS * (rampT * rampT * 0.35); // gentle curve to ~52ms max
+                pullBackForce = syrupMultiplier(mouseDist) * 8 * (1 - clamp(elapsed / DRAG_DURATION, 0, 1));
             }
+
+            // ── BREATH PHASE (200–400ms): breathing tension builds ───
+            if (currentPhase === 'breath') {
+                var bt = clamp((elapsed - DRAG_DURATION) / (SNAP_THRESHOLD - DRAG_DURATION), 0, 1);
+                var inv  = 1 - bt;
+                var base = inv * inv * (3 - 2 * inv);                  // inverted smoothstep
+                latencyMs  = MAX_LATENCY_MS * (0.35 + base * 0.45);    // ramps from ~52ms to ~126ms
+                pullBackForce = syrupMultiplier(mouseDist) * 18 * (1 - bt);
+            }
+
+            // ── SNAP PHASE (>=400ms): hard lock at exactly 150ms ────
+            if (currentPhase === 'snap') {
+                latencyMs   = MAX_LATENCY_MS;                           // HARD LOCK — cannot be reduced
+                isEngaged   = true;
+                pullBackForce = syrupMultiplier(mouseDist) * 24;        // maximum phantom resistance
+            }
+
+            // Depth-sensitive extra drag (non-snap phases only)
+            if (currentPhase !== 'snap' && depth < 1) {
+                var extraDrag = syrupMultiplier(mouseDist) * latencyMs * 0.3;
+                latencyMs = Math.min(latencyMs + extraDrag, MAX_LATENCY_MS);
+            }
+
+            // Breathing oscillation (peak during breath phase, fades in snap)
+            breathPulse = Math.sin(now / (180 - depth * 60)) * depth * 0.12;
         } else {
-            // Leave void — immediately dissolve latency
-            isEngaged  = false;
-            latencyMs *= Math.pow(0.7, dt);    // exponential decay to 0
+            // Leave void — latency dissolves, all state resets immediately
+            isEngaged     = false;
+            currentPhase  = 'drag';
+            pullBackForce = 0;
+            breathPulse   = 0;
+            latencyMs    *= Math.pow(0.7, dt);                         // exponential decay to 0
         }
 
-        // ── TOKEN: follows mouse position (with slight smoothing) ─
+        // ── TOKEN: follows mouse with syrup resistance ───────────────
         if (inVoid) {
-            var lerpIn = 0.45;
+            // Lerp slows as phase progresses — snap is the hardest to control
+            var lerpIn = currentPhase === 'snap' ? 0.18 : (currentPhase === 'breath' ? 0.35 : 0.45);
             tokenX += (mouseX - tokenX) * lerpIn * dt;
             tokenY += (mouseY - tokenY) * lerpIn * dt;
 
-            // Hard wall: clamp token to void boundary
+            // Token hard-wall clamping at void boundary
             var tDist = dist(tokenX, tokenY, VOID_CENTER_X, VOID_CENTER_Y);
             if (tDist > VOID_RADIUS - 20) {
-                var angle = Math.atan2(tokenY - VOID_CENTER_Y, tokenX - VOID_CENTER_X);
-                tokenX = VOID_CENTER_X + Math.cos(angle) * (VOID_RADIUS - 20);
-                tokenY = VOID_CENTER_Y + Math.sin(angle) * (VOID_RADIUS - 20);
+                var a = Math.atan2(tokenY - VOID_CENTER_Y, tokenX - VOID_CENTER_X);
+                tokenX = VOID_CENTER_X + Math.cos(a) * (VOID_RADIUS - 20);
+                tokenY = VOID_CENTER_Y + Math.sin(a) * (VOID_RADIUS - 20);
             }
         } else {
             tokenX = mouseX;
             tokenY = mouseY;
         }
 
-        // ── CURSOR: delayed follower using historical data ──
+        // ── CURSOR: delayed follower via historical position lookback ──
         if (inVoid && history.length >= 2) {
-            // Look back `latencyMs` into the past.
-            // Early ramp: cursor follows closely (~0ms delay, barely syrupy).
-            // Full engagement: cursor is locked 150ms behind — escape impossible.
+            // Look back `latencyMs` into the past through buffered frames.
+            // Early drag: cursor follows closely (~0ms delay, barely syrupy).
+            // Breath phase: noticeable lag as tension builds.
+            // Snap phase: cursor locked 150ms behind — escape impossible.
             var targetTime = now - latencyMs;
 
             // Binary search backward for sample closest to targetTime
@@ -378,11 +470,11 @@ html, body {
             cursorY += (tokenY - cursorY) * lerpSpeed;
         }
 
-        // ── VISUAL UPDATES ──────────────────────────────────
-        $token.style.left   = tokenX + 'px';
-        $token.style.top    = tokenY   + 'px';
-        $cursor.style.left  = cursorX + 'px';
-        $cursor.style.top   = cursorY   + 'px';
+        // ── VISUAL UPDATES ──────────────────────────────────────────
+        $token.style.left    = tokenX + 'px';
+        $token.style.top     = tokenY   + 'px';
+        $cursor.style.left   = cursorX + 'px';
+        $cursor.style.top    = cursorY   + 'px';
 
         // Void visuals
         if (inVoid) {
@@ -392,48 +484,90 @@ html, body {
             document.body.style.setProperty('--mx', (mouseX / window.innerWidth * 100) + '%');
             document.body.style.setProperty('--my', (mouseY / window.innerHeight * 100) + '%');
 
-            var depth = clamp(mouseDist / VOID_RADIUS, 0, 1);
-            $vignette.classList.toggle('heavy', isEngaged && depth > 0.25);
+            var d = clamp(mouseDist / VOID_RADIUS, 0, 1);
+
+            $vignette.classList.toggle('heavy', isEngaged && d > 0.25);
             $voidLabel.classList.toggle('visible', isEngaged);
 
-            // Token dims with depth (feels swallowed)
-            var tokenAlpha = 1 - depth * 0.45;
-            var cursorAlpha = 0.5 + (1 - depth) * 0.4;
-            $token.style.opacity   = clamp(tokenAlpha, 0.2, 1);
-            $cursor.style.opacity  = clamp(cursorAlpha, 0.35, 0.95);
+            // ── Phase-specific token visuals ──────────────────────
+            var tokenAlpha = 1 - d * 0.45;
+            var cursorAlpha = 0.5 + (1 - d) * 0.4;
+            $token.style.opacity    = currentPhase === 'snap' ? clamp(tokenAlpha * 0.7, 0.15, 1) : clamp(tokenAlpha, 0.2, 1);
 
-            // Cursor size breathes with latency tension
-            var scaleBase = isEngaged ? 1 + depth * 0.3 : 1;
-            var breathe   = Math.sin(now / 200) * 0.08;
-            $cursor.style.transform = 'translate(-50%, -50%) scale(' + (scaleBase + breathe) + ')';
+            // Cursor size: scale per phase
+            var scaleDrag    = 1 + d * 0.15 * clamp(elapsed / DRAG_DURATION, 0, 1);
+            var scaleBreath = 1 + d * 0.25 + breathPulse;
+            var scaleSnap    = 1 + d * 0.35 + Math.sin(now / 120) * 0.06;
+            var scaleBase = currentPhase === 'snap' ? scaleSnap : (currentPhase === 'breath' ? scaleBreath : scaleDrag);
+            $cursor.style.transform = 'translate(-50%, -50%) scale(' + clamp(scaleBase, 1, 1.5) + ')';
+
+            // ── Phase-specific cursor colors & glow ───────────────
+            var cBorder, cFill, cGlow;
+            if (currentPhase === 'drag') {
+                // Drag: soft purple, gentle glow — resistance feels light
+                cBorder = 'rgba(200, 160, 255, ' + clamp(0.5 + d * 0.3, 0.5, 0.8) + ')';
+                cFill   = 'radial-gradient(circle, rgba(180, 140, 255, 0.2), transparent)';
+                cGlow   = 'rgba(160, 100, 255, 0.3)';
+            } else if (currentPhase === 'breath') {
+                // Breath: pulsing magenta — tension rising, syrup thickening
+                var bc = Math.sin(now / 250) * 0.15 + 0.7;
+                cBorder = 'rgba(220, 140, 255, ' + clamp(bc, 0.5, 0.85) + ')';
+                cFill   = 'radial-gradient(circle, rgba(200, 120, 255, 0.35), transparent)';
+                cGlow   = 'rgba(180, 100, 255, ' + clamp(bc * 0.5, 0.25, 0.43) + ')';
+            } else {
+                // Snap: stark white-purple, heavy glow — void fully engaged
+                cBorder = 'rgba(240, 180, 255, 0.9)';
+                cFill   = 'radial-gradient(circle, rgba(220, 160, 255, 0.5), transparent)';
+                cGlow   = 'rgba(200, 140, 255, 0.6)';
+            }
+            $cursor.style.borderColor = cBorder;
+            $cursor.style.background  = cFill;
+            $cursor.style.boxShadow   = '0 0 ' + (8 + (currentPhase === 'snap' ? 25 : 12) * d) + 'px ' + cGlow;
+
+            // ── Phantom pull-back force (drag/breath phases) ───────
+            if (pullBackForce > 0) {
+                var pullAngle = Math.atan2(tokenY - VOID_CENTER_Y, tokenX - VOID_CENTER_X);
+                var pullDist   = currentPhase === 'drag' ? pullBackForce * 0.5 : pullBackForce * 1.2;
+                cursorX += Math.cos(pullAngle) * pullDist * 0.02;
+                cursorY += Math.sin(pullAngle) * pullDist * 0.02;
+            }
+
+            $cursor.style.opacity = clamp(cursorAlpha, 0.35, 0.95);
+
         } else {
             $voidZone.classList.remove('active');
             $ring.classList.remove('visible');
             $pressure.classList.remove('active');
             $vignette.classList.remove('heavy');
             $voidLabel.classList.remove('visible');
-            $token.style.opacity   = 1;
-            $cursor.style.opacity  = 1;
+            $token.style.opacity    = 1;
+            $cursor.style.opacity   = 1;
             $cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+            $cursor.style.borderColor = 'rgba(200, 160, 255, 0.7)';
+            $cursor.style.background  = 'radial-gradient(circle, rgba(200, 160, 255, 0.3), transparent)';
         }
 
-        // ── HUD ─────────────────────────────────────────────
+        // ── HUD ─────────────────────────────────────────────────────
         var displayLatency = Math.round(latencyMs);
+        var phaseLabel = currentPhase === 'drag'    ? 'PULL' : (currentPhase === 'breath' ? 'DRAG' : 'LOCK');
         $hudLabel.textContent = displayLatency + 'ms';
-        $hudFill.style.width = (clamp(displayLatency / MAX_LATENCY_MS, 0, 1) * 100) + '%';
+        $hudPhase.textContent = phaseLabel;
+        $hudFill.style.width  = (clamp(displayLatency / MAX_LATENCY_MS, 0, 1) * 100) + '%';
 
-        // ── ESCAPE PREVENTION / PANIC INDUCTION ────────────
+        // ── Escape prevention / panic induction ─────────────────────
         if (inVoid && latencyMs > 50) {
             var trailDist = dist(cursorX, cursorY, tokenX, tokenY);
-            $cursor.style.boxShadow = '0 0 ' + (8 + trailDist * 0.3) + 'px rgba(160, 100, 255, ' + clamp(trailDist / 100, 0.15, 0.7) + ')';
+            var snapGlow  = currentPhase === 'snap' ? trailDist * 0.5 : trailDist * 0.3;
+            $cursor.style.boxShadow = '0 0 ' + (8 + snapGlow) + 'px rgba(160, 100, 255, ' + clamp(trailDist / 100, 0.15, 0.7) + ')';
         } else {
             $cursor.style.boxShadow = '0 0 10px rgba(160, 100, 255, 0.25)';
         }
 
-        // Full-screen darkening as engagement deepens (panic induction)
+        // Full-screen darkening: intensifies through each phase
         if (isEngaged) {
             var darkness = clamp(dist(cursorX, cursorY, tokenX, tokenY) / 120 * 0.3, 0, 0.35);
-            document.body.style.background = 'rgb(' + Math.round(8 - darkness * 4) + ',' + Math.round(8 - darkness * 4) + ',' + Math.round(12 - darkness * 6) + ')';
+            var bgDark   = currentPhase === 'snap' ? 0.5 : 0.3;
+            document.body.style.background = 'rgb(' + Math.round(8 - darkness * 4 * bgDark) + ',' + Math.round(8 - darkness * 4 * bgDark) + ',' + Math.round(12 - darkness * 6 * bgDark) + ')';
         } else {
             document.body.style.background = '#08080c';
         }
