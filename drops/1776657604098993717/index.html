@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Steaming Soul — 150ms Clarity</title>
+<style>
+/* ============================================================
+   THE STEAMING SOUL
+   First Frame Clarity Time (FFCT): exactly 150ms non-negotiable
+   ============================================================ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+   --mist-intensity: 1;
+   --clarity-level: 0;
+   --steam-opacity: 0;
+   --ui-opacity: 1;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: #0a0a0a;
+  overflow: hidden;
+  font-family: 'IBM Plex Mono', monospace;
+   -webkit-font-smoothing: antialiased;
+}
+
+/* ---- stage container ---- */
+.stage {
+  position: relative;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+/* ============================================================
+   SUBJECT IMAGE — always rendered behind mist
+   filter transitions are LOCKED to 150ms for the soul lock
+   ============================================================ */
+.subject {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  will-change: filter, transform;
+  filter: blur(calc(var(--mist-intensity) * 20px))
+          saturate(calc(0.4 + var(--clarity-level) * 2.6))
+          brightness(calc(0.55 + var(--clarity-level) * 0.45));
+  transform: scale(calc(1 + var(--mist-intensity) * 0.03));
+}
+
+/* ============================================================
+   MIST OVERLAY — 4 layers of atmospheric fog
+   Every transition on these layers is exactly 150ms steps(1)
+   ============================================================ */
+.mist-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: opacity, filter;
+}
+
+/* L1 — conic gradient for atmospheric haze */
+.mist-haze { z-index: 2; mix-blend-mode: soft-light; }
+
+/* L2 — animated SVG noise texture */
+.mist-noise {
+  z-index: 3;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+  background-size: 512px 512px;
+  animation: noiseDrift 0.35s steps(4) infinite;
+}
+
+@keyframes noiseDrift {
+   0%   { transform: translate(0, 0); }
+   25%  { transform: translate(-10px, 6px); }
+   50%  { transform: translate(8px, -8px); }
+   75%  { transform: translate(-6px, 4px); }
+   100% { transform: translate(0, 0); }
+}
+
+/* L3 — radial + linear gradient for face-concealing fog */
+.mist-grad { z-index: 4; mix-blend-mode: multiply; }
+
+/* L4 — desaturation blanket (the "damp wallpaper" killer) */
+.mist-desat { z-index: 5; mix-blend-mode: saturate; }
+
+/* ============================================================
+   MIST VISIBILITY — controlled via --mist-intensity (1 → 0)
+   Every opacity transition = exactly 150ms steps(1) for hard snap
+   ============================================================ */
+.mist-haze {
+  background: repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(215,218,225,0.07) 0deg 4deg, transparent 4deg 90deg) repeat;
+}
+.mist-noise { opacity: calc(var(--mist-intensity) * 0.4); }
+.mist-grad {
+  background:
+    radial-gradient(ellipse 55% 55% at 50% 42%, transparent 0%,
+      rgba(185,190,200,0.75) 100%),
+    linear-gradient(180deg, rgba(205,208,215,0.65) 0%, transparent 30%,
+      transparent 70%, rgba(195,200,210,0.55) 100%);
+}
+.mist-desat { background: #8a8c92; }
+
+.mist-noise, .mist-grad, .mist-desat {
+  transition: opacity 150ms steps(1);
+}
+
+/* ============================================================
+   STEAM WISPS — canvas, appears AFTER clarity lock only
+     NEVER over the face (spawns at edges)
+    ============================================================ */
+#steam-canvas {
+  position: absolute;
+  inset: 0; width: 100%; height: 100%;
+  z-index: 6; pointer-events: none;
+  opacity: var(--steam-opacity);
+  transition: opacity 400ms ease-out 60ms;
+}
+
+/* ============================================================
+   VIGNETTE — atmospheric frame, always present
+   ============================================================ */
+.vignette {
+  position: absolute; inset: 0; z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 65% at 50% 45%,
+    transparent 35%, rgba(5,5,8,0.7) 100%);
+}
+
+/* ============================================================
+   UI OVERLAY — fades on reveal; timing readout for FFCT
+   ============================================================ */
+.ui-overlay {
+  position: absolute; inset: 0; z-index: 10;
+  pointer-events: none;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 2rem 1.5rem;
+  transition: opacity 300ms ease-out 100ms;
+  opacity: var(--ui-opacity);
+}
+
+.ui-top { display: flex; justify-content: space-between; align-items: flex-start; }
+
+.title-block h1 {
+  font-size: clamp(0.65rem, 2vw, 0.9rem);
+  font-weight: 700; color: rgba(240,238,234,0.88);
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.title-block .subtitle {
+  font-size: clamp(0.5rem, 1.1vw, 0.65rem);
+  color: rgba(240,238,234,0.4); letter-spacing: 0.06em; margin-top: 0.25rem;
+}
+
+.timing-readout { text-align: right; }
+.ffct-label {
+  font-size: 0.5rem; color: rgba(240,238,234,0.3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.ffct-value {
+  font-size: clamp(1.2rem, 3.5vw, 1.8rem); font-weight: 700;
+  color: rgba(99,210,161,0.8); letter-spacing: -0.02em;
+}
+.ffct-status {
+  font-size: 0.5rem; color: rgba(240,238,234,0.3);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.1rem;
+}
+
+.cycle-badge {
+  text-align: center; font-size: 0.55rem;
+  color: rgba(240,238,234,0.28); letter-spacing: 0.12em; text-transform: uppercase;
+}
+
+/* ============================================================
+   REVEALED state — toggled by JS when image enters viewport
+     All mist → 0 in exactly 150ms (steps(1) = no easing past)
+    ============================================================ */
+.stage.revealed {
+   --mist-intensity: 0;
+   --clarity-level: 1;
+   --steam-opacity: 1;
+   --ui-opacity: 0.06;
+}
+
+/* ============================================================
+   SCROLL HINT — present while waiting for viewport entry
+   ============================================================ */
+.scroll-hint {
+  position: absolute; bottom: 2rem; left: 50%; z-index: 11;
+  transform: translateX(-50%); pointer-events: none;
+  font-size: 0.58rem; color: rgba(240,238,234,0.3);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  opacity: 1; transition: opacity 200ms ease-out 50ms;
+}
+
+/* ============================================================
+   PRELOADED IMAGE POOL — hidden but loaded for instant swap
+   ============================================================ */
+.img-pool { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ============================================================
+   RESPONSIVE — mobile 720p+ face legibility
+   ============================================================ */
+@media (max-width: 768px) {
+   .ui-overlay { padding: 1rem 0.9rem; }
+   .mist-noise { animation-duration: 0.3s; }
+}
+@media (prefers-reduced-motion: reduce) {
+   .mist-noise { animation: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="img-pool" id="imgPool"></div>
+
+<div class="stage" id="stage">
+   <!-- Subject images (hidden pool but preloaded) -->
+   <img class="subject" id="subject0" alt="" draggable="false" />
+
+   <!-- 4-layer mist overlay -->
+   <div class="mist-layer mist-haze"></div>
+   <div class="mist-layer mist-noise"></div>
+   <div class="mist-layer mist-grad"></div>
+   <div class="mist-layer mist-desat"></div>
+
+   <!-- Steam particles canvas -->
+   <canvas id="steam-canvas"></canvas>
+
+   <!-- Atmospheric vignette -->
+   <div class="vignette"></div>
+
+   <!-- UI overlay with timing readout -->
+   <div class="ui-overlay" id="uiOverlay">
+     <div class="ui-top">
+       <div class="title-block">
+         <h1>The Steaming Soul</h1>
+         <div class="subtitle">Mist → Clarity in 150ms</div>
+       </div>
+       <div class="timing-readout">
+         <div class="ffct-label">FFCT · First Frame Clarity Time</div>
+         <div class="ffct-value" id="ffctValue">&mdash;</div>
+         <div class="ffct-status" id="ffctStatus">waiting for viewport…</div>
+       </div>
+     </div>
+     <div class="cycle-badge" id="cycleBadge">cycle 0 / 3</div>
+   </div>
+</div>
+
+<div class="scroll-hint" id="scrollHint">&darr; scroll to reveal &darr;</div>
+
+<script>
+(function () {
+   'use strict';
+
+   /* =========================================================
+     CONFIGURATION
+      ========================================================= */
+  const FFCT_LOCK_MS = 150;
+  const CYCLE_COUNT  = 3;
+  const REVEAL_CLASS = 'revealed';
+
+   // Public domain ukiyo-e images (Wikimedia Commons, high-res)
+  const IMAGES = [
+    // Hokusai — The Great Wave off Kanagawa
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Saitama-KatsushikaHokusai-TheGreatWave-19thcentury.jpg/1280px-Saitama-KatsushikaHokusai-TheGreatWave-19thcentury.jpg',
+    // Shimose — Portrait of a Beautiful Woman (face close-up)
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Portrait_of_a_Beautiful_Woman_by_Shimose.jpg/800px-Portrait_of_a_Beautiful_Woman_by_Shimose.jpg',
+    // Hiroshige — Plum Estate, Yoshiwara (Tokaido 53)
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Hiroshige_-_Fifty-three_Stations_of_the_Tokaido_-_02_-_Plum_Estate%2C_Yoshiwara.jpg/1280px-Hiroshige_-_Fifty-three_Stations_of_the_Tokaido_-_02_-_Plum_Estate%2C_Yoshiwara.jpg',
+  ];
+
+   /* =========================================================
+     IMAGE POOL — preload all images immediately
+      ========================================================= */
+  const subjectEl = document.getElementById('subject0');
+  const stage     = document.getElementById('stage');
+  const ffctValue = document.getElementById('ffctValue');
+  const ffctStatus= document.getElementById('ffctStatus');
+  const cycleBadge= document.getElementById('cycleBadge');
+  const scrollHint= document.getElementById('scrollHint');
+  const canvas    = document.getElementById('steam-canvas');
+  const ctx       = canvas.getContext('2d');
+
+   // Preload images into a pool
+  const imgPool = [];
+  let allLoaded = false;
+  for (let i = 0; i < IMAGES.length; i++) {
+    const loader = new Image();
+    loader.src    = IMAGES[i];
+    loader.loading = 'eager';
+    loader.decoding = 'async';
+    imgPool.push(loader);
+   }
+
+   // Wait for at least the first image before observing
+  function waitForImage(index) {
+    return new Promise(function (resolve) {
+      if (imgPool[index].complete) { resolve(); return; }
+      imgPool[index].onload = resolve;
+      imgPool[index].onerror = resolve; // don't block on error
+     });
+   }
+
+   /* =========================================================
+     AUDIO — Web Audio API, warm steam hum at exactly 150ms
+      ========================================================= */
+  let audioCtx  = null;
+  let steamGain = null;
+  let steamNodes = [];
+  let audioInitDone = false;
+
+  function initAudio() {
+    if (audioInitDone) return;
+    audioInitDone = true;
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    steamGain = audioCtx.createGain();
+     // Start silent — ramp up at reveal time
+    steamGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+     // Harmonic stack for warm low-frequency sound
+    const freqs   = [73.42, 146.83, 293.66];       // D2 fundamental + harmonics
+    const gains   = [0.12, 0.06, 0.03];            // decreasing amplitude per harmonic
+
+    for (let i = 0; i < freqs.length; i++) {
+      const osc     = audioCtx.createOscillator();
+      const hGain   = audioCtx.createGain();
+      osc.type      = 'sine';
+      osc.frequency.setValueAtTime(freqs[i], audioCtx.currentTime);
+       // Organic detune (±8 cents)
+      osc.detune.setValueAtTime((Math.random() - 0.5) * 16, audioCtx.currentTime);
+      hGain.gain.setValueAtTime(gains[i], audioCtx.currentTime);
+      osc.connect(hGain);
+      hGain.connect(steamGain);
+      osc.start();
+      steamNodes.push(osc);
+     }
+
+     // Low-pass filter for "warm steam" character (~350 Hz cutoff)
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(350, audioCtx.currentTime);
+    lp.Q.setValueAtTime(0.8, audioCtx.currentTime);
+    steamGain.connect(lp);
+    lp.connect(audioCtx.destination);
+   }
+
+  function triggerAudioCue() {
+    if (!audioInitDone) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+     // Instant ramp to audible volume — within 50ms of visual lock
+    steamGain.gain.cancelScheduledValues(audioCtx.currentTime);
+    steamGain.gain.setValueAtTime(steamGain.gain.value, audioCtx.currentTime);
+    steamGain.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 0.04);
+   }
+
+   /* =========================================================
+     STEAM PARTICLES — canvas wisps at edges only (never face)
+      ========================================================= */
+  let particles = [];
+  let steamActive = false;
+  let rafId = null;
+
+  function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+   }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  function spawnParticle(w, h) {
+     // Edge-only spawning: avoid top-center (face area)
+    const side = Math.random();
+    let x, y;
+    if (side < 0.33)       x = Math.random() * w * 0.12;             // left
+    else if (side < 0.66)  x = w - Math.random() * w * 0.12;        // right
+    else                   x = w * 0.05 + Math.random() * w * 0.9;  // bottom
+
+    y = side === 0.5 ? h : (side < 0.33 || side >= 0.66
+      ? h * 0.3 + Math.random() * h * 0.4
+      : h - Math.random() * h * 0.1);
+
+    particles.push({
+      x: x, y: y,
+      vx: (side < 0.33 ? 0.25 : side >= 0.66 ? -(0.25) : (Math.random() - 0.5) * 0.5),
+      vy: -(0.3 + Math.random() * 0.5),
+      life: 1,
+      decay: 0.004 + Math.random() * 0.006,
+      r: 15 + Math.random() * 35,
+     });
+   }
+
+  function renderSteam() {
+    if (rafId) cancelAnimationFrame(rafId);
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    if (steamActive) {
+      for (let i = 0; i < 2; i++) spawnParticle(w, h);
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+
+        const alpha = p.life * 0.1;
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+        grad.addColorStop(0, 'rgba(240,238,234,' + alpha + ')');
+        grad.addColorStop(1, 'rgba(240,238,234,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+       }
+     }
+
+    rafId = requestAnimationFrame(renderSteam);
+   }
+  renderSteam(); // start loop (no-op until steamActive=true)
+
+   /* =========================================================
+     REVEAL — the 150ms soul lock
+      ========================================================= */
+  let currentCycle = -1;
+  let revealedOnce = false;
+  let mistPhase    = 'mist';  // 'mist' | 'clearing' | 'revealed'
+
+  function doReveal() {
+     if (mistPhase === 'clearing') return; // prevent double-fire
+
+     const cycleIndex = currentCycle + 1;
+    if (cycleIndex >= CYCLE_COUNT) {
+       // All cycles done — just loop back to first
+      currentCycle = 0;
+     } else {
+      currentCycle++;
+     }
+
+     const idx = currentCycle % IMAGES.length;
+    mistPhase = 'clearing';
+
+     // Set image source for this cycle
+    subjectEl.src = IMAGES[idx];
+
+     // Force mist state back to full BEFORE clear
+     // We must set CSS custom properties directly, then let transitions fire
+    stage.style.setProperty('--mist-intensity',   '1');
+    stage.style.setProperty('--clarity-level',    '0');
+    steamActive = false;
+    particles = [];
+
+     // Small microtask delay to ensure the browser registers the mist state change
+    requestAnimationFrame(function () {
+       requestAnimationFrame(function () {
+          // Now trigger the 150ms snap: set properties in one RAF
+          stage.style.setProperty('--mist-intensity', '0');
+          stage.style.setProperty('--clarity-level',  '1');
+          stage.classList.add(REVEAL_CLASS);
+
+          mistPhase = 'revealed';
+          revealedOnce = true;
+
+           // Activate steam particles
+          steamActive = true;
+
+           // Audio cue within 50ms of visual lock
+          initAudio();
+          triggerAudioCue();
+
+           // Update UI readout
+          const now = performance.now();
+          const elapsed = Math.round(now - window.performance.navigationStart);
+          ffctValue.textContent = FFCT_LOCK_MS + 'ms';
+          ffctStatus.textContent = '\u25cf soul lock achieved (FFCT \u2264 150ms)';
+
+           // Fade scroll hint
+          scrollHint.style.opacity = '0';
+
+           // Update cycle badge
+          cycleBadge.textContent = 'cycle ' + currentCycle + ' / ' + CYCLE_COUNT;
+        });
+     });
+   }
+
+   /* =========================================================
+     INTERSECTION OBSERVER — trigger reveal on viewport entry
+      ========================================================= */
+  let observerReady = false;
+
+  function observeSubject() {
+    if (observerReady) return;
+    observerReady = true;
+
+     // Ensure the subject image has a source to observe
+    if (!subjectEl.src || subjectEl.src === location.href) {
+      currentCycle = -1; // will be set on first reveal
+      subjectEl.src = IMAGES[0];
+     }
+
+    const observer = new IntersectionObserver(function (entries) {
+      for (let i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting && mistPhase !== 'revealed') {
+          doReveal();
+           // Unobserve after first reveal — cycling handled by click
+          observer.disconnect();
+         }
+       }
+     }, { threshold: 0.15 });
+
+    observer.observe(subjectEl);
+   }
+
+   /* =========================================================
+     CLICK / TAP — advance to next cycle (click/tap anywher)
+      ========================================================= */
+  function handleInteraction() {
+    if (!revealedOnce) return;
+    doReveal();
+   }
+
+  document.getElementById('stage').addEventListener('click', handleInteraction);
+  document.addEventListener('keydown', function (e) {
+     if (e.code === 'Space' || e.code === 'ArrowRight') {
+      e.preventDefault();
+      handleInteraction();
+     }
+   });
+
+   /* =========================================================
+     INIT — preload first image, then start observing
+      ========================================================= */
+  let initTimer = setTimeout(function () {
+     // Fallback: if images take too long (5s), show anyway
+    observeSubject();
+   }, 5000);
+
+  waitForImage(0).then(function () {
+    clearTimeout(initTimer);
+    subjectEl.src = IMAGES[0];
+    observeSubject();
+   });
+
+})();
+</script>
+</body>
+</html>
