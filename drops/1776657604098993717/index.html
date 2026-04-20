@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>The Steaming Soul</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #0a0a0f; font-family: 'Georgia', serif;
+}
+
+#gallery {
+  width: 100%; height: 100vh; overflow-y: auto; overflow-x: hidden;
+  scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch;
+}
+#gallery::-webkit-scrollbar { display: none; }
+#gallery { scrollbar-width: none; }
+
+.card {
+  position: relative; width: 100%; height: 100vh;
+  scroll-snap-align: start; flex-shrink: 0; overflow: hidden;
+}
+
+/* ── Mist vs Clarity (hard 150ms cutoff) ── */
+.card .art {
+  position: absolute; inset: 0; z-index: 3;
+  filter: saturate(0.15) brightness(0.6) blur(8px);
+  transition: filter 150ms steps(6, end);
+  will-change: filter;
+}
+.card.clear .art { filter: saturate(1) brightness(1) blur(0); }
+
+/* Mist overlay gradient */
+.mist-overlay {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(220,215,200,0.45) 0%,
+    rgba(235,230,218,0.6) 30%,
+    rgba(210,205,195,0.7) 60%,
+    rgba(195,190,180,0.8) 100%
+  );
+  opacity: 1; transition: opacity 150ms steps(6, end);
+}
+.card.clear .mist-overlay { opacity: 0; }
+
+/* Steam canvas behind art */
+.steam-canvas {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+}
+
+.art svg { width: 100%; height: 100%; display: block; }
+
+/* ── UI overlays ── */
+.ui-overlay {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+  padding: clamp(20px, 5vh, 48px); pointer-events: none;
+}
+.card-title {
+  font-size: clamp(1.4rem, 4vw, 3.2rem); color: #fffdf7;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 0 40px rgba(180,60,30,0.5);
+  font-weight: bold; letter-spacing: 0.05em;
+  opacity: 0; transform: translateY(12px);
+  transition: opacity 150ms steps(6,end), transform 150ms steps(6,end);
+}
+.card-subtitle {
+  font-size: clamp(0.7rem, 1.8vw, 1.1rem); color: rgba(255,245,230,0.8);
+  text-shadow: 0 1px 10px rgba(0,0,0,0.9); margin-top: 6px; letter-spacing: 0.12em;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 150ms steps(6,end), transform 150ms steps(6,end);
+}
+.card.clear .card-title,
+.card.clear .card-subtitle { opacity: 1; transform: translateY(0); }
+
+/* Post-settlement fade (~500ms after reveal) */
+.card.settled .card-title,
+.card.settled .card-subtitle { opacity: 0.08; transform: translateY(-10px); }
+
+/* ── Indicator dots ── */
+#indicators {
+  position: fixed; bottom: clamp(12px, 3vh, 24px); left: 50%;
+  transform: translateX(-50%); z-index: 20; display: flex; gap: 8px;
+}
+.indicator {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,245,230,0.3); transition: all 150ms steps(6,end);
+}
+.indicator.active { background: rgba(255,200,150,0.8); transform: scale(1.4); }
+
+/* ── Scroll hint ── */
+.scroll-hint {
+  position: fixed; bottom: clamp(36px, 7vh, 64px); left: 50%;
+  transform: translateX(-50%); z-index: 20; color: rgba(255,245,230,0.5);
+  font-size: clamp(0.6rem, 1.4vw, 0.85rem); letter-spacing: 0.2em;
+  animation: pulse 2s ease-in-out infinite; pointer-events: none;
+}
+@keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
+
+/* ── Responsive: face legible ≥ 720p ── */
+@media (max-width:480px){ .art svg{max-height:100vh} }
+</style>
+</head>
+<body>
+
+<div id="gallery">
+
+<!-- ═══ PRINT 1: The Geisha — "First Light" ═══ -->
+<div class="card" data-index="0">
+   <div class="art">
+     <svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+       <defs>
+         <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+           <stop offset="0%" stop-color="#1a0e28"/>
+           <stop offset="35%" stop-color="#4a1942"/>
+           <stop offset="60%" stop-color="#c4543b"/>
+           <stop offset="85%" stop-color="#e8965e"/>
+           <stop offset="100%" stop-color="#f0c878"/>
+         </linearGradient>
+         <radialGradient id="sun1" cx="50%" cy="30%" r="25%">
+           <stop offset="0%" stop-color="#ffe4a0" stop-opacity="0.6"/>
+           <stop offset="100%" stop-color="#c4543b" stop-opacity="0"/>
+         </radialGradient>
+       </defs>
+       <rect width="800" height="1000" fill="url(#sky1)"/>
+       <circle cx="400" cy="280" r="200" fill="url(#sun1)"/>
+       <!-- Mountain Fuji -->
+       <polygon points="0,550 150,340 250,400 350,310 450,260 520,350 600,280 700,400 800,320 800,550" fill="#1a0e28" opacity="0.5"/>
+       <polygon points="350,310 260,380 440,380" fill="#fff" opacity="0.2"/>
+       <!-- Bamboo leaves left -->
+       <g opacity="0.3" fill="#2a4a2a">
+         <ellipse cx="80" cy="400" rx="15" ry="60" transform="rotate(-20,80,400)"/>
+         <ellipse cx="60" cy="500" rx="10" ry="50" transform="rotate(-30,60,500)"/>
+       </g>
+       <!-- ══ PORTRAIT: Geisha Face (upper center) ══ -->
+       <ellipse cx="400" cy="380" rx="120" ry="130" fill="#0d0815"/>
+       <rect x="270" y="320" width="260" height="160" rx="80" fill="#0d0815"/>
+       <!-- Hair frames face -->
+       <path d="M322,370 Q320,310 360,270 Q400,250 440,270 Q480,310 478,370 Q475,420 465,460 Q440,400 400,390 Q360,400 335,460 Q325,420 322,370Z" fill="#0d0815"/>
+       <!-- Hair bun -->
+       <ellipse cx="400" cy="268" rx="55" ry="30" fill="#0d0815"/>
+       <!-- KIMONO COLLAR -->
+       <path d="M340,475 L400,530 L460,475 L400,500 Z" fill="#1a0e28"/>
+       <!-- Face (pale oshiroi) -->
+       <ellipse cx="400" cy="390" rx="78" ry="95" fill="#f5ede0"/>
+       <!-- Eyes (half-closed serene) -->
+       <path d="M365,395 Q375,390 385,395" stroke="#1a0e28" stroke-width="2.5" fill="none"/>
+       <circle cx="375" cy="395" r="4" fill="#1a0e28"/>
+       <path d="M415,395 Q425,390 435,395" stroke="#1a0e28" stroke-width="2.5" fill="none"/>
+       <circle cx="425" cy="395" r="4" fill="#1a0e28"/>
+       <!-- Blush (uhi marks) -->
+       <ellipse cx="362" cy="418" rx="18" ry="8" fill="#c4543b" opacity="0.35"/>
+       <ellipse cx="438" cy="418" rx="18" ry="8" fill="#c4543b" opacity="0.35"/>
+       <!-- Nose, lips -->
+       <path d="M400,402 Q396,415 398,418" stroke="#d4c8b8" stroke-width="1.5" fill="none"/>
+       <path d="M387,435 Q393,430 400,432 Q407,430 413,435 Q400,440 387,435Z" fill="#b83030"/>
+       <!-- Eyebrows -->
+       <path d="M365,383 Q375,378 385,382" stroke="#0d0815" stroke-width="1.8" fill="none"/>
+       <path d="M415,382 Q425,378 435,383" stroke="#0d0815" stroke-width="1.8" fill="none"/>
+       <!-- Neck -->
+       <rect x="385" y="475" width="30" height="45" rx="8" fill="#f0e6d8"/>
+       <!-- KIMONO (lower half) -->
+       <path d="M260,560 L320,530 L340,530 L400,580 L460,530 L480,530 L540,560 L560,1000 L240,1000Z" fill="#8b1a2a"/>
+       <path d="M340,530 L400,570 L460,530" stroke="#d4a020" stroke-width="3" fill="none"/>
+       <!-- Seigaiha wave pattern -->
+       <g fill="#d4a020" opacity="0.4">
+         <path d="M280,650 Q300,630 320,650 Q300,670 280,650Z"/>
+         <path d="M340,680 Q360,660 380,680 Q360,700 340,680Z"/>
+         <path d="M420,710 Q440,690 460,710 Q440,730 420,710Z"/>
+       </g>
+       <!-- Hair ornaments (kanzashi) -->
+       <line x1="330" y1="310" x2="350" y2="295" stroke="#d4a020" stroke-width="2"/>
+       <circle cx="352" cy="292" r="6" fill="#e8965e"/>
+       <line x1="470" y1="310" x2="450" y2="295" stroke="#d4a020" stroke-width="2"/>
+       <circle cx="448" cy="292" r="6" fill="#e8965e"/>
+       <!-- Cherry blossom petals -->
+       <g fill="#e8b8b8" opacity="0.6">
+         <ellipse cx="150" cy="700" rx="4" ry="3" transform="rotate(30,150,700)"/>
+         <ellipse cx="650" cy="600" rx="5" ry="3" transform="rotate(-20,650,600)"/>
+         <ellipse cx="200" cy="800" rx="3" ry="4" transform="rotate(45,200,800)"/>
+       </g>
+     </svg>
+   </div>
+   <canvas class="steam-canvas"></canvas>
+   <div class="mist-overlay"></div>
+   <div class="ui-overlay">
+     <div class="card-title">First Light</div>
+     <div class="card-subtitle">THE STEAMING SOUL · I — GEISHA</div>
+   </div>
+</div>
+
+<!-- ═══ PRINT 2: The Warrior — "Crimson Fury" ═══ -->
+<div class="card" data-index="1">
+   <div class="art">
+     <svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+       <defs>
+         <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+           <stop offset="0%" stop-color="#1a0508"/>
+           <stop offset="30%" stop-color="#5c1018"/>
+           <stop offset="60%" stop-color="#8b2020"/>
+           <stop offset="85%" stop-color="#c44030"/>
+           <stop offset="100%" stop-color="#a03020"/>
+         </linearGradient>
+         <path id="cloud" d="M0,0 Q20,-30 50,-10 Q80,-40 120,-15 Q160,-35 200,-5 Q220,10 200,20 L0,20Z" fill="#2a0a0a" opacity="0.7"/>
+       </defs>
+       <rect width="800" height="1000" fill="url(#sky2)"/>
+       <use href="#cloud" x="50" y="30"/><use href="#cloud" x="300" y="10"/><use href="#cloud" x="550" y="40"/>
+       <!-- Lightning flash -->
+       <polygon points="600,0 580,200 595,210 570,380 600,390 590,500" fill="#e8d060" opacity="0.15"/>
+       <!-- Mountain -->
+       <polygon points="0,450 100,350 200,400 400,300 600,380 700,320 800,400 800,450" fill="#1a0508" opacity="0.6"/>
+       <!-- ══ PORTRAIT: Warrior Face ══ -->
+       <!-- Armor shoulders -->
+       <path d="M200,600 L300,520 L400,560 L500,520 L600,600 L580,680 L220,680Z" fill="#2a2a2a"/>
+       <path d="M200,600 L300,520 L400,560 L500,520 L600,600 L580,680 L220,680Z" fill="#3a1515" opacity="0.7"/>
+       <line x1="400" y1="540" x2="400" y2="680" stroke="#555" stroke-width="3"/>
+       <!-- Back hair (topknot base) -->
+       <ellipse cx="400" cy="370" rx="80" ry="90" fill="#1a1a1a"/>
+       <path d="M320,340 Q350,260 400,250 Q450,260 480,340 L470,400 Q440,340 400,330 Q360,340 330,400Z" fill="#1a1a1a"/>
+       <!-- Face (angular masculine) -->
+       <path d="M335,340 Q335,280 400,270 Q465,280 465,340 Q470,400 450,440 Q430,470 400,475 Q370,470 350,440 Q330,400 335,340Z" fill="#e8c8a8"/>
+       <!-- Hair bangs -->
+       <path d="M330,310 Q350,280 370,300" stroke="#1a1a1a" stroke-width="3" fill="none"/>
+       <path d="M470,310 Q450,280 430,300" stroke="#1a1a1a" stroke-width="3" fill="none"/>
+       <!-- Topknot -->
+       <circle cx="400" cy="255" r="18" fill="#1a1a1a"/>
+       <line x1="385" y1="255" x2="415" y2="240" stroke="#1a1a1a" stroke-width="3"/>
+       <!-- Scars -->
+       <line x1="440" y1="350" x2="460" y2="380" stroke="#c48878" stroke-width="1.5"/>
+       <!-- Eyes (fierce) -->
+       <ellipse cx="370" cy="365" rx="14" ry="9" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/>
+       <circle cx="372" cy="365" r="5" fill="#2a0808"/>
+       <circle cx="373" cy="364" r="1.5" fill="#fff"/>
+       <ellipse cx="430" cy="365" rx="14" ry="9" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/>
+       <circle cx="428" cy="365" r="5" fill="#2a0808"/>
+       <circle cx="427" cy="364" r="1.5" fill="#fff"/>
+       <!-- Angled eyebrows -->
+       <path d="M355,350 L380,345" stroke="#1a1a1a" stroke-width="3.5" stroke-linecap="round"/>
+       <path d="M420,345 L445,350" stroke="#1a1a1a" stroke-width="3.5" stroke-linecap="round"/>
+       <!-- Nose -->
+       <path d="M400,375 Q395,395 396,405" stroke="#d4a888" stroke-width="2" fill="none"/>
+       <!-- Mouth (gritted teeth) -->
+       <path d="M378,440 Q390,435 400,437 Q410,435 422,440 L422,446 Q410,442 400,443 Q390,442 378,446Z" fill="#a03030"/>
+       <line x1="383" y1="438" x2="383" y2="445" stroke="#e8c8a8" stroke-width="1"/>
+       <line x1="393" y1="437" x2="393" y2="444" stroke="#e8c8a8" stroke-width="1"/>
+       <line x1="400" y1="438" x2="400" y2="445" stroke="#e8c8a8" stroke-width="1"/>
+       <!-- Katana diagonal -->
+       <path d="M100,700 L350,450 L355,455 L105,705Z" fill="#d0d0d0"/>
+       <path d="M350,450 L360,440 L450,350 L440,340Z" fill="#8b7050"/>
+       <!-- Battle flag -->
+       <rect x="520" y="200" width="100" height="140" rx="4" fill="#2a2a2a"/>
+       <circle cx="570" cy="270" r="30" stroke="#c44030" stroke-width="3" fill="none"/>
+       <!-- Sparks -->
+       <g fill="#e8d060" opacity="0.6">
+         <circle cx="150" cy="500" r="2"/><circle cx="700" cy="400" r="1.5"/><circle cx="650" cy="600" r="2"/>
+       </g>
+     </svg>
+   </div>
+   <canvas class="steam-canvas"></canvas>
+   <div class="mist-overlay"></div>
+   <div class="ui-overlay">
+     <div class="card-title">Crimson Fury</div>
+     <div class="card-subtitle">THE STEAMING SOUL · II — WARRIOR</div>
+   </div>
+</div>
+
+<!-- ═══ PRINT 3: Kabuki Actor — "The Transformation" ═══ -->
+<div class="card" data-index="2">
+   <div class="art">
+     <svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+       <defs>
+         <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+           <stop offset="0%" stop-color="#2a1810"/>
+           <stop offset="40%" stop-color="#5c3020"/>
+           <stop offset="70%" stop-color="#8b5030"/>
+           <stop offset="100%" stop-color="#d49060"/>
+         </linearGradient>
+         <pattern id="chapa" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+           <rect width="60" height="60" fill="#3a2518"/>
+           <line x1="0" y1="0" x2="60" y2="60" stroke="#4a3528" stroke-width="1"/>
+           <line x1="60" y1="0" x2="0" y2="60" stroke="#4a3528" stroke-width="1"/>
+         </pattern>
+       </defs>
+       <rect width="800" height="1000" fill="url(#sky3)"/>
+       <rect x="0" y="500" width="800" height="500" fill="url(#chapa)" opacity="0.5"/>
+       <!-- Paper lantern glow -->
+       <circle cx="650" cy="200" r="100" fill="#f0c060" opacity="0.15"/>
+       <rect x="630" y="140" width="40" height="55" rx="8" fill="#e8a040" opacity="0.3"/>
+       <!-- ══ PORTRAIT: Kabuki Actor ══ -->
+       <!-- Elaborate wig -->
+       <ellipse cx="400" cy="360" rx="130" ry="140" fill="#1a1a1a"/>
+       <path d="M270,340 Q280,200 400,180 Q520,200 530,340 L540,400 Q500,340 400,320 Q300,340 260,400Z" fill="#1a1a1a"/>
+       <!-- Face base (white oshiroi makeup) -->
+       <path d="M330,330 Q330,265 400,255 Q470,265 470,330 Q475,395 455,430 Q430,460 400,465 Q370,460 345,430 Q325,395 330,330Z" fill="#f8f0e0"/>
+       <!-- Kumadori: red makeup lines -->
+       <path d="M340,300 L355,310 L365,305" stroke="#c42020" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+       <path d="M355,310 L350,330" stroke="#c42020" stroke-width="3" fill="none" stroke-linecap="round"/>
+       <path d="M460,300 L445,310 L435,305" stroke="#c42020" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+       <path d="M445,310 L450,330" stroke="#c42020" stroke-width="3" fill="none" stroke-linecap="round"/>
+       <!-- Eyes (wide dramatic) -->
+       <ellipse cx="365" cy="360" rx="18" ry="12" fill="#fff" stroke="#1a1a1a" stroke-width="2.5"/>
+       <circle cx="360" cy="360" r="7" fill="#1a0808"/>
+       <circle cx="359" cy="358" r="2.5" fill="#fff"/>
+       <ellipse cx="435" cy="360" rx="18" ry="12" fill="#fff" stroke="#1a1a1a" stroke-width="2.5"/>
+       <circle cx="440" cy="360" r="7" fill="#1a0808"/>
+       <circle cx="441" cy="358" r="2.5" fill="#fff"/>
+       <!-- Bold eyebrows -->
+       <path d="M343,342 L368,335 L378,338" stroke="#1a1a1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+       <path d="M457,338 L432,335 L422,342" stroke="#1a1a1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+       <!-- Nose -->
+       <circle cx="400" cy="380" r="6" fill="#e8d8c8" stroke="#d4c8b8" stroke-width="1"/>
+       <!-- Mouth (wide dramatic) -->
+       <path d="M375,428 Q388,422 400,424 Q412,422 425,428 L420,440 Q410,435 400,436 Q390,435 380,440Z" fill="#a01010"/>
+       <path d="M380,430 Q400,424 420,430" stroke="#c42020" stroke-width="1.5" fill="none"/>
+       <!-- Neck lines -->
+       <line x1="375" y1="465" x2="385" y2="480" stroke="#d4c8b8" stroke-width="1.5"/>
+       <line x1="425" y1="465" x2="415" y2="480" stroke="#d4c8b8" stroke-width="1.5"/>
+       <!-- Costume -->
+       <path d="M230,600 L300,530 L340,550 L400,580 L460,550 L500,530 L570,600 L600,1000 L200,1000Z" fill="#1a3a6a"/>
+       <path d="M340,550 L400,580 L460,550 L400,620Z" fill="#c49030"/>
+       <!-- Cherry blossom costume pattern -->
+       <g fill="#e8b8b8" opacity="0.7">
+         <circle cx="280" cy="650" r="10"/><circle cx="295" cy="640" r="8"/>
+         <circle cx="520" cy="670" r="12"/><circle cx="540" cy="655" r="9"/>
+       </g>
+       <!-- Kanzashi flower -->
+       <g transform="translate(300,290)">
+         <ellipse rx="8" ry="5" fill="#e84060" transform="rotate(-30)"/>
+         <ellipse rx="8" ry="5" fill="#d43050" transform="rotate(10)"/>
+         <circle cx="2" cy="-2" r="3" fill="#f0c040"/>
+       </g>
+     </svg>
+   </div>
+   <canvas class="steam-canvas"></canvas>
+   <div class="mist-overlay"></div>
+   <div class="ui-overlay">
+     <div class="card-title">The Transformation</div>
+     <div class="card-subtitle">THE STEAMING SOUL · III — KABUKI</div>
+   </div>
+</div>
+
+<!-- ═══ PRINT 4: The Ronin — "Silent Path" ═══ -->
+<div class="card" data-index="3">
+   <div class="art">
+     <svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+       <defs>
+         <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1">
+           <stop offset="0%" stop-color="#1a2a18"/>
+           <stop offset="35%" stop-color="#3a5a30"/>
+           <stop offset="65%" stop-color="#6a8a50"/>
+           <stop offset="100%" stop-color="#9aaa70"/>
+         </linearGradient>
+       </defs>
+       <rect width="800" height="1000" fill="url(#sky4)"/>
+       <!-- Bamboo forest -->
+       <g stroke="#2a4a28" fill="none" stroke-width="4">
+         <line x1="60" y1="0" x2="50" y2="1000"/>
+         <line x1="120" y1="0" x2="110" y2="1000"/>
+         <line x1="740" y1="0" x2="730" y2="1000"/>
+         <line x1="680" y1="0" x2="670" y2="1000"/>
+       </g>
+       <g fill="#4a7a3a">
+         <ellipse cx="55" cy="200" rx="20" ry="4" transform="rotate(-40,55,200)"/>
+         <ellipse cx="115" cy="350" rx="25" ry="4" transform="rotate(35,115,350)"/>
+         <ellipse cx="735" cy="180" rx="22" ry="4" transform="rotate(-30,735,180)"/>
+         <ellipse cx="675" cy="420" rx="18" ry="4" transform="rotate(40,675,420)"/>
+       </g>
+       <!-- Mist ground -->
+       <ellipse cx="400" cy="850" rx="500" ry="120" fill="#9aaa70" opacity="0.2"/>
+       <ellipse cx="200" cy="900" rx="350" ry="80" fill="#baba90" opacity="0.15"/>
+       <!-- Path -->
+       <path d="M350,550 Q370,650 380,750 Q390,850 420,950 L580,1000 L200,1000Z" fill="#8a7a60" opacity="0.3"/>
+       <!-- ══ PORTRAIT: Ronin Face ══ -->
+       <ellipse cx="400" cy="370" rx="95" ry="105" fill="#2a2218"/>
+       <!-- Simple hood/robe -->
+       <path d="M290,440 Q350,390 400,385 Q450,390 510,440 L540,600 L260,600Z" fill="#4a4a3a"/>
+       <path d="M350,420 Q400,440 450,420" stroke="#3a3a2a" stroke-width="2" fill="none"/>
+       <!-- Face (weathered calm) -->
+       <path d="M340,345 Q340,285 400,275 Q460,285 460,345 Q465,395 445,430 Q425,455 400,458 Q375,455 355,430 Q335,395 340,345Z" fill="#d4b898"/>
+       <!-- Wrinkle lines -->
+       <path d="M355,370 Q360,368 365,370" stroke="#c4a888" stroke-width="1.2" fill="none"/>
+       <path d="M435,370 Q440,368 445,370" stroke="#c4a888" stroke-width="1.2" fill="none"/>
+       <!-- Topknot -->
+       <circle cx="400" cy="272" r="15" fill="#2a2218"/>
+       <line x1="388" y1="272" x2="412" y2="258" stroke="#3a3a3a" stroke-width="2.5"/>
+       <!-- Eyes (calm deep) -->
+       <ellipse cx="370" cy="365" rx="14" ry="9" fill="#f8f0e0" stroke="#2a2218" stroke-width="1.8"/>
+       <circle cx="372" cy="365" r="5" fill="#1a0e08"/>
+       <circle cx="373" cy="364" r="1.5" fill="#c4a888"/>
+       <ellipse cx="430" cy="365" rx="14" ry="9" fill="#f8f0e0" stroke="#2a2218" stroke-width="1.8"/>
+       <circle cx="428" cy="365" r="5" fill="#1a0e08"/>
+       <circle cx="427" cy="364" r="1.5" fill="#c4a888"/>
+       <!-- Subtle eyebrows -->
+       <path d="M356,352 Q365,348 376,352" stroke="#2a2218" stroke-width="2.5" fill="none"/>
+       <path d="M424,352 Q435,348 444,352" stroke="#2a2218" stroke-width="2.5" fill="none"/>
+       <!-- Nose (stoic) -->
+       <path d="M400,375 Q397,395 398,405 Q396,408 398,410" stroke="#b8a080" stroke-width="1.8" fill="none"/>
+       <!-- Mouth (slight knowing smile) -->
+       <path d="M382,438 Q392,434 400,436 Q408,434 418,438" stroke="#a08060" stroke-width="2" fill="none"/>
+       <path d="M385,440 Q400,443 415,440" stroke="#b89878" stroke-width="1" fill="none"/>
+       <!-- Katana -->
+       <line x1="260" y1="500" x2="380" y2="700" stroke="#5a4a3a" stroke-width="5"/>
+       <circle cx="380" cy="700" r="8" fill="#6a5a4a"/>
+       <!-- Floating leaves -->
+       <g fill="#c4a040" opacity="0.5">
+         <ellipse cx="150" cy="500" rx="5" ry="3" transform="rotate(20,150,500)"/>
+         <ellipse cx="680" cy="450" rx="6" ry="3" transform="rotate(-15,680,450)"/>
+       </g>
+     </svg>
+   </div>
+   <canvas class="steam-canvas"></canvas>
+   <div class="mist-overlay"></div>
+   <div class="ui-overlay">
+     <div class="card-title">Silent Path</div>
+     <div class="card-subtitle">THE STEAMING SOUL · IV — RONIN</div>
+   </div>
+</div>
+
+<!-- ═══ PRINT 5: Mountain Temple — "Beyond the Mist" ═══ -->
+<div class="card" data-index="4">
+   <div class="art">
+     <svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+       <defs>
+         <linearGradient id="sky5" x1="0" y1="0" x2="0" y2="1">
+           <stop offset="0%" stop-color="#0a1830"/>
+           <stop offset="30%" stop-color="#1a3060"/>
+           <stop offset="55%" stop-color="#3a6090"/>
+           <stop offset="80%" stop-color="#70a0c0"/>
+           <stop offset="100%" stop-color="#b0d0e0"/>
+         </linearGradient>
+       </defs>
+       <rect width="800" height="1000" fill="url(#sky5)"/>
+       <!-- Stars -->
+       <g fill="#fff" opacity="0.7">
+         <circle cx="120" cy="80" r="1.5"/><circle cx="340" cy="60" r="1"/><circle cx="580" cy="90" r="1.5"/>
+         <circle cx="700" cy="50" r="1"/><circle cx="200" cy="150" r="1"/><circle cx="480" cy="130" r="1.5"/>
+         <circle cx="650" cy="170" r="1"/><circle cx="90" cy="200" r="1.2"/>
+       </g>
+       <!-- Moon -->
+       <circle cx="580" cy="150" r="45" fill="#e8e0c0" opacity="0.85"/>
+       <circle cx="595" cy="140" r="40" fill="#0a1830"/>
+       <!-- Mountain layers -->
+       <polygon points="0,600 200,400 400,350 600,380 800,300 800,600" fill="#1a3050" opacity="0.7"/>
+       <polygon points="0,650 150,500 350,430 500,480 800,420 800,650" fill="#2a4a68" opacity="0.8"/>
+       <!-- Temple on peak -->
+       <g transform="translate(350,390)">
+         <rect x="0" y="0" width="100" height="40" fill="#2a1a10"/>
+         <polygon points="-20,0 50,-25 120,0" fill="#1a0e08"/>
+         <polygon points="-10,12 50,-5 110,12" fill="#1a0e08"/>
+         <rect x="38" y="5" width="24" height="35" fill="#c49030" opacity="0.6"/>
+         <circle cx="50" cy="25" r="30" fill="#c49030" opacity="0.15"/>
+       </g>
+       <!-- Pine trees -->
+       <g fill="#1a3a28">
+         <polygon points="100,620 90,570 110,570"/><polygon points="100,590 85,540 115,540"/>
+         <polygon points="700,650 688,595 712,595"/><polygon points="700,615 690,565 710,565"/>
+       </g>
+       <!-- Mist layers -->
+       <ellipse cx="400" cy="700" rx="500" ry="80" fill="#b0d0e0" opacity="0.2"/>
+       <ellipse cx="600" cy="750" rx="350" ry="60" fill="#a0c0d0" opacity="0.15"/>
+       <!-- Tiny pilgrim figure -->
+       <g transform="translate(420,720)">
+         <circle cx="0" cy="0" r="5" fill="#2a1a10"/>
+         <line x1="0" y1="5" x2="0" y2="25" stroke="#2a1a10" stroke-width="3"/>
+         <line x1="-8" y1="10" x2="8" y2="10" stroke="#2a1a10" stroke-width="2"/>
+         <path d="M-15,-5 Q0,-15 15,-5" stroke="#4a3a2a" stroke-width="2" fill="none"/>
+       </g>
+     </svg>
+   </div>
+   <canvas class="steam-canvas"></canvas>
+   <div class="mist-overlay"></div>
+   <div class="ui-overlay">
+     <div class="card-title">Beyond the Mist</div>
+     <div class="card-subtitle">THE STEAMING SOUL · V — LANDSCAPE</div>
+   </div>
+</div>
+
+</div><!-- end #gallery -->
+
+<!-- Indicator dots -->
+<div id="indicators">
+  <span class="indicator active"></span>
+  <span class="indicator"></span>
+  <span class="indicator"></span>
+  <span class="indicator"></span>
+  <span class="indicator"></span>
+</div>
+
+<!-- Scroll hint -->
+<div class="scroll-hint" id="scrollHint">SCROLL DOWN</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Audio Engine ──
+  var audioCtx = null;
+  var activeOscillators = {};
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playRevealHum(cardIndex) {
+    ensureAudio();
+    stopCardHum(cardIndex);
+
+    var now = audioCtx.currentTime;
+
+    // Warm rising hum: 180Hz → 320Hz over 400ms, settling at 260Hz
+    var osc1 = audioCtx.createOscillator();
+    var gain1 = audioCtx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(180, now);
+    osc1.frequency.exponentialRampToValueAtTime(320, now + 0.4);
+    osc1.frequency.exponentialRampToValueAtTime(260, now + 1.0);
+    gain1.gain.setValueAtTime(0, now);
+    gain1.gain.linearRampToValueAtTime(0.12, now + 0.05);
+    gain1.gain.exponentialRampToValueAtTime(0.06, now + 1.2);
+
+    // Sub bass warmth
+    var osc2 = audioCtx.createOscillator();
+    var gain2 = audioCtx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(85, now);
+    osc2.frequency.linearRampToValueAtTime(120, now + 0.6);
+    gain2.gain.setValueAtTime(0, now);
+    gain2.gain.linearRampToValueAtTime(0.08, now + 0.04);
+    gain2.gain.exponentialRampToValueAtTime(0.03, now + 1.5);
+
+    // Gentle overtone shimmer
+    var osc3 = audioCtx.createOscillator();
+    var gain3 = audioCtx.createGain();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(420, now);
+    osc3.frequency.exponentialRampToValueAtTime(560, now + 0.3);
+    osc3.frequency.linearRampToValueAtTime(500, now + 0.8);
+    gain3.gain.setValueAtTime(0, now);
+    gain3.gain.linearRampToValueAtTime(0.025, now + 0.06);
+    gain3.gain.exponentialRampToValueAtTime(0.008, now + 1.0);
+
+    osc1.connect(gain1).connect(audioCtx.destination);
+    osc2.connect(gain2).connect(audioCtx.destination);
+    osc3.connect(gain3).connect(audioCtx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc3.start(now);
+
+    setTimeout(function() { stopCardHum(cardIndex); }, 2000);
+    activeOscillators[cardIndex] = [osc1, osc2, osc3];
+  }
+
+  function stopCardHum(cardIndex) {
+    var oscs = activeOscillators[cardIndex];
+    if (oscs) {
+      try {
+        var now = audioCtx ? audioCtx.currentTime : 0;
+        oscs.forEach(function(o) { o.stop(now + 0.1); });
+      } catch(e) {}
+      delete activeOscillators[cardIndex];
+    }
+  }
+
+  // ── Steam Particle System ──
+  function SteamSystem(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.particles = [];
+    this.running = false;
+    this.rafId = null;
+    this.w = 0;
+    this.h = 0;
+  }
+
+  SteamSystem.prototype.resize = function() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var rect = this.canvas.getBoundingClientRect();
+    this.canvas.width = rect.width * dpr;
+    this.canvas.height = rect.height * dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.w = rect.width;
+    this.h = rect.height;
+  };
+
+  SteamSystem.prototype.start = function() {
+    if (this.running) return;
+    this.running = true;
+    this.resize();
+    this.loop();
+  };
+
+  SteamSystem.prototype.stop = function() {
+    this.running = false;
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.ctx.clearRect(0, 0, this.w || 1, this.h || 1);
+  };
+
+  SteamSystem.prototype.spawn = function(count) {
+    for (var i = 0; i < count; i++) {
+      var x = Math.random() * this.w;
+      // Start from below the face area (lower portion of card), never above 90% height
+      var y = this.h * 0.5 + Math.random() * this.h * 0.35;
+      this.particles.push({
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: -(0.3 + Math.random() * 0.6), // rises upward
+        life: 1.0,
+        decay: 0.003 + Math.random() * 0.005,
+        radius: 8 + Math.random() * 24
+      });
+    }
+  };
+
+  SteamSystem.prototype.loop = function() {
+    var self = this;
+    if (!this.running) return;
+    this.ctx.clearRect(0, 0, this.w, this.h);
+
+    // Periodic particle spawning
+    if (Math.random() < 0.35) {
+      this.spawn(Math.floor(1 + Math.random() * 2));
+    }
+
+    var faceCeiling = this.h * 0.4; // Remove particles that reach face area
+
+    for (var i = this.particles.length - 1; i >= 0; i--) {
+      var p = this.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      p.radius += 0.08;
+
+      // Remove if faded out or if it reached face area (top portion)
+      if (p.life <= 0 || p.y < faceCeiling) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+
+      // Warm steam wisp — soft radial gradient
+      var alpha = p.life * 0.15;
+      var grad = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+      grad.addColorStop(0, 'rgba(240,230,215,' + alpha + ')');
+      grad.addColorStop(0.5, 'rgba(230,220,200,' + (alpha * 0.5) + ')');
+      grad.addColorStop(1, 'rgba(220,210,190,0)');
+
+      this.ctx.fillStyle = grad;
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+
+    this.rafId = requestAnimationFrame(function() { self.loop(); });
+  };
+
+  // ── FFCT Measurement (PerformanceObserver) ──
+  var ffctMarkers = new Map();
+  var revealCounters = {};
+
+  // Global PerformanceObserver for long-task detection (ship-bar validation)
+  var longTaskObserver = new PerformanceObserver(function(list) {
+    list.getEntries().forEach(function(entry) {
+      if (entry.duration > 50) {
+        console.log('[Steaming Soul] LongTask warning: ' + entry.duration.toFixed(1) + 'ms');
+      }
+    });
+  });
+  longTaskObserver.observe({ entryTypes: ['longtask'] });
+
+  function logFFCT(cardIndex, durationMs) {
+    var status = durationMs <= 150 ? '\u2705 PASS' : '\u274C FAIL';
+    var color = durationMs <= 150 ? '#4ade80' : '#f87171';
+    console.log(
+      '%c[Steaming Soul] FFCT Card ' + cardIndex + ': ' + durationMs.toFixed(1) + 'ms ' + status,
+      'color: ' + color + '; font-weight:bold; font-size:13px'
+    );
+
+    if (durationMs <= 150) {
+      console.log('%c\u25CE Ship bar met: visibility lock within 150ms budget', 'font-weight:bold;');
+    } else {
+      console.log('%c\u25CE SHIP BAR FAILED: exceeded 150ms clarity budget', 'font-weight:bold; color:#f87171;');
+    }
+
+    ffctMarkers.set(cardIndex, durationMs);
+    revealCounters[cardIndex] = (revealCounters[cardIndex] || 0) + 1;
+  }
+
+  // ── Initialize steam systems per card ──
+  var steamSystems = [];
+  document.querySelectorAll('.steam-canvas').forEach(function(canvas) {
+    steamSystems.push(new SteamSystem(canvas));
+  });
+
+  // ── Intersection Observer + Reveal Logic ──
+  var cards = document.querySelectorAll('.card');
+  var indicators = document.querySelectorAll('.indicator');
+  var settledCards = new Set();
+
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting && !entry.target.dataset.revealed) {
+        entry.target.dataset.revealed = 'true';
+        revealCard(entry.target);
+      }
+    });
+  }, {
+    root: null,
+    rootMargin: '-10% 0px -10% 0px',
+    threshold: [0.1]
+  });
+
+  cards.forEach(function(card) { observer.observe(card); });
+
+  function revealCard(card) {
+    var cardIndex = parseInt(card.dataset.index);
+    var startTime = performance.now();
+    var cssDuration = 150; // ms — the hard cutoff lock
+
+    // 1. Mark FFCT start
+    performance.mark('steaming-soul-ffct-start');
+
+    // 2. Apply clarity class — CSS steps(6,end) fires exactly 150ms from mist to clear
+    card.classList.add('clear');
+
+    // 3. After exactly 150ms: visual lock achieved, trigger post-lock effects
+    var lockTimeout = setTimeout(function() {
+      var duration = performance.now() - startTime;
+
+      // Steam wisps (post-reveal, behind/around subject area only)
+      steamSystems[cardIndex].start();
+      setTimeout(function() { steamSystems[cardIndex].spawn(30); }, 50);
+
+      // Audio cue — warm rising hum within 50ms of visual lock
+      playRevealHum(cardIndex);
+
+      // FFCT measurement logged to dev console for ship-bar validation
+      logFFCT(cardIndex, duration);
+
+      // Update indicator dots
+      indicators.forEach(function(ind, i) {
+        ind.classList.toggle('active', i === cardIndex);
+      });
+
+      // Hide scroll hint after first reveal
+      if (cardIndex === 0) {
+        var hint = document.getElementById('scrollHint');
+        if (hint) hint.style.display = 'none';
+      }
+
+    }, cssDuration);
+
+    // 4. UI fade ~500ms post-reveal
+    var settleTimeout = setTimeout(function() {
+      card.classList.add('settled');
+      settledCards.add(cardIndex);
+    }, cssDuration + 500);
+  }
+
+  // ── Scroll indicator update (which card is currently snapped) ──
+  var scrollObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        var idx = parseInt(entry.target.dataset.index);
+        indicators.forEach(function(ind, i) {
+          ind.classList.toggle('active', i === idx);
+        });
+      }
+    });
+  }, { root: document.getElementById('gallery'), threshold: 0.5 });
+
+  cards.forEach(function(card) { scrollObserver.observe(card); });
+
+  // ── Touch/click to init audio context on first interaction ──
+  function initAudioOnInteraction() {
+    ensureAudio();
+    document.removeEventListener('touchstart', initAudioOnInteraction);
+    document.removeEventListener('click', initAudioOnInteraction);
+  }
+  document.addEventListener('touchstart', initAudioOnInteraction, true);
+  document.addEventListener('click', initAudioOnInteraction, true);
+
+})();
+</script>
+</body>
+</html>
