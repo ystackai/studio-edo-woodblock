@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>The Steaming Soul — Edo Woodblock Studio</title>
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: 'Georgia', 'Noto Serif JP', serif;
+    background: #0a0806;
+    color: #f5efe6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== HERO OVERLAY ===== */
+  .hero {
+    position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100vh; text-align: center; pointer-events: auto;
+    background: radial-gradient(ellipse at 50% 80%, #1a1410 0%, #0a0806 70%);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .hero.hidden { opacity: 0; pointer-events: none; transform: translateY(-20px); }
+  .hero h1 {
+    font-size: clamp(2rem, 6vw, 4.5rem);
+    font-weight: 400; letter-spacing: 0.08em;
+    color: #f5d8a0; margin-bottom: 0.5rem;
+    text-shadow: 0 0 40px rgba(245, 216, 160, 0.3);
+  }
+  .hero .subtitle {
+    font-size: clamp(0.8rem, 2vw, 1.1rem);
+    color: #a89880; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 2rem;
+  }
+  .hero .enter-btn {
+    background: none; border: 1px solid rgba(245, 216, 160, 0.3);
+    color: #f5d8a0; padding: 0.8rem 2.5rem; font-size: 1rem;
+    font-family: inherit; letter-spacing: 0.12em; cursor: pointer;
+    border-radius: 2px; transition: all 0.3s ease;
+  }
+  .hero .enter-btn:hover { background: rgba(245, 216, 160, 0.1); border-color: #f5d8a0; }
+
+  /* ===== SCROLL CONTAINER ===== */
+  .scroll-container {
+    position: relative; width: 100%; min-height: 100vh;
+  }
+
+  /* ===== IMAGE CARD — FULL VIEWPORT ===== */
+  .soul-card {
+    position: relative; width: 100%; height: 100vh;
+    overflow: hidden; will-change: filter, opacity;
+  }
+  .soul-card .card-inner {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== MIST STATE (default) ===== */
+  .soul-card .mist-layer {
+    position: absolute; inset: 0; z-index: 5;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(200,190,175,0.6) 0%, transparent 60%),
+      linear-gradient(180deg, rgba(15,13,10,0.8) 0%, rgba(20,18,14,0.4) 50%, rgba(15,13,10,0.8) 100%);
+    opacity: 1;
+    transition: opacity 150ms linear;
+  }
+
+  /* Mist blur on the scene */
+  .soul-card .scene-layer {
+    position: absolute; inset: 0; z-index: 3;
+    filter: saturate(0.15) brightness(0.6) blur(8px);
+    transition: filter 150ms linear;
+    transition-delay: 0ms;
+  }
+
+  /* Revealed state */
+  .soul-card.revealed .scene-layer {
+    filter: saturate(1.2) brightness(1) blur(0px);
+  }
+  .soul-card.revealed .mist-layer {
+    opacity: 0;
+  }
+
+  /* ===== CSS-GENERATED UKIYO-E SCENES ===== */
+  .scene-mount-fuji {
+    background:
+      radial-gradient(ellipse at 50% 60%, #8b4513 0%, transparent 55%),
+      radial-gradient(circle at 50% 52%, #c4a882 0%, #d4b896 15%, #a08060 50%, #706050 100%),
+      conic-gradient(from 200deg at 50% 55%, #4a6fa5 0deg, #c47050 30deg, #d49060 60deg, #e8b080 90deg, #ffd4a0 120deg, #c47050 150deg, #4a6fa5 180deg, #3a5f8a 220deg, #2a4f6a 280deg, #4a6fa5 360deg),
+      linear-gradient(180deg, #1a2a4a 0%, #c47050 30%, #d49060 50%, #e8b080 65%, #ffd4a0 80%, #87CEEB 100%);
+    background-size: cover;
+  }
+  .scene-mist-valley {
+    background:
+      radial-gradient(ellipse at 30% 70%, rgba(200,195,180,0.4) 0%, transparent 40%),
+      radial-gradient(ellipse at 70% 60%, rgba(180,175,160,0.3) 0%, transparent 35%),
+      linear-gradient(180deg, #2a3a2a 0%, #4a6a4a 20%, #7a9a6a 40%, #c0b898 60%, #e0d8b8 80%, #f0e8d0 100%);
+    background-size: cover;
+  }
+  .scene-sakura-dusk {
+    background:
+      radial-gradient(circle at 25% 35%, rgba(255,180,200,0.6) 0%, transparent 25%),
+      radial-gradient(circle at 75% 45%, rgba(255,200,220,0.4) 0%, transparent 20%),
+      conic-gradient(from 180deg at 50% 60%, #ff9a9e 0deg, #fecfef 60deg, #ffecd2 120deg, #fcb69f 180deg, #ff9a9e 240deg, #fecfef 300deg, #ff9a9e 360deg),
+      linear-gradient(180deg, #2a1a3a 0%, #8a5a7a 20%, #c47898 40%, #e8a0b8 55%, #ffb8d0 70%, #ffd0d8 85%, #ffe8ee 100%);
+    background-size: cover;
+  }
+  .scene-frog-pond {
+    background:
+      radial-gradient(ellipse at 50% 75%, #2a5a3a 0%, transparent 50%),
+      radial-gradient(circle at 40% 65%, rgba(180,200,160,0.3) 0%, transparent 30%),
+      linear-gradient(180deg, #1a2a3a 0%, #2a4a5a 20%, #4a7a8a 40%, #7aaa9a 55%, #a0cca0 70%, #c0e0b0 85%, #e0f0d0 100%);
+    background-size: cover;
+  }
+  .scene-kanji-wind {
+    background:
+      radial-gradient(ellipse at 60% 40%, rgba(245,220,180,0.3) 0%, transparent 30%),
+      linear-gradient(135deg, #f0e6d0 0%, #d4c4a8 25%, #b8a888 50%, #9a8a6a 75%, #7a6a5a 100%);
+    background-size: cover;
+  }
+
+  /* ===== SVG SUBJECT SILHOUETTES (ukego-e figure) ===== */
+  .subject-figure {
+    position: absolute; z-index: 4; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .subject-figure svg { width: 100%; height: 100%; object-fit: contain; }
+
+  /* ===== STEAM CANVAS OVERLAY ===== */
+  .steam-canvas {
+    position: absolute; z-index: 6; pointer-events: none;
+    inset: 0;
+  }
+
+  /* ===== CARD METADATA (title, caption) ===== */
+  .card-meta {
+    position: absolute; bottom: 0; left: 0; width: 100%; z-index: 10;
+    padding: 2rem clamp(1.25rem, 4vw, 3rem);
+    background: linear-gradient(0deg, rgba(10,8,6,0.9) 0%, transparent 100%);
+    transform: translateY(0);
+    transition: opacity 500ms ease, transform 500ms ease;
+  }
+  .card-meta.faded { opacity: 0; transform: translateY(20px); }
+  .card-meta h2 {
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    font-weight: 400; color: #f5d8a0; letter-spacing: 0.06em; margin-bottom: 0.3rem;
+  }
+  .card-meta .caption {
+    font-size: clamp(0.75rem, 1.5vw, 0.95rem);
+    color: #a89880; letter-spacing: 0.04em; line-height: 1.6;
+  }
+
+  /* ===== SCROLL HINT ===== */
+  .scroll-hint {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    z-index: 200; color: #a89880; font-size: 0.75rem; letter-spacing: 0.15em;
+    text-transform: uppercase; opacity: 1;
+    animation: scrollPulse 2s ease-in-out infinite;
+    transition: opacity 0.4s ease;
+  }
+  .scroll-hint.hidden { opacity: 0; pointer-events: none; }
+  @keyframes scrollPulse {
+    0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.6; }
+    50% { transform: translateX(-50%) translateY(8px); opacity: 1; }
+  }
+
+  /* ===== PROGRESS DOTS ===== */
+  .progress-dots {
+    position: fixed; right: clamp(0.75rem, 2vw, 1.5rem); top: 50%;
+    transform: translateY(-50%); z-index: 200;
+    display: flex; flex-direction: column; gap: 0.8rem; align-items: center;
+  }
+  .progress-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(168,152,128,0.3);
+    transition: all 0.3s ease;
+  }
+  .progress-dot.active {
+    background: #f5d8a0; box-shadow: 0 0 8px rgba(245,216,160,0.5);
+  }
+
+  /* ===== FFCT DEBUG (hidden) ===== */
+  .ffct-debug {
+    position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; overflow: hidden;
+  }
+
+  /* ===== MOBILE OPTIMIZATIONS ===== */
+  @media (max-width: 768px) {
+    .card-meta { padding: 1.5rem clamp(1rem, 4vw, 2rem); }
+    .progress-dots { right: 0.5rem; }
+    .progress-dot { width: 6px; height: 6px; }
+  }
+  @media (min-width: 720px) {
+    /* Ensure face features legible at >=720p */
+    .subject-figure svg { max-height: 55vh; }
+  }
+
+  /* ===== REDUCED MOTION ===== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero" id="hero">
+  <h1>The Steaming Soul</h1>
+  <p class="subtitle">Ukiyo-e prints, revealed in 150 milliseconds</p>
+  <button class="enter-btn" id="enterBtn">Enter the Gallery</button>
+</div>
+
+<!-- ===== SCROLL HINT ===== -->
+<div class="scroll-hint hidden" id="scrollHint">Scroll to reveal ↓</div>
+
+<!-- ===== PROGRESS DOTS ===== -->
+<div class="progress-dots hidden" id="progressDots"></div>
+
+<!-- ===== FFCT DEBUG (invisible) ===== -->
+<div class="ffct-debug" id="ffctDebug"></div>
+
+<!-- ===== SCROLL CONTAINER ===== -->
+<div class="scroll-container" id="scrollContainer"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== CONFIGURATION =====
+  const REVEAL_DURATION_MS = 150;
+  const STEAM_DELAY_MS = REVEAL_DURATION_MS;
+  const UI_FADE_DELAY_MS = 500;
+  const AUDIO_TRIGGER_WINDOW_MS = 50;
+  const OBSERVER_THRESHOLD = 0.45;
+
+  // ===== SOUL CARD DATA =====
+  const cardsData = [
+    {
+      title: 'The First Steam',
+      caption: 'Mount Fuji rises through morning fog — the world holds its breath as clarity arrives.',
+      sceneClass: 'scene-mount-fuji',
+      figureStyle: 'samurai'
+    },
+    {
+      title: 'Valley Mist Dissolves',
+      caption: 'A lone wanderer steps from the haze into golden afternoon light.',
+      sceneClass: 'scene-mist-valley',
+      figureStyle: 'wanderer'
+    },
+    {
+      title: 'Sakura Dusk Bloom',
+      caption: 'Petals catch the last warmth of day as twilight settles over the river.',
+      sceneClass: 'scene-sakura-dusk',
+      figureStyle: 'maiko'
+    },
+    {
+      title: 'Frog on the Stone',
+      caption: 'Stillness at the pond\'s edge — every ripple tells a story of patience.',
+      sceneClass: 'scene-frog-pond',
+      figureStyle: 'fairy'
+    },
+    {
+      title: 'Wind Through Kanji',
+      caption: 'Ancient characters carry the whisper of seasons across paper and time.',
+      sceneClass: 'scene-kanji-wind',
+      figureStyle: 'ronin'
+    }
+  ];
+
+  // ===== SVG FIGURES — ukiyo-e style silhouette subjects =====
+  function createFigureSVG(style) {
+    const svgs = {
+      samurai: `<svg viewBox="0 0 400 700" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="face1" cx="50%" cy="30%"><stop offset="0%" stop-color="#f0d8b8"/><stop offset="100%" stop-color="#c4a070"/></radialGradient>
+          <linearGradient id="robe1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a1a3a"/><stop offset="100%" stop-color="#1a0a2a"/></linearGradient>
+        </defs>
+        <!-- Background mountain silhouette -->
+        <path d="M50,700 L150,350 Q200,280 250,350 L350,700 Z" fill="#5a4a3a" opacity="0.6"/>
+        <!-- Body / Robe -->
+        <path d="M140,380 Q130,450 120,550 Q115,620 120,700 L280,700 Q285,620 280,550 Q270,450 260,380 Z" fill="url(#robe1)"/>
+        <path d="M180,380 Q175,420 170,500 L230,500 Q225,420 220,380 Z" fill="#3a2a4a"/>
+        <!-- Neck -->
+        <rect x="185" y="340" width="30" height="45" rx="8" fill="#e8d0b0"/>
+        <!-- Head -->
+        <ellipse cx="200" cy="290" rx="42" ry="52" fill="url(#face1)"/>
+        <!-- Hair -->
+        <path d="M158,270 Q160,230 200,220 Q240,230 242,270 Q240,250 200,240 Q160,250 158,270Z" fill="#1a1020"/>
+        <path d="M155,265 Q150,290 155,320 Q158,300 160,280 Z" fill="#1a1020"/>
+        <path d="M245,265 Q250,290 245,320 Q242,300 240,280 Z" fill="#1a1020"/>
+        <!-- Eyes -->
+        <ellipse cx="182" cy="285" rx="8" ry="4" fill="#2a1a10"/>
+        <ellipse cx="218" cy="285" rx="8" ry="4" fill="#2a1a10"/>
+        <circle cx="183" cy="284" r="2.5" fill="#f5efe6"/>
+        <circle cx="219" cy="284" r="2.5" fill="#f5efe6"/>
+        <!-- Eyebrows -->
+        <path d="M170,277 Q182,272 194,277" stroke="#2a1a10" stroke-width="2" fill="none"/>
+        <path d="M206,277 Q218,272 230,277" stroke="#2a1a10" stroke-width="2" fill="none"/>
+        <!-- Nose -->
+        <path d="M198,295 L200,308 L202,295" fill="#c4a070" stroke="#b09060" stroke-width="0.5"/>
+        <!-- Mouth — slight smile -->
+        <path d="M188,318 Q200,325 212,318" stroke="#a07050" stroke-width="1.8" fill="none"/>
+        <!-- Ears -->
+        <ellipse cx="157" cy="292" rx="6" ry="10" fill="#e8d0b0"/>
+        <ellipse cx="243" cy="292" rx="6" ry="10" fill="#e8d0b0"/>
+        <!-- Hat / Headpiece -->
+        <path d="M145,240 Q200,200 255,240 L260,235 Q200,195 140,235 Z" fill="#c4a060"/>
+        <path d="M170,235 L200,185 L230,235" stroke="#a08040" stroke-width="1.5" fill="none"/>
+      </svg>`,
+
+      wanderer: `<svg viewBox="0 0 400 700" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="face2" cx="50%" cy="30%"><stop offset="0%" stop-color="#f0d8b8"/><stop offset="100%" stop-color="#c4a070"/></radialGradient>
+          <linearGradient id="robe2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a5a3a"/><stop offset="100%" stop-color="#2a4a2a"/></linearGradient>
+        </defs>
+        <!-- Ground -->
+        <path d="M0,600 Q100,580 200,590 Q300,600 400,585 L400,700 L0,700Z" fill="#4a6a3a"/>
+        <!-- Body -->
+        <path d="M145,390 Q135,460 125,560 Q120,630 125,700 L275,700 Q280,630 275,560 Q265,460 255,390 Z" fill="url(#robe2)"/>
+        <!-- Straw cloak drape -->
+        <path d="M150,380 Q140,420 135,480 L160,470 Q155,430 165,390Z" fill="#6a8a4a" opacity="0.7"/>
+        <path d="M250,380 Q260,420 265,480 L240,470 Q245,430 235,390Z" fill="#6a8a4a" opacity="0.7"/>
+        <!-- Neck -->
+        <rect x="186" y="350" width="28" height="42" rx="7" fill="#e8d0b0"/>
+        <!-- Head -->
+        <ellipse cx="200" cy="300" rx="38" ry="48" fill="url(#face2)"/>
+        <!-- Conical hat (kasa) -->
+        <path d="M120,290 Q200,180 280,290 Z" fill="#c4a860"/>
+        <path d="M130,285 Q200,190 270,285" stroke="#a09050" stroke-width="1" fill="none"/>
+        <line x1="160" y1="240" x2="240" y2="240" stroke="#b09850" stroke-width="1"/>
+        <!-- Hair peeking from hat -->
+        <path d="M162,290 Q160,310 165,330" stroke="#2a1a10" stroke-width="4" fill="none"/>
+        <path d="M238,290 Q240,310 235,330" stroke="#2a1a10" stroke-width="4" fill="none"/>
+        <!-- Eyes -->
+        <ellipse cx="184" cy="296" rx="7" ry="4" fill="#2a1a10"/>
+        <ellipse cx="216" cy="296" rx="7" ry="4" fill="#2a1a10"/>
+        <circle cx="185" cy="295" r="2.5" fill="#f5efe6"/>
+        <circle cx="217" cy="295" r="2.5" fill="#f5efe6"/>
+        <!-- Nose -->
+        <path d="M198,306 L200,316 L202,306" fill="#c4a070" stroke="#b09060" stroke-width="0.5"/>
+        <!-- Mouth -->
+        <path d="M190,322 Q200,328 210,322" stroke="#a07050" stroke-width="1.5" fill="none"/>
+        <!-- Walking staff -->
+        <line x1="290" y1="280" x2="270" y2="700" stroke="#6a4a2a" stroke-width="4" stroke-linecap="round"/>
+        <!-- Straw sandals hint -->
+        <ellipse cx="155" cy="695" rx="20" ry="8" fill="#8a7a50"/>
+        <ellipse cx="245" cy="695" rx="20" ry="8" fill="#8a7a50"/>
+      </svg>`,
+
+      maiko: `<svg viewBox="0 0 400 700" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="face3" cx="50%" cy="30%"><stop offset="0%" stop-color="#f5e8d8"/><stop offset="100%" stop-color="#d4b898"/></radialGradient>
+          <linearGradient id="robe3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c44a6a"/><stop offset="50%" stop-color="#a03050"/><stop offset="100%" stop-color="#802040"/></linearGradient>
+        </defs>
+        <!-- Body / Kimono -->
+        <path d="M135,370 Q125,440 115,560 Q110,640 115,700 L285,700 Q290,640 285,560 Q275,440 265,370 Z" fill="url(#robe3)"/>
+        <!-- Kimono collar V -->
+        <path d="M180,370 L200,410 L220,370" stroke="#f5d8a0" stroke-width="2.5" fill="none"/>
+        <path d="M185,375 L200,405 L215,375" fill="#f5efe6"/>
+        <!-- Obi (sash) -->
+        <rect x="125" y="460" width="150" height="18" rx="4" fill="#d4a020"/>
+        <path d="M185,470 Q200,485 215,470" stroke="#c49010" stroke-width="2" fill="none"/>
+        <!-- Neck -->
+        <rect x="186" y="340" width="28" height="35" rx="7" fill="#f5e8d8"/>
+        <!-- Head -->
+        <ellipse cx="200" cy="290" rx="40" ry="48" fill="url(#face3)"/>
+        <!-- Hair (traditional maiko style — large and flowing) -->
+        <path d="M160,275 Q155,240 200,225 Q245,240 240,275 L245,340 Q240,370 220,365 L215,300 Q200,280 185,300 L180,365 Q160,370 155,340 Z" fill="#1a1018"/>
+        <!-- Hair ornaments -->
+        <circle cx="170" cy="260" r="5" fill="#e03050"/>
+        <circle cx="230" cy="260" r="5" fill="#e03050"/>
+        <rect x="193" y="248" width="14" height="4" rx="2" fill="#f5d8a0"/>
+        <!-- Eyes -->
+        <ellipse cx="182" cy="286" rx="9" ry="5" fill="#2a1a10"/>
+        <ellipse cx="218" cy="286" rx="9" ry="5" fill="#2a1a10"/>
+        <circle cx="183.5" cy="285" r="3" fill="#f5efe6"/>
+        <circle cx="219.5" cy="285" r="3" fill="#f5efe6"/>
+        <!-- Eyelashes -->
+        <path d="M172,283 Q182,277 192,283" stroke="#1a1018" stroke-width="1.2" fill="none"/>
+        <path d="M208,283 Q218,277 228,283" stroke="#1a1018" stroke-width="1.2" fill="none"/>
+        <!-- Red lips -->
+        <path d="M187,316 Q200,324 213,316" stroke="#c44050" stroke-width="2.5" fill="#d06070"/>
+        <!-- White makeup collar (oshiroi) -->
+        <path d="M170,325 Q200,355 230,325" stroke="#f5efe6" stroke-width="3" fill="none" opacity="0.6"/>
+      </svg>`,
+
+      fairy: `<svg viewBox="0 0 400 700" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="face4" cx="50%" cy="30%"><stop offset="0%" stop-color="#f0d8c0"/><stop offset="100%" stop-color="#c4a880"/></radialGradient>
+          <linearGradient id="robe4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5a8a5a"/><stop offset="100%" stop-color="#3a6a3a"/></linearGradient>
+        </defs>
+        <!-- Stone / Pond -->
+        <ellipse cx="200" cy="600" rx="140" ry="50" fill="#4a7a6a"/>
+        <ellipse cx="200" cy="605" rx="130" ry="40" fill="#3a6a5a" opacity="0.8"/>
+        <!-- Water ripples -->
+        <ellipse cx="200" cy="610" rx="90" ry="20" fill="none" stroke="#6aaa8a" stroke-width="1" opacity="0.4"/>
+        <ellipse cx="200" cy="615" rx="120" ry="30" fill="none" stroke="#6aaa8a" stroke-width="0.8" opacity="0.3"/>
+        <!-- Body -->
+        <path d="M160,400 Q150,470 140,570 Q135,620 140,670 L260,670 Q265,620 260,570 Q250,470 240,400 Z" fill="url(#robe4)"/>
+        <!-- Flowing sleeves -->
+        <path d="M160,420 Q120,440 90,480 Q100,500 130,490 L155,450Z" fill="#6a9a6a"/>
+        <path d="M240,420 Q280,440 310,480 Q300,500 270,490 L245,450Z" fill="#6a9a6a"/>
+        <!-- Neck -->
+        <rect x="187" y="355" width="26" height="48" rx="6" fill="#f0d8c0"/>
+        <!-- Head -->
+        <ellipse cx="200" cy="300" rx="36" ry="44" fill="url(#face4)"/>
+        <!-- Hair (ethereal, flowing) -->
+        <path d="M164,285 Q155,250 200,235 Q245,250 236,285 L242,370 Q238,400 225,395 L218,310 Q200,290 182,310 L175,395 Q162,400 158,370 Z" fill="#2a1a20"/>
+        <!-- Flower in hair -->
+        <circle cx="225" cy="265" r="8" fill="#e8a0b0"/>
+        <circle cx="225" cy="265" r="4" fill="#f5d0d8"/>
+        <!-- Eyes -->
+        <ellipse cx="184" cy="296" rx="7" ry="3.5" fill="#3a2a20"/>
+        <ellipse cx="216" cy="296" rx="7" ry="3.5" fill="#3a2a20"/>
+        <circle cx="185" cy="295" r="2" fill="#f5efe6"/>
+        <circle cx="217" cy="295" r="2" fill="#f5efe6"/>
+        <!-- Nose -->
+        <path d="M198,304 L200,313 L202,304" fill="#c4a880" stroke="#b09870" stroke-width="0.5"/>
+        <!-- Mouth -->
+        <path d="M191,320 Q200,326 209,320" stroke="#b07060" stroke-width="1.5" fill="none"/>
+        <!-- Small frog companion on shoulder -->
+        <ellipse cx="270" cy="420" rx="15" ry="12" fill="#5a9a5a"/>
+        <circle cx="265" cy="413" r="3" fill="#f5efe6"/>
+        <circle cx="275" cy="413" r="3" fill="#f5efe6"/>
+        <circle cx="265" cy="413" r="1.5" fill="#2a1a10"/>
+        <circle cx="275" cy="413" r="1.5" fill="#2a1a10"/>
+      </svg>`,
+
+      ronin: `<svg viewBox="0 0 400 700" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="face5" cx="50%" cy="30%"><stop offset="0%" stop-color="#e8d0b0"/><stop offset="100%" stop-color="#c4a070"/></radialGradient>
+          <linearGradient id="robe5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a3a3a"/><stop offset="100%" stop-color="#1a1a1a"/></linearGradient>
+        </defs>
+        <!-- Wind lines -->
+        <line x1="50" y1="200" x2="180" y2="195" stroke="rgba(200,190,175,0.3)" stroke-width="1"/>
+        <line x1="80" y1="280" x2="220" y2="275" stroke="rgba(200,190,175,0.25)" stroke-width="0.8"/>
+        <line x1="30" y1="360" x2="160" y2="355" stroke="rgba(200,190,175,0.2)" stroke-width="0.8"/>
+        <!-- Body -->
+        <path d="M140,380 Q130,460 120,560 Q115,630 120,700 L280,700 Q285,630 280,560 Q270,460 260,380 Z" fill="url(#robe5)"/>
+        <!-- Katana at side -->
+        <line x1="290" y1="350" x2="320" y2="680" stroke="#6a6a6a" stroke-width="5" stroke-linecap="round"/>
+        <rect x="285" y="480" width="30" height="8" rx="2" fill="#c4a060"/>
+        <!-- Collar -->
+        <path d="M175,375 L200,420 L225,375" stroke="#5a5a5a" stroke-width="2" fill="none"/>
+        <path d="M180,378 L200,415 L220,378" fill="#f5efe6"/>
+        <!-- Neck -->
+        <rect x="186" y="345" width="28" height="38" rx="7" fill="#e8d0b0"/>
+        <!-- Head -->
+        <ellipse cx="200" cy="295" rx="40" ry="48" fill="url(#face5)"/>
+        <!-- Topknot (chonmage) -->
+        <path d="M170,260 Q168,230 200,220 Q232,230 230,260" fill="#1a1010"/>
+        <rect x="190" y="205" width="20" height="18" rx="4" fill="#1a1010"/>
+        <!-- Stern eyes -->
+        <ellipse cx="182" cy="290" rx="9" ry="3.5" fill="#2a1a10"/>
+        <ellipse cx="218" cy="290" rx="9" ry="3.5" fill="#2a1a10"/>
+        <circle cx="184" cy="289.5" r="2.5" fill="#f5efe6"/>
+        <circle cx="220" cy="289.5" r="2.5" fill="#f5efe6"/>
+        <!-- Furrowed brow -->
+        <path d="M170,280 Q182,274 194,280" stroke="#2a1a10" stroke-width="2.5" fill="none"/>
+        <path d="M206,280 Q218,274 230,280" stroke="#2a1a10" stroke-width="2.5" fill="none"/>
+        <!-- Scar on cheek -->
+        <line x1="165" y1="305" x2="178" y2="318" stroke="#c49080" stroke-width="1.5"/>
+        <!-- Determined mouth -->
+        <path d="M192,322 L200,324 L208,322" stroke="#a07050" stroke-width="2" fill="none"/>
+      </svg>`
+    };
+    return svgs[style] || svgs.samurai;
+  }
+
+  // ===== BUILD CARDS =====
+  const container = document.getElementById('scrollContainer');
+  const dotsContainer = document.getElementById('progressDots');
+
+  cardsData.forEach((card, i) => {
+    // Create card DOM
+    const cardEl = document.createElement('div');
+    cardEl.className = 'soul-card';
+    cardEl.dataset.index = i;
+    cardEl.innerHTML = `
+      <div class="card-inner">
+        <div class="scene-layer ${card.sceneClass}"></div>
+        <div class="subject-figure">${createFigureSVG(card.figureStyle)}</div>
+        <div class="mist-layer"></div>
+        <canvas class="steam-canvas" data-card="${i}"></canvas>
+      </div>
+      <div class="card-meta" data-card="${i}">
+        <h2>${card.title}</h2>
+        <p class="caption">${card.caption}</p>
+      </div>
+    `;
+    container.appendChild(cardEl);
+
+    // Progress dot
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot';
+    dotsContainer.appendChild(dot);
+  });
+
+  // ===== AUDIO ENGINE (Web Audio API) =====
+  let audioCtx = null;
+  const activeOscillators = new Map();
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playRevealHum(cardIndex) {
+    if (!audioCtx) initAudio();
+    if (activeOscillators.has(cardIndex)) return;
+
+    const now = audioCtx.currentTime;
+    const baseFreq = 120 + (cardIndex * 15); // Warm ascending pitches: 120, 135, 150, 165, 180 Hz
+
+    // Main oscillator — warm rising hum
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.8, now + 0.4);
+
+    // Sub oscillator — lower warmth
+    const sub = audioCtx.createOscillator();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(baseFreq * 0.5, now);
+    sub.frequency.exponentialRampToValueAtTime(baseFreq * 0.9, now + 0.4);
+
+    // Gain envelope — quick attack, gentle sustain
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.12, now + 0.03);
+    gainNode.gain.exponentialRampToValueAtTime(0.04, now + 0.8);
+
+    // Filter — warmth cut
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.Q.value = 1;
+
+    // Connect: osc → gain → filter → destination
+    osc.connect(gainNode);
+    sub.connect(gainNode);
+    gainNode.connect(filter);
+    filter.connect(audioCtx.destination);
+
+    osc.start(now);
+    sub.start(now);
+
+    // Fade out after ~1.2s
+    gainNode.gain.setValueAtTime(0.04, now + 0.8);
+    gainNode.gain.linearRampToValueAtTime(0, now + 1.2);
+
+    const stopTime = (now + 1.2) * 1000;
+    osc.stop(stopTime);
+    sub.stop(stopTime);
+
+    // Cleanup map entry
+    activeOscillators.set(cardIndex, { osc, sub, gainNode, filter, stopTime: Date.now() + 1200 });
+    setTimeout(() => { activeOscillators.delete(cardIndex); }, 1300);
+  }
+
+  // ===== STEAM PARTICLE SYSTEM (Canvas) =====
+  const steamParticles = new Map();
+
+  class SteamParticle {
+    constructor(canvas, cardIndex) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.cardIndex = cardIndex;
+      this.reset();
+    }
+
+    reset() {
+      const rect = this.canvas.getBoundingClientRect();
+      // Spawn in subject area (center of card), avoiding face region (top-center)
+      const faceTop = 0.15;
+      const faceBottom = 0.42;
+      const faceLeft = 0.35;
+      const faceRight = 0.65;
+
+      // Pick spawn point with some randomness but away from face
+      let x, y;
+      do {
+        x = rect.width * (0.15 + Math.random() * 0.7);
+        y = rect.height * (faceBottom + 0.1 + Math.random() * 0.35);
+      } while (x > rect.width * faceLeft && x < rect.width * faceRight && y < rect.height * faceBottom);
+
+      this.x = x;
+      this.y = y;
+      this.originX = x;
+      this.size = 8 + Math.random() * 25;
+      this.maxSize = this.size * (1.5 + Math.random());
+      this.opacity = 0.15 + Math.random() * 0.2;
+      this.speedY = -(0.3 + Math.random() * 0.6);
+      this.speedX = (Math.random() - 0.5) * 0.4;
+      this.life = 0;
+      this.maxLife = 80 + Math.random() * 120;
+      this.wobblePhase = Math.random() * Math.PI * 2;
+      this.wobbleSpeed = 0.02 + Math.random() * 0.03;
+    }
+
+    update() {
+      this.life++;
+      this.wobblePhase += this.wobbleSpeed;
+      this.x += this.speedX + Math.sin(this.wobblePhase) * 0.3;
+      this.y += this.speedY;
+      const lifeRatio = this.life / this.maxLife;
+
+      // Fade in quickly, fade out slowly
+      if (lifeRatio < 0.15) {
+        this.currentOpacity = this.opacity * (lifeRatio / 0.15);
+      } else if (lifeRatio > 0.6) {
+        this.currentOpacity = this.opacity * (1 - (lifeRatio - 0.6) / 0.4);
+      } else {
+        this.currentOpacity = this.opacity;
+      }
+
+      // Grow gradually
+      const sizeRatio = lifeRatio < 0.7 ? lifeRatio / 0.7 : 1;
+      this.currentSize = this.size + (this.maxSize - this.size) * sizeRatio;
+
+      return this.life < this.maxLife && this.currentOpacity > 0.01;
+    }
+
+    draw() {
+      const ctx = this.ctx;
+      if (this.currentOpacity <= 0) return;
+
+      // Steam wisp: soft radial gradient, warm tones
+      const gradient = ctx.createRadialGradient(
+        this.x, this.y, 0,
+        this.x, this.y, this.currentSize
+      );
+      gradient.addColorStop(0, `rgba(245, 235, 218, ${this.currentOpacity})`);
+      gradient.addColorStop(0.4, `rgba(230, 220, 200, ${this.currentOpacity * 0.6})`);
+      gradient.addColorStop(1, `rgba(210, 200, 180, 0)`);
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.currentSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function initSteamForCard(canvas) {
+    const cardIndex = parseInt(canvas.dataset.card);
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width || window.innerWidth;
+    canvas.height = rect.height || window.innerHeight;
+
+    const particles = [];
+    const PARTICLE_COUNT = 18;
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      setTimeout(() => {
+        particles.push(new SteamParticle(canvas, cardIndex));
+      }, i * 60); // Stagger spawn
+    }
+
+    steamParticles.set(cardIndex, { particles, canvas });
+  }
+
+  function updateSteamCard(cardIndex) {
+    const data = steamParticles.get(cardIndex);
+    if (!data) return;
+
+    const ctx = data.canvas.getContext('2d');
+    ctx.clearRect(0, 0, data.canvas.width, data.canvas.height);
+
+    for (let i = data.particles.length - 1; i >= 0; i--) {
+      const alive = data.particles[i].update();
+      if (!alive) {
+        data.particles.splice(i, 1);
+        // Respawn
+        setTimeout(() => {
+          data.particles.push(new SteamParticle(data.canvas, cardIndex));
+        }, 200 + Math.random() * 400);
+      } else {
+        data.particles[i].draw();
+      }
+    }
+  }
+
+  // ===== FFCT MEASUREMENT (PerformanceObserver) =====
+  const ffctMeasurements = [];
+  let firstFrameObserver = null;
+
+  function setupFFCTMeasurement() {
+    try {
+      firstFrameObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          console.log(
+            `%c[FFCT] ${entry.name}`,
+            'color: #f5d8a0; font-weight: bold;',
+            `Clarity achieved at ${Math.round(entry.startTime)}ms`
+          );
+          ffctMeasurements.push({
+            name: entry.name,
+            startTime: entry.startTime,
+            timestamp: Date.now()
+          });
+        }
+      });
+      firstFrameObserver.observe({ entryTypes: ['measure'] });
+    } catch (e) {
+      console.log('[FFCT] PerformanceObserver unavailable:', e.message);
+    }
+
+    // Custom marker for our reveal events
+    window.recordFFCT = function(cardIndex, revealTimeMs) {
+      try {
+        performance.mark(`ffct-card-${cardIndex}-start`);
+        setTimeout(() => {
+          performance.mark(`ffct-card-${cardIndex}-end`);
+          try {
+            performance.measure(
+              `ffct-card-${cardIndex}`,
+              `ffct-card-${cardIndex}-start`,
+              `ffct-card-${cardIndex}-end`
+            );
+          } catch (e) {}
+        }, revealTimeMs);
+      } catch (e) {}
+
+      const rawFFCT = revealTimeMs;
+      console.log(
+        `%c[FFCT] Card ${cardIndex}`,
+        'color: #f5d8a0; font-weight: bold;',
+        `Clarity Time: ${rawFFCT}ms | Ship Bar: ${rawFFCT <= 150 ? 'PASS ✓' : 'FAIL ✗'}`
+      );
+
+      // Log summary every few reveals
+      ffctMeasurements.push({ cardIndex, rawFFCT, timestamp: Date.now() });
+      if (ffctMeasurements.length > 0 && ffctMeasurements.length % 3 === 0) {
+        const avg = ffctMeasurements.reduce((s, m) => s + m.rawFFCT, 0) / ffctMeasurements.length;
+        console.log(
+          `%c[FFCT] Summary — ${ffctMeasurements.length} reveals | Avg: ${avg.toFixed(1)}ms | Min: ${Math.min(...ffctMeasurements.map(m => m.rawFFCT))}ms | Max: ${Math.max(...ffctMeasurements.map(m => m.rawFFCT))}ms`,
+          'color: #a89880; font-style: italic;'
+        );
+      }
+    };
+  }
+
+  // ===== INTERSECTION OBSERVER (150ms lock) =====
+  const revealedCards = new Set();
+  let audioInitialized = false;
+
+  function revealCard(cardEl, cardIndex) {
+    if (revealedCards.has(cardIndex)) return;
+    revealedCards.add(cardIndex);
+
+    const startTime = performance.now();
+
+    // Fire the 150ms transition
+    cardEl.classList.add('revealed');
+
+    // Trigger audio within 50ms of visual lock
+    if (!audioInitialized) {
+      initAudio();
+      audioInitialized = true;
+    }
+    const audioStart = performance.now();
+    playRevealHum(cardIndex);
+    const audioLatency = Math.round(audioStart - startTime);
+
+    // Update progress dots
+    const dots = dotsContainer.querySelectorAll('.progress-dot');
+    if (dots[cardIndex]) dots[cardIndex].classList.add('active');
+
+    // Fade UI after soul settlement (~500ms post-reveal)
+    const metaEl = cardEl.querySelector('.card-meta');
+    setTimeout(() => {
+      if (metaEl) metaEl.classList.add('faded');
+    }, UI_FADE_DELAY_MS);
+
+    // Initialize steam particles on canvas
+    const canvas = cardEl.querySelector('.steam-canvas');
+    if (canvas && !steamParticles.has(cardIndex)) {
+      initSteamForCard(canvas);
+    }
+
+    // Measure FFCT
+    const revealDuration = performance.now() - startTime;
+    window.recordFFCT(cardIndex, Math.round(revealDuration));
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && entry.intersectionRatio >= OBSERVER_THRESHOLD) {
+        const cardIndex = parseInt(entry.target.dataset.index);
+        revealCard(entry.target, cardIndex);
+      }
+    });
+  }, { threshold: OBSERVER_THRESHOLD });
+
+  // Observe all cards
+  function observeAllCards() {
+    document.querySelectorAll('.soul-card').forEach(card => observer.observe(card));
+  }
+
+  // ===== STEAM ANIMATION LOOP =====
+  let animationRunning = false;
+  const steamAnimIds = new Map();
+
+  function startSteamLoop() {
+    if (animationRunning) return;
+    animationRunning = true;
+
+    function loop() {
+      for (const [cardIndex, data] of steamParticles) {
+        updateSteamCard(cardIndex);
+      }
+      steamAnimIds.set('main', requestAnimationFrame(loop));
+    }
+    loop();
+  }
+
+  // ===== HERO → GALLERY TRANSITION =====
+  const hero = document.getElementById('hero');
+  const enterBtn = document.getElementById('enterBtn');
+  const scrollHint = document.getElementById('scrollHint');
+  let galleryActive = false;
+
+  enterBtn.addEventListener('click', () => {
+    initAudio();
+    hero.classList.add('hidden');
+    dotsContainer.classList.remove('hidden');
+    setTimeout(() => {
+      galleryActive = true;
+      observeAllCards();
+      startSteamLoop();
+    }, 400);
+  });
+
+  // Also handle Enter key on the button
+  enterBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') enterBtn.click();
+  });
+
+  // ===== SCROLL HINT MANAGEMENT =====
+  let scrollHintVisible = true;
+  const heroObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting && galleryActive) {
+        scrollHint.classList.remove('hidden');
+        setTimeout(() => scrollHint.classList.add('hidden'), 3000);
+      }
+    });
+  }, { threshold: [0.8] });
+
+  // Observe hero (injected after button click, so use MutationObserver fallback)
+  const heroMutation = new MutationObserver((mutations) => {
+    mutations.forEach(mutation => {
+      if (!hero.classList.contains('hidden')) {
+        heroObserver.observe(hero);
+      } else {
+        heroObserver.disconnect();
+      }
+    });
+  });
+  heroMutation.observe(hero, { attributes: true, attributeFilter: ['class'] });
+
+  // ===== RESIZE HANDLER =====
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      document.querySelectorAll('.steam-canvas').forEach(canvas => {
+        const cardIndex = parseInt(canvas.dataset.card);
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width || window.innerWidth;
+        canvas.height = rect.height || window.innerHeight;
+      });
+    }, 200);
+  });
+
+  // ===== FFCT SETUP (before any reveals) =====
+  setupFFCTMeasurement();
+
+  // Log initial state
+  console.log('%c[The Steaming Soul] Gallery loaded.', 'color: #f5d8a0; font-weight: bold;');
+  console.log('[FFCT] Ship bar: FFCT ≤ 150ms across all viewport entries.');
+  console.log('[FFCT] Measurements will log to console on each reveal.');
+
+})();
+</script>
+</body>
+</html>
