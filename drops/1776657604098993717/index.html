@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Steaming Soul</title>
+<style>
+  /* ============================================================
+     CSS VARIABLES — Mist vs Clarity states (hard 150ms cutoff)
+     ============================================================ */
+  :root {
+    --bg-deep: #0a0608;
+    --bg-card: #120e10;
+    --ink: #1a1418;
+    --paper: #f5ece0;
+    --vermillion: #c94030;
+    --ink-wash: #2c2420;
+    --gold-leaf: #d4a856;
+    --mist-blue: #8a9bb0;
+
+    /* Mist state — desaturated, blurred */
+    --mist-blur: 14px;
+    --mist-saturate: 0.15;
+    --mist-contrast: 0.6;
+    --mist-brightness: 0.85;
+    --mist-opacity: 0.7;
+
+    /* Clarity state — vibrant, sharp */
+    --clarity-blur: 0px;
+    --clarity-saturate: 1.3;
+    --clarity-contrast: 1.1;
+    --clarity-brightness: 1.05;
+    --clarity-opacity: 1;
+
+    /* The hard cutoff — exactly 150ms */
+    --reveal-duration: 150ms;
+
+    /* Steam config */
+    --steam-count: 6;
+    --steam-color-top: rgba(245, 236, 224, 0.18);
+    --steam-color-mid: rgba(245, 236, 224, 0.10);
+    --steam-color-bot: rgba(245, 236, 224, 0.04);
+
+    /* UI fade */
+    --ui-fade-duration: 600ms;
+  }
+
+  /* ============================================================
+     RESET & BASE
+     ============================================================ */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    background: var(--bg-deep);
+    -webkit-font-smoothing: antialiased;
+    font-family: "Noto Serif JP", "Hiragino Mincho ProN", serif;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, rgba(201,64,48,0.06) 0%, transparent 70%),
+      var(--bg-deep);
+  }
+
+  /* ============================================================
+     PAGE HEADER (fades after clarity)
+     ============================================================ */
+  .page-header {
+    position: fixed;
+    top: env(safe-area-inset-top, 16px);
+    left: 0; right: 0;
+    text-align: center;
+    padding: 24px 16px 8px;
+    z-index: 10;
+    transition: opacity var(--ui-fade-duration) ease-out,
+                transform var(--ui-fade-duration) ease-out;
+    will-change: opacity, transform;
+  }
+
+  .page-header h1 {
+    font-size: clamp(14px, 3.5vw, 20px);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--paper);
+    opacity: 0.85;
+    font-weight: 400;
+  }
+
+  .page-header .subtitle {
+    font-size: clamp(10px, 2.5vw, 13px);
+    color: var(--mist-blue);
+    margin-top: 4px;
+    letter-spacing: 0.12em;
+    opacity: 0.6;
+  }
+
+  body.clarity-reached .page-header {
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+  }
+
+  /* ============================================================
+     SCROLL SPACER — creates room for multiple cards
+     ============================================================ */
+  .scroll-space {
+    width: 100%;
+    height: 40vh;
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
+     CARD CONTAINER
+     ============================================================ */
+  .card-scene {
+    position: relative;
+    width: min(90vw, 420px);
+    aspect-ratio: 3 / 4;
+    margin: 0 auto 8vh;
+    perspective: 1000px;
+  }
+
+  /* ============================================================
+     THE CARD — Mist → Clarity transition lives here
+     ============================================================ */
+  .card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-card);
+    box-shadow:
+      0 2px 40px rgba(0,0,0,0.5),
+      0 0 80px rgba(201,64,48,0.03);
+    transition: transform 100ms ease-out;
+    will-change: filter;
+
+    /* Mist state (default) */
+    filter:
+      blur(var(--mist-blur))
+      saturate(var(--mist-saturate))
+      contrast(var(--mist-contrast))
+      brightness(var(--mist-brightness));
+    opacity: var(--mist-opacity);
+  }
+
+  .card.has-focal-point {
+    /* Clarity state — hard 150ms cutoff, no easing curve beyond this */
+    filter:
+      blur(var(--clarity-blur))
+      saturate(var(--clarity-saturate))
+      contrast(var(--clarity-contrast))
+      brightness(var(--clarity-brightness));
+    opacity: var(--clarity-opacity);
+    transition-duration: var(--reveal-duration);
+    transition-timing-function: linear;
+  }
+
+  /* Subtle card border in mist */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    border: 1px solid rgba(245,236,224,0.08);
+    z-index: 20;
+    pointer-events: none;
+    opacity: var(--mist-opacity);
+    transition: opacity var(--reveal-duration) linear;
+  }
+
+  .card.has-focal-point::before {
+    border-color: rgba(212,168,86,0.15);
+    opacity: 1;
+  }
+
+  /* ============================================================
+     SVG ARTWORK — Ukiyo-e hot soup bowl scene
+     ============================================================ */
+  .card svg.ukiyo-scene {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* ============================================================
+     STEAM WISPS — CSS only, appear AFTER clarity lock
+     ============================================================ */
+  .steam-layer {
+    position: absolute;
+    inset: -20% 10% 5%;
+    z-index: 15;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--reveal-duration) linear;
+    overflow: visible;
+  }
+
+  .card.has-focal-point .steam-layer {
+    opacity: 1;
+  }
+
+  .wisp {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(6px);
+    will-change: transform, opacity;
+  }
+
+  /* Each wisp: different origin, duration, delay */
+  .wisp-1 {
+    bottom: 28%; left: 38%;
+    width: 18px; height: 50px;
+    background: radial-gradient(ellipse, var(--steam-color-top), transparent);
+    animation: wisp-rise 3.2s ease-out infinite;
+    animation-delay: 0s;
+  }
+  .wisp-2 {
+    bottom: 30%; left: 48%;
+    width: 14px; height: 60px;
+    background: radial-gradient(ellipse, var(--steam-color-mid), transparent);
+    animation: wisp-rise 2.8s ease-out infinite;
+    animation-delay: 0.5s;
+  }
+  .wisp-3 {
+    bottom: 26%; left: 55%;
+    width: 20px; height: 45px;
+    background: radial-gradient(ellipse, var(--steam-color-bot), transparent);
+    animation: wisp-rise 3.6s ease-out infinite;
+    animation-delay: 1.0s;
+  }
+  .wisp-4 {
+    bottom: 32%; left: 42%;
+    width: 12px; height: 55px;
+    background: radial-gradient(ellipse, var(--steam-color-mid), transparent);
+    animation: wisp-rise 2.5s ease-out infinite;
+    animation-delay: 1.5s;
+  }
+  .wisp-5 {
+    bottom: 27%; left: 52%;
+    width: 16px; height: 48px;
+    background: radial-gradient(ellipse, var(--steam-color-top), transparent);
+    animation: wisp-rise 3.0s ease-out infinite;
+    animation-delay: 0.8s;
+  }
+  .wisp-6 {
+    bottom: 31%; left: 45%;
+    width: 22px; height: 40px;
+    background: radial-gradient(ellipse, var(--steam-color-bot), transparent);
+    animation: wisp-rise 3.4s ease-out infinite;
+    animation-delay: 2.0s;
+  }
+
+  @keyframes wisp-rise {
+    0% {
+      transform: translateY(0) scaleX(1) scaleY(1) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateY(-60px) scaleX(1.4) scaleY(1.2) rotate(3deg);
+      opacity: 0.5;
+    }
+    100% {
+      transform: translateY(-130px) scaleX(0.6) scaleY(0.8) rotate(-4deg);
+      opacity: 0;
+    }
+  }
+
+  /* ============================================================
+     CARD FOOTER — caption fades in with clarity
+     ============================================================ */
+  .card-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 32px 20px 16px;
+    z-index: 18;
+    background: linear-gradient(to top, rgba(10,6,8,0.85) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity var(--ui-fade-duration) ease-out;
+    pointer-events: none;
+  }
+
+  .card.has-focal-point .card-footer {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .card-footer h2 {
+    font-size: clamp(13px, 3vw, 17px);
+    color: var(--paper);
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+  }
+
+  .card-footer .jp-title {
+    font-size: clamp(18px, 4.5vw, 26px);
+    color: var(--vermillion);
+    display: block;
+    margin-bottom: 4px;
+    letter-spacing: 0.15em;
+  }
+
+  .card-footer .artist {
+    font-size: clamp(9px, 2vw, 11px);
+    color: var(--gold-leaf);
+    opacity: 0.7;
+    margin-top: 6px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ============================================================
+     HINT — scrolls away on clarity
+     ============================================================ */
+  .scroll-hint {
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--mist-blue);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    opacity: 0.4;
+    transition: opacity var(--ui-fade-duration) ease-out;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .scroll-hint::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 20px;
+    background: var(--mist-blue);
+    margin: 6px auto 0;
+    animation: hint-pulse 2s ease-in-out infinite;
+  }
+
+  body.clarity-reached .scroll-hint { opacity: 0; }
+
+  @keyframes hint-pulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(1); }
+    50% { opacity: 0.6; transform: scaleY(1.4); }
+  }
+
+  /* ============================================================
+     SECOND CARD — for scroll interaction demo
+     ============================================================ */
+  .card-scene + .scroll-space + .card-scene .card svg .scene-base-group {
+    opacity: 0.9;
+  }
+
+  /* ============================================================
+     AMBIENT GLOW behind card (very subtle)
+     ============================================================ */
+  .ambient-glow {
+    position: absolute;
+    top: -30%; left: -20%; right: -20%; bottom: -20%;
+    background: radial-gradient(ellipse at 50% 60%, rgba(201,64,48,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1s ease-out;
+  }
+
+  .card-scene.is-active .ambient-glow {
+    opacity: 1;
+  }
+
+  /* ============================================================
+     MOBILE SAFETY
+     ============================================================ */
+  @media (max-width: 360px) {
+    .card-scene { width: 94vw; }
+    .wisp { filter: blur(8px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="page-header" id="pageHeader">
+  <h1>The Steaming Soul</h1>
+  <p class="subtitle">霧を抜き、魂を見る — Remove the mist, see the soul</p>
+</header>
+
+<!-- Scroll spacer before first card -->
+<div class="scroll-space"></div>
+
+<!-- CARD 1: Hot Soup Bowl (湯気立っておる) -->
+<section class="card-scene" data-card-id="bowl-of-clarity">
+  <div class="ambient-glow"></div>
+  <article class="card" role="img" aria-label="Ukiyo-e print of a steaming hot bowl of soup">
+
+    <!-- SVG Ukiyo-e artwork -->
+    <svg class="ukiyo-scene" viewBox="0 0 420 560" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Paper texture gradient -->
+        <linearGradient id="paperGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f5ece0"/>
+          <stop offset="100%" stop-color="#e8d8c4"/>
+        </linearGradient>
+
+        <!-- Vermillion seal gradient -->
+        <radialGradient id="vermGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#d44a3a"/>
+          <stop offset="100%" stop-color="#b8362a"/>
+        </radialGradient>
+
+        <!-- Bowl shading -->
+        <linearGradient id="bowlGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8b4513"/>
+          <stop offset="100%" stop-color="#5c2e0a"/>
+        </linearGradient>
+
+        <!-- Bowl interior -->
+        <radialGradient id="bowlInner" cx="50%" cy="60%" r="45%">
+          <stop offset="0%" stop-color="#3d1f08"/>
+          <stop offset="100%" stop-color="#2a1506"/>
+        </radialGradient>
+
+        <!-- Soup broth -->
+        <linearGradient id="brothGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#c4943a"/>
+          <stop offset="50%" stop-color="#a67b2e"/>
+          <stop offset="100%" stop-color="#8b6520"/>
+        </linearGradient>
+
+        <!-- Steam glow -->
+        <radialGradient id="steamGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(245,236,224,0.15)"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </radialGradient>
+
+        <!-- Background mountain wash -->
+        <linearGradient id="mountainGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7a8a9e"/>
+          <stop offset="100%" stop-color="#b5c4d0"/>
+        </linearGradient>
+
+        <!-- Wood pattern -->
+        <pattern id="woodPattern" x="0" y="0" width="60" height="12" patternUnits="userSpaceOnUse">
+          <rect width="60" height="12" fill="#d4a856"/>
+          <path d="M0,3 Q15,1 30,3 Q45,5 60,3" stroke="#c49a46" fill="none" stroke-width="0.5"/>
+          <path d="M0,7 Q20,8 40,7 Q55,6 60,7" stroke="#b88e3a" fill="none" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+
+      <!-- ===== BACKGROUND PAPER ===== -->
+      <rect width="420" height="560" fill="url(#paperGrad)"/>
+
+      <!-- ===== DISTANT MOUNTAINS (misty ukiyo-e style) ===== -->
+      <g class="scene-base-group" opacity="0.35">
+        <path d="M0,200 Q105,120 210,180 Q315,100 420,170 L420,280 L0,280Z" fill="url(#mountainGrad)" opacity="0.5"/>
+        <path d="M0,230 Q80,170 160,210 Q280,150 420,200 L420,260 L0,260Z" fill="#95a4b4" opacity="0.4"/>
+        <!-- Snow caps -->
+        <path d="M95,145 Q105,130 115,145" stroke="#e8d8c4" fill="none" stroke-width="2" opacity="0.6"/>
+        <path d="M270,130 Q280,118 290,130" stroke="#e8d8c4" fill="none" stroke-width="2" opacity="0.5"/>
+      </g>
+
+      <!-- ===== WOODEN TABLE ===== -->
+      <rect x="20" y="360" width="380" height="10" rx="2" fill="#a07840"/>
+      <line x1="20" y1="365" x2="400" y2="365" stroke="#8b6530" stroke-width="1"/>
+      <line x1="20" y1="369" x2="400" y2="369" stroke="#c49a46" stroke-width="0.5"/>
+
+      <!-- ===== BOWL ===== -->
+      <!-- Bowl shadow -->
+      <ellipse cx="210" cy="395" rx="120" ry="18" fill="rgba(0,0,0,0.08)"/>
+
+      <!-- Bowl exterior -->
+      <path d="M105,340 Q105,410 210,420 Q315,410 315,340 Z" fill="url(#bowlGrad)" stroke="#6b3a10" stroke-width="1"/>
+
+      <!-- Bowl rim -->
+      <ellipse cx="210" cy="340" rx="105" ry="18" fill="url(#bowlInner)" stroke="#7a4518" stroke-width="1.5"/>
+
+      <!-- Soup surface -->
+      <ellipse cx="210" cy="342" rx="96" ry="14" fill="url(#brothGrad)"/>
+
+      <!-- Chopsticks resting on bowl -->
+      <line x1="80" y1="330" x2="195" y2="337" stroke="#c49a46" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="82" y1="334" x2="197" y2="341" stroke="#b88e3a" stroke-width="2" stroke-linecap="round"/>
+
+      <!-- ===== STEAM GLOW (behind wisps) ===== -->
+      <ellipse cx="210" cy="300" rx="80" ry="70" fill="url(#steamGlow)" class="steam-glow"/>
+
+      <!-- ===== SOUP DETAILS (ingredients) ===== -->
+      <!-- Noodle swirls -->
+      <path d="M160,345 Q175,338 190,343 Q205,336 220,342 Q235,335 250,343" stroke="#d4a830" fill="none" stroke-width="2" opacity="0.7"/>
+      <path d="M170,348 Q185,342 200,347 Q215,340 230,346 Q240,341 255,347" stroke="#c49a28" fill="none" stroke-width="1.5" opacity="0.5"/>
+
+      <!-- Scallion pieces -->
+      <circle cx="185" cy="342" r="3" fill="#6aaa4a" opacity="0.7"/>
+      <circle cx="235" cy="339" r="2.5" fill="#6aaa4a" opacity="0.6"/>
+      <ellipse cx="210" cy="346" rx="8" ry="3" fill="#7ab858" opacity="0.5"/>
+
+      <!-- Pork slice -->
+      <path d="M195,340 Q200,335 210,338 Q215,333 220,337 L218,345 Q210,342 205,345 Z" fill="#c4a080" opacity="0.6"/>
+
+      <!-- Broth highlights -->
+      <ellipse cx="200" cy="344" rx="12" ry="2" fill="rgba(255,255,255,0.15)"/>
+
+      <!-- ===== VERMILLON SEAL (stamp) ===== -->
+      <g transform="translate(370, 480)">
+        <rect x="-18" y="-18" width="36" height="36" rx="3" fill="url(#vermGrad)" opacity="0.8"/>
+        <!-- Seal character (simple) -->
+        <text x="0" y="6" text-anchor="middle" font-size="18" fill="#f5ece0" font-family="serif" font-weight="bold">魂</text>
+      </g>
+
+      <!-- ===== TITLE TEXT (vertical, ukiyo-e style) ===== -->
+      <text x="375" y="60" text-anchor="middle" font-size="13" fill="#4a3828" font-family="serif" letter-spacing="3" opacity="0.6">湯気立っておる</text>
+
+      <!-- ===== SUBTLE FOG OVERLAY (top, atmospheric) ===== -->
+      <rect x="0" y="0" width="420" height="150" fill="url(#paperGrad)" opacity="0.12"/>
+
+      <!-- ===== SMALL CIRCLE MOTIF (ukiyo-e style framing) ===== -->
+      <circle cx="210" cy="100" r="60" fill="none" stroke="#c49a46" stroke-width="0.5" opacity="0.3"/>
+      <circle cx="210" cy="100" r="45" fill="none" stroke="#d4a856" stroke-width="0.3" opacity="0.2"/>
+
+      <!-- ===== TINY DETAIL: chopstick rest ===== -->
+      <path d="M300,355 Q305,360 295,365" stroke="#c49a46" fill="none" stroke-width="1.5"/>
+    </svg>
+
+    <!-- STEAM WISPS (appear after clarity lock) -->
+    <div class="steam-layer">
+      <div class="wisp wisp-1"></div>
+      <div class="wisp wisp-2"></div>
+      <div class="wisp wisp-3"></div>
+      <div class="wisp wisp-4"></div>
+      <div class="wisp wisp-5"></div>
+      <div class="wisp wisp-6"></div>
+    </div>
+
+    <!-- CARD FOOTER -->
+    <footer class="card-footer">
+      <h2>
+        <span class="jp-title">湯気立っておる</span>
+        The Steam Rises — Clarity of Soul
+      </h2>
+      <p class="artist">木版刷り · Woodblock Print · Anon.</p>
+    </footer>
+  </article>
+</section>
+
+<!-- Scroll spacer -->
+<div class="scroll-space"></div>
+
+<!-- CARD 2: Mountain Scene (for scroll demo) -->
+<section class="card-scene" data-card-id="mountain-view">
+  <div class="ambient-glow"></div>
+  <article class="card" role="img" aria-label="Ukiyo-e print of a misty mountain landscape">
+
+    <svg class="ukiyo-scene" viewBox="0 0 420 560" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#d4c8b8"/>
+          <stop offset="100%" stop-color="#e8dcd0"/>
+        </linearGradient>
+        <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#d44a3a"/>
+          <stop offset="60%" stop-color="#c94030" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#c94030" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="riverGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8a9bb0"/>
+          <stop offset="100%" stop-color="#6a7b8e"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Sky -->
+      <rect width="420" height="560" fill="url(#skyGrad)"/>
+
+      <!-- Red sun (Hokusai style) -->
+      <circle cx="210" cy="200" r="80" fill="url(#sunGrad)" opacity="0.9"/>
+
+      <!-- Mountain layers (Fujian-style waves in mountain form) -->
+      <path d="M0,250 Q50,180 100,210 Q150,160 210,190 Q270,150 330,200 Q380,170 420,220 L420,350 L0,350Z"
+            fill="#7a8a9e" opacity="0.6"/>
+      <path d="M0,280 Q60,230 120,260 Q180,220 240,250 Q300,210 360,250 Q400,230 420,270 L420,380 L0,380Z"
+            fill="#8a9bb0" opacity="0.5"/>
+
+      <!-- Village -->
+      <rect x="160" y="300" width="8" height="12" fill="#4a3828" opacity="0.5"/>
+      <path d="M158,300 L164,295 L170,300Z" fill="#6a5a4a" opacity="0.5"/>
+      <rect x="240" y="310" width="6" height="10" fill="#4a3828" opacity="0.4"/>
+      <path d="M238,310 L243,306 L248,310Z" fill="#6a5a4a" opacity="0.4"/>
+
+      <!-- River -->
+      <path d="M180,370 Q200,380 190,400 Q180,420 200,450 Q210,480 195,520" stroke="url(#riverGrad)" fill="none" stroke-width="15" opacity="0.4"/>
+      <path d="M210,370 Q230,380 220,400 Q210,420 230,450 Q240,480 225,520" stroke="#9aabb8" fill="none" stroke-width="8" opacity="0.3"/>
+
+      <!-- Bridge -->
+      <path d="M170,365 Q210,355 250,365" stroke="#8b6540" fill="none" stroke-width="3" opacity="0.5"/>
+      <line x1="210" y1="360" x2="210" y2="375" stroke="#8b6540" stroke-width="1.5" opacity="0.5"/>
+
+      <!-- Foreground trees -->
+      <line x1="60" y1="450" x2="60" y2="350" stroke="#5a4a3a" stroke-width="4"/>
+      <path d="M60,350 Q45,330 50,310 Q60,320 60,310 Q60,320 70,310 Q75,330 60,350Z" fill="#4a6a3a" opacity="0.5"/>
+      <line x1="360" y1="470" x2="360" y2="380" stroke="#5a4a3a" stroke-width="3.5"/>
+      <path d="M360,380 Q348,365 352,350 Q360,358 360,348 Q360,358 368,350 Q372,365 360,380Z" fill="#4a6a3a" opacity="0.4"/>
+
+      <!-- Mist overlay bottom -->
+      <rect x="0" y="400" width="420" height="160" fill="url(#skyGrad)" opacity="0.25"/>
+
+      <!-- Red seal -->
+      <g transform="translate(370, 500)">
+        <rect x="-18" y="-18" width="36" height="36" rx="3" fill="url(#vermGrad)" opacity="0.8"/>
+        <text x="0" y="6" text-anchor="middle" font-size="18" fill="#f5ece0" font-family="serif" font-weight="bold">風</text>
+      </g>
+
+      <!-- Title -->
+      <text x="375" y="55" text-anchor="middle" font-size="12" fill="#4a3828" font-family="serif" letter-spacing="3" opacity="0.5">風景</text>
+    </svg>
+
+    <!-- STEAM WISPS -->
+    <div class="steam-layer">
+      <div class="wisp wisp-1"></div>
+      <div class="wisp wisp-2"></div>
+      <div class="wisp wisp-3"></div>
+      <div class="wisp wisp-4"></div>
+      <div class="wisp wisp-5"></div>
+      <div class="wisp wisp-6"></div>
+    </div>
+
+    <!-- CARD FOOTER -->
+    <footer class="card-footer">
+      <h2>
+        <span class="jp-title">風景</span>
+        Landscape — Mist Among Peaks
+      </h2>
+      <p class="artist">木版刷り · Woodblock Print · Anon.</p>
+    </footer>
+  </article>
+</section>
+
+<div class="scroll-space"></div>
+
+<!-- Scroll hint -->
+<div class="scroll-hint" id="scrollHint">Scroll to reveal</div>
+
+<!-- ============================================================
+     JAVASCRIPT — IntersectionObserver, 150ms Lock, Audio
+     ============================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  /* ===== AUDIO CONTEXT PROVIDER ===== */
+  let audioCtx = null;
+  let steamGain = null;
+  let humOscillator = null;
+  let humStarted = false;
+
+  function createSteamHum() {
+    if (audioCtx) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      // Master gain for the steam sound
+      steamGain = audioCtx.createGain();
+      steamGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+      // Warm low-frequency hum (Bass ~65Hz, rising)
+      const hum = audioCtx.createOscillator();
+      hum.type = 'sine';
+      hum.frequency.setValueAtTime(55, audioCtx.currentTime);
+      hum.frequency.exponentialRampToValueAtTime(82, audioCtx.currentTime + 0.15);
+
+      // Sub harmonic layer for warmth (~33Hz)
+      const sub = audioCtx.createOscillator();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(33, audioCtx.currentTime);
+
+      // Gentle high shimmer (~440Hz, very quiet)
+      const shimmer = audioCtx.createOscillator();
+      shimmer.type = 'sine';
+      shimmer.frequency.setValueAtTime(440, audioCtx.currentTime);
+      shimmer.detune.setValueAtTime(12, audioCtx.currentTime); // slight detune for warmth
+
+      // Shimmer gain (very quiet)
+      const shimGain = audioCtx.createGain();
+      shimGain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+      shimmer.connect(shimGain);
+      shimGain.connect(steamGain);
+
+      // Sub gain
+      const subGain = audioCtx.createGain();
+      subGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      sub.connect(subGain);
+      subGain.connect(steamGain);
+
+      hum.connect(steamGain);
+      steamGain.connect(audioCtx.destination);
+
+      // Fade in over 150ms to match visual reveal
+      steamGain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.15);
+
+      hum.start();
+      sub.start();
+      shimmer.start();
+
+      humStarted = true;
+
+      // Store for cleanup
+      audioCtx._nodes = [hum, sub, shimmer];
+    } catch (e) {
+      console.warn('[The Steaming Soul] Audio unavailable:', e);
+    }
+  }
+
+  function resumeAudio() {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  // Resume audio on first user interaction
+  document.addEventListener('click', resumeAudio, { once: true });
+  document.addEventListener('touchstart', resumeAudio, { once: true });
+
+  /* ===== INTERSECTION OBSERVER — The 150ms Lock ===== */
+  const cards = document.querySelectorAll('.card-scene');
+  const cardElements = document.querySelectorAll('.card');
+  let soulSettled = false; // Track if audio has been triggered
+
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const scene = entry.target;
+      const card = scene.querySelector('.card');
+      if (!entry.isIntersecting) return;
+
+      scene.classList.add('is-active');
+      // Remove old class to re-trigger transition
+      card.classList.remove('has-focal-point');
+      // Force reflow so the CSS transition fires cleanly
+      void card.offsetWidth;
+      // ADD: this is the 150ms lock — hard cutoff, no easing beyond
+      card.classList.add('has-focal-point');
+
+      // Trigger audio steam hum within 50ms of visual lock
+      requestAnimationFrame(() => {
+        createSteamHum();
+      });
+
+      // Mark global clarity reached (fade UI)
+      if (!soulSettled) {
+        soulSettled = true;
+        document.body.classList.add('clarity-reached');
+      }
+    });
+  }, {
+    root: null,
+    threshold: 0.4 // 40% visible triggers the reveal
+  });
+
+  cards.forEach(card => revealObserver.observe(card));
+
+  /* ===== SCROLL HINT HIDE ===== */
+  const scrollHint = document.getElementById('scrollHint');
+  if (scrollHint) {
+    let hintHidden = false;
+    window.addEventListener('scroll', () => {
+      if (!hintHidden && window.scrollY > 50) {
+        scrollHint.style.opacity = '0';
+        hintHidden = true;
+      }
+    }, { passive: true });
+  }
+
+  /* ===== CARD PARALLAX (subtle, no frame budget waste) ===== */
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        cardElements.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          const center = rect.top + rect.height / 2;
+          const viewCenter = window.innerHeight / 2;
+          const offset = (center - viewCenter) * 0.02;
+          // Only apply when in focus state
+          if (card.classList.contains('has-focal-point')) {
+            card.style.transform = `translateY(${offset}px)`;
+          }
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+})();
+</script>
+</body>
+</html>
