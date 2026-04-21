@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Singing Drop</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1a1210;
+  overflow: hidden;
+  font-family: 'Georgia', serif;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: crosshair;
+}
+
+canvas#bg-canvas, canvas#shimmer-canvas, canvas#main-canvas {
+  position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+}
+canvas#bg-canvas { z-index: 1; }
+canvas#shimmer-canvas { z-index: 2; pointer-events: none; opacity: 0.6; }
+canvas#main-canvas { z-index: 3; }
+
+/* Timer — ink-wash stylized, always visible */
+#timer-display {
+  position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+  z-index: 20; font-size: 48px; color: #d4a96a; letter-spacing: 3px;
+  text-shadow: 0 0 20px rgba(212,169,106,0.5), 0 0 60px rgba(255,140,50,0.2);
+  font-variant-numeric: tabular-nums; opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+#timer-display .label {
+  font-size: 12px; letter-spacing: 6px; text-transform: uppercase; color: #8a7550;
+  display: block; text-align: center; margin-bottom: 2px;
+}
+
+/* Ambient glow ring for slip zone — CSS overlay */
+#slip-ring {
+  position: absolute; border-radius: 50%; pointer-events: none; z-index: 4;
+  transform: translate(-50%, -50%); opacity: 0;
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Reward overlay */
+#reward-overlay {
+  position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 25; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at center, rgba(255,200,120,0.3) 0%, transparent 70%);
+  transition: opacity 0.6s ease;
+}
+
+#reward-text {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 32px; color: #d4a96a; letter-spacing: 8px; opacity: 0;
+  text-shadow: 0 0 30px rgba(212,169,106,0.8);
+}
+
+/* Start prompt */
+#start-prompt {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 30; color: #a0896a; font-size: 20px; letter-spacing: 4px;
+  cursor: pointer; text-align: center; line-height: 1.8;
+}
+#start-prompt .icon { font-size: 48px; display: block; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="shimmer-canvas"></canvas>
+<canvas id="main-canvas"></canvas>
+<div id="slip-ring"></div>
+<div id="timer-display"><span class="label">Heat Time</span>0.00</div>
+<div id="reward-overlay"><div id="reward-text">✦ Released ✦</div></div>
+<div id="start-prompt">
+  <span class="icon">〰</span>
+  Move closer… listen for the song<br>
+  <span style="font-size:14px;color:#6a5a3a;">click or release near the warm center to slip through</span>
+</div>
+
+<script>
+// ============================================================
+// THE SINGING DROP — Core Loop Implementation
+// Approach → Song Intensifies → Invitation (Slip Zone) → Release → Reward
+// ============================================================
+
+// ---- Canvas setup ----
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d');
+const shimCanvas = document.getElementById('shimmer-canvas');
+const shimCtx = shimCanvas.getContext('2d');
+const mainCanvas = document.getElementById('main-canvas');
+const mainCtx = mainCanvas.getContext('2d');
+
+let W, H, cx, cy;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  cx = W / 2; cy = H / 2;
+  [bgCanvas, shimCanvas, mainCanvas].forEach(c => { c.width = W; c.height = H; });
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ---- DOM refs ----
+const timerEl = document.getElementById('timer-display');
+const slipRing = document.getElementById('slip-ring');
+const rewardOverlay = document.getElementById('reward-overlay');
+const rewardText = document.getElementById('reward-text');
+const startPrompt = document.getElementById('start-prompt');
+
+// ---- State machine ----
+const STATE = { IDLE: 0, APPROACH: 1, SLIP_ZONE: 2, RELEASED: 3, REWARD: 4 };
+let state = STATE.IDLE;
+let mouseX = cx, mouseY = cy;
+let mouseActive = false;
+let slipPhase = 0; // 0→1 tracking release animation progress
+let released = false;
+
+// ---- Timer ----
+const TIMER_DURATION = 3.0; // seconds to hold before automatic reward
+let timerRemaining = TIMER_DURATION;
+let timerRunning = false;
+
+// ---- Noodle target config ----
+const NOODLE_RADIUS = 48;
+const SLIP_ZONE_RADIUS = 120;
+const APPROACH_THRESHOLD = 250; // px where song begins
+
+// ---- Audio Engine ----
+let audioCtx = null;
+let masterGain = null;
+
+// Organic hum: multiple detuned oscillators + filtered noise for "warm air"
+let humOsc1, humOsc2, humOsc3, humNoise, humGain, humFilter;
+let chimeOsc, chimeGain, chimeFilter;
+let rushGain, rushBuffer = null;
+
+// Chime harmonics (pentatonic scale for warmth)
+const CHIME_NOTES = [523.25, 659.25, 783.99, 1046.5, 1318.5]; // C5 pentatonic
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.7;
+  masterGain.connect(audioCtx.destination);
+
+  // --- Warm air hum layer ---
+  humOsc1 = audioCtx.createOscillator();
+  humOsc2 = audioCtx.createOscillator();
+  humOsc3 = audioCtx.createOscillator();
+  humGain = audioCtx.createGain();
+  humFilter = audioCtx.createBiquadFilter();
+
+  humOsc1.type = 'sine'; humOsc1.frequency.value = 72; // deep base
+  humOsc2.type = 'sine'; humOsc2.frequency.value = 73.5; // slight detune
+  humOsc3.type = 'triangle'; humOsc3.frequency.value = 144; // octave harmonic
+
+  humGain.gain.value = 0;
+  humFilter.type = 'lowpass';
+  humFilter.frequency.value = 200;
+  humFilter.Q.value = 0.7;
+
+  [humOsc1, humOsc2, humOsc3].forEach(o => {
+    o.connect(humGain);
+    o.start();
+  });
+  humGain.connect(humFilter);
+  humFilter.connect(masterGain);
+
+  // --- Filtered noise for air rush texture ---
+  const bufferSize = audioCtx.sampleRate * 2;
+  rushBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = rushBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * 0.3;
+  }
+
+  humNoise = audioCtx.createBufferSource();
+  humNoise.buffer = rushBuffer;
+  humNoise.loop = true;
+  const noiseGainNode = audioCtx.createGain();
+  const noiseFilter = audioCtx.createBiquadFilter();
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.value = 400;
+  noiseFilter.Q.value = 2;
+  noiseGainNode.gain.value = 0;
+  humNoise.connect(noiseFilter);
+  noiseFilter.connect(noiseGainNode);
+  noiseGainNode.connect(masterGain);
+  humNoise.start();
+
+  // Store for later cleanup
+  window._noiseGain = noiseGainNode;
+  window._humOsc1 = humOsc1;
+  window._humOsc2 = humOsc2;
+  window._humOsc3 = humOsc3;
+
+  // --- Chime layer (quiet until release) ---
+  chimeOsc = audioCtx.createOscillator();
+  chimeGain = audioCtx.createGain();
+  chimeFilter = audioCtx.createBiquadFilter();
+
+  chimeOsc.type = 'sine';
+  chimeOsc.frequency.value = CHIME_NOTES[0];
+  chimeGain.gain.value = 0;
+  chimeFilter.type = 'lowpass';
+  chimeFilter.frequency.value = 2000;
+  chimeFilter.Q.value = 1.5;
+
+  chimeOsc.connect(chimeFilter);
+  chimeFilter.connect(chimeGain);
+  chimeGain.connect(masterGain);
+  chimeOsc.start();
+
+  // --- Air rush sound (on release/contact) ---
+  rushGain = audioCtx.createGain();
+  rushGain.gain.value = 0;
+  const rushSrc = audioCtx.createBufferSource();
+  rushSrc.buffer = rushBuffer;
+  const rushFilt = audioCtx.createBiquadFilter();
+  rushFilt.type = 'bandpass';
+  rushFilt.frequency.value = 600;
+  rushFilt.Q.value = 1.2;
+
+  rushSrc.connect(rushFilt);
+  rushFilt.connect(rushGain);
+  rushGain.connect(masterGain);
+  rushSrc.start();
+}
+
+function freqToNote(f) { return f; }
+
+function updateAudio(dist, inSlipZone) {
+  if (!audioCtx || audioCtx.state === 'suspended') return;
+  const t = audioCtx.currentTime;
+
+  // Distance ratio: 1.0 at center → 0.0 at edge
+  const maxDist = Math.sqrt(cx*cx + cy*cy);
+  const distRatio = Math.max(0, 1 - dist / APPROACH_THRESHOLD);
+
+  // --- Hum modulation based on distance ---
+  const baseFreq = 72;
+  const targetHumFreq = baseFreq + distRatio * 36; // 72→108 Hz range
+  humOsc1.frequency.setTargetAtTime(targetHumFreq, t, 0.05);
+  humOsc2.frequency.setTargetAtTime(targetHumFreq * 1.021, t, 0.05); // slightly detuned
+  humOsc3.frequency.setTargetAtTime(targetHumFreq * 2.0, t, 0.05);
+
+  const humVol = Math.min(0.12, distRatio * 0.15);
+  humGain.gain.setTargetAtTime(humVol, t, 0.08);
+
+  // Open filter as we get closer — warmth increases
+  humFilter.frequency.setTargetAtTime(200 + distRatio * 800, t, 0.08);
+
+  // --- Air noise layer ---
+  const noiseVol = Math.min(0.06, distRatio * 0.05);
+  window._noiseGain.gain.setTargetAtTime(noiseVol, t, 0.1);
+  window._noiseGain.gain.setTargetAtTime(noiseVol, t, 0.3);
+
+  // --- Slip zone audio peak ---
+  if (inSlipZone) {
+    const slipIntensity = Math.min(1, (SLIP_ZONE_RADIUS - dist) / 60);
+    humGain.gain.setTargetAtTime(humVol + slipIntensity * 0.08, t, 0.03);
+    humFilter.frequency.setTargetAtTime(400 + slipIntensity * 1200, t, 0.02);
+
+    // Chime starts singing in slip zone
+    const chimeVol = slipIntensity * 0.08;
+    chimeGain.gain.setTargetAtTime(chimeVol, t, 0.04);
+    chimeFilter.frequency.setTargetAtTime(1500 + slipIntensity * 2000, t, 0.03);
+
+    // Pitch glide up toward pentatonic notes as you get closer
+    const noteIdx = Math.min(CHIME_NOTES.length - 1,
+      Math.floor((SLIP_ZONE_RADIUS - dist) / (SLIP_ZONE_RADIUS / CHIME_NOTES.length)));
+    chimeOsc.frequency.setTargetAtTime(CHIME_NOTES[noteIdx], t, 0.03);
+  } else {
+    chimeGain.gain.setTargetAtTime(0, t, 0.1);
+    humFilter.frequency.setTargetAtTime(200 + distRatio * 600, t, 0.1);
+  }
+}
+
+function triggerReleaseSound() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  // Air rush
+  rushGain.gain.cancelScheduledValues(t);
+  rushGain.gain.setValueAtTime(0.4, t);
+  rushGain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+
+  // Chime cascade: play 3-4 notes of pentatonic chord with staggered attack
+  const noteIdx = Math.floor(Math.random() * CHIME_NOTES.length);
+  for (let i = 0; i < 4; i++) {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = CHIME_NOTES[(noteIdx + i) % CHIME_NOTES.length];
+    g.gain.setValueAtTime(0.12 - i * 0.02, t + i * 0.06);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 1.5);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(t + i * 0.06);
+    osc.stop(t + i * 0.06 + 2);
+  }
+
+  // Second chime — higher, like a bell
+  const bellOsc = audioCtx.createOscillator();
+  const bellGain = audioCtx.createGain();
+  bellOsc.type = 'sine';
+  bellOsc.frequency.value = CHIME_NOTES[noteIdx + 2] * 2;
+  bellGain.gain.setValueAtTime(0.08, t + 0.3);
+  bellGain.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+  bellOsc.connect(bellGain);
+  bellGain.connect(masterGain);
+  bellOsc.start(t + 0.3);
+  bellOsc.stop(t + 3);
+
+  // Subtle warm pulse — low sine bloom
+  const pulseOsc = audioCtx.createOscillator();
+  const pulseGain = audioCtx.createGain();
+  pulseOsc.type = 'sine';
+  pulseOsc.frequency.value = 55; // A1, very deep warmth
+  pulseGain.gain.setValueAtTime(0.15, t);
+  pulseGain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+  pulseOsc.connect(pulseGain);
+  pulseGain.connect(masterGain);
+  pulseOsc.start(t);
+  pulseOsc.stop(t + 1.5);
+}
+
+// ---- Steam / Ink Particles ----
+class SteamParticle {
+  constructor(x, y) {
+    this.x = x; this.y = y;
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.3 + Math.random() * 1.2;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = -Math.abs(Math.sin(angle)) * speed - 0.5; // rise upward
+    this.life = 1;
+    this.decay = 0.003 + Math.random() * 0.006;
+    this.size = 2 + Math.random() * 8;
+    // Ukiyo-e warm palette: cream, gold, amber
+    const palette = [
+      [212, 169, 106], [255, 183, 77], [255, 214, 108],
+      [210, 180, 140], [245, 222, 179]
+    ];
+    this.color = palette[Math.floor(Math.random() * palette.length)];
+  }
+
+  update(intensity) {
+    // Ink-in-water ripple: apply slight perlin-like drift
+    this.vx += (Math.sin(this.y * 0.02 + performance.now() * 0.001) * 0.05) * intensity;
+    this.vy -= 0.01; // gentle upward drift
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life -= this.decay;
+    this.size *= 1.002;
+  }
+
+  draw(ctx) {
+    if (this.life <= 0) return;
+    const [r, g, b] = this.color;
+    ctx.globalAlpha = this.life * 0.25;
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    // Soft glow core
+    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+    grad.addColorStop(0, `rgba(${r},${g},${b},${this.life * 0.15})`);
+    grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+let steamParticles = [];
+
+// ---- Thermal distortion shader (fragment-based via offscreen canvas) ----
+function renderThermalShimmer(intensity, time) {
+  shimCtx.clearRect(0, 0, W, H);
+  if (intensity < 0.01) return;
+
+  // Render heat waves as horizontal bands with sine displacement
+  const sliceH = Math.max(4, Math.floor(20 * intensity));
+  for (let y = cy - NOODLE_RADIUS * 3; y < cy + NOODLE_RADIUS * 3; y += sliceH) {
+    const dy = y - cy;
+    const distFromCenter = Math.abs(dy);
+    if (distFromCenter > NOODLE_RADIUS * 3) continue;
+
+    const waveAmp = intensity * (1 - distFromCenter / (NOODLE_RADIUS * 3)) * 6;
+    const displacement = Math.sin(y * 0.05 + time * 2) * waveAmp
+                       + Math.sin(y * 0.08 + time * 1.3) * waveAmp * 0.5;
+
+    // Draw warm color bands — never red, always amber/gold/cream
+    const warmth = intensity * (1 - distFromCenter / (NOODLE_RADIUS * 3));
+    const r = Math.floor(212 + warmth * 43);
+    const g = Math.floor(169 + warmth * 60);
+    const b = Math.floor(106 + warmth * 70);
+    shimCtx.fillStyle = `rgba(${r},${g},${b},${warmth * 0.08})`;
+
+    shimCtx.save();
+    shimCtx.translate(displacement, 0);
+    shimCtx.fillRect(0, y, W, sliceH);
+    shimCtx.restore();
+  }
+}
+
+// ---- Noodle vibration (singing heat) ----
+function drawNoodle(ctx, time) {
+  const dist = Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2);
+  const proximity = Math.max(0, 1 - dist / APPROACH_THRESHOLD);
+  const inSlipZone = dist < SLIP_ZONE_RADIUS;
+
+  // Vibration intensity increases as cursor approaches — "singing" heat
+  const vibAmp = proximity * 3 + (inSlipZone ? 2 : 0);
+  const vibX = Math.sin(time * 8) * vibAmp + Math.sin(time * 13.7) * vibAmp * 0.3;
+  const vibY = Math.cos(time * 6.3) * vibAmp * 0.5 + Math.cos(time * 11.1) * vibAmp * 0.2;
+
+  const drawX = cx + vibX;
+  const drawY = cy + vibY;
+
+  // Outer glow — warm, inviting, never red
+  const glowRadius = NOODLE_RADIUS_CURRENT + proximity * 30 + (inSlipZone ? 15 : 0);
+  const glowAlpha = 0.15 + proximity * 0.2 + (inSlipZone ? 0.15 : 0);
+
+  // Primary noodle body — amorphous, hand-drawn style circle
+  ctx.save();
+
+  // Outer warm glow
+  const glow = ctx.createRadialGradient(drawX, drawY, NOODLE_RADIUS_CURRENT * 0.3, drawX, drawY, glowRadius);
+  glow.addColorStop(0, `rgba(255,183,77,${glowAlpha})`);
+  glow.addColorStop(0.5, `rgba(210,160,80,${glowAlpha * 0.5})`);
+  glow.addColorStop(1, 'rgba(210,160,80,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(drawX, drawY, glowRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Noodle body — slightly organic wobble
+  const noodleColor = `rgba(245,222,179,${0.6 + proximity * 0.3})`;
+  ctx.fillStyle = noodleColor;
+  ctx.strokeStyle = `rgba(212,169,106,${0.4 + proximity * 0.3})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+
+  const points = 24;
+  for (let i = 0; i <= points; i++) {
+    const angle = (i / points) * Math.PI * 2;
+    // Organic wobble
+    const wobble = Math.sin(angle * 3 + time * 2) * (2 + proximity * 3)
+                 + Math.cos(angle * 5 - time * 1.5) * (1 + proximity * 2);
+    const r = NOODLE_RADIUS_CURRENT + wobble;
+    const px = drawX + Math.cos(angle) * r;
+    const py = drawY + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Inner warm core — breathing pulse
+  const breathe = Math.sin(time * 1.5) * 0.1 + 0.5;
+  const coreGrad = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, NOODLE_RADIUS_CURRENT * 0.6);
+  coreGrad.addColorStop(0, `rgba(255,230,180,${breathe * (0.4 + proximity * 0.3)})`);
+  coreGrad.addColorStop(1, 'rgba(255,230,180,0)');
+  ctx.fillStyle = coreGrad;
+  ctx.beginPath();
+  ctx.arc(drawX, drawY, NOODLE_RADIUS_CURRENT * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Slip zone ring — soft golden invitation
+  if (inSlipZone) {
+    const slipPulse = Math.sin(time * 4) * 0.1 + 0.7;
+    ctx.strokeStyle = `rgba(255,200,100,${slipPulse * 0.3})`;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, SLIP_ZONE_RADIUS, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Inner glow intensifies near center
+    const innerDist = dist / SLIP_ZONE_RADIUS;
+    const innerAlpha = (1 - innerDist) * 0.15;
+    const innerGlow = ctx.createRadialGradient(cx, cy, NOODLE_RADIUS, cx, cy, SLIP_ZONE_RADIUS);
+    innerGlow.addColorStop(0, `rgba(255,200,100,${innerAlpha})`);
+    innerGlow.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = innerGlow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, SLIP_ZONE_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// ---- Background: Ukiyo-e gradient wash ----
+function drawBackground() {
+  const grad = bgCtx.createLinearGradient(0, 0, 0, H);
+  // Deep indigo to warm brown — no reds, no harsh contrasts
+  grad.addColorStop(0, '#1a1525');
+  grad.addColorStop(0.3, '#252035');
+  grad.addColorStop(0.6, '#2a2528');
+  grad.addColorStop(1, '#1f1a18');
+  bgCtx.fillStyle = grad;
+  bgCtx.fillRect(0, 0, W, H);
+
+  // Subtle texture dots (woodblock grain)
+  bgCtx.fillStyle = 'rgba(60,50,45,0.3)';
+  for (let i = 0; i < 80; i++) {
+    const x = ((i * 137.508) % W);
+    const y = ((i * 97.31) % H);
+    bgCtx.beginPath();
+    bgCtx.arc(x, y, 1 + (i % 3), 0, Math.PI * 2);
+    bgCtx.fill();
+  }
+}
+
+// ---- Distortion mesh (heat shimmer via pixel warp on main canvas) ----
+function renderHeatDistortion(time) {
+  const dist = Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2);
+  const proximity = Math.max(0, 1 - dist / APPROACH_THRESHOLD);
+
+  if (proximity < 0.05) return; // No distortion when far away
+
+  // Draw subtle heat wave lines radiating from center
+  mainCtx.save();
+  mainCtx.globalCompositeOperation = 'screen';
+  const numRings = Math.floor(proximity * 8) + 2;
+  for (let r = 0; r < numRings; r++) {
+    const baseRadius = NOODLE_RADIUS + r * 20 + proximity * 15;
+    const alpha = (1 - r / numRings) * proximity * 0.06;
+    if (alpha < 0.005) continue;
+
+    mainCtx.strokeStyle = `rgba(245,222,179,${alpha})`;
+    mainCtx.lineWidth = 1 + proximity;
+    mainCtx.beginPath();
+
+    const segments = 64;
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const distortion = Math.sin(angle * 8 + time * 3 + r) * proximity * 3
+                       + Math.cos(angle * 5 - time * 2) * proximity * 2;
+      const px = cx + Math.cos(angle) * (baseRadius + distortion);
+      const py = cy + Math.sin(angle) * (baseRadius + distortion);
+      if (i === 0) mainCtx.moveTo(px, py);
+      else mainCtx.lineTo(px, py);
+    }
+    mainCtx.closePath();
+    mainCtx.stroke();
+  }
+  mainCtx.globalCompositeOperation = 'source-over';
+  mainCtx.restore();
+}
+
+// ---- Draw timer (stylized ink-wash) ----
+function drawTimer() {
+  const displayTime = Math.max(0, timerRemaining);
+  timerEl.innerHTML = `<span class="label">Heat Time</span>${displayTime.toFixed(2)}`;
+
+  // Timer color shifts — warm gold (never red warning)
+  const ratio = displayTime / TIMER_DURATION;
+  if (ratio < 0.3) {
+    timerEl.style.color = '#d4a96a';
+    timerEl.style.textShadow = '0 0 20px rgba(212,169,106,0.8), 0 0 60px rgba(255,140,50,0.4)';
+  } else if (ratio < 0.6) {
+    timerEl.style.color = '#c9976a';
+    timerEl.style.textShadow = '0 0 20px rgba(201,151,106,0.5), 0 0 40px rgba(255,140,50,0.2)';
+  } else {
+    timerEl.style.color = '#d4a96a';
+    timerEl.style.textShadow = '0 0 20px rgba(212,169,106,0.5), 0 0 60px rgba(255,140,50,0.2)';
+  }
+}
+
+// ---- Update slip ring overlay ----
+function updateSlipRing(inSlipZone, proximity) {
+  const size = SLIP_ZONE_RADIUS * 2 + 40;
+  slipRing.style.width = size + 'px';
+  slipRing.style.height = size + 'px';
+  slipRing.style.left = cx + 'px';
+  slipRing.style.top = cy + 'px';
+
+  if (inSlipZone) {
+    const pulse = Math.sin(performance.now() * 0.004) * 0.15 + 0.6;
+    slipRing.style.opacity = pulse;
+    slipRing.style.boxShadow = `0 0 30px rgba(255,200,100,${pulse * 0.2}), inset 0 0 30px rgba(255,200,100,${pulse * 0.1})`;
+  } else {
+    slipRing.style.opacity = '0';
+  }
+}
+
+// ---- Steam emission ----
+function emitSteam(intensity) {
+  const count = Math.floor(2 + intensity * 8);
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = NOODLE_RADIUS * (0.5 + Math.random() * 0.5);
+    steamParticles.push(new SteamParticle(
+      cx + Math.cos(angle) * r,
+      cy + Math.sin(angle) * r
+    ));
+  }
+}
+
+// ---- Reward phase animation ----
+let rewardTimer = 0;
+function updateReward(dt) {
+  rewardTimer += dt;
+  const fadePulse = Math.sin(rewardTimer * 2) * 0.1 + 0.3;
+  rewardOverlay.style.opacity = String(fadePulse);
+
+  if (rewardTimer < 1.5) {
+    rewardText.style.opacity = '1';
+  } else {
+    const textFade = Math.max(0, 1 - (rewardTimer - 1.5) / 2);
+    rewardText.style.opacity = String(textFade);
+  }
+
+  if (rewardTimer > 3.5) {
+    // Reset — new cycle
+    resetCycle();
+  }
+}
+
+function resetCycle() {
+  state = STATE.IDLE;
+  timerRemaining = TIMER_DURATION;
+  released = false;
+  slipPhase = 0;
+  rewardTimer = 0;
+  steamParticles = [];
+  rewardOverlay.style.opacity = '0';
+  rewardText.style.opacity = '0';
+  timerEl.style.color = '#d4a96a';
+}
+
+// ---- Main loop ----
+let lastTime = performance.now();
+let steamEmitTimer = 0;
+let globalTime = 0;
+
+function animate(now) {
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+  globalTime += dt;
+
+  // ---- State-dependent behavior ----
+  const dist = mouseActive ? Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2) : Infinity;
+  const proximity = Math.max(0, 1 - dist / APPROACH_THRESHOLD);
+  const inSlipZone = dist < SLIP_ZONE_RADIUS && mouseActive;
+
+  // State machine transitions
+  if (!released) {
+    if (mouseActive && inSlipZone) {
+      state = STATE.SLIP_ZONE;
+    } else if (mouseActive && proximity > 0.15) {
+      state = STATE.APPROACH;
+    } else {
+      state = STATE.IDLE;
+    }
+
+    // Timer only runs in slip zone or when mouse is active and approaching
+    if (state === STATE.SLIP_ZONE || (state === STATE.APPROACH && proximity > 0.4)) {
+      timerRemaining -= dt;
+      if (timerRemaining <= 0) {
+        triggerRelease();
+      }
+    }
+  } else {
+    // Released state: transition to reward
+    slipPhase = Math.min(1, slipPhase + dt * 3);
+    if (slipPhase >= 0.99 && state !== STATE.REWARD) {
+      onRelease();
+    }
+  }
+
+  // ---- Background (static, drawn once then cached) ----
+  // Only redraw when resized or state changes significantly
+  drawBackground();
+
+  // ---- Heat shimmer layer ----
+  const heatIntensity = proximity * 0.5 + slipPhase * 0.8;
+  renderThermalShimmer(heatIntensity, globalTime);
+  renderHeatDistortion(globalTime);
+
+  // ---- Steam particles ----
+  steamEmitTimer += dt;
+  if (steamEmitTimer > 0.05) {
+    steamEmitTimer = 0;
+    emitSteam(0.3 + heatIntensity * 0.7);
+  }
+
+  // Update and draw steam on main canvas
+  mainCtx.clearRect(0, 0, W, H);
+
+  for (let i = steamParticles.length - 1; i >= 0; i--) {
+    const p = steamParticles[i];
+    p.update(heatIntensity);
+    if (p.life <= 0) {
+      steamParticles.splice(i, 1);
+      continue;
+    }
+    p.draw(mainCtx);
+  }
+
+  // ---- Noodle (target) ----
+  drawNoodle(mainCtx, globalTime);
+
+  // ---- Slip ring visual ----
+  updateSlipRing(inSlipZone, proximity);
+
+  // ---- Timer ----
+  if (!released) drawTimer();
+
+  // ---- Audio update ----
+  updateAudio(dist, inSlipZone);
+
+  // ---- Reward phase ----
+  if (state === STATE.REWARD) {
+    updateReward(dt);
+  }
+
+  requestAnimationFrame(animate);
+}
+
+// ---- Interaction handlers ----
+mainCanvas.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  mouseActive = true;
+});
+
+mainCanvas.addEventListener('mouseleave', () => {
+  mouseActive = false;
+});
+
+mainCanvas.addEventListener('click', (e) => {
+  if (!mouseActive && state === STATE.IDLE) return;
+  triggerRelease();
+});
+
+mainCanvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  mouseX = e.touches[0].clientX;
+  mouseY = e.touches[0].clientY;
+  mouseActive = true;
+}, { passive: false });
+
+mainCanvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  mouseX = e.touches[0].clientX;
+  mouseY = e.touches[0].clientY;
+  mouseActive = true;
+  triggerRelease();
+}, { passive: false });
+
+// ---- Core release logic ----
+function triggerRelease() {
+  if (released) return;
+  released = true;
+  slipPhase = 0;
+  onRelease();
+}
+
+function onRelease() {
+  state = STATE.REWARD;
+  timerRunning = false;
+
+  // Trigger sounds
+  triggerReleaseSound();
+
+  // Burst of steam for reward visual
+  for (let i = 0; i < 30; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1 + Math.random() * 3;
+    const p = new SteamParticle(cx, cy);
+    p.vx = Math.cos(angle) * speed;
+    p.vy = Math.sin(angle) * speed;
+    p.decay = 0.005;
+    steamParticles.push(p);
+  }
+
+  // Pulse the noodle
+  NOODLE_RADIUS_CURRENT = NOODLE_RADIUS * 1.5;
+  setTimeout(() => { NOODLE_RADIUS_CURRENT = NOODLE_RADIUS; }, 300);
+
+  // Haptic vibration (if available)
+  if (navigator.vibrate) navigator.vibrate([50, 30, 80]);
+}
+
+// ---- Noodle size tracking for release pulse ----
+let NOODLE_RADIUS_CURRENT = NOODLE_RADIUS;
+
+// Override drawNoodle to use the pulsing radius
+const origDrawNoodle = drawNoodle;
+
+// ---- Start prompt (first interaction unlocks audio) ----
+startPrompt.addEventListener('click', () => {
+  startPrompt.style.opacity = '0';
+  setTimeout(() => { startPrompt.style.display = 'none'; }, 500);
+  initAudio();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+});
+
+// ---- Start ----
+drawBackground();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
