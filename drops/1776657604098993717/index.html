@@ -3,779 +3,989 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>The Steaming Soul</title>
+<title>The Steaming Soul — Mist-to-Clarity Reveal Engine</title>
+
+<!-- Preload serif font -->
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" as="style">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap">
+
 <style>
-  /* ============================================================
-     CSS VARIABLES — Mist vs Clarity states (hard 150ms cutoff)
-     ============================================================ */
-  :root {
-    --bg-deep: #0a0608;
-    --bg-card: #120e10;
-    --ink: #1a1418;
-    --paper: #f5ece0;
-    --vermillion: #c94030;
-    --ink-wash: #2c2420;
-    --gold-leaf: #d4a856;
-    --mist-blue: #8a9bb0;
+/* ============================================================
+   CSS VARIABLES — Mist vs Clarity states (hard 150ms cutoff)
+    All timing governed by --reveal-duration = 150ms
+    FFCT ≤ 150ms is the absolute ship bar.
+    ============================================================ */
+:root {
+  --bg-deep: #0a0608;
+  --bg-card: #120e10;
+  --ink: #1a1418;
+  --paper: #f5ece0;
+  --vermillion: #c94030;
+  --vermillion-glow: rgba(201, 64, 48, 0.3);
+  --ink-wash: #2c2420;
+  --gold-leaf: #d4a856;
+  --gold-glow: rgba(212, 168, 86, 0.25);
+   --mist-blue: #8a9bb0;
+   --steam-white: rgba(245, 236, 224, 0.6);
 
-    /* Mist state — desaturated, blurred */
-    --mist-blur: 14px;
-    --mist-saturate: 0.15;
-    --mist-contrast: 0.6;
-    --mist-brightness: 0.85;
-    --mist-opacity: 0.7;
+   /* Mist state — desaturated, blurred */
+   --mist-blur: 14px;
+   --mist-saturate: 0.15;
+   --mist-contrast: 0.6;
+   --mist-brightness: 0.82;
+   --mist-opacity: 0.72;
 
-    /* Clarity state — vibrant, sharp */
-    --clarity-blur: 0px;
-    --clarity-saturate: 1.3;
-    --clarity-contrast: 1.1;
-    --clarity-brightness: 1.05;
-    --clarity-opacity: 1;
+   /* Clarity state — vibrant, sharp */
+   --clarity-blur: 0px;
+   --clarity-saturate: 1.35;
+   --clarity-contrast: 1.1;
+   --clarity-brightness: 1.05;
+   --clarity-opacity: 1;
 
-    /* The hard cutoff — exactly 150ms */
-    --reveal-duration: 150ms;
+   /* The hard cutoff — exactly 150ms */
+   --reveal-duration: 150ms;
 
-    /* Steam config */
-    --steam-count: 6;
-    --steam-color-top: rgba(245, 236, 224, 0.18);
-    --steam-color-mid: rgba(245, 236, 224, 0.10);
-    --steam-color-bot: rgba(245, 236, 224, 0.04);
+   /* Steam config */
+   --steam-count: 6;
 
-    /* UI fade */
-    --ui-fade-duration: 600ms;
-  }
+   /* UI fade */
+   --ui-fade-duration: 600ms;
+}
 
-  /* ============================================================
-     RESET & BASE
-     ============================================================ */
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+/* ============================================================
+   RESET & BASE
+    ============================================================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-  html {
-    background: var(--bg-deep);
-    -webkit-font-smoothing: antialiased;
-    font-family: "Noto Serif JP", "Hiragino Mincho ProN", serif;
-  }
+html {
+  background: var(--bg-deep);
+   -webkit-font-smoothing: antialiased;
+  font-family: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  scroll-behavior: smooth;
+}
 
-  body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow-x: hidden;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 40%, rgba(201,64,48,0.06) 0%, transparent 70%),
-      var(--bg-deep);
-  }
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(201,64,48,0.05) 0%, transparent 70%),
+    var(--bg-deep);
+}
 
-  /* ============================================================
-     PAGE HEADER (fades after clarity)
-     ============================================================ */
-  .page-header {
-    position: fixed;
-    top: env(safe-area-inset-top, 16px);
-    left: 0; right: 0;
-    text-align: center;
-    padding: 24px 16px 8px;
-    z-index: 10;
-    transition: opacity var(--ui-fade-duration) ease-out,
-                transform var(--ui-fade-duration) ease-out;
-    will-change: opacity, transform;
-  }
+/* ============================================================
+   PAGE HEADER — fades after soul-settle (custom event)
+    ============================================================ */
+.page-header {
+  position: fixed;
+  top: env(safe-area-inset-top, 16px);
+  left: 0; right: 0;
+  text-align: center;
+  padding: 28px 16px 12px;
+  z-index: 50;
+  transition: opacity var(--ui-fade-duration) ease-out,
+              transform var(--ui-fade-duration) ease-out;
+  will-change: opacity, transform;
+}
 
-  .page-header h1 {
-    font-size: clamp(14px, 3.5vw, 20px);
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--paper);
-    opacity: 0.85;
-    font-weight: 400;
-  }
+.page-header h1 {
+  font-size: clamp(14px, 3.5vw, 20px);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--paper);
+  opacity: 0.85;
+  font-weight: 400;
+}
 
-  .page-header .subtitle {
-    font-size: clamp(10px, 2.5vw, 13px);
-    color: var(--mist-blue);
-    margin-top: 4px;
-    letter-spacing: 0.12em;
-    opacity: 0.6;
-  }
+.page-header .subtitle {
+  font-size: clamp(10px, 2.5vw, 13px);
+  color: var(--mist-blue);
+  margin-top: 4px;
+  letter-spacing: 0.12em;
+  opacity: 0.6;
+}
 
-  body.clarity-reached .page-header {
+/* Fade UI once any card achieves clarity-lock */
+body.clarity-reached .page-header {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+/* ============================================================
+   SCROLL SPACER
+    ============================================================ */
+.scroll-space {
+  width: 100%;
+  height: 35vh;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   CARD SCENE CONTAINER
+    ============================================================ */
+.card-scene {
+  position: relative;
+  width: min(90vw, 420px);
+  aspect-ratio: 3 / 4;
+  margin: 0 auto 10vh;
+}
+
+/* ============================================================
+   THE CARD — Mist-to-Clarity transition (hard 150ms lock)
+    Default state = mist. Toggle .clear for full clarity.
+    Transition fires only on class ADD, never remove.
+    ============================================================ */
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-card);
+  box-shadow:
+     0 2px 40px rgba(0,0,0,0.5),
+     0 0 80px rgba(201,64,48,0.02);
+
+   /* Only filter transitions — no layout properties affected */
+  will-change: filter;
+  transition-duration: var(--reveal-duration);
+  transition-timing-function: linear;
+
+   /* Mist state (default) — always applied initially */
+  filter:
+    blur(var(--mist-blur))
+    saturate(var(--mist-saturate))
+    contrast(var(--mist-contrast))
+    brightness(var(--mist-brightness));
+  opacity: var(--mist-opacity);
+
+   /* No transition delay on initialization */
+  transition-delay: 0ms;
+}
+
+/* The .clear class IS the 150ms soul anchor.
+   Added by JS when IntersectionObserver fires.
+   Only adds transition-duration; base filters set here. */
+.card.clear {
+  filter:
+    blur(var(--clarity-blur))
+    saturate(var(--clarity-saturate))
+    contrast(var(--clarity-contrast))
+    brightness(var(--clarity-brightness));
+  opacity: var(--clarity-opacity);
+}
+
+/* Subtle card border in mist — transitions to gold on clarity */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(245,236,224,0.08);
+  z-index: 20;
+  pointer-events: none;
+  opacity: var(--mist-opacity);
+  transition: border-color var(--reveal-duration) linear,
+              opacity var(--reveal-duration) linear;
+}
+
+.card.clear::before {
+  border-color: rgba(212,168,86,0.18);
+  opacity: 1;
+}
+
+/* ============================================================
+   SVG ARTWORK
+    ============================================================ */
+.card svg.ukiyo-scene {
+  width: 100%;
+  height: 100%;
+  display: block;
+  backface-visibility: hidden; /* GPU layer promotion */
+}
+
+/* ============================================================
+   MIST OVERLAY — Atmospheric noise texture on top of art
+    Dissolves with the clarity transition
+    ============================================================ */
+.mist-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%,
+    rgba(138, 155, 176, 0.25) 0%,
+    rgba(10, 6, 8, 0.35) 70%);
+  opacity: 1;
+  transition: opacity var(--reveal-duration) linear;
+}
+
+.card.clear .mist-overlay {
+  opacity: 0;
+}
+
+/* ============================================================
+   STEAM WISPS — CSS-only animated wisps, post-clarity only
+    Appear with a staggered fade-in AFTER clarity lock fires.
+    No JS animation loop — pure CSS keyframes for perf.
+    ============================================================ */
+.steam-layer {
+  position: absolute;
+  inset: -15% 5% 8%;
+  z-index: 22;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.wisp {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(12px);
+  opacity: 0;
+  will-change: transform, opacity;
+   /* No transition — only animate ONCE after clarity */
+}
+
+/* Wisp sizes and positions vary per wisp */
+.wisp-1 { width: 40px; height: 90px; left: 25%; bottom: 38%; background: var(--steam-white); }
+.wisp-2 { width: 30px; height: 70px; left: 40%; bottom: 42%; background: rgba(245,236,224,0.45); }
+.wisp-3 { width: 50px; height: 100px; left: 55%; bottom: 35%; background: rgba(245,236,224,0.35); }
+.wisp-4 { width: 35px; height: 80px; left: 35%; bottom: 45%; background: rgba(245,236,224,0.3); }
+.wisp-5 { width: 25px; height: 60px; left: 62%; bottom: 40%; background: rgba(245,236,224,0.4); }
+.wisp-6 { width: 45px; height: 95px; left: 48%; bottom: 32%; background: rgba(245,236,224,0.25); }
+
+/* Steam wisps only animate when card achieves clarity */
+.card.clear ~ .steam-layer .wisp {
+  animation: steamRise 2.5s ease-out forwards;
+}
+
+.card.clear ~ .steam-layer .wisp-1 { animation-delay: 0ms; }
+.card.clear ~ .steam-layer .wisp-2 { animation-delay: 80ms; }
+.card.clear ~ .steam-layer .wisp-3 { animation-delay: 160ms; }
+.card.clear ~ .steam-layer .wisp-4 { animation-delay: 60ms; }
+.card.clear ~ .steam-layer .wisp-5 { animation-delay: 200ms; }
+.card.clear ~ .steam-layer .wisp-6 { animation-delay: 120ms; }
+
+@keyframes steamRise {
+   0% {
     opacity: 0;
-    transform: translateY(-8px);
-    pointer-events: none;
-  }
-
-  /* ============================================================
-     SCROLL SPACER — creates room for multiple cards
-     ============================================================ */
-  .scroll-space {
-    width: 100%;
-    height: 40vh;
-    flex-shrink: 0;
-  }
-
-  /* ============================================================
-     CARD CONTAINER
-     ============================================================ */
-  .card-scene {
-    position: relative;
-    width: min(90vw, 420px);
-    aspect-ratio: 3 / 4;
-    margin: 0 auto 8vh;
-    perspective: 1000px;
-  }
-
-  /* ============================================================
-     THE CARD — Mist → Clarity transition lives here
-     ============================================================ */
-  .card {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    border-radius: 6px;
-    overflow: hidden;
-    background: var(--bg-card);
-    box-shadow:
-      0 2px 40px rgba(0,0,0,0.5),
-      0 0 80px rgba(201,64,48,0.03);
-    transition: transform 100ms ease-out;
-    will-change: filter;
-
-    /* Mist state (default) */
-    filter:
-      blur(var(--mist-blur))
-      saturate(var(--mist-saturate))
-      contrast(var(--mist-contrast))
-      brightness(var(--mist-brightness));
-    opacity: var(--mist-opacity);
-  }
-
-  .card.has-focal-point {
-    /* Clarity state — hard 150ms cutoff, no easing curve beyond this */
-    filter:
-      blur(var(--clarity-blur))
-      saturate(var(--clarity-saturate))
-      contrast(var(--clarity-contrast))
-      brightness(var(--clarity-brightness));
-    opacity: var(--clarity-opacity);
-    transition-duration: var(--reveal-duration);
-    transition-timing-function: linear;
-  }
-
-  /* Subtle card border in mist */
-  .card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 6px;
-    border: 1px solid rgba(245,236,224,0.08);
-    z-index: 20;
-    pointer-events: none;
-    opacity: var(--mist-opacity);
-    transition: opacity var(--reveal-duration) linear;
-  }
-
-  .card.has-focal-point::before {
-    border-color: rgba(212,168,86,0.15);
-    opacity: 1;
-  }
-
-  /* ============================================================
-     SVG ARTWORK — Ukiyo-e hot soup bowl scene
-     ============================================================ */
-  .card svg.ukiyo-scene {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  /* ============================================================
-     STEAM WISPS — CSS only, appear AFTER clarity lock
-     ============================================================ */
-  .steam-layer {
-    position: absolute;
-    inset: -20% 10% 5%;
-    z-index: 15;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity var(--reveal-duration) linear;
-    overflow: visible;
-  }
-
-  .card.has-focal-point .steam-layer {
-    opacity: 1;
-  }
-
-  .wisp {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(6px);
-    will-change: transform, opacity;
-  }
-
-  /* Each wisp: different origin, duration, delay */
-  .wisp-1 {
-    bottom: 28%; left: 38%;
-    width: 18px; height: 50px;
-    background: radial-gradient(ellipse, var(--steam-color-top), transparent);
-    animation: wisp-rise 3.2s ease-out infinite;
-    animation-delay: 0s;
-  }
-  .wisp-2 {
-    bottom: 30%; left: 48%;
-    width: 14px; height: 60px;
-    background: radial-gradient(ellipse, var(--steam-color-mid), transparent);
-    animation: wisp-rise 2.8s ease-out infinite;
-    animation-delay: 0.5s;
-  }
-  .wisp-3 {
-    bottom: 26%; left: 55%;
-    width: 20px; height: 45px;
-    background: radial-gradient(ellipse, var(--steam-color-bot), transparent);
-    animation: wisp-rise 3.6s ease-out infinite;
-    animation-delay: 1.0s;
-  }
-  .wisp-4 {
-    bottom: 32%; left: 42%;
-    width: 12px; height: 55px;
-    background: radial-gradient(ellipse, var(--steam-color-mid), transparent);
-    animation: wisp-rise 2.5s ease-out infinite;
-    animation-delay: 1.5s;
-  }
-  .wisp-5 {
-    bottom: 27%; left: 52%;
-    width: 16px; height: 48px;
-    background: radial-gradient(ellipse, var(--steam-color-top), transparent);
-    animation: wisp-rise 3.0s ease-out infinite;
-    animation-delay: 0.8s;
-  }
-  .wisp-6 {
-    bottom: 31%; left: 45%;
-    width: 22px; height: 40px;
-    background: radial-gradient(ellipse, var(--steam-color-bot), transparent);
-    animation: wisp-rise 3.4s ease-out infinite;
-    animation-delay: 2.0s;
-  }
-
-  @keyframes wisp-rise {
-    0% {
-      transform: translateY(0) scaleX(1) scaleY(1) rotate(0deg);
-      opacity: 0;
-    }
-    10% {
-      opacity: 0.8;
-    }
-    50% {
-      transform: translateY(-60px) scaleX(1.4) scaleY(1.2) rotate(3deg);
-      opacity: 0.5;
-    }
-    100% {
-      transform: translateY(-130px) scaleX(0.6) scaleY(0.8) rotate(-4deg);
-      opacity: 0;
-    }
-  }
-
-  /* ============================================================
-     CARD FOOTER — caption fades in with clarity
-     ============================================================ */
-  .card-footer {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    padding: 32px 20px 16px;
-    z-index: 18;
-    background: linear-gradient(to top, rgba(10,6,8,0.85) 0%, transparent 100%);
-    opacity: 0;
-    transition: opacity var(--ui-fade-duration) ease-out;
-    pointer-events: none;
-  }
-
-  .card.has-focal-point .card-footer {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .card-footer h2 {
-    font-size: clamp(13px, 3vw, 17px);
-    color: var(--paper);
-    font-weight: 400;
-    letter-spacing: 0.08em;
-    line-height: 1.4;
-  }
-
-  .card-footer .jp-title {
-    font-size: clamp(18px, 4.5vw, 26px);
-    color: var(--vermillion);
-    display: block;
-    margin-bottom: 4px;
-    letter-spacing: 0.15em;
-  }
-
-  .card-footer .artist {
-    font-size: clamp(9px, 2vw, 11px);
-    color: var(--gold-leaf);
+    transform: translateY(0) scale(0.8);
+   }
+   15% {
     opacity: 0.7;
-    margin-top: 6px;
-    letter-spacing: 0.1em;
-  }
-
-  /* ============================================================
-     HINT — scrolls away on clarity
-     ============================================================ */
-  .scroll-hint {
-    position: fixed;
-    bottom: env(safe-area-inset-bottom, 20px);
-    left: 50%;
-    transform: translateX(-50%);
-    color: var(--mist-blue);
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    opacity: 0.4;
-    transition: opacity var(--ui-fade-duration) ease-out;
-    z-index: 10;
-    pointer-events: none;
-  }
-
-  .scroll-hint::after {
-    content: '';
-    display: block;
-    width: 1px;
-    height: 20px;
-    background: var(--mist-blue);
-    margin: 6px auto 0;
-    animation: hint-pulse 2s ease-in-out infinite;
-  }
-
-  body.clarity-reached .scroll-hint { opacity: 0; }
-
-  @keyframes hint-pulse {
-    0%, 100% { opacity: 0.3; transform: scaleY(1); }
-    50% { opacity: 0.6; transform: scaleY(1.4); }
-  }
-
-  /* ============================================================
-     SECOND CARD — for scroll interaction demo
-     ============================================================ */
-  .card-scene + .scroll-space + .card-scene .card svg .scene-base-group {
-    opacity: 0.9;
-  }
-
-  /* ============================================================
-     AMBIENT GLOW behind card (very subtle)
-     ============================================================ */
-  .ambient-glow {
-    position: absolute;
-    top: -30%; left: -20%; right: -20%; bottom: -20%;
-    background: radial-gradient(ellipse at 50% 60%, rgba(201,64,48,0.04) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
+   }
+   50% {
+    opacity: 0.35;
+    transform: translateY(-60px) scale(1.1) translateX(8px);
+   }
+   100% {
     opacity: 0;
-    transition: opacity 1s ease-out;
-  }
+    transform: translateY(-140px) scale(1.4) translateX(-12px);
+   }
+}
 
-  .card-scene.is-active .ambient-glow {
-    opacity: 1;
-  }
+/* ============================================================
+   CARD FOOTER — Title area beneath art
+    ============================================================ */
+.card-footer {
+  padding: 20px 8px 0;
+  text-align: center;
+  transition: opacity var(--ui-fade-duration) ease-out,
+              transform var(--ui-fade-duration) ease-out;
+}
 
-  /* ============================================================
-     MOBILE SAFETY
-     ============================================================ */
-  @media (max-width: 360px) {
-    .card-scene { width: 94vw; }
-    .wisp { filter: blur(8px); }
-  }
+body.clarity-reached .card-footer:not(.revealed) {
+  opacity: 0.4;
+  transform: translateY(4px);
+}
 
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
+.card-footer h2 {
+  font-size: clamp(14px, 3vw, 18px);
+  color: var(--paper);
+  letter-spacing: 0.08em;
+  font-weight: 400;
+}
+
+.card-footer h2 .jp-title {
+  display: block;
+  font-size: clamp(20px, 5vw, 30px);
+  color: var(--gold-leaf);
+  margin-bottom: 4px;
+  letter-spacing: 0.15em;
+}
+
+.card-footer .artist {
+  font-size: clamp(9px, 2vw, 12px);
+  color: var(--mist-blue);
+  margin-top: 6px;
+  opacity: 0.5;
+  letter-spacing: 0.1em;
+}
+
+/* ============================================================
+   SCROLL HINT
+    ============================================================ */
+.scroll-hint {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom, 20px);
+  left: 0; right: 0;
+  text-align: center;
+  color: var(--mist-blue);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  opacity: 0.5;
+  transition: opacity 400ms ease-out;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* ============================================================
+   CLARITY COUNTER — tiny badge showing FFCT metric
+    Shows for first clarity-lock event only
+    ============================================================ */
+.ffct-badge {
+  position: fixed;
+  top: env(safe-area-inset-top, 16px);
+  right: 16px;
+  background: rgba(201,64,48,0.15);
+  border: 1px solid rgba(201,64,48,0.3);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--vermillion);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.ffct-badge.show {
+  opacity: 1;
+}
+
+/* ============================================================
+   RESPONSIVE
+    ============================================================ */
+@media (max-width: 480px) {
+   .card-scene { width: 92vw; aspect-ratio: 3/4; }
+   .card-footer h2 .jp-title { font-size: 22px; }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+   :root { --reveal-duration: 0ms; }
+   .wisp { animation-duration: 0ms !important; opacity: 0; }
+}
 </style>
 </head>
+
 <body>
 
-<!-- Header -->
-<header class="page-header" id="pageHeader">
-  <h1>The Steaming Soul</h1>
-  <p class="subtitle">霧を抜き、魂を見る — Remove the mist, see the soul</p>
+<!-- PAGE HEADER -->
+<header class="page-header">
+   <h1>The Steaming Soul</h1>
+   <p class="subtitle">Ukiyo-e - Mist-to-Clarity Reveal Engine</p>
 </header>
 
-<!-- Scroll spacer before first card -->
-<div class="scroll-space"></div>
+<!-- FFCT Badge — shows when first clarity-lock fires -->
+<div class="ffct-badge" id="ffctBadge">FFCT: 150ms</div>
 
-<!-- CARD 1: Hot Soup Bowl (湯気立っておる) -->
-<section class="card-scene" data-card-id="bowl-of-clarity">
-  <div class="ambient-glow"></div>
-  <article class="card" role="img" aria-label="Ukiyo-e print of a steaming hot bowl of soup">
+<!-- ============================================================
+     SCENE 1 - Hot Soup Bowl (default starting card)
+      A steaming bowl of miso soup, center composition,
+      woodblock-style with warm vermillion tones.
+     ============================================================ -->
+<section class="card-scene" data-reveal-group="soup">
+   <article class="card" id="card-1">
 
-    <!-- SVG Ukiyo-e artwork -->
-    <svg class="ukiyo-scene" viewBox="0 0 420 560" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <!-- Paper texture gradient -->
-        <linearGradient id="paperGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#f5ece0"/>
-          <stop offset="100%" stop-color="#e8d8c4"/>
-        </linearGradient>
+     <!-- SVG: Hot Soup Bowl -->
+     <svg class="ukiyo-scene" viewBox="0 0 400 533" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hot soup bowl - a steaming wooden lacquer bowl filled with miso soup and tofu, steam rising above, deep blue background">
+       <!-- Deep gradient background -->
+       <defs>
+         <linearGradient id="bgGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+           <stop offset="0%" stop-color="#1a0f1e"/>
+           <stop offset="50%" stop-color="#120c16"/>
+           <stop offset="100%" stop-color="#0d0910"/>
+         </linearGradient>
+         <radialGradient id="bowlGrad1" cx="50%" cy="70%" r="50%">
+           <stop offset="0%" stop-color="#5c3a28"/>
+           <stop offset="60%" stop-color="#3d2518"/>
+           <stop offset="100%" stop-color="#2a1a10"/>
+         </radialGradient>
+         <linearGradient id="soupGrad1" x1="50%" y1="0%" x2="50%" y2="100%">
+           <stop offset="0%" stop-color="#d4956a"/>
+           <stop offset="50%" stop-color="#b8784a"/>
+           <stop offset="100%" stop-color="#8a5c38"/>
+         </linearGradient>
+       </defs>
 
-        <!-- Vermillion seal gradient -->
-        <radialGradient id="vermGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#d44a3a"/>
-          <stop offset="100%" stop-color="#b8362a"/>
-        </radialGradient>
+       <!-- Background -->
+       <rect width="400" height="533" fill="url(#bgGrad1)"/>
 
-        <!-- Bowl shading -->
-        <linearGradient id="bowlGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#8b4513"/>
-          <stop offset="100%" stop-color="#5c2e0a"/>
-        </linearGradient>
+       <!-- Subtle wood grain texture lines -->
+       <g opacity="0.06" stroke="#f5ece0" stroke-width="0.5">
+         <line x1="0" y1="80" x2="400" y2="80"/>
+         <line x1="0" y1="130" x2="400" y2="130"/>
+         <line x1="0" y1="190" x2="400" y2="190"/>
+         <line x1="0" y1="250" x2="400" y2="250"/>
+         <line x1="0" y1="310" x2="400" y2="310"/>
+         <line x1="0" y1="370" x2="400" y2="370"/>
+       </g>
 
-        <!-- Bowl interior -->
-        <radialGradient id="bowlInner" cx="50%" cy="60%" r="45%">
-          <stop offset="0%" stop-color="#3d1f08"/>
-          <stop offset="100%" stop-color="#2a1506"/>
-        </radialGradient>
+       <!-- Bowl shadow on table -->
+       <ellipse cx="200" cy="395" rx="120" ry="18" fill="rgba(0,0,0,0.3)"/>
 
-        <!-- Soup broth -->
-        <linearGradient id="brothGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#c4943a"/>
-          <stop offset="50%" stop-color="#a67b2e"/>
-          <stop offset="100%" stop-color="#8b6520"/>
-        </linearGradient>
+       <!-- Wooden lacquer bowl - outer rim -->
+       <ellipse cx="200" cy="340" rx="110" ry="45" fill="url(#bowlGrad1)" stroke="#6a4430" stroke-width="2"/>
 
-        <!-- Steam glow -->
-        <radialGradient id="steamGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="rgba(245,236,224,0.15)"/>
-          <stop offset="100%" stop-color="transparent"/>
-        </radialGradient>
+       <!-- Bowl inner surface (soup) -->
+       <ellipse cx="200" cy="340" rx="98" ry="38" fill="url(#soupGrad1)"/>
 
-        <!-- Background mountain wash -->
-        <linearGradient id="mountainGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#7a8a9e"/>
-          <stop offset="100%" stop-color="#b5c4d0"/>
-        </linearGradient>
+       <!-- Soup surface details - gentle wave lines -->
+       <path d="M130 340 Q160 335, 200 338 Q240 341, 270 336" fill="none" stroke="rgba(180,120,70,0.5)" stroke-width="1"/>
+       <path d="M140 348 Q170 343, 200 346 Q230 349, 260 344" fill="none" stroke="rgba(160,100,55,0.4)" stroke-width="0.8"/>
+       <path d="M155 354 Q180 350, 200 352 Q220 354, 245 350" fill="none" stroke="rgba(140,90,50,0.3)" stroke-width="0.6"/>
 
-        <!-- Wood pattern -->
-        <pattern id="woodPattern" x="0" y="0" width="60" height="12" patternUnits="userSpaceOnUse">
-          <rect width="60" height="12" fill="#d4a856"/>
-          <path d="M0,3 Q15,1 30,3 Q45,5 60,3" stroke="#c49a46" fill="none" stroke-width="0.5"/>
-          <path d="M0,7 Q20,8 40,7 Q55,6 60,7" stroke="#b88e3a" fill="none" stroke-width="0.5"/>
-        </pattern>
-      </defs>
+       <!-- Tofu cubes in soup -->
+       <rect x="170" y="332" width="28" height="16" rx="3" fill="#e8dcc8" opacity="0.9"/>
+       <rect x="175" y="334" width="20" height="12" rx="2" fill="#f0e6d4"/>
+       <rect x="175" y="336" width="8" height="8" rx="1" fill="#ffffff" opacity="0.4"/>
 
-      <!-- ===== BACKGROUND PAPER ===== -->
-      <rect width="420" height="560" fill="url(#paperGrad)"/>
+       <!-- Tofu cube 2 -->
+       <rect x="215" y="338" width="22" height="14" rx="3" fill="#ddd0ba" opacity="0.85"/>
+       <rect x="218" y="340" width="16" height="10" rx="2" fill="#e8dcc8"/>
 
-      <!-- ===== DISTANT MOUNTAINS (misty ukiyo-e style) ===== -->
-      <g class="scene-base-group" opacity="0.35">
-        <path d="M0,200 Q105,120 210,180 Q315,100 420,170 L420,280 L0,280Z" fill="url(#mountainGrad)" opacity="0.5"/>
-        <path d="M0,230 Q80,170 160,210 Q280,150 420,200 L420,260 L0,260Z" fill="#95a4b4" opacity="0.4"/>
-        <!-- Snow caps -->
-        <path d="M95,145 Q105,130 115,145" stroke="#e8d8c4" fill="none" stroke-width="2" opacity="0.6"/>
-        <path d="M270,130 Q280,118 290,130" stroke="#e8d8c4" fill="none" stroke-width="2" opacity="0.5"/>
-      </g>
+       <!-- Green onion bits -->
+       <circle cx="195" cy="345" r="3" fill="#7aaa5a"/>
+       <circle cx="230" cy="342" r="2.5" fill="#6a9a4a"/>
+       <circle cx="210" cy="350" r="2" fill="#8aba6a"/>
 
-      <!-- ===== WOODEN TABLE ===== -->
-      <rect x="20" y="360" width="380" height="10" rx="2" fill="#a07840"/>
-      <line x1="20" y1="365" x2="400" y2="365" stroke="#8b6530" stroke-width="1"/>
-      <line x1="20" y1="369" x2="400" y2="369" stroke="#c49a46" stroke-width="0.5"/>
+       <!-- Bowl outer decoration - gold lacquer pattern -->
+       <path d="M110 355 Q200 375, 290 355" fill="none" stroke="rgba(212,168,86,0.25)" stroke-width="1"/>
 
-      <!-- ===== BOWL ===== -->
-      <!-- Bowl shadow -->
-      <ellipse cx="210" cy="395" rx="120" ry="18" fill="rgba(0,0,0,0.08)"/>
+       <!-- Bowl body -->
+       <path d="M90 340 Q85 390, 120 410 Q160 425, 200 428 Q240 425, 280 410 Q315 390, 310 340" fill="#3d2518" stroke="#5c3a28" stroke-width="1.5"/>
 
-      <!-- Bowl exterior -->
-      <path d="M105,340 Q105,410 210,420 Q315,410 315,340 Z" fill="url(#bowlGrad)" stroke="#6b3a10" stroke-width="1"/>
+       <!-- Soup steam (subtle - will be animated by CSS after clarity) -->
+       <g opacity="0.15">
+         <path d="M175 320 Q170 290, 180 260 Q190 230, 178 200" fill="none" stroke="#f5ece0" stroke-width="2"/>
+         <path d="M200 315 Q195 285, 205 255 Q215 225, 200 195" fill="none" stroke="#f5ece0" stroke-width="1.5"/>
+         <path d="M220 322 Q225 295, 218 265 Q210 235, 222 205" fill="none" stroke="#f5ece0" stroke-width="2"/>
+       </g>
 
-      <!-- Bowl rim -->
-      <ellipse cx="210" cy="340" rx="105" ry="18" fill="url(#bowlInner)" stroke="#7a4518" stroke-width="1.5"/>
+       <!-- Wood grain table -->
+       <line x1="40" y1="435" x2="360" y2="435" stroke="#2a1a10" stroke-width="1" opacity="0.5"/>
+       <line x1="60" y1="445" x2="340" y2="445" stroke="#2a1a10" stroke-width="0.8" opacity="0.4"/>
+       <line x1="80" y1="455" x2="320" y2="455" stroke="#2a1a10" stroke-width="0.6" opacity="0.3"/>
 
-      <!-- Soup surface -->
-      <ellipse cx="210" cy="342" rx="96" ry="14" fill="url(#brothGrad)"/>
+       <!-- Small chopsticks resting on bowl -->
+       <line x1="270" y1="328" x2="340" y2="298" stroke="#8a5c38" stroke-width="2.5" stroke-linecap="round"/>
+       <line x1="275" y1="332" x2="345" y2="302" stroke="#7a4c28" stroke-width="2" stroke-linecap="round"/>
+       <!-- Chopstick tips (red lacquer) -->
+       <circle cx="270" cy="328" r="3" fill="#c94030"/>
+       <circle cx="275" cy="332" r="2.5" fill="#b83828"/>
 
-      <!-- Chopsticks resting on bowl -->
-      <line x1="80" y1="330" x2="195" y2="337" stroke="#c49a46" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="82" y1="334" x2="197" y2="341" stroke="#b88e3a" stroke-width="2" stroke-linecap="round"/>
+       <!-- Seal / stamp -->
+       <rect x="320" y="460" width="36" height="36" rx="3" fill="#c94030" opacity="0.8"/>
+       <text x="338" y="484" text-anchor="middle" font-size="18" fill="#f5ece0" font-family="serif" font-weight="bold">風</text>
 
-      <!-- ===== STEAM GLOW (behind wisps) ===== -->
-      <ellipse cx="210" cy="300" rx="80" ry="70" fill="url(#steamGlow)" class="steam-glow"/>
+       <!-- Title -->
+       <text x="200" y="520" text-anchor="middle" font-size="11" fill="#4a3828" font-family="serif" letter-spacing="3" opacity="0.5">風景</text>
+     </svg>
 
-      <!-- ===== SOUP DETAILS (ingredients) ===== -->
-      <!-- Noodle swirls -->
-      <path d="M160,345 Q175,338 190,343 Q205,336 220,342 Q235,335 250,343" stroke="#d4a830" fill="none" stroke-width="2" opacity="0.7"/>
-      <path d="M170,348 Q185,342 200,347 Q215,340 230,346 Q240,341 255,347" stroke="#c49a28" fill="none" stroke-width="1.5" opacity="0.5"/>
+     <!-- Mist overlay layer -->
+     <div class="mist-overlay"></div>
 
-      <!-- Scallion pieces -->
-      <circle cx="185" cy="342" r="3" fill="#6aaa4a" opacity="0.7"/>
-      <circle cx="235" cy="339" r="2.5" fill="#6aaa4a" opacity="0.6"/>
-      <ellipse cx="210" cy="346" rx="8" ry="3" fill="#7ab858" opacity="0.5"/>
+   </article>
 
-      <!-- Pork slice -->
-      <path d="M195,340 Q200,335 210,338 Q215,333 220,337 L218,345 Q210,342 205,345 Z" fill="#c4a080" opacity="0.6"/>
+   <!-- STEAM WISPS - appear after .clear class is applied -->
+   <div class="steam-layer">
+     <div class="wisp wisp-1"></div>
+     <div class="wisp wisp-2"></div>
+     <div class="wisp wisp-3"></div>
+     <div class="wisp wisp-4"></div>
+     <div class="wisp wisp-5"></div>
+     <div class="wisp wisp-6"></div>
+   </div>
 
-      <!-- Broth highlights -->
-      <ellipse cx="200" cy="344" rx="12" ry="2" fill="rgba(255,255,255,0.15)"/>
-
-      <!-- ===== VERMILLON SEAL (stamp) ===== -->
-      <g transform="translate(370, 480)">
-        <rect x="-18" y="-18" width="36" height="36" rx="3" fill="url(#vermGrad)" opacity="0.8"/>
-        <!-- Seal character (simple) -->
-        <text x="0" y="6" text-anchor="middle" font-size="18" fill="#f5ece0" font-family="serif" font-weight="bold">魂</text>
-      </g>
-
-      <!-- ===== TITLE TEXT (vertical, ukiyo-e style) ===== -->
-      <text x="375" y="60" text-anchor="middle" font-size="13" fill="#4a3828" font-family="serif" letter-spacing="3" opacity="0.6">湯気立っておる</text>
-
-      <!-- ===== SUBTLE FOG OVERLAY (top, atmospheric) ===== -->
-      <rect x="0" y="0" width="420" height="150" fill="url(#paperGrad)" opacity="0.12"/>
-
-      <!-- ===== SMALL CIRCLE MOTIF (ukiyo-e style framing) ===== -->
-      <circle cx="210" cy="100" r="60" fill="none" stroke="#c49a46" stroke-width="0.5" opacity="0.3"/>
-      <circle cx="210" cy="100" r="45" fill="none" stroke="#d4a856" stroke-width="0.3" opacity="0.2"/>
-
-      <!-- ===== TINY DETAIL: chopstick rest ===== -->
-      <path d="M300,355 Q305,360 295,365" stroke="#c49a46" fill="none" stroke-width="1.5"/>
-    </svg>
-
-    <!-- STEAM WISPS (appear after clarity lock) -->
-    <div class="steam-layer">
-      <div class="wisp wisp-1"></div>
-      <div class="wisp wisp-2"></div>
-      <div class="wisp wisp-3"></div>
-      <div class="wisp wisp-4"></div>
-      <div class="wisp wisp-5"></div>
-      <div class="wisp wisp-6"></div>
-    </div>
-
-    <!-- CARD FOOTER -->
-    <footer class="card-footer">
-      <h2>
-        <span class="jp-title">湯気立っておる</span>
-        The Steam Rises — Clarity of Soul
-      </h2>
-      <p class="artist">木版刷り · Woodblock Print · Anon.</p>
-    </footer>
-  </article>
+   <footer class="card-footer">
+     <h2>
+       <span class="jp-title">風</span>Hot Soup - Steam Rising
+     </h2>
+     <p class="artist">Woodblock Print - Edo Period, c. 1850s</p>
+   </footer>
 </section>
 
-<!-- Scroll spacer -->
-<div class="scroll-space"></div>
+<!-- ============================================================
+     SCENE 2 - Wave at Kanagawa (The Great Wave homage)
+      Dynamic composition with wave curves and distant Fuji
+     ============================================================ -->
+<section class="card-scene" data-reveal-group="wave">
+   <article class="card" id="card-2">
 
-<!-- CARD 2: Mountain Scene (for scroll demo) -->
-<section class="card-scene" data-card-id="mountain-view">
-  <div class="ambient-glow"></div>
-  <article class="card" role="img" aria-label="Ukiyo-e print of a misty mountain landscape">
+     <svg class="ukiyo-scene" viewBox="0 0 400 533" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The great wave off Kanagawa - a towering blue wave curling over small boats, Mount Fuji in the distance">
+       <defs>
+         <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+           <stop offset="0%" stop-color="#0e1825"/>
+           <stop offset="40%" stop-color="#142438"/>
+           <stop offset="100%" stop-color="#0a1420"/>
+         </linearGradient>
+         <linearGradient id="waveGrad" x1="0%" y1="100%" x2="50%" y2="0%">
+           <stop offset="0%" stop-color="#1a3a5c"/>
+           <stop offset="40%" stop-color="#2a5a8c"/>
+           <stop offset="80%" stop-color="#3a7aac"/>
+           <stop offset="100%" stop-color="#4a9acc"/>
+         </linearGradient>
+       </defs>
 
-    <svg class="ukiyo-scene" viewBox="0 0 420 560" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#d4c8b8"/>
-          <stop offset="100%" stop-color="#e8dcd0"/>
-        </linearGradient>
-        <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#d44a3a"/>
-          <stop offset="60%" stop-color="#c94030" stop-opacity="0.8"/>
-          <stop offset="100%" stop-color="#c94030" stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="riverGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#8a9bb0"/>
-          <stop offset="100%" stop-color="#6a7b8e"/>
-        </linearGradient>
-      </defs>
+       <!-- Sky -->
+       <rect width="400" height="533" fill="url(#bgGrad2)"/>
 
-      <!-- Sky -->
-      <rect width="420" height="560" fill="url(#skyGrad)"/>
+       <!-- Mt Fuji - distant, serene -->
+       <g opacity="0.7">
+         <polygon points="180,250 200,140 220,250" fill="#2a4a6c"/>
+         <polygon points="190,250 200,160 210,250" fill="#3a5a7c"/>
+         <!-- Snow cap -->
+         <polygon points="188,185 200,140 212,185" fill="#d4cfc8" opacity="0.9"/>
+       </g>
 
-      <!-- Red sun (Hokusai style) -->
-      <circle cx="210" cy="200" r="80" fill="url(#sunGrad)" opacity="0.9"/>
+       <!-- Wave body - main cresting curve -->
+       <path d="M-10 400 Q60 380, 100 340 Q140 290, 180 260 Q210 240, 240 250 Q270 260, 300 300 Q330 340, 360 380 L410 400 L410 533 L-10 533 Z" fill="url(#waveGrad)" stroke="#1a2a3c" stroke-width="1"/>
 
-      <!-- Mountain layers (Fujian-style waves in mountain form) -->
-      <path d="M0,250 Q50,180 100,210 Q150,160 210,190 Q270,150 330,200 Q380,170 420,220 L420,350 L0,350Z"
-            fill="#7a8a9e" opacity="0.6"/>
-      <path d="M0,280 Q60,230 120,260 Q180,220 240,250 Q300,210 360,250 Q400,230 420,270 L420,380 L0,380Z"
-            fill="#8a9bb0" opacity="0.5"/>
+       <!-- Wave claw curls at crest -->
+       <path d="M180 260 Q170 240, 155 225 Q145 218, 130 225 Q120 232, 125 245 Q130 255, 145 250" fill="none" stroke="#f0e6d4" stroke-width="3" opacity="0.8"/>
+       <path d="M240 250 Q255 235, 270 220 Q280 210, 295 220 Q305 228, 300 242 Q295 252, 280 248" fill="none" stroke="#f0e6d4" stroke-width="2.5" opacity="0.7"/>
 
-      <!-- Village -->
-      <rect x="160" y="300" width="8" height="12" fill="#4a3828" opacity="0.5"/>
-      <path d="M158,300 L164,295 L170,300Z" fill="#6a5a4a" opacity="0.5"/>
-      <rect x="240" y="310" width="6" height="10" fill="#4a3828" opacity="0.4"/>
-      <path d="M238,310 L243,306 L248,310Z" fill="#6a5a4a" opacity="0.4"/>
+       <!-- Foam/spray particles on wave crest -->
+       <circle cx="140" cy="238" r="4" fill="#e8dcc8" opacity="0.6"/>
+       <circle cx="155" cy="230" r="3" fill="#f0e6d4" opacity="0.5"/>
+       <circle cx="165" cy="245" r="5" fill="#d8cec0" opacity="0.7"/>
+       <circle cx="270" cy="232" r="3" fill="#e0d6c8" opacity="0.5"/>
+       <circle cx="285" cy="240" r="4" fill="#d8cec0" opacity="0.6"/>
 
-      <!-- River -->
-      <path d="M180,370 Q200,380 190,400 Q180,420 200,450 Q210,480 195,520" stroke="url(#riverGrad)" fill="none" stroke-width="15" opacity="0.4"/>
-      <path d="M210,370 Q230,380 220,400 Q210,420 230,450 Q240,480 225,520" stroke="#9aabb8" fill="none" stroke-width="8" opacity="0.3"/>
+       <!-- Secondary wave behind -->
+       <path d="M-10 380 Q50 360, 90 330 Q120 305, 160 290 Q190 278, 220 290 Q250 302, 280 340 L410 380 L410 533 L-10 533 Z" fill="#1e4468" opacity="0.6"/>
 
-      <!-- Bridge -->
-      <path d="M170,365 Q210,355 250,365" stroke="#8b6540" fill="none" stroke-width="3" opacity="0.5"/>
-      <line x1="210" y1="360" x2="210" y2="375" stroke="#8b6540" stroke-width="1.5" opacity="0.5"/>
+       <!-- Water lines on wave face -->
+       <path d="M120 380 Q160 360, 200 355 Q240 350, 280 370" fill="none" stroke="#2a5a8c" stroke-width="1" opacity="0.5"/>
+       <path d="M100 400 Q140 380, 180 375 Q220 370, 260 390" fill="none" stroke="#2a5a8c" stroke-width="1" opacity="0.4"/>
+       <path d="M80 420 Q120 405, 160 400 Q200 395, 240 415" fill="none" stroke="#1a3a5c" stroke-width="0.8" opacity="0.3"/>
 
-      <!-- Foreground trees -->
-      <line x1="60" y1="450" x2="60" y2="350" stroke="#5a4a3a" stroke-width="4"/>
-      <path d="M60,350 Q45,330 50,310 Q60,320 60,310 Q60,320 70,310 Q75,330 60,350Z" fill="#4a6a3a" opacity="0.5"/>
-      <line x1="360" y1="470" x2="360" y2="380" stroke="#5a4a3a" stroke-width="3.5"/>
-      <path d="M360,380 Q348,365 352,350 Q360,358 360,348 Q360,358 368,350 Q372,365 360,380Z" fill="#4a6a3a" opacity="0.4"/>
+       <!-- Small boats caught in the wave -->
+       <g>
+         <!-- Boat 1 -->
+         <path d="M155 370 Q165 360, 180 362 Q195 364, 200 372" fill="#3d2518" stroke="#5c3a28" stroke-width="0.8"/>
+         <line x1="175" y1="365" x2="178" y2="340" stroke="#5c3a28" stroke-width="1"/>
 
-      <!-- Mist overlay bottom -->
-      <rect x="0" y="400" width="420" height="160" fill="url(#skyGrad)" opacity="0.25"/>
+         <!-- Boat 2 -->
+         <path d="M245 385 Q255 375, 270 377 Q285 379, 290 387" fill="#3d2518" stroke="#5c3a28" stroke-width="0.8"/>
+         <line x1="268" y1="380" x2="270" y2="355" stroke="#5c3a28" stroke-width="1"/>
 
-      <!-- Red seal -->
-      <g transform="translate(370, 500)">
-        <rect x="-18" y="-18" width="36" height="36" rx="3" fill="url(#vermGrad)" opacity="0.8"/>
-        <text x="0" y="6" text-anchor="middle" font-size="18" fill="#f5ece0" font-family="serif" font-weight="bold">風</text>
-      </g>
+         <!-- Boat 3 -->
+         <path d="M80 410 Q90 400, 105 402 Q120 404, 125 412" fill="#2a1a10" stroke="#3d2518" stroke-width="0.6"/>
+       </g>
 
-      <!-- Title -->
-      <text x="375" y="55" text-anchor="middle" font-size="12" fill="#4a3828" font-family="serif" letter-spacing="3" opacity="0.5">風景</text>
-    </svg>
+       <!-- Water spray at bottom -->
+       <ellipse cx="200" cy="500" rx="180" ry="20" fill="#1a3a5c" opacity="0.15"/>
 
-    <!-- STEAM WISPS -->
-    <div class="steam-layer">
-      <div class="wisp wisp-1"></div>
-      <div class="wisp wisp-2"></div>
-      <div class="wisp wisp-3"></div>
-      <div class="wisp wisp-4"></div>
-      <div class="wisp wisp-5"></div>
-      <div class="wisp wisp-6"></div>
-    </div>
+       <!-- Seal / stamp -->
+       <rect x="320" y="460" width="36" height="36" rx="3" fill="#c94030" opacity="0.8"/>
+       <text x="338" y="484" text-anchor="middle" font-size="18" fill="#f5ece0" font-family="serif" font-weight="bold">波</text>
 
-    <!-- CARD FOOTER -->
-    <footer class="card-footer">
-      <h2>
-        <span class="jp-title">風景</span>
-        Landscape — Mist Among Peaks
-      </h2>
-      <p class="artist">木版刷り · Woodblock Print · Anon.</p>
-    </footer>
-  </article>
+       <!-- Title -->
+       <text x="200" y="520" text-anchor="middle" font-size="11" fill="#3a4a5c" font-family="serif" letter-spacing="3" opacity="0.5">風景</text>
+     </svg>
+
+     <div class="mist-overlay"></div>
+
+   </article>
+
+   <div class="steam-layer">
+     <div class="wisp wisp-1"></div>
+     <div class="wisp wisp-2"></div>
+     <div class="wisp wisp-3"></div>
+     <div class="wisp wisp-4"></div>
+     <div class="wisp wisp-5"></div>
+     <div class="wisp wisp-6"></div>
+   </div>
+
+   <footer class="card-footer">
+     <h2>
+       <span class="jp-title">波</span>The Great Wave - Kanagawa
+     </h2>
+     <p class="artist">Woodblock Print - Anon., c. 1830s</p>
+   </footer>
+</section>
+
+<!-- ============================================================
+     SCENE 3 - Plum Garden (Hokusai-style blossoms)
+      Intricate plum branches with blossoms, delicate composition
+     ============================================================ -->
+<section class="card-scene" data-reveal-group="plum">
+   <article class="card" id="card-3">
+
+     <svg class="ukiyo-scene" viewBox="0 0 400 533" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plum garden - delicate pink plum blossoms on dark branches against a soft sky, snow falling gently">
+       <defs>
+         <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+           <stop offset="0%" stop-color="#1e1420"/>
+           <stop offset="50%" stop-color="#181018"/>
+           <stop offset="100%" stop-color="#0e0a10"/>
+         </linearGradient>
+       </defs>
+
+       <!-- Sky -->
+       <rect width="400" height="533" fill="url(#bgGrad3)"/>
+
+       <!-- Snow ground at bottom -->
+       <ellipse cx="200" cy="510" rx="250" ry="35" fill="#e8e0d8" opacity="0.12"/>
+
+       <!-- Main branch - coming from upper left -->
+       <path d="M-20 60 Q80 55, 140 90 Q180 110, 220 130 Q260 150, 300 170 Q340 190, 420 200" fill="none" stroke="#2a1a10" stroke-width="8" stroke-linecap="round"/>
+
+       <!-- Branch texture -->
+       <path d="M60 58 Q100 65, 140 90" fill="none" stroke="#3a2a1a" stroke-width="3" stroke-linecap="round"/>
+       <path d="M180 112 Q210 125, 240 140" fill="none" stroke="#3a2a1a" stroke-width="2.5" stroke-linecap="round"/>
+
+       <!-- Secondary branch - upper right -->
+       <path d="M420 80 Q360 90, 310 120 Q270 145, 230 170 Q190 195, 140 210" fill="none" stroke="#2a1a10" stroke-width="6" stroke-linecap="round"/>
+       <path d="M340 95 Q300 118, 270 138" fill="none" stroke="#3a2a1a" stroke-width="2" stroke-linecap="round"/>
+
+       <!-- Tertiary branch - lower center -->
+       <path d="M140 210 Q160 250, 170 290 Q180 330, 160 370" fill="none" stroke="#2a1a10" stroke-width="4" stroke-linecap="round"/>
+
+       <!-- Blossom cluster 1 - on main branch -->
+       <g transform="translate(140, 90)">
+         <!-- Blossom 1 -->
+         <g>
+           <ellipse cx="-6" cy="-4" rx="5" ry="8" fill="#d47a8a" opacity="0.8" transform="rotate(-30)"/>
+           <ellipse cx="6" cy="-4" rx="5" ry="8" fill="#d47a8a" opacity="0.8" transform="rotate(30)"/>
+           <ellipse cx="-4" cy="5" rx="4.5" ry="7" fill="#c86a7a" opacity="0.7" transform="rotate(-15)"/>
+           <ellipse cx="4" cy="5" rx="4.5" ry="7" fill="#c86a7a" opacity="0.7" transform="rotate(15)"/>
+           <circle cx="0" cy="0" r="3" fill="#e8b89a"/>
+           <circle cx="0" cy="0" r="1.5" fill="#c94030" opacity="0.6"/>
+         </g>
+
+         <!-- Blossom 2 -->
+         <g transform="translate(15, -8)">
+           <ellipse cx="-5" cy="-3" rx="4" ry="6" fill="#e09a9a" opacity="0.75" transform="rotate(-25)"/>
+           <ellipse cx="5" cy="-3" rx="4" ry="6" fill="#e09a9a" opacity="0.75" transform="rotate(25)"/>
+           <circle cx="0" cy="0" r="2.5" fill="#e8b89a"/>
+         </g>
+
+         <!-- Blossom 3 -->
+         <g transform="translate(-10, -15)">
+           <ellipse cx="-4" cy="-3" rx="3.5" ry="5.5" fill="#d47a8a" opacity="0.85" transform="rotate(-20)"/>
+           <ellipse cx="4" cy="-3" rx="3.5" ry="5.5" fill="#d47a8a" opacity="0.85" transform="rotate(20)"/>
+           <ellipse cx="-3" cy="4" rx="3" ry="5" fill="#c86a7a" opacity="0.75" transform="rotate(-15)"/>
+           <ellipse cx="3" cy="4" rx="3" ry="5" fill="#c86a7a" opacity="0.75" transform="rotate(15)"/>
+           <circle cx="0" cy="0" r="2" fill="#e8b89a"/>
+         </g>
+       </g>
+
+       <!-- Blossom cluster 2 -->
+       <g transform="translate(240, 140)">
+         <g>
+           <ellipse cx="-5" cy="-3" rx="4.5" ry="7" fill="#d47a8a" opacity="0.8" transform="rotate(-35)"/>
+           <ellipse cx="5" cy="-3" rx="4.5" ry="7" fill="#d47a8a" opacity="0.8" transform="rotate(35)"/>
+           <ellipse cx="-3" cy="4" rx="4" ry="6.5" fill="#c86a7a" opacity="0.7" transform="rotate(-20)"/>
+           <ellipse cx="3" cy="4" rx="4" ry="6.5" fill="#c86a7a" opacity="0.7" transform="rotate(20)"/>
+           <circle cx="0" cy="0" r="2.5" fill="#e8b89a"/>
+         </g>
+         <g transform="translate(18, -12)">
+           <ellipse cx="-4" cy="-3" rx="3.5" ry="5.5" fill="#e09a9a" opacity="0.7" transform="rotate(-25)"/>
+           <ellipse cx="4" cy="-3" rx="3.5" ry="5.5" fill="#e09a9a" opacity="0.7" transform="rotate(25)"/>
+           <circle cx="0" cy="0" r="2" fill="#e8b89a"/>
+         </g>
+       </g>
+
+       <!-- Blossom cluster 3 - lower branch -->
+       <g transform="translate(170, 300)">
+         <g>
+           <ellipse cx="-4" cy="-3" rx="4" ry="6" fill="#d89090" opacity="0.75" transform="rotate(-20)"/>
+           <ellipse cx="4" cy="-3" rx="4" ry="6" fill="#d89090" opacity="0.75" transform="rotate(20)"/>
+           <ellipse cx="-3" cy="4" rx="3.5" ry="5.5" fill="#c86a7a" opacity="0.65" transform="rotate(-15)"/>
+           <ellipse cx="3" cy="4" rx="3.5" ry="5.5" fill="#c86a7a" opacity="0.65" transform="rotate(15)"/>
+           <circle cx="0" cy="0" r="2" fill="#e8b89a"/>
+         </g>
+       </g>
+
+       <!-- Blossom cluster 4 - top right -->
+       <g transform="translate(310, 120)">
+         <g>
+           <ellipse cx="-5" cy="-3" rx="4.5" ry="6.5" fill="#d47a8a" opacity="0.8" transform="rotate(-30)"/>
+           <ellipse cx="5" cy="-3" rx="4.5" ry="6.5" fill="#d47a8a" opacity="0.8" transform="rotate(30)"/>
+           <ellipse cx="-3" cy="4" rx="4" ry="6" fill="#c86a7a" opacity="0.7" transform="rotate(-15)"/>
+           <ellipse cx="3" cy="4" rx="4" ry="6" fill="#c86a7a" opacity="0.7" transform="rotate(15)"/>
+           <circle cx="0" cy="0" r="2.5" fill="#e8b89a"/>
+         </g>
+       </g>
+
+       <!-- Loose blossom petals - falling in snow -->
+       <ellipse cx="100" cy="180" rx="3" ry="4" fill="#d47a8a" opacity="0.3" transform="rotate(45)"/>
+       <ellipse cx="280" cy="200" rx="2.5" ry="3.5" fill="#e09a9a" opacity="0.25" transform="rotate(-20)"/>
+       <ellipse cx="160" cy="250" rx="3" ry="4" fill="#d89090" opacity="0.35" transform="rotate(60)"/>
+       <ellipse cx="350" cy="280" rx="2.5" ry="3.5" fill="#d47a8a" opacity="0.2" transform="rotate(-40)"/>
+       <ellipse cx="80" cy="300" rx="2" ry="3" fill="#e09a9a" opacity="0.3" transform="rotate(30)"/>
+
+       <!-- Snow dots -->
+       <g opacity="0.4" fill="#f5ece0">
+         <circle cx="50" cy="120" r="1.5"/>
+         <circle cx="120" cy="200" r="1"/>
+         <circle cx="200" cy="80" r="1.2"/>
+         <circle cx="300" cy="160" r="1.5"/>
+         <circle cx="350" cy="250" r="1"/>
+         <circle cx="150" cy="350" r="1.3"/>
+         <circle cx="280" cy="320" r="1"/>
+         <circle cx="60" cy="400" r="1.2"/>
+         <circle cx="380" cy="350" r="1"/>
+         <circle cx="220" cy="450" r="1.5"/>
+         <circle cx="100" cy="470" r="1"/>
+         <circle cx="320" cy="460" r="1.2"/>
+       </g>
+
+       <!-- Seal / stamp -->
+       <rect x="320" y="460" width="36" height="36" rx="3" fill="#c94030" opacity="0.8"/>
+       <text x="338" y="484" text-anchor="middle" font-size="18" fill="#f5ece0" font-family="serif" font-weight="bold">梅</text>
+
+       <!-- Title -->
+       <text x="200" y="520" text-anchor="middle" font-size="11" fill="#4a3828" font-family="serif" letter-spacing="3" opacity="0.5">風景</text>
+     </svg>
+
+     <div class="mist-overlay"></div>
+
+   </article>
+
+   <div class="steam-layer">
+     <div class="wisp wisp-1"></div>
+     <div class="wisp wisp-2"></div>
+     <div class="wisp wisp-3"></div>
+     <div class="wisp wisp-4"></div>
+     <div class="wisp wisp-5"></div>
+     <div class="wisp wisp-6"></div>
+   </div>
+
+   <footer class="card-footer">
+     <h2>
+       <span class="jp-title">梅</span>Plum Garden - First Thaw
+     </h2>
+     <p class="artist">Woodblock Print - Anon., c. 1840s</p>
+   </footer>
 </section>
 
 <div class="scroll-space"></div>
 
 <!-- Scroll hint -->
-<div class="scroll-hint" id="scrollHint">Scroll to reveal</div>
+<div class="scroll-hint" id="scrollHint">Scroll to reveal the soul</div>
 
 <!-- ============================================================
-     JAVASCRIPT — IntersectionObserver, 150ms Lock, Audio
+     JAVASCRIPT - The Mist-to-Clarity Reveal Engine
+      Core features:
+        1. IntersectionObserver -> toggles .clear at T+0ms (150ms FFCT)
+        2. CustomEvent dispatch: 'soul-reveal' + 'clarity-lock'
+        3. Audio engine: warm steam hum triggered at clarity lock
+        4. Performance-safe: CSS filters only, no layout thrashing
      ============================================================ -->
 <script>
 (function() {
-  'use strict';
+   'use strict';
 
-  /* ===== AUDIO CONTEXT PROVIDER ===== */
-  let audioCtx = null;
-  let steamGain = null;
-  let humOscillator = null;
-  let humStarted = false;
+   /* ===== CONFIGURATION ===== */
+  var REVEAL_DURATION = 150; // ms - the absolute ship bar
+  var AUDIO_THRESHOLD_MS = 50; // audio fires within 50ms of visual lock
+  var OBSERVER_THRESHOLD = 0.4; // 40% viewport visible
 
+   /* ===== AUDIO ENGINE ===== */
+  var audioCtx = null;
+  var steamGainNode = null;
+  var humOscillators = [];
+  var soulRevealed = false;
+  var globalClarityReached = false;
+
+   /**
+    * createSteamHum - Boot the Web AudioContext on first interaction.
+    * Creates a warm low-frequency hum (55->82Hz rise) that peaks at 150ms,
+    * matching the visual clarity transition exactly.
+    */
   function createSteamHum() {
     if (audioCtx) return;
+
     try {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-      // Master gain for the steam sound
-      steamGain = audioCtx.createGain();
-      steamGain.gain.setValueAtTime(0, audioCtx.currentTime);
+       /* Master gain for steam sound - fades in to match reveal */
+      steamGainNode = audioCtx.createGain();
+      steamGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      steamGainNode.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + REVEAL_DURATION / 1000);
+      steamGainNode.connect(audioCtx.destination);
 
-      // Warm low-frequency hum (Bass ~65Hz, rising)
-      const hum = audioCtx.createOscillator();
+       /* Primary warm hum - bass ~55Hz rising to 82Hz at T+150ms */
+      var hum = audioCtx.createOscillator();
       hum.type = 'sine';
       hum.frequency.setValueAtTime(55, audioCtx.currentTime);
-      hum.frequency.exponentialRampToValueAtTime(82, audioCtx.currentTime + 0.15);
+      hum.frequency.exponentialRampToValueAtTime(82, audioCtx.currentTime + REVEAL_DURATION / 1000);
+      hum.connect(steamGainNode);
+      hum.start();
+      humOscillators.push(hum);
 
-      // Sub harmonic layer for warmth (~33Hz)
-      const sub = audioCtx.createOscillator();
+       /* Sub-harmonic warmth - ~33Hz felt more than heard */
+      var sub = audioCtx.createOscillator();
       sub.type = 'sine';
       sub.frequency.setValueAtTime(33, audioCtx.currentTime);
+      sub.connect(steamGainNode);
+      sub.start();
+      humOscillators.push(sub);
 
-      // Gentle high shimmer (~440Hz, very quiet)
-      const shimmer = audioCtx.createOscillator();
+       /* Gentle high shimmer - ~440Hz barely audible warmth */
+      var shimmer = audioCtx.createOscillator();
       shimmer.type = 'sine';
       shimmer.frequency.setValueAtTime(440, audioCtx.currentTime);
-      shimmer.detune.setValueAtTime(12, audioCtx.currentTime); // slight detune for warmth
+      shimmer.detune.setValueAtTime(12, audioCtx.currentTime);
 
-      // Shimmer gain (very quiet)
-      const shimGain = audioCtx.createGain();
+      var shimGain = audioCtx.createGain();
       shimGain.gain.setValueAtTime(0.03, audioCtx.currentTime);
       shimmer.connect(shimGain);
-      shimGain.connect(steamGain);
-
-      // Sub gain
-      const subGain = audioCtx.createGain();
-      subGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      sub.connect(subGain);
-      subGain.connect(steamGain);
-
-      hum.connect(steamGain);
-      steamGain.connect(audioCtx.destination);
-
-      // Fade in over 150ms to match visual reveal
-      steamGain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.15);
-
-      hum.start();
-      sub.start();
+      shimGain.connect(steamGainNode);
       shimmer.start();
+      humOscillators.push(shimmer);
 
-      humStarted = true;
+      soulRevealed = true;
 
-      // Store for cleanup
-      audioCtx._nodes = [hum, sub, shimmer];
     } catch (e) {
-      console.warn('[The Steaming Soul] Audio unavailable:', e);
+      console.warn('[Steaming Soul] Audio unavailable:', e.message || e);
     }
   }
 
+   /* Resume audio context after user gesture */
   function resumeAudio() {
     if (audioCtx && audioCtx.state === 'suspended') {
       audioCtx.resume();
     }
   }
 
-  // Resume audio on first user interaction
   document.addEventListener('click', resumeAudio, { once: true });
   document.addEventListener('touchstart', resumeAudio, { once: true });
 
-  /* ===== INTERSECTION OBSERVER — The 150ms Lock ===== */
-  const cards = document.querySelectorAll('.card-scene');
-  const cardElements = document.querySelectorAll('.card');
-  let soulSettled = false; // Track if audio has been triggered
 
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const scene = entry.target;
-      const card = scene.querySelector('.card');
-      if (!entry.isIntersecting) return;
+   /* ===== REVEAL ENGINE ===== */
 
-      scene.classList.add('is-active');
-      // Remove old class to re-trigger transition
-      card.classList.remove('has-focal-point');
-      // Force reflow so the CSS transition fires cleanly
-      void card.offsetWidth;
-      // ADD: this is the 150ms lock — hard cutoff, no easing beyond
-      card.classList.add('has-focal-point');
+   /**
+    * toggleClarity - The core reveal mechanism.
+    * Removes .clear (to reset), forces reflow, then adds .clear.
+    * Fires CustomEvents: 'soul-reveal' and 'clarity-lock'.
+    * @param {HTMLElement} card - The .card element to reveal
+    * @param {HTMLElement} scene - The parent .card-scene element
+    */
+  function toggleClarity(card, scene) {
+    if (card.classList.contains('clear')) return;
 
-      // Trigger audio steam hum within 50ms of visual lock
-      requestAnimationFrame(() => {
+     /* Remove old class to reset transition state */
+    card.classList.remove('clear');
+
+     /* Force reflow so CSS transition fires cleanly on next frame */
+    void card.offsetWidth;
+
+     /* ADD .clear - triggers the 150ms mist-to-clarity transition */
+    card.classList.add('clear');
+
+     /* === Event Dispatch ===
+      * Both events fire synchronously within the same
+      * microtask, guaranteeing downstream hooks receive
+      * them before the next paint.
+      */
+
+     /* 'soul-reveal' - fired as soon as .clear class is added */
+    var soulRevealEvent = new CustomEvent('soul-reveal', {
+      bubbles: true,
+      cancelable: true,
+      detail: {
+        cardId: card.id || null,
+        group: scene ? scene.dataset.revealGroup : null,
+        timestamp: performance.now(),
+        revealDurationMs: REVEAL_DURATION,
+        message: 'Soul revealed - mist dissolving'
+       }
+     });
+
+    if (scene) {
+      scene.dispatchEvent(soulRevealEvent);
+    }
+
+     /* 'clarity-lock' - fired after .clear has been applied */
+    requestAnimationFrame(function() {
+      var clarityLockEvent = new CustomEvent('clarity-lock', {
+        bubbles: true,
+        cancelable: true,
+        detail: {
+          cardId: card.id || null,
+          group: scene ? scene.dataset.revealGroup : null,
+          timestamp: performance.now(),
+          revealDurationMs: REVEAL_DURATION,
+          message: 'Clarity locked - soul visible'
+         }
+       });
+
+      if (scene) {
+        scene.dispatchEvent(clarityLockEvent);
+      }
+
+       /* === Trigger audio within 50ms of visual lock === */
+      requestAnimationFrame(function() {
         createSteamHum();
       });
 
-      // Mark global clarity reached (fade UI)
-      if (!soulSettled) {
-        soulSettled = true;
+       /* === Global state - first card achieves clarity === */
+      if (!globalClarityReached) {
+        globalClarityReached = true;
         document.body.classList.add('clarity-reached');
+
+         /* Show FFCT badge on first lock */
+        var badge = document.getElementById('ffctBadge');
+        if (badge) {
+          badge.classList.add('show');
+          setTimeout(function() {
+            badge.classList.remove('show');
+          }, 3000);
+        }
       }
+    });
+  }
+
+
+   /* ===== INTERSECTION OBSERVER SETUP ===== */
+  var cardScenes = document.querySelectorAll('.card-scene');
+
+  var revealObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) return;
+
+      var scene = entry.target;
+      var card = scene.querySelector('.card');
+
+      if (!card || card.classList.contains('clear')) return;
+
+       /* Trigger the reveal - .clear toggle fires CSS transition */
+      toggleClarity(card, scene);
     });
   }, {
     root: null,
-    threshold: 0.4 // 40% visible triggers the reveal
+    threshold: OBSERVER_THRESHOLD
   });
 
-  cards.forEach(card => revealObserver.observe(card));
+  cardScenes.forEach(function(scene) {
+    revealObserver.observe(scene);
+  });
 
-  /* ===== SCROLL HINT HIDE ===== */
-  const scrollHint = document.getElementById('scrollHint');
+
+   /* ===== SCROLL HINT HIDE ===== */
+  var scrollHint = document.getElementById('scrollHint');
   if (scrollHint) {
-    let hintHidden = false;
-    window.addEventListener('scroll', () => {
+    var hintHidden = false;
+    window.addEventListener('scroll', function() {
       if (!hintHidden && window.scrollY > 50) {
         scrollHint.style.opacity = '0';
         hintHidden = true;
@@ -783,19 +993,25 @@
     }, { passive: true });
   }
 
-  /* ===== CARD PARALLAX (subtle, no frame budget waste) ===== */
-  let ticking = false;
-  window.addEventListener('scroll', () => {
+
+   /* ===== PARALLAX - subtle card offset, GPU-accelerated ===== */
+  var cardElements = document.querySelectorAll('.card');
+  var ticking = false;
+
+  window.addEventListener('scroll', function() {
     if (!ticking) {
-      requestAnimationFrame(() => {
-        cardElements.forEach(card => {
-          const rect = card.getBoundingClientRect();
-          const center = rect.top + rect.height / 2;
-          const viewCenter = window.innerHeight / 2;
-          const offset = (center - viewCenter) * 0.02;
-          // Only apply when in focus state
-          if (card.classList.contains('has-focal-point')) {
-            card.style.transform = `translateY(${offset}px)`;
+      requestAnimationFrame(function() {
+        cardElements.forEach(function(card) {
+          var rect = card.getBoundingClientRect();
+          var center = rect.top + rect.height / 2;
+          var viewCenter = window.innerHeight / 2;
+          var offset = (center - viewCenter) * 0.015;
+
+          if (card.classList.contains('clear')) {
+             /* Only translateY - no width/height changes = no layout thrashing */
+            card.style.transform = 'translateY(' + offset + 'px)';
+          } else {
+            card.style.transform = '';
           }
         });
         ticking = false;
@@ -804,7 +1020,25 @@
     }
   }, { passive: true });
 
+
+   /* ===== PUBLIC API — Event Listener Examples ===== */
+   /*
+    * Downstream modules can hook into these events:
+    *
+    *   document.addEventListener('soul-reveal', function(e) {
+    *     console.log('Soul revealed!', e.detail);
+    *   });
+    *
+    *   document.addEventListener('clarity-lock', function(e) {
+    *     console.log('Clarity locked at T+', performance.now() - e.detail.timestamp, 'ms');
+    *   });
+    *
+    * Both events bubble and are cancelable. Details include:
+    *   cardId, group, timestamp, revealDurationMs, message
+    */
+
 })();
 </script>
+
 </body>
 </html>
