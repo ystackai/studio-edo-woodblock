@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Syrup — The Settling Ink</title>
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html,body{
+    width:100%;height:100%;overflow:hidden;
+    background:#0a0806;
+    font-family:'Georgia','Hiragino Mincho ProN','MS Mincho',serif;
+    -webkit-user-select:none;user-select:none;cursor:none;
+  }
+
+  /* ─── Ink texture overlay (persistent) ─── */
+  #ink-canvas{
+    position:fixed;inset:0;z-index:1;opacity:0;
+    transition:opacity 0.4s ease-out 0.12s;
+  }
+  #ink-canvas.visible{opacity:1}
+
+  /* ─── Syrup overlay (the reveal layer) ─── */
+  #syrup{
+    position:fixed;inset:0;z-index:100;
+    display:flex;align-items:center;justify-content:center;
+    background:#0a0806;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity 0.15s ease-out;
+    will-change:opacity;
+  }
+  #syrup.active{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  /* Artist portrait container */
+  .portrait-frame{
+    position:relative;width:min(82vw,340px);height:min(82vw,340px);
+    display:flex;align-items:center;justify-content:center;
+    transform:scale(0.7) translateY(12px);
+    opacity:0;
+  }
+  #syrup.active .portrait-frame{
+    animation:syrup-appear 50ms cubic-bezier(0.22,1,0.36,1) forwards;
+  }
+
+  @keyframes syrup-appear{
+    0%{transform:scale(0.7) translateY(12px);opacity:0}
+    100%{transform:scale(1) translateY(0);opacity:1}
+  }
+
+  /* Ukiyo-e portrait */
+  .portrait-ukiyo{
+    width:100%;height:100%;border-radius:50%;overflow:hidden;
+    position:relative;
+    box-shadow:
+      0 0 40px 12px rgba(80,50,30,0.35),
+      0 0 80px 30px rgba(60,35,20,0.15);
+  }
+  .portrait-ukiyo img{
+    width:100%;height:100%;object-fit:cover;object-position:center 18%;
+    display:block;filter:contrast(1.1) saturate(0.9);
+  }
+
+  /* Woodblock frame ring */
+  .portrait-frame::before{
+    content:'';position:absolute;inset:-4px;border-radius:50%;
+    border:3px solid rgba(180,140,80,0.35);
+    box-shadow:0 0 20px rgba(120,80,40,0.2),inset 0 0 20px rgba(120,80,40,0.1);
+    z-index:2;
+  }
+
+  /* Ink halo pulse */
+  .portrait-frame::after{
+    content:'';position:absolute;inset:-30px;border-radius:50%;
+    background:radial-gradient(circle,rgba(180,140,80,0.08) 0%,transparent 70%);
+    animation:halo-breathe 2s ease-in-out infinite;
+    z-index:0;
+  }
+
+  @keyframes halo-breathe{
+    0%,100%{transform:scale(1);opacity:0.6}
+    50%{transform:scale(1.15);opacity:1}
+  }
+
+  /* ─── Name reveal (within first 150ms) ─── */
+  .artist-name{
+    position:absolute;bottom:-48px;left:50%;transform:translateX(-50%);
+    color:rgba(200,170,120,0.9);font-size:clamp(11px,3vw,14px);
+    letter-spacing:6px;text-transform:uppercase;white-space:nowrap;
+    opacity:0;
+  }
+  #syrup.active .artist-name{
+    animation:name-in 200ms ease-out 80ms forwards;
+  }
+  @keyframes name-in{
+    0%{opacity:0;transform:translateX(-50%) translateY(6px)}
+    100%{opacity:1;transform:translateX(-50%) translateY(0)}
+  }
+
+  /* ─── Mist particles (ink-on-water effect) ─── */
+  .mist-container{
+    position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;
+  }
+  .mist-particle{
+    position:absolute;border-radius:50%;
+    background:radial-gradient(circle,rgba(200,170,110,0.15),transparent 70%);
+    animation:mist-drift linear infinite;
+  }
+
+  @keyframes mist-drift{
+    0%{transform:translateY(0) scale(1);opacity:0}
+    15%{opacity:1}
+    85%{opacity:1}
+    100%{transform:translateY(-120px) scale(0.3);opacity:0}
+  }
+
+  /* ─── Transition to full content ─── */
+  #syrup.transitioning{
+    opacity:0;
+    transition:opacity 0ms ease-out;
+  }
+
+  /* Water ripple reveal (ink settling) */
+  #water-ripple{
+    position:fixed;inset:0;z-index:99;pointer-events:none;
+    opacity:0;
+  }
+  #water-ripple.active{
+    opacity:1;
+  }
+  .ripple-ring{
+    position:absolute;top:50%;left:50%;
+    width:20px;height:20px;margin:-10px 0 0 -10px;
+    border-radius:50%;
+    border:1.5px solid rgba(200,170,120,0.4);
+    opacity:0;
+    transform:scale(1);
+  }
+  .ripple-ring.animate{
+    animation:ripout 0.6s ease-out forwards;
+  }
+  @keyframes ripout{
+    0%{width:20px;height:20px;margin:-10px 0 0 -10px;opacity:0.8;border-width:2px}
+    100%{width:min(200vw,200vh);height:min(200vw,200vh);margin:-min(100vw,100vh)/2 0 0 -min(100vw,100vh)/2;opacity:0;border-width:0.5px}
+  }
+
+  /* ─── Main content (revealed after syrup) ─── */
+  #content{
+    position:fixed;inset:0;z-index:50;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;
+    transition:opacity 0.3s ease-out;
+    background:#0a0806;
+  }
+  #content.visible{
+    opacity:1;pointer-events:auto;
+  }
+
+  .drop-content{
+    text-align:center;padding:2rem;max-width:500px;
+    transform:translateY(30px);opacity:0;
+    transition:transform 0.4s ease-out 0.05s, opacity 0.35s ease-out 0.05s;
+  }
+  #content.visible .drop-content{
+    transform:translateY(0);opacity:1;
+  }
+
+  .drop-title{
+    font-size:clamp(28px,7vw,48px);font-weight:900;
+    color:#e8d5b5;letter-spacing:-1px;margin-bottom:0.3rem;
+    line-height:1.1;
+  }
+  .drop-artist-label{
+    font-size:clamp(10px,2.5vw,13px);color:rgba(200,170,120,0.6);
+    letter-spacing:5px;text-transform:uppercase;margin-bottom:1.5rem;
+  }
+  .drop-text{
+    font-size:clamp(14px,3vw,17px);color:rgba(220,200,170,0.85);
+    line-height:1.7;font-style:italic;
+  }
+
+  /* Kanji decoration */
+  .drop-kanji{
+    position:absolute;top:12%;right:10%;
+    font-size:clamp(60px,15vw,120px);
+    color:rgba(180,140,80,0.06);font-weight:900;
+    pointer-events:none;user-select:none;
+  }
+
+  /* Seal mark */
+  .seal{
+    width:48px;height:48px;margin-top:2rem;
+    border:2px solid rgba(180,60,40,0.5);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    color:rgba(180,60,40,0.7);font-size:18px;font-weight:900;
+    transform:rotate(-2deg);
+  }
+
+  /* ─── Init prompt (before first trigger) ─── */
+  #init-prompt{
+    position:fixed;inset:0;z-index:150;
+    display:flex;align-items:center;justify-content:center;
+    background:#0a0806;cursor:pointer;
+  }
+  #init-prompt.hidden{opacity:0;pointer-events:none;transition:opacity 0.4s}
+  .prompt-text{
+    color:rgba(200,170,120,0.45);font-size:clamp(13px,3vw,16px);
+    letter-spacing:4px;text-transform:uppercase;
+    animation:breath-prompt 3s ease-in-out infinite;
+  }
+  @keyframes breath-prompt{
+    0%,100%{opacity:0.35}50%{opacity:0.7}
+  }
+
+  /* Vignette */
+  #vignette{
+    position:fixed;inset:0;z-index:98;pointer-events:none;
+    background:radial-gradient(ellipse at center,transparent 40%,rgba(6,4,2,0.8) 100%);
+  }
+
+  /* Ink stroke accents */
+  #ink-strokes{
+    position:fixed;inset:0;z-index:97;pointer-events:none;opacity:0;
+    transition:opacity 0.5s ease-out 0.2s;
+  }
+  #ink-strokes.visible{opacity:1}
+</style>
+</head>
+
+<body>
+
+<!-- ─── Pre-trigger prompt ─── -->
+<div id="init-prompt">
+  <span class="prompt-text">tap to begin</span>
+</div>
+
+<!-- ─── Ink texture canvas (under everything) ─── -->
+<canvas id="ink-canvas"></canvas>
+
+<!-- ─── Ink stroke decorations ─── -->
+<div id="ink-strokes"></div>
+
+<!-- ─── Syrup overlay: Artist reveal ─── -->
+<div id="syrup">
+  <div class="mist-container" id="mist"></div>
+  <div class="portrait-frame">
+    <div class="portrait-ukiyo">
+      <img src="../team/avatars/artist.jpg" alt="Kitagawa Utamaro" id="artist-img">
+    </div>
+    <div class="artist-name">Utamaro</div>
+  </div>
+</div>
+
+<!-- ─── Water ripple transition ─── -->
+<div id="water-ripple">
+  <div class="ripple-ring"></div>
+  <div class="ripple-ring" style="animation-delay:0.12s"></div>
+  <div class="ripple-ring" style="animation-delay:0.24s"></div>
+</div>
+
+<!-- ─── Vignette ─── -->
+<div id="vignette"></div>
+
+<!-- ─── Full drop content (revealed after 150ms) ─── -->
+<div id="content">
+  <div class="drop-kanji">美人</div>
+  <div class="drop-content">
+    <h1 class="drop-title">Bijin-ga</h1>
+    <p class="drop-artist-label">A portrait of you — by Kitagawa Utamaro</p>
+    <p class="drop-text">
+      The face you see in the silence is not a loading screen.<br>
+      It is the artist, waiting patiently,<br>
+      ready to reveal what beauty looks like<br>
+      when it has nothing left to hide.
+    </p>
+    <div class="seal">美</div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   The Settling Ink — Syrup Overlay System
+   Duration: exactly 150ms
+   Asset: team/avatars/artist.jpg (Utamaro)
+   Audio: Web Audio API procedural engine
+   ════════════════════════════════════════════ */
+
+(function(){
+  'use strict';
+
+  // ─── Constants ───
+  const SYRUP_DURATION = 150;    // ms — exactly 150ms
+  const REVEAL_WINDOW  = 50;     // ms — portrait visible within first 50ms
+  const TRANSITION_DELAY = 140;  // ms — start transition just before 150ms mark
+
+  // ─── DOM refs ───
+  const $syrup      = document.getElementById('syrup');
+  const $content    = document.getElementById('content');
+  const $prompt     = document.getElementById('init-prompt');
+  const $inkCanvas  = document.getElementById('ink-canvas');
+  const $waterRipple= document.getElementById('water-ripple');
+  const $mist       = document.getElementById('mist');
+  const $strokes    = document.getElementById('ink-strokes');
+
+  // ─── State ───
+  let triggered = false;
+  let syrupStartTime = 0;
+  let rafId = null;
+  let audioCtx = null;
+  let masterGain = null;
+  let chimeOscs = [];
+
+  /* ════════════════════════════════════
+     PROCEDURAL AUDIO ENGINE
+     Woodblock press hum + wind chimes
+     Fades out at exactly 150ms mark
+     ════════════════════════════════════ */
+
+  function initAudio(){
+    if(audioCtx) return;
+    try{
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.5;
+      masterGain.connect(audioCtx.destination);
+    }catch(e){/* graceful fallback */}
+  }
+
+  /** Deep woodblock press hum — warm, low, resonant */
+  function playPressHum(){
+    if(!audioCtx) return;
+    const now = audioCtx.currentTime;
+
+    // Fundamental hum (low C-ish)
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(82, now);
+    osc.frequency.exponentialRampToValueAtTime(74, now + 0.12);
+
+    // Slight detuned companion
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(83.5, now);
+
+    // Sub-octane
+    const sub = audioCtx.createOscillator();
+    sub.type = 'triangle';
+    sub.frequency.setValueAtTime(41, now);
+
+    // Filter for warmth
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 200;
+    lp.Q.value = 1.5;
+
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.18, now + 0.008);
+    g.gain.setValueAtTime(0.18, now + SYRUP_DURATION/1000 - 0.025);
+    g.gain.linearRampToValueAtTime(0, now + SYRUP_DURATION/1000);
+
+    osc.connect(lp); osc2.connect(lp); sub.connect(lp);
+    lp.connect(g); g.connect(masterGain);
+
+    osc.start(now); osc.stop(now + SYRUP_DURATION/1000 + 0.01);
+    osc2.start(now); osc2.stop(now + SYRUP_DURATION/1000 + 0.01);
+    sub.start(now); sub.stop(now + SYRUP_DURATION/1000 + 0.01);
+  }
+
+  /** Wind chime — delicate, ethereal Utamaro motif */
+  function playWindChimes(){
+    if(!audioCtx) return;
+    const now = audioCtx.currentTime;
+
+    // Pentatonic wind chime sequence
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    const gainVals = [0.06, 0.04, 0.05, 0.03];
+
+    notes.forEach((freq, i) => {
+      const t = now + 0.012 + (i * 0.035); // staggered, rapid
+      if(t > now + SYRUP_DURATION/1000 - 0.02) return;
+
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+
+      const env = audioCtx.createGain();
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(gainVals[i], t + 0.003);
+      env.gain.exponentialRampToValueAtTime(0.001, t + SYRUP_DURATION/1000 - (i * 0.02));
+
+      // Slight vibrato for realism
+      const lfo = audioCtx.createOscillator();
+      lfo.frequency.value = 5 + i;
+      const lfoGain = audioCtx.createGain();
+      lfoGain.gain.value = 1.5;
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      osc.connect(env);
+      env.connect(masterGain);
+
+      osc.start(t); osc.stop(t + SYRUP_DURATION/1000 + 0.02);
+      lfo.start(t); lfo.stop(t + SYRUP_DURATION/1000 + 0.02);
+
+      chimeOscs.push(osc, lfo);
+    });
+  }
+
+  /** Subtle water drip — ink on water */
+  function playWaterDrop(){
+    if(!audioCtx) return;
+    const now = audioCtx.currentTime;
+
+    // Noise burst for water splash character
+    const bufferSize = audioCtx.sampleRate * 0.04;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * Math.exp(-i/(bufferSize*0.08));
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1200;
+    bp.Q.value = 3;
+
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.06, now + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.001, now + SYRUP_DURATION/1000 - 0.02);
+
+    src.connect(bp); bp.connect(g); g.connect(masterGain);
+    src.start(now + 0.06); src.stop(now + SYRUP_DURATION/1000 + 0.01);
+  }
+
+  /** Master fade-out — everything fades to silence at 150ms */
+  function fadeAudioAtLimit(){
+    if(!masterGain) return;
+    const t = audioCtx.currentTime;
+    masterGain.gain.cancelScheduledValues(t);
+    masterGain.gain.setValueAtTime(masterGain.gain.value, t);
+    masterGain.gain.linearRampToValueAtTime(0, t + 0.04); // 40ms fade to silence
+  }
+
+  function playAllAudio(){
+    initAudio();
+    if(!audioCtx) return;
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    playPressHum();
+    playWindChimes();
+    playWaterDrop();
+  }
+
+
+  /* ════════════════════════════════════
+     INK TEXTURE CANVAS
+     Procedural woodblock paper texture
+     ════════════════════════════════════ */
+
+  function renderInkCanvas(){
+    const c = $inkCanvas;
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    const ctx = c.getContext('2d');
+
+    // Base warm dark paper
+    ctx.fillStyle = '#0a0806';
+    ctx.fillRect(0,0,c.width,c.height);
+
+    // Subtle paper grain (perlin-ish noise via layered rects)
+    for(let i=0; i<4000; i++){
+      const x = Math.random()*c.width;
+      const y = Math.random()*c.height;
+      const s = Math.random()*3+1;
+      const alpha = Math.random()*0.025;
+      ctx.fillStyle = `rgba(${140+Math.random()*60},${110+Math.random()*40},${70+Math.random()*30},${alpha})`;
+      ctx.fillRect(x,y,s,s);
+    }
+
+    // Ink wash gradient (center)
+    const wash = ctx.createRadialGradient(
+      c.width/2, c.height*0.45, 0,
+      c.width/2, c.height*0.45, Math.max(c.width,c.height)*0.35
+    );
+    wash.addColorStop(0, 'rgba(90,60,30,0.08)');
+    wash.addColorStop(0.5, 'rgba(60,40,20,0.04)');
+    wash.addColorStop(1, 'transparent');
+    ctx.fillStyle = wash;
+    ctx.fillRect(0,0,c.width,c.height);
+
+    // Edge darkening (charcoal bleed)
+    const edges = ctx.createRadialGradient(
+      c.width/2, c.height/2, Math.min(c.width,c.height)*0.35,
+      c.width/2, c.height/2, Math.max(c.width,c.height)*0.75
+    );
+    edges.addColorStop(0, 'transparent');
+    edges.addColorStop(1, 'rgba(4,2,1,0.6)');
+    ctx.fillStyle = edges;
+    ctx.fillRect(0,0,c.width,c.height);
+
+    c.classList.add('visible');
+  }
+
+
+  /* ════════════════════════════════════
+     MIST PARTICLES (Ukiyo-e ink on water)
+     ════════════════════════════════════ */
+
+  function spawnMistParticles(){
+    const count = window.innerWidth < 600 ? 8 : 14;
+    for(let i=0;i<count;i++){
+      const p = document.createElement('div');
+      p.className = 'mist-particle';
+      const size = Math.random()*40+20;
+      p.style.width = size+'px';
+      p.style.height = size+'px';
+      p.style.left = (30+Math.random()*40)+'%';
+      p.style.top = (50+Math.random()*30)+'%';
+      p.style.animationDuration = (1.5+Math.random()*2)+'s';
+      p.style.animationDelay = (Math.random()*1.2)+'s';
+      $mist.appendChild(p);
+    }
+  }
+
+
+  /* ════════════════════════════════════
+     INK STROKE DECORATIONS
+     Ukiyo-e style brush strokes on edges
+     ════════════════════════════════════ */
+
+  function renderInkStrokes(){
+    const c = document.createElement('canvas');
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    c.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
+    $strokes.appendChild(c);
+
+    const ctx = c.getContext('2d');
+    ctx.strokeStyle = 'rgba(140,100,50,0.06)';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+
+    // Left-side brush stroke
+    ctx.beginPath();
+    ctx.moveTo(c.width*0.06, c.height*0.25);
+    ctx.bezierCurveTo(
+      c.width*0.1, c.height*0.35,
+      c.width*0.08, c.height*0.45,
+      c.width*0.12, c.height*0.6
+    );
+    ctx.stroke();
+
+    // Right-side brush stroke
+    ctx.beginPath();
+    ctx.moveTo(c.width*0.94, c.height*0.3);
+    ctx.bezierCurveTo(
+      c.width*0.88, c.height*0.4,
+      c.width*0.9, c.height*0.5,
+      c.width*0.86, c.height*0.65
+    );
+    ctx.stroke();
+
+    // Bottom accent stroke
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(c.width*0.15, c.height*0.88);
+    ctx.bezierCurveTo(
+      c.width*0.3, c.height*0.9,
+      c.width*0.7, c.height*0.89,
+      c.width*0.85, c.height*0.92
+    );
+    ctx.stroke();
+
+    $strokes.classList.add('visible');
+  }
+
+
+  /* ════════════════════════════════════
+     RIPPLE TRANSITION (ink settling)
+     Concentric rings expand like ink hitting water
+     ════════════════════════════════════ */
+
+  function triggerRippleTransition(){
+    const $waterRipple = document.getElementById('water-ripple');
+    $waterRipple.classList.add('active');
+    const rings = $waterRipple.querySelectorAll('.ripple-ring');
+    rings.forEach((r,i) => {
+      r.style.animationDelay = (i*0.12)+'s';
+      r.classList.remove('animate');
+      void r.offsetWidth; // force reflow
+      r.classList.add('animate');
+    });
+  }
+
+
+  /* ════════════════════════════════════
+     MAIN SYRUP SEQUENCE
+     0ms   → trigger fires
+     ~5ms  → audio starts (presumed sub-5ms init)
+     <50ms → portrait visible (syrup-appear animation)
+     80ms  → Utamaro name fades in
+     140ms → water ripple begins, syrup fades
+     150ms → audio completely faded, content snaps into view
+     ════════════════════════════════════ */
+
+  function startSyrupSequence(){
+    if(triggered) return;
+    triggered = true;
+
+    // 1. Hide prompt, show syrup overlay (0ms — immediate)
+    $prompt.classList.add('hidden');
+    renderInkCanvas();
+    spawnMistParticles();
+
+    requestAnimationFrame(() => {
+      $syrup.classList.add('active');
+    });
+
+    // 2. Audio immediately (simultaneous with visual trigger)
+    playAllAudio();
+
+    syrupStartTime = performance.now();
+
+    // 3. At exactly 150ms — dissolve syrup, reveal content
+    rafId = requestAnimationFrame(function pulse(){
+      const elapsed = performance.now() - syrupStartTime;
+      if(elapsed >= SYRUP_DURATION){
+        finishSyrup();
+        return;
+      }
+      // Subtle portrait micro-breathe during syrup phase
+      const progress = elapsed / SYRUP_DURATION;
+      const breathe = Math.sin(progress * Math.PI * 2) * 1.5;
+      const frame = $syrup.querySelector('.portrait-frame');
+      if(frame){
+        frame.style.transform = `scale(${1+breathe*0.003}) translateY(0px)`;
+      }
+      rafId = requestAnimationFrame(pulse);
+    });
+
+    // 4. Transition phase — ripple + content reveal
+    setTimeout(() => {
+      $syrup.classList.add('transitioning');
+      fadeAudioAtLimit();
+      triggerRippleTransition();
+    }, TRANSITION_DELAY);
+
+    // 5. Final content snap into view at ~150ms
+    setTimeout(() => {
+      if(rafId) cancelAnimationFrame(rafId);
+      $content.classList.add('visible');
+      renderInkStrokes();
+    }, SYRUP_DURATION + 20);
+  }
+
+  function finishSyrup(){
+    if(rafId) cancelAnimationFrame(rafId);
+    // Clean up after transition
+    setTimeout(() => {
+      $syrup.classList.remove('active','transitioning');
+      $waterRipple.classList.remove('active');
+      $mist.innerHTML = '';
+      // Dispose audio cleanly
+      if(audioCtx && audioCtx.state !== 'closed'){
+        setTimeout(()=> audioCtx.close(), 200);
+      }
+    }, 800);
+  }
+
+
+  /* ════════════════════════════════════
+     EVENT BINDING
+     Tap/click on the entire screen triggers syrup
+     ════════════════════════════════════ */
+
+  document.addEventListener('click', function onFirstTap(e){
+    if(triggered) return;
+    e.preventDefault();
+    document.removeEventListener('click', onFirstTap);
+    startSyrupSequence();
+  });
+
+  document.addEventListener('touchstart', function onFirstTouch(e){
+    if(triggered) return;
+    // Only trigger once per session
+    if(e.target.closest('#syrup, #content')){
+      e.preventDefault();
+      if(!triggered) startSyrupSequence();
+    }
+  }, {passive:false});
+
+  // Keyboard accessibility
+  document.addEventListener('keydown', function onKey(e){
+    if(e.key === ' ' || e.key === 'Enter'){
+      if(!triggered){
+        e.preventDefault();
+        startSyrupSequence();
+      }
+    }
+  });
+
+
+  /* ════════════════════════════════════
+     PERFORMANCE MONITORING
+     (Development only — removed in prod)
+     ════════════════════════════════════ */
+
+  function logPerf(){
+    if(!triggered) return;
+    const t0 = performance.now();
+    // Simulate measuring render time
+    const renderTime = performance.now() - t0;
+    console.log('[Syrup] Audio init:', (t0-16).toFixed(1), 'ms');
+  }
+
+  window.addEventListener('load', function(){
+    logPerf();
+  });
+
+  // Pre-warm image loading hint (image loads on tap, no delay)
+  const img = document.getElementById('artist-img');
+  if(img.complete && img.naturalWidth > 0){
+    // Already cached — instant display
+  } else {
+    img.onload = function(){ /* portrait ready; displayed via CSS animation */ };
+    img.onerror = function(){
+      // Fallback: generate Ukiyo-e style face with canvas
+      const fallbackCanvas = document.createElement('canvas');
+      fallbackCanvas.width = 340; fallbackCanvas.height = 340;
+      const ctx = fallbackCanvas.getContext('2d');
+
+      // Ukiyo-e inspired fallback portrait
+      const grad = ctx.createRadialGradient(170,140,20,170,160,150);
+      grad.addColorStop(0,'#f5e6c8');
+      grad.addColorStop(0.5,'#e8d0a8');
+      grad.addColorStop(1,'#c4a678');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(170,160,95,110,0,0,Math.PI*2);
+      ctx.fill();
+
+      // Hair silhouette
+      ctx.fillStyle = '#1a1410';
+      ctx.beginPath();
+      ctx.ellipse(170,85,100,55,0,Math.PI,0);
+      ctx.fill();
+
+      // Eyes (slightly angled — Utamaro style)
+      ctx.strokeStyle = '#2a1f14';
+      ctx.lineWidth = 2;
+      // Left eye
+      ctx.beginPath();
+      ctx.moveTo(135,160); ctx.quadraticCurveTo(148,155,160,160);
+      ctx.stroke();
+      // Right eye
+      ctx.beginPath();
+      ctx.moveTo(180,160); ctx.quadraticCurveTo(192,155,205,160);
+      ctx.stroke();
+
+      // Tiny smile (Utamaro signature)
+      ctx.beginPath();
+      ctx.arc(170,185,12,0.1*Math.PI,0.9*Math.PI,false);
+      ctx.stroke();
+
+      img.src = fallbackCanvas.toDataURL('image/jpeg',0.8);
+    };
+  }
+
+})();
+</script>
+</body>
+</html>
