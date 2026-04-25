@@ -2,11 +2,11 @@
 const FRACTURE_THRESHOLD = 0.85;
 const MAX_PARTICLES = 48;
 const RESET_DURATION = 600; // ms
-const TENSION_RAMP_RATE = 0.038; // per frame at 60fps → reaches ~0.85 in ~220ms
+const TENSION_RAMP_RATE = 0.042; // per frame at 60fps ~200ms to threshold
 const JITTER_START = 0.72;
-const JITTER_AMP = 0.025;
-const SHIMMER_FREQ = 0.12;
-const SHIMMER_AMP = 0.015;
+const JITTER_AMP = 0.04;
+const SHIMMER_FREQ = 8; // Hz - high-frequency catch light
+const SHIMMER_AMP = 0.008;
 
 // --- STATE ---
 let tension = 0;
@@ -17,16 +17,17 @@ let shimmerPhase = 0;
 let jitterPhase = 0;
 let particles = [];
 let audioCtx = null;
-let gradientAngle = 0;
 let gradientAngleBase = 0;
+let crackPaths = [];
+let resetProgress = 0;
 
 // --- CANVAS ---
 const canvas = document.getElementById('frost');
 const ctx = canvas.getContext('2d');
-let W, H, cx, cy;
+let W, H, cx, cy, dpr;
 
 function resize() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
   W = window.innerWidth;
   H = window.innerHeight;
   canvas.width = W * dpr;
@@ -38,7 +39,7 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// --- AUDIO ---
+// --- AUDIO (minimal latency: scheduled at currentTime, no buffer) ---
 function initAudio() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -50,85 +51,105 @@ function playSubBass() {
 
   const now = audioCtx.currentTime;
 
-  // Layer 1: sub-bass oscillator, deep and chest-hitting
+  // Layer 1: deep sub-bass - chest hit
   const osc1 = audioCtx.createOscillator();
   osc1.type = 'sine';
-  osc1.frequency.setValueAtTime(42, now);
-  osc1.frequency.exponentialRampToValueAtTime(22, now + 0.15);
-  const gain1 = audioCtx.createGain();
-  gain1.gain.setValueAtTime(0, now);
-  gain1.gain.linearRampToValueAtTime(0.9, now + 0.004);
-  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-  osc1.connect(gain1).connect(audioCtx.destination);
+  osc1.frequency.setValueAtTime(38, now);
+  osc1.frequency.exponentialRampToValueAtTime(18, now + 0.18);
+  const g1 = audioCtx.createGain();
+  g1.gain.setValueAtTime(0, now);
+  g1.gain.linearRampToValueAtTime(0.95, now + 0.003);
+  g1.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+  osc1.connect(g1).connect(audioCtx.destination);
   osc1.start(now);
-  osc1.stop(now + 0.6);
+  osc1.stop(now + 0.55);
 
   // Layer 2: sub-harmonic reinforcement
   const osc2 = audioCtx.createOscillator();
   osc2.type = 'triangle';
-  osc2.frequency.setValueAtTime(28, now);
-  osc2.frequency.exponentialRampToValueAtTime(15, now + 0.2);
-  const gain2 = audioCtx.createGain();
-  gain2.gain.setValueAtTime(0, now);
-  gain2.gain.linearRampToValueAtTime(0.6, now + 0.003);
-  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-  osc2.connect(gain2).connect(audioCtx.destination);
+  osc2.frequency.setValueAtTime(25, now);
+  osc2.frequency.exponentialRampToValueAtTime(12, now + 0.22);
+  const g2 = audioCtx.createGain();
+  g2.gain.setValueAtTime(0, now);
+  g2.gain.linearRampToValueAtTime(0.55, now + 0.004);
+  g2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+  osc2.connect(g2).connect(audioCtx.destination);
   osc2.start(now);
-  osc2.stop(now + 0.45);
+  osc2.stop(now + 0.5);
 
-  // Layer 3: sharp crack transient
+  // Layer 3: crack transient - fast attack
   const osc3 = audioCtx.createOscillator();
   osc3.type = 'sawtooth';
-  osc3.frequency.setValueAtTime(280, now);
-  osc3.frequency.exponentialRampToValueAtTime(80, now + 0.06);
-  const gain3 = audioCtx.createGain();
-  gain3.gain.setValueAtTime(0.45, now);
-  gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-  osc3.connect(gain3).connect(audioCtx.destination);
+  osc3.frequency.setValueAtTime(340, now);
+  osc3.frequency.exponentialRampToValueAtTime(60, now + 0.05);
+  const g3 = audioCtx.createGain();
+  g3.gain.setValueAtTime(0.5, now);
+  g3.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+  osc3.connect(g3).connect(audioCtx.destination);
   osc3.start(now);
-  osc3.stop(now + 0.1);
+  osc3.stop(now + 0.09);
 
-  // Layer 4: noise burst for the "snap" texture
-  const bufSize = audioCtx.sampleRate * 0.08;
-  const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-  const data = noiseBuf.getChannelData(0);
-  for (let i = 0; i < bufSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.15));
+  // Layer 4: filtered noise burst for snap texture
+  const bufLen = audioCtx.sampleRate * 0.06;
+  const noiseBuf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const raw = noiseBuf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) {
+    raw[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.12));
   }
-  const noiseSrc = audioCtx.createBufferSource();
-  noiseSrc.buffer = noiseBuf;
-  const noiseGain = audioCtx.createGain();
-  noiseGain.gain.setValueAtTime(0.35, now);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+  const nsrc = audioCtx.createBufferSource();
+  nsrc.buffer = noiseBuf;
+  const ng = audioCtx.createGain();
+  ng.gain.setValueAtTime(0.4, now);
+  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
   const lp = audioCtx.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.setValueAtTime(3000, now);
-  lp.frequency.exponentialRampToValueAtTime(200, now + 0.06);
-  noiseSrc.connect(lp).connect(noiseGain).connect(audioCtx.destination);
-  noiseSrc.start(now);
+  lp.frequency.setValueAtTime(4000, now);
+  lp.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+  nsrc.connect(lp).connect(ng).connect(audioCtx.destination);
+  nsrc.start(now);
+
+  // Layer 5: mid-frequency snap for articulation
+  const osc4 = audioCtx.createOscillator();
+  osc4.type = 'square';
+  osc4.frequency.setValueAtTime(180, now);
+  osc4.frequency.exponentialRampToValueAtTime(40, now + 0.04);
+  const g4 = audioCtx.createGain();
+  g4.gain.setValueAtTime(0.25, now);
+  g4.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+  const bp = audioCtx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.setValueAtTime(500, now);
+  bp.Q.setValueAtTime(4, now);
+  osc4.connect(bp).connect(g4).connect(audioCtx.destination);
+  osc4.start(now);
+  osc4.stop(now + 0.07);
 }
 
-// --- PARTICLES ---
+// --- PARTICLE SYSTEM (capped at 48, sharp shards, sharp decay) ---
 function spawnScatter() {
   particles = [];
   const count = MAX_PARTICLES;
   const radius = Math.min(W, H) * 0.3;
   for (let i = 0; i < count; i++) {
-    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
-    const speed = 3 + Math.random() * 9;
-    const size = 2 + Math.random() * 6;
-    const life = 1;
-    const hueShift = Math.random() * 40 - 20;
+    const t = i / count;
+    const angle = Math.PI * 2 * t + (Math.random() - 0.5) * 0.35;
+    // Velocity inherited from tension - higher tension = more explosive
+    const tensionMult = 0.6 + tension * 0.8;
+    const speed = (4 + Math.random() * 12) * tensionMult;
+    const size = 1.5 + Math.random() * 5;
+    const hueShift = Math.random() * 50 - 25;
     particles.push({
-      x: cx + Math.cos(angle) * radius * 0.5 * Math.random(),
-      y: cy + Math.sin(angle) * radius * 0.5 * Math.random(),
+      x: cx + (Math.random() - 0.5) * radius * 0.3,
+      y: cy + (Math.random() - 0.5) * radius * 0.3,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       size,
-      life,
+      life: 1,
+      decay: 0.028 + Math.random() * 0.022, // sharp decay range
       hueShift,
       rotation: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.4,
+      rotSpeed: (Math.random() - 0.5) * 0.6,
+      sharpness: 0.6 + Math.random() * 0.4, // shard aspect ratio
     });
   }
 }
@@ -138,9 +159,9 @@ function updateParticles() {
     const p = particles[i];
     p.x += p.vx;
     p.y += p.vy;
-    p.vx *= 0.92;
-    p.vy *= 0.92;
-    p.life -= 0.035;
+    p.vx *= 0.91;
+    p.vy *= 0.91;
+    p.life -= p.decay;
     p.rotation += p.rotSpeed;
     if (p.life <= 0) particles.splice(i, 1);
   }
@@ -148,213 +169,118 @@ function updateParticles() {
 
 function drawParticles() {
   for (const p of particles) {
+    if (p.life <= 0) continue;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rotation);
-    const alpha = Math.max(0, p.life);
-    const h = 195 + p.hueShift;
-    const s = 60 + p.life * 40;
-    const l = 70 + p.life * 25;
-    ctx.globalAlpha = alpha * 0.9;
+    const alpha = Math.pow(p.life, 1.5); // sharper fade
+    const h = 198 + p.hueShift;
+    const s = 55 + p.life * 35;
+    const l = 65 + p.life * 30;
+    ctx.globalAlpha = alpha * 0.95;
     ctx.fillStyle = `hsl(${h}, ${s}%, ${l}%)`;
-    // Draw sharp shard shape
-    const w = p.size;
-    const h2 = p.size * 2.8;
+    ctx.strokeStyle = `hsla(${h}, ${s + 10}%, ${l + 15}%, ${alpha * 0.5})`;
+    ctx.lineWidth = 0.5;
+    // Sharp diamond shard
+    const sw = p.size * p.sharpness;
+    const sh = p.size * 3;
     ctx.beginPath();
-    ctx.moveTo(0, -h2 / 2);
-    ctx.lineTo(w / 2, h2 / 4);
-    ctx.lineTo(0, h2 / 2);
-    ctx.lineTo(-w / 2, h2 / 4);
+    ctx.moveTo(0, -sh / 2);
+    ctx.lineTo(sw / 2, 0);
+    ctx.lineTo(0, sh / 2);
+    ctx.lineTo(-sw / 2, 0);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
     ctx.restore();
   }
 }
 
-// --- PROCEDURAL NOISE (simple value noise) ---
+// --- PROCEDURAL NOISE ---
 const NOISE_SIZE = 64;
-const noiseGrid = new Float32Array(NOISE_SIZE * NOISE_SIZE * 2);
+const noiseGrid = new Float32Array(NOISE_SIZE * NOISE_SIZE);
+let noiseOffsetX = 0;
+let noiseOffsetY = 0;
+
 function noiseFill() {
   for (let i = 0; i < noiseGrid.length; i++) {
     noiseGrid[i] = Math.random();
   }
+  noiseOffsetX = Math.random() * NOISE_SIZE;
+  noiseOffsetY = Math.random() * NOISE_SIZE;
 }
 noiseFill();
 
 function smoothNoise(xf, yf) {
-  const x0 = Math.floor(xf) % NOISE_SIZE;
-  const y0 = Math.floor(yf) % NOISE_SIZE;
+  const x0 = ((Math.floor(xf) % NOISE_SIZE) + NOISE_SIZE) % NOISE_SIZE;
+  const y0 = ((Math.floor(yf) % NOISE_SIZE) + NOISE_SIZE) % NOISE_SIZE;
   const x1 = (x0 + 1) % NOISE_SIZE;
   const y1 = (y0 + 1) % NOISE_SIZE;
   const sx = xf - Math.floor(xf);
   const sy = yf - Math.floor(yf);
   const sx2 = sx * sx * (3 - 2 * sx);
   const sy2 = sy * sy * (3 - 2 * sy);
-  const v00 = noiseGrid[(y0 * NOISE_SIZE + x0) * 2];
-  const v10 = noiseGrid[(y0 * NOISE_SIZE + x1) * 2];
-  const v01 = noiseGrid[(y1 * NOISE_SIZE + x0) * 2];
-  const v11 = noiseGrid[(y1 * NOISE_SIZE + x1) * 2];
+  const v00 = noiseGrid[y0 * NOISE_SIZE + x0];
+  const v10 = noiseGrid[y0 * NOISE_SIZE + x1];
+  const v01 = noiseGrid[y1 * NOISE_SIZE + x0];
+  const v11 = noiseGrid[y1 * NOISE_SIZE + x1];
   return v00 * (1 - sx2) * (1 - sy2) + v10 * sx2 * (1 - sy2) + v01 * sy2 * (1 - sx2) + v11 * sx2 * sy2;
 }
 
-// --- FROST GRADIENT ---
-function drawFrost() {
-  const minDim = Math.min(W, H);
-  const radius = minDim * 0.45;
-
-  // Base background woodblock grain
-  ctx.fillStyle = '#0a0c10';
-  ctx.fillRect(0, 0, W, H);
-
-  // Woodblock grain lines (visible through frost)
-  ctx.globalAlpha = 0.08;
-  for (let i = 0; i < 30; i++) {
-    const y = (i / 30) * H;
-    const wobble = Math.sin(i * 0.8) * 3;
-    ctx.fillStyle = i % 2 === 0 ? '#1a1e28' : '#141820';
-    ctx.fillRect(wobble, y, W, 2);
-  }
-  ctx.globalAlpha = 1;
-
-  // Frost overlay - procedural noise-based gradient
-  const imageData = ctx.getImageData(0, 0, canvas.width / (Math.min(window.devicePixelRatio || 1, 2)), canvas.height / (Math.min(window.devicePixelRatio || 1, 2)));
-  // Skip pixel-by-pixel for perf, use radial gradient instead with noise texture overlay
-
-  // Frost disk with gradient
-  let shimmerOffset = 0;
-  if (state === 'idle') {
-    shimmerOffset = Math.sin(shimmerPhase) * SHIMMER_AMP;
-  }
-
-  // Tension-based angle shift (linear, no easing)
-  let angleShift = 0;
-  if (state === 'tension') {
-    angleShift = tension * Math.PI * 0.6;
-
-    // Micro-jitter near threshold
-    if (tension > JITTER_START) {
-      const jitterIntensity = (tension - JITTER_START) / (FRACTURE_THRESHOLD - JITTER_START);
-      angleShift += Math.sin(jitterPhase * 18) * JITTER_AMP * jitterIntensity;
-      angleShift += Math.cos(jitterPhase * 27) * JITTER_AMP * 0.5 * jitterIntensity;
-    }
-  }
-
-  const baseAngle = gradientAngleBase + angleShift + shimmerOffset;
-
-  // Multi-stop gradient for frost
-  const grad = ctx.createRadialGradient(
-    cx + Math.cos(baseAngle + 1.2) * radius * 0.15,
-    cy + Math.sin(baseAngle + 1.2) * radius * 0.15,
-    0,
-    cx, cy, radius
-  );
-
-  // Color stops compress with tension
-  const c1 = lerpColor([200, 230, 255], [180, 200, 240], tension);
-  const c2 = lerpColor([160, 200, 240], [120, 160, 220], tension);
-  const c3 = lerpColor([100, 150, 210], [60, 90, 170], tension);
-  const c4 = lerpColor([40, 70, 150], [25, 40, 110], tension);
-
-  grad.addColorStop(0, `rgba(${c1[0]},${c1[1]},${c1[2]}, 0.9)`);
-  grad.addColorStop(0.3, `rgba(${c2[0]},${c2[1]},${c2[2]}, 0.85)`);
-  grad.addColorStop(0.6, `rgba(${c3[0]},${c3[1]},${c3[2]}, 0.7)`);
-  grad.addColorStop(1, `rgba(${c4[0]},${c4[1]},${c4[2]}, 0.1)`);
-
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, radius, radius, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Ice facets - geometric overlay
-  ctx.globalAlpha = 0.12 + tension * 0.08;
-  drawIceFacets(radius, baseAngle);
-  ctx.globalAlpha = 1;
-
-  // Noise texture overlay for frost granularity
-  ctx.globalAlpha = 0.04;
-  const noiseScale = 8;
-  for (let nx = 0; nx < 12; nx++) {
-    for (let ny = 0; ny < 12; ny++) {
-      const n = smoothNoise(nx + shimmerPhase * 0.05, ny);
-      if (n > 0.65) {
-        const px = cx + (nx - 6) * (radius * 2 / 12) + radius / 12;
-        const py = cy + (ny - 6) * (radius * 2 / 12) + radius / 12;
-        const dist = Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
-        if (dist < radius) {
-          ctx.fillStyle = `rgba(220, 240, 255, ${n * 0.3})`;
-          ctx.fillRect(px - 4, py - 4, 8, 8);
-        }
-      }
-    }
-  }
-  ctx.globalAlpha = 1;
-
-  // Shimmer highlights in idle state
-  if (state === 'idle') {
-    ctx.globalAlpha = Math.abs(Math.sin(shimmerPhase * 3.7)) * 0.15;
-    const shimGrad = ctx.createRadialGradient(
-      cx + Math.cos(shimmerPhase * 1.3) * radius * 0.3,
-      cy + Math.sin(shimmerPhase * 0.9) * radius * 0.3,
-      0, cx, cy, radius * 0.6
-    );
-    shimGrad.addColorStop(0, 'rgba(240, 250, 255, 0.6)');
-    shimGrad.addColorStop(1, 'rgba(180, 210, 255, 0)');
-    ctx.fillStyle = shimGrad;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, radius, radius, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-
-  // Fracture crack web when fractured
-  if (state === 'fractured') {
-    drawCrackWeb(radius);
-  }
-}
-
-function drawIceFacets(radius, angle) {
-  const numFacets = 8;
-  for (let i = 0; i < numFacets; i++) {
-    const a = angle + (Math.PI * 2 * i) / numFacets;
-    const r1 = radius * (0.3 + 0.15 * Math.sin(i * 2.1));
-    const r2 = radius * (0.7 + 0.2 * Math.sin(i * 3.3 + 0.5));
-
-    ctx.strokeStyle = `rgba(200, 230, 255, ${0.15 + 0.1 * Math.sin(a + shimmerPhase)})`;
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(
-      cx + Math.cos(a) * r1,
-      cy + Math.sin(a) * r1
-    );
-    ctx.lineTo(
-      cx + Math.cos(a + 0.3) * r2,
-      cy + Math.sin(a + 0.3) * r2
-    );
-    ctx.stroke();
-  }
-}
-
-function drawCrackWeb(radius) {
-  ctx.strokeStyle = 'rgba(220, 240, 255, 0.25)';
-  ctx.lineWidth = 1;
+// --- GENERATE CRACK PATHS (deterministic per fracture) ---
+function generateCracks(radius) {
+  crackPaths = [];
   const numCracks = 24;
   for (let i = 0; i < numCracks; i++) {
-    const a = (Math.PI * 2 * i) / numCracks;
-    const len = radius * (0.4 + Math.random() * 0.6);
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
+    const a = (Math.PI * 2 * i) / numCracks + (Math.random() - 0.5) * 0.3;
+    const len = radius * (0.5 + Math.random() * 0.5);
+    const pts = [{ x: cx, y: cy }];
     let px = cx, py = cy;
-    const steps = 6;
+    const steps = 5 + Math.floor(Math.random() * 4);
     for (let s = 1; s <= steps; s++) {
-      const frac = s / steps;
-      px += Math.cos(a + (Math.random() - 0.5) * 0.8) * (len / steps);
-      py += Math.sin(a + (Math.random() - 0.5) * 0.8) * (len / steps);
-      ctx.lineTo(px, py);
+      const deflection = (Math.random() - 0.5) * 0.7;
+      px += Math.cos(a + deflection) * (len / steps);
+      py += Math.sin(a + deflection) * (len / steps);
+      pts.push({ x: px, y: py });
     }
-    ctx.stroke();
+    crackPaths.push(pts);
   }
 }
 
+// --- WOODBLOCK GRAIN (cached) ---
+let grainCanvas = null;
+function bakeGrain() {
+  grainCanvas = document.createElement('canvas');
+  grainCanvas.width = W * dpr;
+  grainCanvas.height = H * dpr;
+  const gctx = grainCanvas.getContext('2d');
+  gctx.fillStyle = '#0a0c10';
+  gctx.fillRect(0, 0, W * dpr, H * dpr);
+  for (let i = 0; i < 40; i++) {
+    const y = i * dpr * (H / 40);
+    const h = (1 + Math.random() * 2) * dpr;
+    const wobble = Math.sin(i * 0.7) * 4 * dpr;
+    gctx.fillStyle = `rgba(${18 + Math.floor(Math.random() * 10)}, ${22 + Math.floor(Math.random() * 8)}, ${30 + Math.floor(Math.random() * 10)}, ${0.15 + Math.random() * 0.15})`;
+    gctx.fillRect(wobble, y, W * dpr, h);
+  }
+  // Knots
+  for (let k = 0; k < 3; k++) {
+    const kx = Math.random() * W;
+    const ky = Math.random() * H;
+    const kr = (5 + Math.random() * 15) * dpr;
+    gctx.strokeStyle = 'rgba(25, 30, 40, 0.1)';
+    gctx.lineWidth = dpr;
+    for (let r = kr; r > 0; r -= dpr * 3) {
+      gctx.beginPath();
+      gctx.arc(kx * dpr, ky * dpr, r, 0, Math.PI * 2);
+      gctx.stroke();
+    }
+  }
+}
+bakeGrain();
+window.addEventListener('resize', () => { resize(); bakeGrain(); });
+
+// --- COLOR LERP ---
 function lerpColor(a, b, t) {
   t = Math.max(0, Math.min(1, t));
   return [
@@ -364,23 +290,223 @@ function lerpColor(a, b, t) {
   ];
 }
 
-// --- RESET ---
-function beginReset() {
-  state = 'resetting';
-  resetTimer = 0;
-  tension = 0;
-  noiseFill();
-  gradientAngleBase += Math.random() * 0.5;
+// --- FROST RENDERING ---
+function drawFrost() {
+  const minDim = Math.min(W, H);
+  const radius = minDim * 0.42;
+
+  // Draw baked woodblock grain
+  if (grainCanvas) {
+    ctx.drawImage(grainCanvas, 0, 0);
+  }
+
+  // --- IDLE: high-frequency shimmer ---
+  if (state === 'idle') {
+    drawFrostDisk(radius, 0, shimmerPhase);
+    drawShimmerHighlight(radius, shimmerPhase);
+    return;
+  }
+
+  // --- TENSION: taut linear compression ---
+  if (state === 'tension') {
+    let angleShift = tension * Math.PI * 0.5;
+    let jitterX = 0;
+    let jitterY = 0;
+
+    // Micro-jitter ramping into fracture
+    if (tension > JITTER_START) {
+      const jitterFrac = (tension - JITTER_START) / (FRACTURE_THRESHOLD - JITTER_START);
+      const amp = JITTER_AMP * jitterFrac;
+      jitterX = Math.sin(jitterPhase * 22) * amp + Math.cos(jitterPhase * 31) * amp * 0.6;
+      jitterY = Math.cos(jitterPhase * 19) * amp + Math.sin(jitterPhase * 29) * amp * 0.6;
+    }
+
+    // Gradient offset center tracks tension angle
+    const gradX = cx + Math.cos(angleShift + 1.2) * radius * 0.1 + jitterX * radius;
+    const gradY = cy + Math.sin(angleShift + 1.2) * radius * 0.1 + jitterY * radius;
+
+    // Tension compresses gradient stops - color bands squeeze inward
+    const frostAlpha = 0.85 + tension * 0.15; // gets more opaque = more pressurized
+
+    drawFrostDiskWithOffset(radius, gradX - cx, gradY - cy, tension, frostAlpha, shimmerPhase);
+
+    // Compression ring visual - tightening border glow
+    ctx.save();
+    ctx.globalAlpha = tension * 0.4;
+    ctx.strokeStyle = `rgba(200, 230, 255, ${tension * 0.6})`;
+    ctx.lineWidth = 1 + tension * 2;
+    const compressedR = radius * (1 - tension * 0.05);
+    ctx.beginPath();
+    ctx.arc(cx + jitterX * radius * 2, cy + jitterY * radius * 2, compressedR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  // --- FRACTURED: woodblock revealed, crack web visible ---
+  if (state === 'fractured') {
+    // Frost largely gone - just crack lines on the grain background
+    // Faint residual frost
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    drawFrostDisk(radius, 0, 0);
+    ctx.restore();
+
+    // Crack web
+    drawCrackWeb(radius);
+    return;
+  }
+
+  // --- RESETTING: procedural noise re-forms the frost ---
+  if (state === 'resetting') {
+    // Fade frost back in with noise-driven fill
+    const frostOpacity = resetProgress;
+    drawFrostDisk(radius, 0, shimmerPhase, frostOpacity);
+
+    // Noise texture during reformation
+    ctx.save();
+    ctx.globalAlpha = (1 - resetProgress) * 0.12;
+    const scale = 6;
+    for (let nq = 0; nq < 16; nq++) {
+      for (let nr = 0; nr < 16; nr++) {
+        const n = smoothNoise(
+          (nq + noiseOffsetX) * scale * 0.1,
+          (nr + noiseOffsetY) * scale * 0.1 + resetTimer * 0.002
+        );
+        if (n > 0.55) {
+          const px = cx + (nq - 8) * (radius * 2 / 16) + radius / 16;
+          const py = cy + (nr - 8) * (radius * 2 / 16) + radius / 16;
+          const dist = Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
+          if (dist < radius) {
+            ctx.fillStyle = `rgba(220, 240, 255, ${n * 0.15 * (1 - resetProgress)})`;
+            ctx.fillRect(px - 3, py - 3, 6, 6);
+          }
+        }
+      }
+    }
+    ctx.restore();
+  }
+}
+
+function drawFrostDisk(radius, shimmerOff, phase, alphaOverride) {
+  const alpha = alphaOverride !== undefined ? alphaOverride : 0.9;
+  const shimmerX = shimmerOff ? Math.sin(shimmerOff) * SHIMMER_AMP * radius : 0;
+  const shimmerY = shimmerOff ? Math.cos(shimmerOff * 1.3) * SHIMMER_AMP * radius : 0;
+  const gx = cx + shimmerX + Math.cos(phase * 0.7) * radius * 0.08;
+  const gy = cy + shimmerY + Math.sin(phase * 0.5) * radius * 0.08;
+
+  const grad = ctx.createRadialGradient(gx, gy, 0, cx, cy, radius);
+  grad.addColorStop(0, `rgba(210, 235, 255, ${alpha * 0.9})`);
+  grad.addColorStop(0.25, `rgba(175, 210, 245, ${alpha * 0.85})`);
+  grad.addColorStop(0.55, `rgba(120, 165, 220, ${alpha * 0.7})`);
+  grad.addColorStop(0.8, `rgba(65, 105, 185, ${alpha * 0.35})`);
+  grad.addColorStop(1, `rgba(30, 55, 130, ${alpha * 0.02})`);
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ice facets
+  ctx.save();
+  ctx.globalAlpha = (alphaOverride !== undefined ? alphaOverride : 1) * 0.12;
+  drawIceFacets(radius, phase);
+  ctx.restore();
+}
+
+function drawFrostDiskWithOffset(radius, offX, offY, tensionVal, alpha, phase) {
+  const gx = cx + offX + Math.cos(1.2) * radius * 0.1;
+  const gy = cy + offY + Math.sin(1.2) * radius * 0.1;
+
+  const grad = ctx.createRadialGradient(gx, gy, 0, cx, cy, radius);
+
+  // Stops compress toward center with tension - creates "pressurized" look
+  const s0 = 0;
+  const s1 = 0.25 - tensionVal * 0.08;
+  const s2 = 0.55 - tensionVal * 0.15;
+  const s3 = 0.8 - tensionVal * 0.2;
+  const s4 = 1;
+
+  const c1 = lerpColor([210, 235, 255], [190, 200, 245], tensionVal);
+  const c2 = lerpColor([175, 210, 245], [130, 165, 225], tensionVal);
+  const c3 = lerpColor([120, 165, 220], [70, 110, 190], tensionVal);
+  const c4 = lerpColor([65, 105, 185], [35, 60, 150], tensionVal);
+
+  grad.addColorStop(s0, `rgba(${c1[0]},${c1[1]},${c1[2]}, ${alpha * 0.9})`);
+  grad.addColorStop(Math.max(s1, 0.01), `rgba(${c2[0]},${c2[1]},${c2[2]}, ${alpha * 0.85})`);
+  grad.addColorStop(Math.max(s2, 0.02), `rgba(${c3[0]},${c3[1]},${c3[2]}, ${alpha * 0.7})`);
+  grad.addColorStop(Math.max(s3, 0.03), `rgba(${c4[0]},${c4[1]},${c4[2]}, ${alpha * 0.3})`);
+  grad.addColorStop(s4, `rgba(${c4[0]},${c4[1]},${c4[2]}, 0.01)`);
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ice facets get more prominent under tension
+  ctx.save();
+  ctx.globalAlpha = 0.12 + tensionVal * 0.18;
+  drawIceFacets(radius, phase);
+  ctx.restore();
+}
+
+function drawShimmerHighlight(radius, phase) {
+  const shimmerIntensity = Math.abs(Math.sin(phase * SHIMMER_FREQ * 0.5)) * 0.18;
+  if (shimmerIntensity < 0.01) return;
+
+  const shimX = cx + Math.cos(phase * 1.5) * radius * 0.25;
+  const shimY = cy + Math.sin(phase * 1.1) * radius * 0.25;
+
+  const shimGrad = ctx.createRadialGradient(shimX, shimY, 0, cx, cy, radius * 0.55);
+  shimGrad.addColorStop(0, `rgba(245, 252, 255, ${shimmerIntensity})`);
+  shimGrad.addColorStop(0.5, `rgba(200, 225, 255, ${shimmerIntensity * 0.4})`);
+  shimGrad.addColorStop(1, `rgba(150, 190, 255, 0)`);
+
+  ctx.fillStyle = shimGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawIceFacets(radius, phase) {
+  const numFacets = 8;
+  ctx.strokeStyle = `rgba(210, 235, 255, ${0.18 + 0.08 * Math.sin(phase * 2)})`;
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < numFacets; i++) {
+    const a = phase * 0.1 + (Math.PI * 2 * i) / numFacets;
+    const r1 = radius * (0.25 + 0.12 * Math.sin(i * 2.1));
+    const r2 = radius * (0.65 + 0.22 * Math.sin(i * 3.3 + 0.5));
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+    ctx.lineTo(cx + Math.cos(a + 0.25) * r2, cy + Math.sin(a + 0.25) * r2);
+    ctx.stroke();
+  }
+}
+
+function drawCrackWeb(radius) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(210, 235, 255, 0.3)';
+  ctx.lineWidth = 0.8;
+  for (const pts of crackPaths) {
+    if (pts.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 // --- INPUT ---
 function onDown(e) {
   e.preventDefault();
   initAudio();
-  if (state === 'idle' || state === 'resetting') {
+  if (state === 'idle') {
     state = 'tension';
     pressing = true;
-    tension = Math.max(0, tension);
+    tension = 0;
   }
 }
 
@@ -388,66 +514,87 @@ function onUp(e) {
   e.preventDefault();
   pressing = false;
   if (state === 'tension') {
+    // Release triggers fracture regardless of tension level
     triggerFracture();
   }
 }
 
 canvas.addEventListener('mousedown', onDown);
 canvas.addEventListener('mouseup', onUp);
+canvas.addEventListener('mouseleave', onUp);
 canvas.addEventListener('touchstart', onDown, { passive: false });
 canvas.addEventListener('touchend', onUp, { passive: false });
 canvas.addEventListener('touchcancel', onUp, { passive: false });
 
-// --- FRACTURE ---
+// --- FRACTURE DISPATCH ---
 function triggerFracture() {
+  generateCracks(Math.min(W, H) * 0.42);
   spawnScatter();
   playSubBass();
   state = 'fractured';
-  setTimeout(() => beginReset(), 120);
+  // Brief fractured hold then reset
+  setTimeout(() => {
+    state = 'resetting';
+    resetTimer = 0;
+    resetProgress = 0;
+    tension = 0;
+    noiseFill();
+  }, 150);
 }
 
 // --- MAIN LOOP ---
 let lastTime = 0;
 function loop(timestamp) {
-  const dt = Math.min(timestamp - lastTime, 33);
+  const dt = Math.min(timestamp - lastTime, 33.4);
+  const dtNorm = dt / 16.667; // normalize to ~60fps
   lastTime = timestamp;
 
-  // Phase update
-  shimmerPhase += SHIMMER_FREQ * dt * 0.06;
-  jitterPhase += dt * 0.015;
+  // High-frequency shimmer phase advance
+  shimmerPhase += (dt / 1000) * SHIMMER_FREQ;
+  jitterPhase += (dt / 1000) * 15;
 
   // State machine
-  if (state === 'idle') {
-    // passive shimmer, no tension change
-  } else if (state === 'tension') {
-    if (pressing) {
-      // LINEAR ramp - strictly no soft easing
-      tension += TENSION_RAMP_RATE;
-      if (tension >= FRACTURE_THRESHOLD) {
-        tension = FRACTURE_THRESHOLD;
+  switch (state) {
+    case 'idle':
+      // Nothing - shimmer handled in drawFrost
+      break;
+
+    case 'tension':
+      if (pressing) {
+        // RAW LINEAR ramp - no easing, no softening
+        tension += TENSION_RAMP_RATE * dtNorm;
+        if (tension >= FRACTURE_THRESHOLD) {
+          tension = FRACTURE_THRESHOLD;
+          triggerFracture();
+        }
+      } else {
+        // Released before threshold - snap whatever tension has built
         triggerFracture();
       }
-    } else {
-      // Release without reaching threshold - snap anyway
-      triggerFracture();
-    }
-  } else if (state === 'resetting') {
-    resetTimer += dt;
-    const progress = Math.min(resetTimer / RESET_DURATION, 1);
-    // Linear reset fill
-    tension = 1 - progress;
-    if (progress >= 1) {
-      state = 'idle';
-      tension = 0;
-    }
+      break;
+
+    case 'fractured':
+      // Hold briefly with crack web visible
+      break;
+
+    case 'resetting':
+      resetTimer += dt;
+      resetProgress = Math.min(resetTimer / RESET_DURATION, 1);
+      // Linear procedural reformation
+      if (resetProgress >= 1) {
+        state = 'idle';
+        tension = 0;
+        resetProgress = 0;
+      }
+      break;
   }
 
-  // Update particles
+  // Particle updates
   if (state === 'fractured' || state === 'resetting') {
     updateParticles();
   }
 
-  // Draw
+  // Render
   drawFrost();
   drawParticles();
 
