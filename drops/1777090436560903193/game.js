@@ -22,10 +22,15 @@ let gradientAngleBase = 0;
 let crackPaths = [];
 let resetProgress = 0;
 let frostFlashFrames = 0;
+let shakeX = 0;
+let shakeY = 0;
+let tensionDirAngle = 0;
 
 // --- CANVAS ---
 const canvas = document.getElementById('frost');
 const ctx = canvas.getContext('2d');
+let renderOffX = 0;
+let renderOffY = 0;
 let W, H, cx, cy, dpr;
 
 function resize() {
@@ -264,27 +269,30 @@ function spawnScatter() {
   particles = [];
   const count = MAX_PARTICLES;
   const radius = Math.min(W, H) * 0.3;
+    // Tension direction vector bias: particles inherit momentum from tension angle
+  const tBiasX = Math.cos(tensionDirAngle) * 3;
+  const tBiasY = Math.sin(tensionDirAngle) * 3;
   for (let i = 0; i < count; i++) {
     const t = i / count;
-    const angle = Math.PI * 2 * t + (Math.random() - 0.5) * 0.35;
-    // Velocity inherited from tension - higher tension = more explosive
-    const tensionMult = 0.6 + tension * 0.8;
-    const speed = (4 + Math.random() * 12) * tensionMult;
-    const size = 1.5 + Math.random() * 5;
-    const hueShift = Math.random() * 50 - 25;
+    const angle = Math.PI * 2 * t + (Math.random() - 0.5) * 0.35 + tensionDirAngle * 0.4;
+      // Velocity inherited from tension - higher tension = more explosive
+    const tensionMult = 0.5 + tension * 1.2;
+    const speed = (3 + Math.random() * 14) * tensionMult;
+    const size = 1.2 + Math.random() * 5.5;
+    const hueShift = Math.random() * 60 - 30;
     particles.push({
-      x: cx + (Math.random() - 0.5) * radius * 0.3,
-      y: cy + (Math.random() - 0.5) * radius * 0.3,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
+      x: cx + (Math.random() - 0.5) * radius * 0.25,
+      y: cy + (Math.random() - 0.5) * radius * 0.25,
+      vx: Math.cos(angle) * speed + tBiasX * tension,
+      vy: Math.sin(angle) * speed + tBiasY * tension,
       size,
       life: 1,
-      decay: 0.028 + Math.random() * 0.022, // sharp decay range
+      decay: 0.032 + Math.random() * 0.024, // sharper decay
       hueShift,
       rotation: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.6,
-      sharpness: 0.6 + Math.random() * 0.4, // shard aspect ratio
-    });
+      rotSpeed: (Math.random() - 0.5) * 0.7,
+      sharpness: 0.5 + Math.random() * 0.5, // shard aspect ratio
+      });
   }
 }
 
@@ -426,13 +434,17 @@ function lerpColor(a, b, t) {
 
 // --- FROST RENDERING ---
 function drawFrost() {
+     // Apply screen shake offset
+    ctx.save();
+    ctx.translate(renderOffX, renderOffY);
+
   const minDim = Math.min(W, H);
   const radius = minDim * 0.42;
 
-  // Draw baked woodblock grain
+   // Draw baked woodblock grain
   if (grainCanvas) {
     ctx.drawImage(grainCanvas, 0, 0);
-  }
+   }
 
   // --- IDLE: high-frequency shimmer ---
   if (state === 'idle') {
@@ -477,19 +489,30 @@ function drawFrost() {
     return;
   }
 
-  // --- FRACTURED: woodblock revealed, crack web visible ---
+    // --- FRACTURED: woodblock revealed, crack web visible ---
   if (state === 'fractured') {
-    // Frost largely gone - just crack lines on the grain background
-    // Faint residual frost
+     // Frost flash: bright white flash on fracture frames
+    if (frostFlashFrames > 0) {
+      const flashAlpha = frostFlashFrames / FROST_FLASH_FRAMES * 0.6;
+      ctx.save();
+      ctx.globalAlpha = flashAlpha;
+      ctx.fillStyle = '#e8f4ff';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+      frostFlashFrames--;
+     }
+
+     // Frost largely gone - just crack lines on the grain background
+     // Faint residual frost
     ctx.save();
-    ctx.globalAlpha = 0.15;
+    ctx.globalAlpha = 0.08;
     drawFrostDisk(radius, 0, 0);
     ctx.restore();
 
-    // Crack web
+     // Crack web with glow
     drawCrackWeb(radius);
     return;
-  }
+   }
 
   // --- RESETTING: procedural noise re-forms the frost ---
   if (state === 'resetting') {
@@ -517,9 +540,11 @@ function drawFrost() {
           }
         }
       }
-    }
+      }
     ctx.restore();
-  }
+    }
+    // End screen shake context
+  ctx.restore();
 }
 
 function drawFrostDisk(radius, shimmerOff, phase, alphaOverride) {
@@ -619,17 +644,36 @@ function drawIceFacets(radius, phase) {
 
 function drawCrackWeb(radius) {
   ctx.save();
-  ctx.strokeStyle = 'rgba(210, 235, 255, 0.3)';
-  ctx.lineWidth = 0.8;
+  ctx.shadowColor = 'rgba(180, 215, 255, 0.5)';
+  ctx.shadowBlur = 4;
+  ctx.strokeStyle = 'rgba(210, 235, 255, 0.45)';
+  ctx.lineWidth = 1;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   for (const pts of crackPaths) {
     if (pts.length < 2) continue;
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) {
       ctx.lineTo(pts[i].x, pts[i].y);
-    }
+      }
     ctx.stroke();
-  }
+    }
+
+   // Secondary crack glow layer
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = 'rgba(140, 190, 255, 0.3)';
+  ctx.strokeStyle = 'rgba(230, 245, 255, 0.25)';
+  ctx.lineWidth = 0.5;
+  for (const pts of crackPaths) {
+    if (pts.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      ctx.lineTo(pts[i].x, pts[i].y);
+      }
+    ctx.stroke();
+    }
   ctx.restore();
 }
 
@@ -663,17 +707,20 @@ canvas.addEventListener('touchcancel', onUp, { passive: false });
 // --- FRACTURE DISPATCH ---
 function triggerFracture() {
   generateCracks(Math.min(W, H) * 0.42);
+  frostFlashFrames = FROST_FLASH_FRAMES;
+  shakeX = (Math.random() - 0.5) * 18 * tension;
+  shakeY = (Math.random() - 0.5) * 18 * tension;
   spawnScatter();
   playSubBass();
   state = 'fractured';
-  // Brief fractured hold then reset
+   // Brief fractured hold then reset
   setTimeout(() => {
     state = 'resetting';
     resetTimer = 0;
     resetProgress = 0;
     tension = 0;
     noiseFill();
-  }, 150);
+   }, 150);
 }
 
 // --- MAIN LOOP ---
