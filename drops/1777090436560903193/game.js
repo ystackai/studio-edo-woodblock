@@ -2,11 +2,12 @@
 const FRACTURE_THRESHOLD = 0.85;
 const MAX_PARTICLES = 48;
 const RESET_DURATION = 600; // ms
-const TENSION_RAMP_RATE = 0.042; // per frame at 60fps ~200ms to threshold
+const TENSION_RAMP_RATE = 0.05; // per frame at 60fps ~170ms to threshold — taut
 const JITTER_START = 0.72;
-const JITTER_AMP = 0.04;
-const SHIMMER_FREQ = 8; // Hz - high-frequency catch light
-const SHIMMER_AMP = 0.008;
+const JITTER_AMP = 0.06;
+const SHIMMER_FREQ = 12; // Hz — raised for high-frequency catch light
+const SHIMMER_AMP = 0.012;
+const FROST_FLASH_FRAMES = 3; // frames the frozen flash persists on fracture
 
 // --- STATE ---
 let tension = 0;
@@ -20,6 +21,7 @@ let audioCtx = null;
 let gradientAngleBase = 0;
 let crackPaths = [];
 let resetProgress = 0;
+let frostFlashFrames = 0;
 
 // --- CANVAS ---
 const canvas = document.getElementById('frost');
@@ -554,9 +556,9 @@ function drawFrostDiskWithOffset(radius, offX, offY, tensionVal, alpha, phase) {
 
   // Stops compress toward center with tension - creates "pressurized" look
   const s0 = 0;
-  const s1 = 0.25 - tensionVal * 0.08;
-  const s2 = 0.55 - tensionVal * 0.15;
-  const s3 = 0.8 - tensionVal * 0.2;
+  const s1 = 0.25 - tensionVal * 0.15;
+  const s2 = 0.55 - tensionVal * 0.25;
+  const s3 = 0.8 - tensionVal * 0.35;
   const s4 = 1;
 
   const c1 = lerpColor([210, 235, 255], [190, 200, 245], tensionVal);
