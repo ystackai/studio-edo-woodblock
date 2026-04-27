@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Stone &amp; Breath</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    background: linear-gradient(175deg, #f5e6d0 0%, #e8c9a0 30%, #d4a574 60%, #b8845a 100%);
+    font-family: system-ui, sans-serif;
+  }
+  #surface { position: absolute; inset: 0; overflow: hidden; }
+  #stone {
+    position: absolute;
+    width: 64px; height: 48px;
+    border-radius: 50% 50% 45% 45%;
+    background: radial-gradient(ellipse at 40% 35%, #8a7b6b 0%, #5a4e42 50%, #3a3228 100%);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 -2px 6px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.08);
+    will-change: transform;
+    transform: translate3d(0,0,0);
+    pointer-events: none;
+    display: none;
+  }
+  #stone.caught { animation: catchPulse 0.3s ease-out forwards; }
+  @keyframes catchPulse {
+    0%   { transform: translate3d(var(--tx,0), var(--ty,0), 0) scale(1); }
+    40%  { transform: translate3d(var(--tx,0), var(--ty,0), 0) scale(1.05); }
+    100% { transform: translate3d(var(--tx,0), var(--ty,0), 0) scale(1); }
+  }
+  .ripple-ring {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    will-change: transform, opacity;
+    transform: translate3d(0,0,0) scale(0);
+    opacity: 0;
+  }
+  .ripple-ring.primary {
+    background: radial-gradient(circle, rgba(60,90,120,0.5) 0%, rgba(40,70,95,0.3) 40%, rgba(30,55,75,0.1) 70%, transparent 100%);
+    border: 2px solid rgba(80,120,150,0.4);
+  }
+  .ripple-ring.secondary {
+    background: radial-gradient(circle, rgba(70,110,140,0.3) 0%, rgba(50,85,110,0.15) 50%, transparent 100%);
+    border: 1px solid rgba(90,135,165,0.25);
+  }
+  .ripple-ring.tertiary {
+    background: radial-gradient(circle, rgba(80,125,155,0.2) 0%, transparent 80%);
+    border: 1px solid rgba(100,145,175,0.15);
+  }
+  #progress-indicator {
+    position: fixed; right: 12px; top: 0;
+    width: 3px; height: 100vh;
+    background: rgba(60,50,40,0.08);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  #progress-fill-bar {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 0%;
+    background: linear-gradient(to bottom, rgba(100,80,60,0.3), rgba(60,90,120,0.5));
+    border-radius: 2px;
+    will-change: height;
+  }
+  #threshold-line {
+    position: fixed; left: 0; right: 0;
+    height: 1px; top: 45%;
+    background: rgba(60,90,120,0.12);
+    pointer-events: none;
+  }
+  #threshold-line::after {
+    content: '';
+    position: absolute; left: 50%; top: -3px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(60,90,120,0.2);
+    transform: translateX(-50%);
+  }
+  #hint {
+    position: fixed; bottom: 18%; left: 0; right: 0;
+    text-align: center;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    color: rgba(60,50,40,0.45);
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #hint.hidden { opacity: 0; }
+  #water-texture {
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(170deg, transparent 0px, transparent 18px, rgba(60,90,120,0.03) 18px, rgba(60,90,120,0.03) 20px),
+      repeating-linear-gradient(195deg, transparent 0px, transparent 25px, rgba(80,110,130,0.025) 25px, rgba(80,110,130,0.025) 27px);
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+  #silt-layer {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0.15;
+    background:
+      radial-gradient(ellipse at 30% 80%, rgba(90,70,50,0.3) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(80,65,45,0.2) 0%, transparent 40%),
+      radial-gradient(ellipse at 50% 90%, rgba(70,55,40,0.25) 0%, transparent 45%);
+  }
+</style>
+</head>
+<body>
+  <div id="surface">
+    <div id="water-texture"></div>
+    <div id="silt-layer"></div>
+    <div id="stone"></div>
+  </div>
+  <div id="progress-indicator"><div id="progress-fill-bar"></div></div>
+  <div id="threshold-line"></div>
+  <div id="hint">Place your thumb and drag down</div>
+<script>
+(function () {
+  'use strict';
+  var THRESHOLD = 0.45;
+  var DECAY_MS = 2500;
+  var HAPTIC = [50, 30, 100];
+  var SW = 64, SH = 48;
+
+  var surface  = document.getElementById('surface');
+  var stone    = document.getElementById('stone');
+  var hint     = document.getElementById('hint');
+  var progBar  = document.getElementById('progress-fill-bar');
+  var state    = 'idle';
+  var touchId  = null;
+  var cx       = 0;
+  var cy       = 0;
+  var ripples  = [];
+  var audioCtx = null;
+  var audioOk  = false;
+  var rafId    = null;
+
+  function initAudio() {
+    if (audioOk) return;
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); audioOk = true; }
+    catch(e) { console.warn('Web Audio unavailable'); }
+  }
+
+  function playCreak() {
+    if (!audioCtx) return;
+    try {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      var t = audioCtx.currentTime, dur = DECAY_MS / 1000;
+
+      // Low-frequency sawtooth for wet creak
+      var saw = audioCtx.createOscillator();
+      saw.type = 'sawtooth';
+      saw.frequency.setValueAtTime(55, t);
+      saw.frequency.linearRampToValueAtTime(42, t + 0.3);
+      saw.frequency.linearRampToValueAtTime(38, t + dur);
+      var sawG = audioCtx.createGain();
+      sawG.gain.setValueAtTime(0.18, t);
+      sawG.gain.linearRampToValueAtTime(0.12, t + 0.3);
+      sawG.gain.linearRampToValueAtTime(0.001, t + dur);
+
+      // Sine layer for warmth
+      var sin = audioCtx.createOscillator();
+      sin.type = 'sine';
+      sin.frequency.setValueAtTime(85, t);
+      sin.frequency.linearRampToValueAtTime(60, t + 0.5);
+      sin.frequency.linearRampToValueAtTime(50, t + dur);
+      var sinG = audioCtx.createGain();
+      sinG.gain.setValueAtTime(0.14, t);
+      sinG.gain.linearRampToValueAtTime(0.08, t + 0.2);
+      sinG.gain.linearRampToValueAtTime(0.001, t + dur);
+
+      // Low-pass to muffle
+      var lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(400, t);
+      lp.frequency.linearRampToValueAtTime(200, t + 0.5);
+      lp.frequency.linearRampToValueAtTime(100, t + dur);
+      lp.Q.value = 2;
+
+      var master = audioCtx.createGain();
+      master.gain.setValueAtTime(0.7, t);
+      master.gain.linearRampToValueAtTime(0.001, t + dur);
+
+      saw.connect(sawG).connect(lp);
+      sin.connect(sinG).connect(lp);
+      lp.connect(master).connect(audioCtx.destination);
+      saw.start(t); sin.start(t);
+      saw.stop(t + dur + 0.05); sin.stop(t + dur + 0.05);
+    } catch(e) { console.warn('Creak audio failed:', e.message); }
+  }
+
+  function playCrack() {
+    if (!audioCtx) return;
+    try {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      var t = audioCtx.currentTime;
+
+      // Noise burst
+      var nLen = audioCtx.sampleRate * 0.12;
+      var buf  = audioCtx.createBuffer(1, nLen, audioCtx.sampleRate);
+      var d    = buf.getChannelData(0);
+      for (var i = 0; i < nLen; i++) {
+        var frac = i / nLen;
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - frac, 3) * 0.5;
+      }
+      var noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+      var bpm = audioCtx.createBiquadFilter();
+      bpm.type = 'bandpass'; bpm.frequency.value = 2500; bpm.Q.value = 1.2;
+      var cG  = audioCtx.createGain();
+      cG.gain.setValueAtTime(0.45, t);
+      cG.gain.linearRampToValueAtTime(0.001, t + 0.3);
+      noise.connect(bpm).connect(cG).connect(audioCtx.destination);
+      noise.start(t);
+
+      // Sub-bass thud
+      var thud = audioCtx.createOscillator();
+      thud.type = 'sine';
+      thud.frequency.setValueAtTime(120, t);
+      thud.frequency.linearRampToValueAtTime(45, t + 0.15);
+      var tg = audioCtx.createGain();
+      tg.gain.setValueAtTime(0.3, t);
+      tg.gain.linearRampToValueAtTime(0.001, t + 0.25);
+      thud.connect(tg).connect(audioCtx.destination);
+      thud.start(t); thud.stop(t + 0.3);
+    } catch(e) { console.warn('Crack audio failed:', e.message); }
+  }
+
+  function vibrate(p) {
+    if (navigator.vibrate) { try { navigator.vibrate(p); } catch(e) {} }
+  }
+
+  function startVibRumble() {
+    if (!navigator.vibrate) return;
+    try {
+      var pat = [], t = 0;
+      while (t < DECAY_MS) {
+        var int = 1 - t / DECAY_MS;
+        var on  = Math.max(80, 120 * int); pat.push(on); t += on;
+        if (t < DECAY_MS) { var gap = Math.max(40, 80 * int); pat.push(gap); t += gap; }
+      }
+      navigator.vibrate(pat);
+    } catch(e) {}
+  }
+
+  function addRipple(x, y, cls) {
+    var el  = document.createElement('div');
+    el.className = 'ripple-ring ' + cls;
+    var sz = SW * 6;
+    el.style.width  = sz + 'px';
+    el.style.height = sz + 'px';
+    el.style.left   = (x - sz / 2) + 'px';
+    el.style.top    = (y - sz / 2) + 'px';
+    surface.appendChild(el);
+    ripples.push(el);
+    return el;
+  }
+
+  function startDecay(tx, ty) {
+    state  = 'decaying';
+    var t0 = performance.now();
+    playCreak();
+    setTimeout(playCrack, 180);
+    startVibRumble();
+
+    var pri = addRipple(tx, ty, 'primary');
+    var sec = addRipple(tx, ty, 'secondary');
+    var ter = addRipple(tx, ty, 'tertiary');
+
+    stone.style.display = 'none';
+    if (rafId) cancelAnimationFrame(rafId);
+
+    function tick(now) {
+      var el  = now - t0;
+      var pr  = Math.min(el / DECAY_MS, 1);
+
+      pri.style.transform = 'translate3d(0,0,0) scale(' + (pr * 4.5) + ')';
+      pri.style.opacity   = 1 - pr;
+
+      var sr = Math.min(Math.max((pr - 0.08) / 0.92, 0), 1);
+      sec.style.transform = 'translate3d(0,0,0) scale(' + (sr * 3.8) + ')';
+      sec.style.opacity   = 1 - sr;
+
+      var tr = Math.min(Math.max((pr - 0.16) / 0.84, 0), 1);
+      ter.style.transform = 'translate3d(0,0,0) scale(' + (tr * 3.0) + ')';
+      ter.style.opacity   = 0.7 * (1 - tr);
+
+      if (pr < 1) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        ripples.forEach(function(r) { if (r.parentNode) r.parentNode.removeChild(r); });
+        ripples.length = 0;
+        reset();
+      }
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function reset() {
+    state  = 'idle';
+    touchId = null;
+    progBar.style.height = '0%';
+    hint.classList.remove('hidden');
+  }
+
+  function resistance(p) {
+    if (p <= 0) return 1;
+    if (p >= THRESHOLD) return 0;
+    var norm = (THRESHOLD - p) / THRESHOLD;
+    return norm * norm;
+  }
+
+  // touchstart
+  surface.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    if (state !== 'idle') return;
+
+    initAudio();
+    var tc = e.changedTouches[0];
+    touchId = tc.identifier;
+    cx = tc.clientX;
+    cy = tc.clientY;
+
+    stone.style.display = 'block';
+    stone.classList.remove('caught');
+    stone.style.transform = 'translate3d(' + (cx - SW / 2) + 'px,' + (cy - SH / 2) + 'px,0)';
+    hint.classList.add('hidden');
+    progBar.style.height = '0%';
+  }, { passive: false });
+
+  // touchmove
+  surface.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    if (state !== 'idle' && state !== 'dragging') return;
+
+    var tc = null;
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === touchId) { tc = e.changedTouches[i]; break; }
+    }
+    if (!tc) return;
+
+    state = 'dragging';
+    var rawY = tc.clientY;
+    var rawP = rawY / window.innerHeight;
+
+    // Clamp to [0, 1]
+    rawP = Math.max(0, Math.min(1, rawP));
+
+    if (rawP >= THRESHOLD) {
+      // STALL - hard stop at threshold
+      var threshY = THRESHOLD * window.innerHeight;
+      var stoneY  = threshY - SH / 2;
+      var stoneX  = tc.clientX - SW / 2;
+
+      stone.style.setProperty('--tx', stoneX + 'px');
+      stone.style.setProperty('--ty', stoneY + 'px');
+      stone.style.transform = 'translate3d(' + stoneX + 'px,' + stoneY + 'px,0)';
+      stone.classList.add('caught');
+      progBar.style.height = (THRESHOLD * 100) + '%';
+
+      if (state === 'dragging') {
+        state = 'stalled';
+        cx = tc.clientX;
+        cy = threshY;
+        vibrate(HAPTIC);
+
+        setTimeout(function () {
+          if (state === 'stalled') startDecay(cx, cy);
+        }, 300);
+      }
+      return;
+    }
+
+    // Apply quadratic resistance to movement
+    var fac  = resistance(rawP);
+    var moveY = cy + (rawY - cy) * fac;
+    var curP  = moveY / window.innerHeight;
+
+    cx = tc.clientX;
+    cy = moveY;
+
+    stone.style.transform = 'translate3d(' + (cx - SW / 2) + 'px,' + (cy - SH / 2) + 'px,0)';
+    progBar.style.height = (Math.max(0, curP) * 100) + '%';
+  }, { passive: false });
+
+  // touchend
+  surface.addEventListener('touchend', function (e) {
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === touchId) {
+        if (state === 'stalled') {
+          var tx = cx, ty = cy;
+          state = 'idle';
+          startDecay(tx, ty);
+        } else {
+          reset();
+        }
+        return;
+      }
+    }
+  }, { passive: false });
+
+  // touchcancel
+  surface.addEventListener('touchcancel', function (e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === touchId) {
+        if (state !== 'decaying' && state !== 'stalled') reset();
+        return;
+      }
+    }
+  }, { passive: false });
+
+  // Allow click to init audio for desktop testing
+  document.addEventListener('click', function () { initAudio(); });
+})();
+</script>
+</body>
+</html>
