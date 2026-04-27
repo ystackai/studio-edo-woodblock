@@ -1,725 +1,675 @@
 (function () {
-    "use strict";
+  "use strict";
 
-    /* --------------- constants --------------- */
-    var SNAP_THRESHOLD      = 0.65;       // 65% drag distance to bloom
-    var VEL_THRESHOLD       = 150;        // peak px/s velocity to trigger snap
-    var BLOOM_DURATION      = 250;        // ms — locked yield ease-out
-    var RESET_DELAY         = 1200;       // ms before state clears
-    var BASS_DELAY          = 40;         // ms delay relative to visual snap
-    var BASS_FREQ           = 75;
-    var HUM_FREQ            = 55;
-    var SCROLL_DAMPEN       = 0.7;       // 70% momentum reduction
-    var HUM_DECAY_RATE      = 0.015;
-    var MAX_QUEUE           = 3;
-    var EASE_POWER          = 3;          // ease-out exponent
-    var PRE_BLOOM_DELAY     = 12;         // ms of pre-bloom tension before yield
-    var SNAP_BLOOM_PEAK     = 0.35;      // peak opacity at snap moment
-    var YIELD_BLOOM_PEAK    = 0.65;      // peak opacity entering yield
+  /* --------------- constants --------------- */
+  var SNAP_THRESHOLD     = 0.65;       // 65% drag distance
+  var VEL_THRESHOLD       = 1800;       // px/s peak velocity
+  var BLOOM_DURATION      = 250;       // ms locked ease-out
+  var RESET_DELAY         = 1200;      // ms to idle
+  var BASS_DELAY          = 40;        // ms audio-delay vs visual
+  var BASS_FREQ           = 75;
+  var HUM_FREQ            = 55;
+  var SCROLL_DAMPEN       = 0.7;       // 70% momentum reduction
+  var HUM_DECAY_RATE      = 0.012;
+  var MAX_QUEUE           = 3;
+  var EASE_POWER          = 3;
+  var PRE_BLOOM_MS        = 12;        // tension micro-pause
+  var SNAP_BLOOM_PEAK     = 0.35;
+  var HUM_BASE            = 0.08;
+  var HUM_FLOOR           = 0.003;
+  var HUM_IDLE            = 0.004;
 
-    /* --------------- phase enum --------------- */
-    var PHASE = {
-      IDLE:       0,
-      INITIATION: 1,
-      HOLD:       2,
-      SNAP:       3,
-      YIELD:      4,
-      RESET:      5,
-      RELEASED:   6
-    };
+  /* --------------- phase enum --------------- */
+  var PHASE = {
+    IDLE:       0,
+    DOWN:       1,     // thumb just touched, < min travel
+    DRAG:       2,     // dragging, tension building
+    SNAP:       3,     // snap threshold hit
+    YIELD:      4,     // 250ms ease-out bloom
+    RESETTING:   5,     // 1.2s fade to idle
+    RELEASED:    6      // early release without snap
+  };
 
-    /* --------------- state --------------- */
-    var state = {
-      phase:          PHASE.IDLE,
-      dragStartY:      0,
-      dragCurrentY:    0,
-      dragStartX:      0,
-      dragCurrentX:    0,
-      displacement:      0,
-      velocity:          0,
-      lastY:            0,
-      lastX:            0,
-      lastTime:         0,
-      blobX:            0,
-      blobY:            0,
-      blobRadius:       0,
-      blobOpacity:      0,
-      edgeSoftness:     0,
-      humVolume:        0,
-      swiped:          false,
-      queued:           [],         // rapid-swipe queue (≤3)
-      yieldStart:       0,
-      resetStart:       0,
-      resetTimeout:     null,
-      bassSchedTime:    0,
-      bassScheduled:   false,
-      bassPlayed:      false,
-      scrollDampened:  false,
-      dampenExpiry:     0,
-      lastFrameTime:    0,
-      activePointer:   null,
-      tensionGlow:      0,         // tension glow during drag (0-1)
-      rippleCount:      0,         // number of ripple rings
-      ripples:          [],         // {cx, cy, radius, opacity, birth}
-      microHumPhase:    0          // idle hum oscillation
-    };
+  /* --------------- state --------------- */
+  var st = {
+    phase:         PHASE.IDLE,
+    touchId:       null,
+    startY:        0,
+    startX:        0,
+    curY:          0,
+    curX:          0,
+    prevY:         0,
+    prevX:         0,
+    prevT:         0,
+    disp:          0,          // total displacement from start
+    vel:           0,          // px/s
+    px:            0,          // bloom center x
+    py:            0,          // bloom center y
+    bloomR:        0,         // bloom radius
+    bloomAlpha:    0,         // bloom opacity
+    softness:      0,         // edge softness 0->1
+    tensGlow:      0,         // tension glow intensity
+    humVol:        0,
+    snapped:       false,
+    queue:         [],         // rapid swipe queue
+    yieldT:        0,         // yield start timestamp
+    resetT:        0,         // reset start timestamp
+    resetTimer:    null,
+    dampExp:       0,         // dampening expiry time
+    dampOn:       false,
+    lastFrame:     0,
+    microPhase:    0,
+    ripples:       [],
+    rippleSeq:     0,
+    queuedBass:    [],        // absolute audio times for bass hits
+    bassCheckT:    0,
+    dragPath:       []         // trail points for visual path
+  };
 
-    /* --------------- canvas setup --------------- */
-    var canvas = document.getElementById("c");
-    var ctx    = canvas.getContext("2d");
-    var dpr    = Math.min(window.devicePixelRatio || 1, 2);
-    var cssW, cssH;
+  /* --------------- canvas --------------- */
+  var cv   = document.getElementById("c");
+  var cx   = cv.getContext("2d", { alpha: false });
+  var dpr  = Math.min(window.devicePixelRatio || 1, 2);
+  var cW, cH;
 
-    function resize() {
-      cssW = window.innerWidth;
-      cssH = window.innerHeight;
-      canvas.width  = cssW * dpr;
-      canvas.height = cssH * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  function resize() {
+    cW = window.innerWidth;
+    cH = window.innerHeight;
+    cv.width  = cW * dpr;
+    cv.height = cH * dpr;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  /* --------------- audio --------------- */
+  var actx    = null;
+  var humOsc  = null;
+  var humGn   = null;
+  var humOn   = false;
+
+  function bootAudio() {
+    if (actx) {
+      if (actx.state === "suspended") actx.resume();
+      return;
     }
-    window.addEventListener("resize", resize);
-    resize();
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    humOsc = actx.createOscillator();
+    humGn  = actx.createGain();
+    humOsc.type = "sine";
+    humOsc.frequency.value = HUM_FREQ;
+    humGn.gain.value = 0;
+    humOsc.connect(humGn);
+    humGn.connect(actx.destination);
+    humOsc.start();
+    humOn = true;
+  }
 
-    /* --------------- audio engine --------------- */
-    var audioCtx   = null;
-    var humOsc     = null;
-    var humGain    = null;
-    var humActive  = false;
-    var bassQueue  = []; // scheduled bass hits for rapid swipes
+  function setHum(v) {
+    if (!humGn || !actx) return;
+    humGn.gain.setTargetAtTime(Math.max(0, Math.min(v, 0.18)), actx.currentTime, 0.025);
+  }
 
-    function ensureAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        humOsc = audioCtx.createOscillator();
-        humGain = audioCtx.createGain();
-        humOsc.type = "sine";
-        humOsc.frequency.value = HUM_FREQ;
-        humGain.gain.value = 0;
-        humOsc.connect(humGain);
-        humGain.connect(audioCtx.destination);
-        humOsc.start();
-        humActive = true;
+  function playBassAt(t) {
+    if (!actx) return;
+    // Primary 75Hz sub-bass
+    var o1 = actx.createOscillator();
+    var g1 = actx.createGain();
+    o1.type = "sine";
+    o1.frequency.setValueAtTime(BASS_FREQ, t);
+    o1.frequency.exponentialRampToValueAtTime(36, t + 0.45);
+    g1.gain.setValueAtTime(0.50, t);
+    g1.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    o1.connect(g1);
+    g1.connect(actx.destination);
+    o1.start(t);
+    o1.stop(t + 0.65);
+
+    // Sub-octave for warmth
+    var o2 = actx.createOscillator();
+    var g2 = actx.createGain();
+    o2.type = "sine";
+    o2.frequency.setValueAtTime(BASS_FREQ * 0.5, t);
+    o2.frequency.exponentialRampToValueAtTime(18, t + 0.5);
+    g2.gain.setValueAtTime(0.25, t);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    o2.connect(g2);
+    g2.connect(actx.destination);
+    o2.start(t);
+    o2.stop(t + 0.6);
+
+    // Click transient — tiny noise burst for tactile feel
+    var buf = actx.createBuffer(1, actx.sampleRate * 0.04, actx.sampleRate);
+    var d   = buf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (d.length * 0.15));
+    }
+    var ns = actx.createBufferSource();
+    var ng = actx.createGain();
+    ns.buffer = buf;
+    ng.gain.setValueAtTime(0.08, t);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    var flt = actx.createBiquadFilter();
+    flt.type = "lowpass";
+    flt.frequency.value = 200;
+    ns.connect(flt);
+    flt.connect(ng);
+    ng.connect(actx.destination);
+    ns.start(t);
+  }
+
+  function scheduleBass() {
+    if (!actx) return;
+    var fireAt = actx.currentTime + BASS_DELAY / 1000;
+    st.queuedBass.push(fireAt);
+    if (st.queuedBass.length > MAX_QUEUE) st.queuedBass.shift();
+  }
+
+  function flushBass() {
+    if (!actx || !st.queuedBass.length) return;
+    var now = actx.currentTime;
+    while (st.queuedBass.length && st.queuedBass[0] <= now + 0.003) {
+      playBassAt(st.queuedBass.shift());
+    }
+  }
+
+  /* --------------- haptics --------------- */
+  function hapticPulse() {
+    if (!navigator.vibrate) return;
+    try { navigator.vibrate(30); } catch (_) {}
+  }
+
+  /* --------------- ripples --------------- */
+  function spawnRipple(x, y) {
+    st.ripples.push({
+      x: x, y: y,
+      r: 0,
+      mr: Math.max(cW, cH) * 0.55,
+      a: 0.22,
+      t: performance.now(),
+      seq: ++st.rippleSeq
+    });
+    if (st.ripples.length > 6) st.ripples = st.ripples.slice(-4);
+  }
+
+  function updateRips(now) {
+    for (var i = st.ripples.length - 1; i >= 0; i--) {
+      var rp = st.ripples[i];
+      var age = (now - rp.t) / 1000;
+      rp.r = age * 280;
+      rp.a = Math.max(0, 0.22 * (1 - age * 0.75));
+      if (rp.a < 0.002) st.ripples.splice(i, 1);
+    }
+  }
+
+  function drawRips() {
+    if (!st.ripples.length) return;
+    cx.save();
+    cx.globalCompositeOperation = "lighter";
+    for (var i = 0; i < st.ripples.length; i++) {
+      var rp = st.ripples[i];
+      // Draw ring with gradient for depth
+      var innerR = Math.max(0, rp.r - 12);
+      var grad = cx.createRadialGradient(rp.x, rp.y, innerR, rp.x, rp.y, rp.r);
+      grad.addColorStop(0,     "rgba(30, 18, 55, 0)");
+      grad.addColorStop(0.6,   "rgba(175, 135, 205, " + (rp.a * 0.35).toFixed(3) + ")");
+      grad.addColorStop(0.85,  "rgba(155, 110, 185, " + (rp.a * 0.15).toFixed(3) + ")");
+      grad.addColorStop(1,     "rgba(30, 18, 55, 0)");
+      cx.strokeStyle = grad;
+      cx.lineWidth = 4;
+      cx.beginPath();
+      cx.arc(rp.x, rp.y, rp.r, 0, 6.2832);
+      cx.stroke();
+    }
+    cx.restore();
+  }
+
+  /* --------------- input --------------- */
+  function ptrPos(e) {
+    if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.changedTouches && e.changedTouches.length) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function ptrId(e) {
+    if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0].identifier;
+    if (e.touches && e.touches.length) return e.touches[0].identifier;
+    return 0;
+  }
+
+  cv.addEventListener("touchstart", onDown, { passive: false });
+  cv.addEventListener("touchmove", onMove, { passive: false });
+  cv.addEventListener("touchend",   onUp,   { passive: false });
+  cv.addEventListener("touchcancel", onUp,   { passive: false });
+  cv.addEventListener("mousedown", onDown);
+  cv.addEventListener("mousemove", onMove);
+  cv.addEventListener("mouseup", onUp);
+
+  function onDown(e) {
+    e.preventDefault();
+    bootAudio();
+    var p  = ptrPos(e);
+    var id = ptrId(e);
+    st.touchId = id;
+
+    if (st.phase === PHASE.IDLE) {
+      st.phase      = PHASE.DOWN;
+      st.startY     = p.y;
+      st.startX     = p.x;
+      st.curY       = p.y;
+      st.curX       = p.x;
+      st.prevY      = p.y;
+      st.prevX      = p.x;
+      st.prevT      = performance.now();
+      st.disp       = 0;
+      st.vel        = 0;
+      st.px         = p.x;
+      st.py         = p.y;
+      st.bloomR     = 0;
+      st.bloomAlpha = 0;
+      st.softness   = 0;
+      st.tensGlow   = 0;
+      st.humVol     = HUM_BASE;
+      st.snapped    = false;
+      st.queue      = [];
+      st.dragPath   = [{ x: p.x, y: p.y }];
+      st.ripples = [];
+      setHum(HUM_BASE);
+    } else if (st.phase >= PHASE.SNAP) {
+      if (st.queue.length < MAX_QUEUE) {
+        st.queue.push({ x: p.x, y: p.y, t: performance.now() });
       }
-      if (audioCtx.state === "suspended") audioCtx.resume();
     }
+  }
 
-    function setHumVol(v) {
-      if (!humGain || !audioCtx) return;
-      v = Math.max(0, Math.min(v, 0.18));
-      humGain.gain.setTargetAtTime(v, audioCtx.currentTime, 0.03);
-    }
+  function onMove(e) {
+    e.preventDefault();
+    var p  = ptrPos(e);
+    var id = ptrId(e);
+    if (st.touchId !== id) return;
 
-    function scheduleBass(delayMs) {
-      if (!audioCtx) return;
-      var fireAt = audioCtx.currentTime + delayMs / 1000;
-      bassQueue.push(fireAt);
-      if (bassQueue.length > MAX_QUEUE) bassQueue.shift();
-      state.bassScheduled = true;
-    }
+    if (st.phase === PHASE.DOWN || st.phase === PHASE.DRAG) {
+      var now = performance.now();
+      var dt  = Math.max(0.4, now - st.prevT);
+      var dy  = st.prevY - p.y;
+      var dx  = st.prevX - p.x;
 
-    function playSingleBass(fireTime) {
-      if (!audioCtx) return;
-      var now = fireTime;
-      var osc = audioCtx.createOscillator();
-      var gain = audioCtx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(BASS_FREQ, now);
-      osc.frequency.exponentialRampToValueAtTime(38, now + 0.4);
-      gain.gain.setValueAtTime(0.55, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.65);
-    }
+      // px/s velocity
+      st.vel  = Math.sqrt(dy * dy + dx * dx) / dt * 1000;
+      st.disp = Math.abs(p.y - st.startY);
+      st.curY = p.y;
+      st.curX = p.x;
+      st.prevY = p.y;
+      st.prevX = p.x;
+      st.prevT = now;
+      st.px    = p.x;
+      st.py    = p.y;
 
-    function checkScheduledBass() {
-      if (!audioCtx || bassQueue.length === 0) return;
-      var now = audioCtx.currentTime;
-      // Fire any bass hits whose scheduled time has arrived
-      while (bassQueue.length > 0 && bassQueue[0] <= now + 0.005) {
-        var t = bassQueue.shift();
-        playSingleBass(t);
+      var prog = st.disp / cH;
+
+      // DOWN -> DRAG at 5% displacement
+      if (st.phase === PHASE.DOWN && prog >= 0.05) {
+        st.phase = PHASE.DRAG;
       }
-      if (bassQueue.length === 0) {
-        state.bassScheduled = false;
-      }
-    }
 
-    /* --------------- haptics --------------- */
-    function pulseHaptic() {
-      if (navigator.vibrate) {
-        try { navigator.vibrate(35); } catch (_) {}
-      }
-    }
+      // Tension glow — builds as drag deepens
+      st.tensGlow = Math.min(1, prog / 0.12);
 
-    /* --------------- ripple system --------------- */
-    function addRipple(cx, cy) {
-      state.ripples.push({
-        cx: cx,
-        cy: cy,
-        radius: 0,
-        maxRadius: Math.max(cssW, cssH) * 0.6,
-        opacity: 0.25,
-        birth: performance.now()
-      });
-      // Clean old ripples
-      if (state.ripples.length > 5) {
-        state.ripples = state.ripples.slice(-5);
-      }
-    }
+      // Hum fades as drag approaches threshold
+      setHum(HUM_BASE * (1 - prog * 0.65));
 
-    function updateRipples(t) {
-      for (var i = state.ripples.length - 1; i >= 0; i--) {
-        var r = state.ripples[i];
-        var age = (t - r.birth) / 1000;
-        r.radius  = age * 300;
-        r.opacity = Math.max(0, 0.25 * (1 - age * 0.8));
-        if (r.opacity <= 0.001) {
-          state.ripples.splice(i, 1);
+      // Track drag path for visual
+      if (st.dragPath.length && st.disp > 2) {
+        var last = st.dragPath[st.dragPath.length - 1];
+        var ddx = p.x - last.x;
+        var ddy = p.y - last.y;
+        if (ddx * ddx + ddy * ddy > 64) {
+          st.dragPath.push({ x: p.x, y: p.y });
         }
       }
-    }
 
-    function drawRipples() {
-      if (!state.ripples.length) return;
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      for (var i = 0; i < state.ripples.length; i++) {
-        var r = state.ripples[i];
-        var grad = ctx.createRadialGradient(r.cx, r.cy, r.radius * 0.85, r.cx, r.cy, r.radius);
-        grad.addColorStop(0,    "rgba(30, 20, 50, 0)");
-        grad.addColorStop(0.5,  "rgba(180, 140, 210, " + (r.opacity * 0.4).toFixed(3) + ")");
-        grad.addColorStop(0.8,  "rgba(140, 100, 180, " + (r.opacity * 0.2).toFixed(3) + ")");
-        grad.addColorStop(1,    "rgba(30, 20, 50, 0)");
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(r.cx, r.cy, r.radius, 0, Math.PI * 2);
-        ctx.stroke();
+      // ---- Snap threshold check ----
+      if (!st.snapped && (prog >= SNAP_THRESHOLD || st.vel >= VEL_THRESHOLD)) {
+        doSnap();
       }
-      ctx.restore();
     }
+  }
 
-    /* --------------- input handling --------------- */
-    var pointers = new Map();
+  function onUp(e) {
+    e.preventDefault();
+    var id = ptrId(e);
+    if (st.touchId === id) st.touchId = null;
 
-    function getPointerPos(e) {
-      if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-      return { x: e.clientX, y: e.clientY };
-    }
+    if (!st.snapped && (st.phase === PHASE.DOWN || st.phase === PHASE.DRAG)) {
+      // Early release — gentle settle
+      st.phase    = PHASE.RELEASED;
+      st.yieldT   = performance.now();
+      spawnRipple(st.px, st.py);
+      hapticPulse();
+      scheduleBass();
+      setHum(0.025);
 
-    function getPointerId(e) {
-      if (e.changedTouches && e.changedTouches.length > 0) return e.changedTouches[0].identifier;
-      if (e.touches && e.touches.length > 0) return e.touches[0].identifier;
-      return "mouse";
-    }
-
-    canvas.addEventListener("touchstart", onDown, { passive: false });
-    canvas.addEventListener("touchmove", onMove, { passive: false });
-    canvas.addEventListener("touchend", onUp, { passive: false });
-    canvas.addEventListener("touchcancel", onUp, { passive: false });
-    canvas.addEventListener("mousedown", onDown);
-    canvas.addEventListener("mousemove", onMove);
-    canvas.addEventListener("mouseup", onUp);
-
-    function onDown(e) {
-      e.preventDefault();
-      ensureAudio();
-
-      var pos = getPointerPos(e);
-      var x   = pos.x;
-      var y   = pos.y;
-      var id  = getPointerId(e);
-      state.activePointer = id;
-
-      if (state.phase === PHASE.IDLE) {
-        // Fresh interaction — reset everything
-        state.phase           = PHASE.INITIATION;
-        state.dragStartY      = y;
-        state.dragCurrentY    = y;
-        state.dragStartX      = x;
-        state.dragCurrentX    = x;
-        state.lastY           = y;
-        state.lastX           = x;
-        state.lastTime        = performance.now();
-        state.displacement     = 0;
-        state.velocity         = 0;
-        state.blobX           = x;
-        state.blobY           = y;
-        state.blobRadius      = 0;
-        state.blobOpacity     = 0;
-        state.edgeSoftness    = 0;
-        state.humVolume       = 0.08;
-        state.swiped          = false;
-        state.bassPlayed      = false;
-        state.bassScheduled   = false;
-        state.queued          = [];
-        state.tensionGlow     = 0;
-        state.ripples         = [];
-        setHumVol(0.08);
-      } else if (
-        state.phase === PHASE.RESET ||
-        state.phase === PHASE.YIELD ||
-        state.phase === PHASE.SNAP ||
-        state.phase === PHASE.RELEASED
-      ) {
-        // Queue rapid swipe (max 3)
-        if (state.queued.length < MAX_QUEUE) {
-          state.queued.push({
-            x: x,
-            y: y,
-            t: performance.now(),
-            blobX: x,
-            blobY: y
-          });
+      if (st.resetTimer) clearTimeout(st.resetTimer);
+      st.resetTimer = setTimeout(function () {
+        if (st.phase === PHASE.RELEASED) {
+          st.phase = PHASE.RESETTING;
+          st.resetT = performance.now();
         }
-      }
-      pointers.set(id, { x: x, y: y });
+      }, 500);
     }
+  }
 
-    function onMove(e) {
+  /* --------------- scroll dampening --------------- */
+  window.addEventListener("wheel", function (e) {
+    if (st.dampOn) {
       e.preventDefault();
-      var pos = getPointerPos(e);
-      var x   = pos.x;
-      var y   = pos.y;
-      var id  = getPointerId(e);
+      window.scrollBy(0, Math.round(e.deltaY * (1 - SCROLL_DAMPEN)));
+    }
+  }, { passive: false });
 
-      if (state.activePointer !== id) return;
+  document.body.addEventListener("touchmove", function (e) {
+    if (st.dampOn) e.preventDefault();
+  }, { passive: false });
 
-      if (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD) {
-        var now   = performance.now();
-        var dt    = Math.max(0.5, now - state.lastTime);
-        var dy    = state.lastY - y;
-        var dx    = state.lastX - x;
+  /* --------------- snap logic --------------- */
+  function doSnap() {
+    if (st.snapped) return;
+    st.snapped  = true;
+    st.phase    = PHASE.SNAP;
+    st.yieldT   = performance.now();
+    st.bloomR   = 12;
+    st.bloomAlpha = 0.04;
+    st.softness = 0;
 
-        state.velocity     = Math.abs(dy / dt * 16);
-        state.displacement = Math.abs(y - state.dragStartY);
-        state.dragCurrentY = y;
-        state.dragCurrentX = x;
-        state.lastY       = y;
-        state.lastX       = x;
-        state.lastTime     = now;
-        state.blobY       = y;
-        state.blobX       = x;
+    hapticPulse();
+    spawnRipple(st.px, st.py);
+    scheduleBass();
 
-        var progress = state.displacement / cssH;
+    st.dampOn   = true;
+    st.dampExp  = performance.now() + RESET_DELAY;
+  }
 
-        // Transition from initiation to hold at 8% drag
-        if (progress >= 0.08 && state.phase === PHASE.INITIATION) {
-          state.phase = PHASE.HOLD;
-        }
+  function popQueue() {
+    if (!st.queue.length) return;
+    var q = st.queue.shift();
+    st.phase       = PHASE.DOWN;
+    st.startY      = q.y;
+    st.startX      = q.x;
+    st.curY        = q.y;
+    st.curX        = q.x;
+    st.prevY       = q.y;
+    st.prevX       = q.x;
+    st.prevT       = performance.now();
+    st.disp        = 0;
+    st.vel         = 0;
+    st.px          = q.x;
+    st.py          = q.y;
+    st.bloomR      = 0;
+    st.bloomAlpha  = 0;
+    st.softness    = 0;
+    st.tensGlow    = 0;
+    st.humVol      = HUM_BASE;
+    st.snapped     = false;
+    st.dragPath    = [];
+    st.ripples     = [];
+    setHum(HUM_BASE);
+  }
 
-        // Tension glow scales with displacement
-        state.tensionGlow = Math.min(1, progress / 0.15);
+  /* --------------- rendering --------------- */
+  function drawBg() {
+    var cx2 = st.px, cy2 = st.py;
+    var mxR  = Math.max(cW, cH) * 0.7;
 
-        // Hum fades as drag deepens toward threshold
-        setHumVol(0.08 * (1 - progress * 0.7));
-      }
+    var g = cx.createRadialGradient(cx2, cy2, 0, cx2, cy2, mxR);
 
-      pointers.set(id, { x: x, y: y });
+    if (st.phase === PHASE.IDLE) {
+      g.addColorStop(0,   "rgba(16, 10, 38, 1)");
+      g.addColorStop(0.3, "rgba(8, 5, 18, 1)");
+      g.addColorStop(1,   "rgba(2, 1, 6, 1)");
+    } else if (st.phase === PHASE.DOWN || st.phase === PHASE.DRAG) {
+      var t = st.tensGlow;
+      var r0 = 18 + t * 14 | 0;
+      var g0 = 10 + t * 6  | 0;
+      var b0 = 42 + t * 18 | 0;
+      g.addColorStop(0,   "rgba(" + r0 + "," + g0 + "," + b0 + ", 0.99)");
+      g.addColorStop(0.35,"rgba(12, 7, 30, 0.97)");
+      g.addColorStop(0.7, "rgba(6, 3, 18, 0.95)");
+      g.addColorStop(1,   "rgba(2, 1, 6, 0.88)");
+    } else {
+      var s = st.softness;
+      var o0 = 0.96 - s * 0.12;
+      var o1 = 0.91 - s * 0.18;
+      g.addColorStop(0,   "rgba(22, 12, 48, " + o0.toFixed(3) + ")");
+      g.addColorStop(0.4, "rgba(8, 5, 22,  " + o1.toFixed(3) + ")");
+      g.addColorStop(1,   "rgba(2, 1, 6,   " + (o1 - s * 0.08).toFixed(3) + ")");
     }
 
-    function onUp(e) {
-      e.preventDefault();
-      var id = (e.changedTouches && e.changedTouches.length > 0)
-        ? e.changedTouches[0].identifier : "mouse";
-      pointers.delete(id);
-      if (state.activePointer === id) {
-        state.activePointer = null;
-      }
+    cx.fillStyle = g;
+    cx.fillRect(0, 0, cW, cH);
+  }
 
-      // If released during drag without snapping, transition to released state
-      if (!state.swiped &&
-        (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD)) {
-        // Gentle release: fade tension and glow
-        state.phase = PHASE.RELEASED;
-        state.resetStart = performance.now();
-        state.yieldStart = performance.now();
+  function drawTensGlow() {
+    if ((st.phase !== PHASE.DOWN && st.phase !== PHASE.DRAG) || st.tensGlow < 0.02) return;
+    var t = st.tensGlow;
+    var r = 35 * (0.5 + t * 0.8);
+    var g = cx.createRadialGradient(st.px, st.py, 0, st.px, st.py, r);
+    var a = (0.03 + t * 0.16).toFixed(3);
+    g.addColorStop(0,   "rgba(175, 140, 220, " + a + ")");
+    g.addColorStop(0.4, "rgba(115, 85, 185,  " + (parseFloat(a) * 0.45).toFixed(3) + ")");
+    g.addColorStop(1,   "rgba(55, 35, 115, 0)");
 
-        // Trigger a soft bloom at the release point
-        addRipple(state.blobX, state.blobY);
-        // Small haptic for gentle release
-        pulseHaptic();
+    cx.save();
+    cx.globalCompositeOperation = "lighter";
+    cx.fillStyle = g;
+    cx.beginPath();
+    cx.arc(st.px, st.py, r, 0, 6.2832);
+    cx.fill();
+    cx.restore();
+  }
 
-        // Schedule a soft bass to mark the release
-        scheduleBass(BASS_DELAY);
+  function drawDragTrail() {
+    if (st.phase !== PHASE.DOWN && st.phase !== PHASE.DRAG) return;
+    var pts = st.dragPath;
+    if (pts.length < 2) return;
 
-        // Auto-reset after delay
-        if (state.resetTimeout) clearTimeout(state.resetTimeout);
-        state.resetTimeout = setTimeout(function () {
-          if (state.phase === PHASE.RELEASED) {
-            state.phase       = PHASE.RESET;
-            state.resetStart  = performance.now();
-          }
-        }, 600);
+    var prog = Math.min(1, st.disp / cH);
+    var alpha = Math.min(0.35, prog * 0.45);
+
+    cx.save();
+    cx.lineWidth = 1.5;
+    cx.lineCap = "round";
+    cx.lineJoin = "round";
+
+    for (var i = 1; i < pts.length; i++) {
+      var frac = i / pts.length;
+      var segA = (alpha * frac * 0.6).toFixed(3);
+      var r = Math.round(140 + frac * 40);
+      var gr = Math.round(90 + frac * 30);
+      var b = Math.round(180 + frac * 30);
+      cx.strokeStyle = "rgba(" + r + "," + gr + "," + b + "," + segA + ")";
+      cx.beginPath();
+      cx.moveTo(pts[i - 1].x, pts[i - 1].y);
+      cx.lineTo(pts[i].x, pts[i].y);
+      cx.stroke();
+    }
+    cx.restore();
+  }
+
+  function drawBloom() {
+    if (st.bloomAlpha < 0.005) return;
+    var p = st.px, q = st.py, r = st.bloomR, a = st.bloomAlpha;
+
+    // Core amber/rose
+    var g = cx.createRadialGradient(p, q, 0, p, q, r);
+    g.addColorStop(0.0,  "rgba(255, 195, 80,  " + a.toFixed(3) + ")");
+    g.addColorStop(0.2,  "rgba(250, 155, 80,  " + (a * 0.82).toFixed(3) + ")");
+    g.addColorStop(0.45, "rgba(242, 125, 85,  " + (a * 0.55).toFixed(3) + ")");
+    g.addColorStop(0.7,  "rgba(215, 80, 105,  " + (a * 0.28).toFixed(3) + ")");
+    g.addColorStop(1.0,  "rgba(55, 22, 48, 0)");
+
+    cx.save();
+    cx.globalCompositeOperation = "lighter";
+    cx.fillStyle = g;
+    cx.beginPath();
+    cx.arc(p, q, r, 0, 6.2832);
+    cx.fill();
+
+    // Outer warm glow
+    var gr = r * 2.4;
+    var g2 = cx.createRadialGradient(p, q, r * 0.08, p, q, gr);
+    g2.addColorStop(0,   "rgba(255, 210, 110, " + (a * 0.14).toFixed(3) + ")");
+    g2.addColorStop(0.25,"rgba(232, 125, 85,  " + (a * 0.08).toFixed(3) + ")");
+    g2.addColorStop(0.55,"rgba(218, 88, 80,   " + (a * 0.04).toFixed(3) + ")");
+    g2.addColorStop(1,   "rgba(72, 38, 58, 0)");
+    cx.fillStyle = g2;
+    cx.beginPath();
+    cx.arc(p, q, gr, 0, 6.2832);
+    cx.fill();
+    cx.restore();
+  }
+
+  function drawReleaseFade(now) {
+    if (st.phase !== PHASE.RELEASED) return;
+    var el  = (now - st.yieldT) / 1000;
+    var pr  = Math.min(1, el / 0.6);
+    var eas = 1 - (1 - pr) * (1 - pr);
+    var a   = 0.07 * (1 - eas);
+    var r   = 22 + eas * 130;
+    if (a < 0.003) return;
+
+    var g = cx.createRadialGradient(st.px, st.py, 0, st.px, st.py, r);
+    g.addColorStop(0,   "rgba(170, 138, 205, " + a.toFixed(3) + ")");
+    g.addColorStop(0.5, "rgba(110, 85, 165,  " + (a * 0.45).toFixed(3) + ")");
+    g.addColorStop(1,   "rgba(38, 24, 68, 0)");
+
+    cx.save();
+    cx.globalCompositeOperation = "lighter";
+    cx.fillStyle = g;
+    cx.beginPath();
+    cx.arc(st.px, st.py, r, 0, 6.2832);
+    cx.fill();
+    cx.restore();
+  }
+
+  /* --------------- main loop --------------- */
+  var rafId = null;
+
+  function frame(now) {
+    var dt = Math.min(0.05, (now - (st.lastFrame || now)) / 1000);
+    st.lastFrame = now;
+
+    // Scroll damp expiry
+    if (st.dampOn && now >= st.dampExp) st.dampOn = false;
+
+    // Flush bass queue
+    flushBass();
+
+    // Update ripples
+    updateRips(now);
+
+    var prog = st.disp / cH;
+
+    /* ---- state transitions ---- */
+
+    // DRAG -> snap check
+    if (!st.snapped && (st.phase === PHASE.DOWN || st.phase === PHASE.DRAG)) {
+      if (prog >= SNAP_THRESHOLD || st.vel >= VEL_THRESHOLD) {
+        doSnap();
       }
     }
 
-    /* --------------- scroll dampening ------------------- */
-    var wheelDampenActive = false;
-
-    function activateScrollDampen() {
-      if (wheelDampenActive) return;
-      wheelDampenActive = true;
-      state.dampenExpiry = performance.now() + RESET_DELAY;
+    // DRAG hum decay
+    if (st.phase === PHASE.DRAG) {
+      st.humVol = Math.max(HUM_FLOOR, st.humVol - HUM_DECAY_RATE * dt * 60);
+      setHum(st.humVol);
     }
 
-    function checkDampenExpiry() {
-      if (wheelDampenActive && performance.now() >= state.dampenExpiry) {
-        wheelDampenActive = false;
-      }
-    }
-
-    window.addEventListener("wheel", function (e) {
-      if (wheelDampenActive) {
-        e.preventDefault();
-        var dampened = Math.round(e.deltaY * (1 - SCROLL_DAMPEN));
-        window.scrollBy(0, dampened);
-      }
-    }, { passive: false });
-
-    // Also intercept touch-scroll on body for mobile dampening
-    document.body.addEventListener("touchmove", function(e) {
-      if (wheelDampenActive) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    /* --------------- snap / yield logic --------------- */
-    function triggerSnap() {
-      if (state.swiped) return;
-      state.phase      = PHASE.SNAP;
-      state.swiped     = true;
-      state.yieldStart = performance.now();
-      state.blobOpacity = 0.03;
-      state.blobRadius   = 15;
-      state.edgeSoftness = 0;
-
-      // Haptic fires immediately at snap threshold
-      pulseHaptic();
-
-      // Add ripple at snap point
-      addRipple(state.blobX, state.blobY);
-
-      // Bass delayed 40ms relative to visual snap
-      scheduleBass(BASS_DELAY);
-
-      // Scroll dampening kicks in
-      activateScrollDampen();
-    }
-
-    function processQueue() {
-      if (state.queued.length === 0) return;
-      var entry = state.queued.shift();
-      state.phase           = PHASE.INITIATION;
-      state.dragStartY      = entry.y;
-      state.dragCurrentY    = entry.y;
-      state.dragStartX      = entry.x;
-      state.dragCurrentX    = entry.x;
-      state.lastY           = entry.y;
-      state.lastX           = entry.x;
-      state.lastTime        = performance.now();
-      state.displacement    = 0;
-      state.velocity        = 0;
-      state.blobX           = entry.blobX;
-      state.blobY           = entry.blobY;
-      state.blobRadius      = 0;
-      state.blobOpacity     = 0;
-      state.edgeSoftness    = 0;
-      state.humVolume       = 0.08;
-      state.swiped          = false;
-      state.tensionGlow     = 0;
-      state.bassPlayed      = false;
-      state.bassScheduled   = false;
-      state.ripples         = [];
-      setHumVol(0.08);
-    }
-
-    /* --------------- drawing --------------- */
-
-    // Core indigo-to-void gradient holding tension
-    function drawBaseGradient() {
-      var cx = state.blobX;
-      var cy = state.blobY;
-      var maxR = Math.max(cssW, cssH) * 0.7;
-
-      var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
-
-      if (state.phase === PHASE.IDLE) {
-        grad.addColorStop(0,     "rgba(18, 12, 40, 1)");
-        grad.addColorStop(0.4, "rgba(8, 6, 20, 1)");
-        grad.addColorStop(1,     "rgba(0, 0, 0, 1)");
-      } else if (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD) {
-        // Gradient holds firm during drag
-        var intensity = Math.min(1, state.tensionGlow);
-        var r0 = Math.round(25 + intensity * 10);
-        var g0 = Math.round(15 + intensity * 5);
-        var b0 = Math.round(50 + intensity * 15);
-        grad.addColorStop(0,     "rgba(" + r0 + "," + g0 + "," + b0 + ", 0.98)");
-        grad.addColorStop(0.3, "rgba(14, 9, 35, 0.96)");
-        grad.addColorStop(0.6, "rgba(8, 5, 22, 0.93)");
-        grad.addColorStop(1,     "rgba(0, 0, 0, 0.9)");
+    // SNAP: brief tension, then YIELD
+    if (st.phase === PHASE.SNAP) {
+      var e1 = now - st.yieldT;
+      if (e1 >= PRE_BLOOM_MS) {
+        st.phase  = PHASE.YIELD;
+        st.yieldT = now;
+        st.bloomR = 18;
       } else {
-        var soft = state.edgeSoftness;
-        var op0 = 0.95 - soft * 0.15;
-        var op1 = 0.9  - soft * 0.2;
-        var op2 = 0.85 - soft * 0.15;
-        grad.addColorStop(0,     "rgba(25, 15, 50, " + op0.toFixed(3) + ")");
-        grad.addColorStop(0.4, "rgba(10, 7, 25, " + op1.toFixed(3) + ")");
-        grad.addColorStop(1,     "rgba(0, 0, 0, " + op2.toFixed(3) + ")");
+        // Micro-pre-bloom — subtle warm hint
+        st.bloomR    += dt * 60;
+        st.bloomAlpha = 0.04 + e1 * 0.005;
       }
-
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, cssW, cssH);
     }
 
-    // Tension glow during drag — subtle glow around thumb position
-    function drawTensionGlow() {
-      if (state.phase !== PHASE.INITIATION && state.phase !== PHASE.HOLD) return;
-      if (state.tensionGlow < 0.01) return;
+    // YIELD: locked 250ms ease-out
+    if (st.phase === PHASE.YIELD) {
+      var el2  = (now - st.yieldT) / 1000;
+      var t0   = Math.min(1, el2 / (BLOOM_DURATION / 1000));
+      var eas3 = 1 - Math.pow(1 - t0, EASE_POWER);
 
-      var intensity = state.tensionGlow;
-      var cx = state.blobX;
-      var cy = state.blobY;
-      var r   = 40 * (0.6 + intensity * 0.6);
+      st.bloomAlpha = SNAP_BLOOM_PEAK * (1 - eas3 * 0.4);
+      st.bloomR    = 18 + eas3 * 400;
+      st.softness  = eas3 * 0.55;
 
-      var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      var a = (0.04 + intensity * 0.18).toFixed(3);
-      grad.addColorStop(0, "rgba(180, 145, 225, " + a + ")");
-      grad.addColorStop(0.5, "rgba(120, 90, 190, " + (parseFloat(a) * 0.5).toFixed(3) + ")");
-      grad.addColorStop(1, "rgba(60, 40, 120, 0)");
+      // Hum swells as gradient yields
+      setHum(0.008 + eas3 * 0.13);
 
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      // Secondary ripple at ~30% into yield
+      if (eas3 > 0.28 && eas3 < 0.36 && st.rippleSeq < 3) {
+        spawnRipple(st.px, st.py);
+      }
+
+      if (t0 >= 1) {
+        st.phase  = PHASE.RESETTING;
+        st.resetT = now;
+        setHum(0.004);
+      }
     }
 
-    // Drag path line
-    function drawDragLine() {
-      if (state.phase !== PHASE.INITIATION && state.phase !== PHASE.HOLD) return;
-      if (Math.abs(state.dragCurrentY - state.dragStartY) < 3) return;
+    // RESETTING: 1.2s fade
+    if (st.phase === PHASE.RESETTING) {
+      var rp2 = Math.min(1, (now - st.resetT) / 1000 / 1.2);
+      st.bloomAlpha = Math.max(0, SNAP_BLOOM_PEAK * 0.12 * (1 - rp2));
+      st.softness   = Math.max(0, st.softness * (1 - dt * 2.8));
+      st.tensGlow   = Math.max(0, st.tensGlow * (1 - dt * 3.5));
 
-      var sx   = state.dragStartX;
-      var sy1 = state.dragStartY;
-      var sy2 = state.dragCurrentY;
+      if (rp2 >= 1) {
+        st.phase      = PHASE.IDLE;
+        st.bloomR     = 0;
+        st.bloomAlpha = 0;
+        st.softness   = 0;
+        st.disp       = 0;
+        st.vel        = 0;
+        st.snapped    = false;
+        st.tensGlow   = 0;
+        st.ripples    = [];
+        st.rippleSeq  = 0;
+        st.dragPath   = [];
 
-      var grad = ctx.createLinearGradient(sx, sy1, sx, sy2);
-      var prog = Math.min(1, state.displacement / cssH);
-      var alpha = Math.min(0.4, prog * 0.5);
-      grad.addColorStop(0, "rgba(150, 110, 200, " + alpha.toFixed(3) + ")");
-      grad.addColorStop(1, "rgba(80, 50, 150, 0)");
-
-      ctx.save();
-      ctx.strokeStyle = grad;
-      ctx.lineWidth   = 2;
-      ctx.lineCap     = "round";
-      ctx.beginPath();
-      ctx.moveTo(sx, sy1);
-      ctx.lineTo(sx, sy2);
-      ctx.stroke();
-      ctx.restore();
+        if (st.queue.length) popQueue();
+      }
     }
 
-    // Amber / rose bloom on snap+yield
-    function drawBloom() {
-      if (state.blobOpacity <= 0.005) return;
-
-      var cx = state.blobX;
-      var cy = state.blobY;
-      var r  = state.blobRadius;
-      var op = state.blobOpacity;
-
-      // Primary amber core
-      var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      grad.addColorStop(0.0,   "rgba(255, 185, 70, " + op.toFixed(3) + ")");
-      grad.addColorStop(0.25, "rgba(245, 150, 75, " + (op * 0.8).toFixed(3) + ")");
-      grad.addColorStop(0.5,  "rgba(240, 130, 80, " + (op * 0.55).toFixed(3) + ")");
-      grad.addColorStop(0.7,  "rgba(210, 85, 100, " + (op * 0.3).toFixed(3) + ")");
-      grad.addColorStop(1.0,  "rgba(60, 25, 50, 0)");
-
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      // Outer warm glow (rose bleed)
-      ctx.save();
-      ctx.globalCompositeOperation = "screen";
-      var glowR = r * 2.2;
-      var glow = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, glowR);
-      glow.addColorStop(0,   "rgba(255, 200, 100, " + (op * 0.18).toFixed(3) + ")");
-      glow.addColorStop(0.3, "rgba(235, 120, 85,   " + (op * 0.1).toFixed(3) + ")");
-      glow.addColorStop(0.6, "rgba(220, 90, 80,    " + (op * 0.05).toFixed(3) + ")");
-      glow.addColorStop(1,   "rgba(80, 40, 60, 0)");
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    // IDLE micro-hum
+    if (st.phase === PHASE.IDLE && humOn) {
+      st.microPhase += dt * 0.65;
+      setHum(Math.max(0.001, HUM_IDLE + Math.sin(st.microPhase) * 0.003));
     }
 
-    // Released state gentle fade
-    function drawReleaseFade(t) {
-      if (state.phase !== PHASE.RELEASED) return;
-      var elapsed = t - state.yieldStart;
-      var prog = Math.min(1, elapsed / 600);
-      var eased = 1 - Math.pow(1 - prog, 2);
-
-      var cx = state.blobX;
-      var cy = state.blobY;
-      var op = (0.08 * (1 - eased));
-      var r  = (25 + eased * 120);
-
-      if (op < 0.005) return;
-
-      var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      grad.addColorStop(0, "rgba(180, 145, 210, " + op.toFixed(3) + ")");
-      grad.addColorStop(0.5, "rgba(120, 90, 170, " + (op * 0.5).toFixed(3) + ")");
-      grad.addColorStop(1, "rgba(40, 25, 70, 0)");
-
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    // RELEASED hum decay
+    if (st.phase === PHASE.RELEASED) {
+      var reP = Math.min(1, (now - st.yieldT) / 600);
+      setHum(0.025 * (1 - reP));
     }
 
-    /* --------------- render loop --------------- */
-    var rafId = null;
+    /* ---- draw ---- */
+    cx.clearRect(0, 0, cW, cH);
+    drawBg();
+    drawTensGlow();
+    drawDragTrail();
+    drawBloom();
+    drawReleaseFade(now);
+    drawRips();
 
-    function update(t) {
-      var dt = (t - (state.lastFrameTime || t)) / 1000;
-      dt = Math.min(dt, 0.05); // clamp to avoid huge jumps
-      state.lastFrameTime = t;
+    rafId = requestAnimationFrame(frame);
+  }
 
-      checkDampenExpiry();
-      checkScheduledBass();
-      updateRipples(t);
-
-      var progress = state.displacement / cssH;
-
-      /* ---- snap threshold check ---- */
-      if (!state.swiped &&
-        (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD)) {
-        if (progress >= SNAP_THRESHOLD || state.velocity >= VEL_THRESHOLD) {
-          triggerSnap();
-        }
-      }
-
-      /* ---- hold: hum decay ---- */
-      if (state.phase === PHASE.HOLD) {
-        state.humVolume = Math.max(0.003, state.humVolume - HUM_DECAY_RATE * dt * 60);
-        setHumVol(state.humVolume);
-      }
-
-      /* ---- snap: brief tension pause, then yield ---- */
-      if (state.phase === PHASE.SNAP) {
-        var snapElapsed = t - state.yieldStart;
-        if (snapElapsed >= PRE_BLOOM_DELAY) {
-          state.phase    = PHASE.YIELD;
-          state.yieldStart = t;
-        } else {
-          // Pre-bloom: subtle growth and warm hint
-          state.blobRadius  = (15 + snapElapsed * 1.2);
-          state.blobOpacity = 0.03 + snapElapsed * 0.008;
-        }
-      }
-
-      /* ---- yield: locked 250ms ease-out ---- */
-      if (state.phase === PHASE.YIELD) {
-        var elapsed = t - state.yieldStart;
-        var t0      = Math.min(1, elapsed / BLOOM_DURATION);
-        // Custom ease-out: 1 - (1-t)^3
-        var eased   = 1 - Math.pow(1 - t0, EASE_POWER);
-
-        state.blobOpacity  = SNAP_BLOOM_PEAK * (1 - eased * 0.45);
-        state.blobRadius   = (20 + eased * 350);
-        state.edgeSoftness = eased * 0.5;
-
-        // Hum swells as gradient yields
-        setHumVol(0.01 + eased * 0.12);
-
-        // Add secondary ripple at mid-yield
-        if (Math.abs(eased - 0.3) < dt && state.rippleCount < 2) {
-          addRipple(state.blobX, state.blobY);
-          state.rippleCount++;
-        }
-
-        if (t0 >= 1) {
-          state.phase      = PHASE.RESET;
-          state.resetStart = t;
-          setHumVol(0.005);
-          state.rippleCount = 0;
-        }
-      }
-
-      /* ---- reset: 1.2s fade to idle ---- */
-      if (state.phase === PHASE.RESET) {
-        var rp = Math.min(1, (t - state.resetStart) / RESET_DELAY);
-        state.blobOpacity   = Math.max(0, SNAP_BLOOM_PEAK * 0.15 * (1 - rp));
-        state.edgeSoftness  = Math.max(0, state.edgeSoftness * (1 - dt * 3));
-        state.tensionGlow   = Math.max(0, state.tensionGlow * (1 - dt * 4));
-
-        if (rp >= 1) {
-          state.phase         = PHASE.IDLE;
-          state.blobRadius    = 0;
-          state.blobOpacity   = 0;
-          state.edgeSoftness  = 0;
-          state.displacement  = 0;
-          state.velocity      = 0;
-          state.swiped        = false;
-          state.bassPlayed    = false;
-          state.bassScheduled = false;
-          state.tensionGlow   = 0;
-          state.ripples       = [];
-          state.rippleCount   = 0;
-
-          // Process queued rapid swipes
-          if (state.queued.length > 0) {
-            processQueue();
-          }
-        }
-      }
-
-      /* ---- idle: micro-hum oscillation ---- */
-      if (state.phase === PHASE.IDLE && humActive) {
-        state.microHumPhase += dt * 0.7;
-        var humV = 0.004 + Math.sin(state.microHumPhase) * 0.003;
-        setHumVol(Math.max(0.001, humV));
-      }
-
-      /* ---- released: gentle fade ---- */
-      if (state.phase === PHASE.RELEASED) {
-        var relElapsed = t - state.yieldStart;
-        var relProg    = Math.min(1, relElapsed / 600);
-        setHumVol(0.03 * (1 - relProg));
-      }
-
-      /* ---- draw ---- */
-      ctx.clearRect(0, 0, cssW, cssH);
-      drawBaseGradient();
-      drawTensionGlow();
-      drawDragLine();
-      drawBloom();
-      drawReleaseFade(t);
-      drawRipples();
-    }
-
-    function loop(t) {
-      update(t);
-      rafId = requestAnimationFrame(loop);
-    }
-
-    rafId = requestAnimationFrame(loop);
+  rafId = requestAnimationFrame(frame);
 })();
