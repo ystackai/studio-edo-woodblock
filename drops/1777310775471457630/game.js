@@ -1,307 +1,336 @@
 /*
- * Stone & Breath - Core Interaction Loop
- * Drag vector tracked linearly. Hard stall at exactly 45%.
- * 2.5s decay window drives ripple bloom and audio feedback.
+ * Stone & Breath — Core Interaction Loop
+ * Hard stall at exactly 45%. No interpolation. No ease. No transparency.
+ * Ripple is a solid ink annulus. Background is Ukiyo-e void.
  */
 
-const canvas = document.getElementById('water');
-const ctx = canvas.getContext('2d');
-const infoEl = document.getElementById('info');
+var canvas = document.getElementById('water');
+var ctx = canvas.getContext('2d');
+var infoEl = document.getElementById('info');
 
-// --- State ---
-let dragging = false;
-let stallReached = false;
-let decayActive = false;
-let dragStart = null; // {x, y}
-let dragCurrent = null; // {x, y}
-let impactPoint = null; // {x, y}
-let progress = 0; // 0..1 normalized drag progress
+/* ---- Constants ---- */
+var STALL_PCT = 0.45;
+var DECAY_MS = 2500;
+var SVG_VOID = '#070a12';
+var STONE_FG = '#1b2030';
+var STONE_STR = '#10141e';
+var INK_OUTER = '#1e2538';
+var INK_MID = '#141a28';
+var INK_INNER = '#0b0e18';
 
-// Ripple state
-let ripples = [];
-const STALL_THRESHOLD = 0.45;
-const DECAY_DURATION = 2500; // 2.5s
-let decayStart = 0;
+/* ---- State ---- */
+var state = 'idle';
+var dragOrigin = null;
+var dragPointer = null;
+var impactPt = null;
+var dragDist = 0;
+var maxDist = 0;
+var stallDist = 0;
+var decayTime = 0;
+var ripples = [];
+var audioCtx = null;
+var hapticTriggered = false;
 
-// Audio context (lazy init)
-let audioCtx = null;
+/* ---- Screen size & resize ---- */
+var W = window.innerWidth;
+var H = window.innerHeight;
 
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-}
-
-// --- Audio synthesis ---
-function playThud() {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.value = 140; // low thud 100-200Hz
-  gain.gain.value = 0.6;
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  // Dry ~100ms duration
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-  osc.stop(audioCtx.currentTime + 0.1);
-}
-
-function playExhale() {
-  if (!audioCtx) return;
-  const duration = 2.5;
-  // Create filtered noise buffer
-  const bufferSize = audioCtx.sampleRate * duration;
-  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * 0.4;
-  }
-  const source = audioCtx.createBufferSource();
-  source.buffer = buffer;
-
-  // Low-pass filter for soft exhale texture
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 400;
-
-  const gain = audioCtx.createGain();
-  gain.gain.value = 0.25;
-  // Decaying volume over 2.5s
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-  source.start();
-  source.stop(audioCtx.currentTime + duration);
-}
-
-// --- Haptic ---
-function triggerBite() {
-  if (navigator.vibrate) {
-    // Sharp short burst for the weight bite
-    navigator.vibrate([30, 30, 30]);
-  }
-}
-
-// --- Resize ---
 function resize() {
-  canvas.width = window.innerWidth * devicePixelRatio;
-  canvas.height = window.innerHeight * devicePixelRatio;
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    maxDist = Math.max(W, H) * 0.5;
+    stallDist = maxDist * STALL_PCT;
 }
 window.addEventListener('resize', resize);
 resize();
 
-// --- Drawing ---
-const BG_COLOR = '#0a0e17';
-const RIPPLE_COLOR = '#2a3045'; // deep indigo-grey solid ink
-const STONE_COLOR = '#1a1f2a';
-
-function drawBg() {
-  ctx.fillStyle = BG_COLOR;
-  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+/* ---- Position helpers ---- */
+function pointerPos(e) {
+    if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
 }
 
-function drawStone(x, y, r) {
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = STONE_COLOR;
-  ctx.fill();
+function distance(a, b) {
+    var dx = b.x - a.x;
+    var dy = b.y - a.y;
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
-function drawRipples() {
-  for (const rp of ripples) {
-    // Solid ink shape, no alpha
+/* ---- Audio synthesis ---- */
+function ensureAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+function playThud() {
+    if (!audioCtx) return;
+    var t = audioCtx.currentTime;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, t);
+    osc.frequency.setValueAtTime(120, t + 0.04);
+    osc.frequency.setValueAtTime(90, t + 0.08);
+    gain.gain.setValueAtTime(0.55, t);
+    gain.gain.setValueAtTime(0.4, t + 0.02);
+    gain.gain.setValueAtTime(0.001, t + 0.1);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.12);
+}
+
+function playExhale() {
+    if (!audioCtx) return;
+    var t = audioCtx.currentTime;
+    var dur = 2.5;
+    var sr = audioCtx.sampleRate;
+    var bufLen = sr * dur;
+    var buf = audioCtx.createBuffer(1, bufLen, sr);
+    var ch = buf.getChannelData(0);
+    for (var i = 0; i < bufLen; i++) {
+        ch[i] = (Math.random() * 2 - 1);
+    }
+    var src = audioCtx.createBufferSource();
+    src.buffer = buf;
+
+    var lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(600, t);
+    lp.frequency.setValueAtTime(300, t + 1.0);
+    lp.frequency.setValueAtTime(150, t + dur);
+
+    var gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.setValueAtTime(0.12, t + 0.15);
+    gain.gain.setValueAtTime(0.001, t + dur);
+
+    src.connect(lp);
+    lp.connect(gain);
+    gain.connect(audioCtx.destination);
+    src.start(t);
+    src.stop(t + dur);
+}
+
+/* ---- Haptic ---- */
+function triggerBite() {
+    if (navigator.vibrate) {
+        navigator.vibrate([25, 20, 35]);
+    }
+}
+
+/* ---- Ukiyo-e Void Background ---- */
+function drawVoid() {
+    ctx.fillStyle = SVG_VOID;
+    ctx.fillRect(0, 0, W, H);
+
+    /* Faint horizontal strata — woodblock grain */
+    for (var y = 30; y < H; y += 55) {
+        var alpha = 0.03 + (Math.sin(y * 0.01) * 0.015);
+        ctx.fillStyle = 'rgba(25,30,45,' + alpha + ')';
+        ctx.fillRect(0, y, W, 1);
+    }
+}
+
+/* ---- Stone Rendering ---- */
+function drawStone(x, y, radius) {
+    /* Outer stone body */
     ctx.beginPath();
-    ctx.arc(rp.x, rp.y, rp.radius, 0, Math.PI * 2);
-    ctx.fillStyle = rp.color;
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = STONE_FG;
     ctx.fill();
 
-    // Inner ring
-    if (rp.innerRadius > 0) {
-      ctx.beginPath();
-      ctx.arc(rp.x, rp.y, rp.innerRadius, 0, Math.PI * 2);
-      ctx.fillStyle = rp.innerColor;
-      ctx.fill();
+    /* Inner shadow — flat, solid, no gradient */
+    ctx.beginPath();
+    ctx.arc(x - radius * 0.15, y - radius * 0.15, radius * 0.72, 0, Math.PI * 2);
+    ctx.fillStyle = STONE_STR;
+    ctx.fill();
+}
+
+/* ---- Solid Ink Ripple Rendering ---- */
+function drawRipples() {
+    for (var i = 0; i < ripples.length; i++) {
+        var r = ripples[i];
+
+        /* Outer ring — solid fill, no alpha */
+        ctx.beginPath();
+        ctx.arc(r.cx, r.cy, r.outerR, 0, Math.PI * 2);
+        ctx.fillStyle = r.outerCol;
+        ctx.fill();
+
+        /* Inner ring — solid fill, no alpha; creates the annulus */
+        ctx.beginPath();
+        ctx.arc(r.cx, r.cy, r.innerR, 0, Math.PI * 2);
+        ctx.fillStyle = r.innerCol;
+        ctx.fill();
     }
-  }
 }
 
-function draw() {
-  drawBg();
-
-  // Active drag: draw the stone at current position
-  if (dragging && !stallReached && dragCurrent) {
-    const size = 8 + progress * 18;
-    drawStone(dragCurrent.x, dragCurrent.y, size);
-  }
-
-  // Stall / decay: draw stone at impact point
-  if (stallReached) {
-    drawStone(impactPoint.x, impactPoint.y, 26);
-  }
-
-  drawRipples();
-
-  requestAnimationFrame(draw);
-}
-
-// --- Progress calculation ---
-function calcProgress(start, current) {
-  const dx = current.x - start.x;
-  const dy = current.y - start.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  // Normalize: 200px of drag = 100% progress
-  const maxDist = Math.max(window.innerWidth, window.innerHeight) * 0.5;
-  return Math.min(dist / maxDist, 1);
-}
-
-// --- Ripple management ---
+/* ---- Ripple Spawning ---- */
 function spawnRipple(x, y) {
-  const maxRadius = Math.max(window.innerWidth, window.innerHeight) * 0.35;
-  ripples.push({
-    x, y,
-    radius: 0,
-    maxRadius: maxRadius,
-    innerRadius: 0,
-    innerMax: maxRadius * 0.6,
-    color: RIPPLE_COLOR,
-    innerColor: '#1e2335',
-    born: performance.now(),
-    duration: DECAY_DURATION,
-  });
+    var maxR = Math.min(W, H) * 0.42;
+    ripples.push({
+        cx: x,
+        cy: y,
+        outerR: 12,
+        innerR: 6,
+        maxOuter: maxR,
+        maxInner: maxR * 0.6,
+        outerCol: INK_OUTER,
+        innerCol: INK_INNER,
+        born: performance.now()
+    });
 }
 
+/* ---- Ripple Update — Linear expansion, no interpolation ---- */
 function updateRipples(now) {
-  for (const rp of ripples) {
-    const elapsed = now - rp.born;
-    const t = Math.min(elapsed / rp.duration, 1);
+    var surviving = [];
+    for (var i = 0; i < ripples.length; i++) {
+        var r = ripples[i];
+        var elapsed = now - r.born;
+        var t = Math.min(elapsed / DECAY_MS, 1);
 
-    // Linear expansion, no ease
-    rp.radius = rp.maxRadius * t;
-    rp.innerRadius = rp.innerMax * t;
+        /* Linear — no curve */
+        r.outerR = 12 + (r.maxOuter - 12) * t;
+        r.innerR = 6 + (r.maxInner - 6) * t;
 
-    // Color bleeds via solid expansion - change color as it grows
-    if (t > 0.3 && t <= 0.6) {
-      rp.color = '#1a2030';
-      rp.innerColor = '#151a28';
-    } else if (t > 0.6) {
-      rp.color = '#0f1320';
-      rp.innerColor = '#0c0f18';
+        /* Color shift via discrete steps — NO alpha */
+        if (t < 0.33) {
+            r.outerCol = INK_OUTER;
+            r.innerCol = INK_INNER;
+        } else if (t < 0.66) {
+            r.outerCol = INK_MID;
+            r.innerCol = '#090c14';
+        } else {
+            r.outerCol = '#0d1019';
+            r.innerCol = '#070a10';
+        }
+
+        if (elapsed < DECAY_MS + 50) {
+            surviving.push(r);
+        }
     }
-  }
-  // Remove expired ripples
-  ripples = ripples.filter(rp => (now - rp.born) < rp.duration + 200);
+    ripples = surviving;
 }
 
-// --- Input handling ---
-function getPos(e) {
-  if (e.touches && e.touches.length > 0) {
-    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }
-  return { x: e.clientX, y: e.clientY };
+/* ---- Stall Detection — Zero interpolation ---- */
+function triggerStall(pointer) {
+    impactPt = {
+        x: dragOrigin.x + (pointer.x - dragOrigin.x) * (stallDist / dragDist),
+        y: dragOrigin.y + (pointer.y - dragOrigin.y) * (stallDist / dragDist)
+    };
+    state = 'decaying';
+    hapticTriggered = false;
+
+    playThud();
+    triggerBite();
+    spawnRipple(impactPt.x, impactPt.y);
+
+    /* Exhale 120ms after thud — sequential, no overlap */
+    setTimeout(playExhale, 120);
+
+    dragOrigin = null;
+    dragPointer = null;
+    dragDist = 0;
+    decayTime = performance.now();
 }
 
-function onStart(e) {
-  e.preventDefault();
-  initAudio();
-  if (stallReached && !decayActive) return;
-  if (decayActive) return;
+/* ---- Input Handlers ---- */
+function onDown(e) {
+    e.preventDefault();
+    ensureAudio();
+    if (state === 'decaying') return;
+    if (state === 'stalled') {
+        /* Reset for next interaction */
+        ripples = [];
+        impactPt = null;
+        state = 'idle';
+        infoEl.style.color = '#3a4050';
+    }
 
-  dragging = true;
-  stallReached = false;
-  dragStart = getPos(e);
-  dragCurrent = dragStart;
-  progress = 0;
-  ripples = [];
-  infoEl.style.opacity = '0';
+    state = 'dragging';
+    dragOrigin = pointerPos(e);
+    dragPointer = dragOrigin;
+    dragDist = 0;
+    ripples = [];
 }
 
 function onMove(e) {
-  e.preventDefault();
-  if (!dragging || stallReached) return;
+    e.preventDefault();
+    if (state !== 'dragging') return;
 
-  dragCurrent = getPos(e);
-  const rawProgress = calcProgress(dragStart, dragCurrent);
+    var ptr = pointerPos(e);
+    dragPointer = ptr;
+    dragDist = distance(dragOrigin, ptr);
 
-   // HARD STALL at exactly 45%
-  if (rawProgress >= STALL_THRESHOLD) {
-    progress = STALL_THRESHOLD;
-    stallReached = true;
-    dragging = false;
-
-     // Clamp dragCurrent to the stall position
-    const dx = dragCurrent.x - dragStart.x;
-    const dy = dragCurrent.y - dragStart.y;
-    const angle = Math.atan2(dy, dx);
-    const maxDist = Math.max(window.innerWidth, window.innerHeight) * 0.5;
-    const clampedDist = maxDist * STALL_THRESHOLD;
-    impactPoint = {
-      x: dragStart.x + Math.cos(angle) * clampedDist,
-      y: dragStart.y + Math.sin(angle) * clampedDist,
-     };
-
-    // Audio: thud at impact
-    playThud();
-
-    // Haptic: sharp bite
-    triggerBite();
-
-    // Start decay window
-    decayActive = true;
-    decayStart = performance.now();
-    spawnRipple(impactPoint.x, impactPoint.y);
-
-    // Audio: exhale during decay
-    setTimeout(() => playExhale(), 120);
-  }
-}
-
-function onEnd(e) {
-  e.preventDefault();
-  if (decayActive) return;
-  dragging = false;
-  dragStart = null;
-  dragCurrent = null;
-  progress = 0;
-  infoEl.style.opacity = '1';
-}
-
-// Touch events
-canvas.addEventListener('touchstart', onStart, { passive: false });
-canvas.addEventListener('touchmove', onMove, { passive: false });
-canvas.addEventListener('touchend', onEnd, { passive: false });
-canvas.addEventListener('touchcancel', onEnd, { passive: false });
-
-// Mouse events for desktop testing
-canvas.addEventListener('mousedown', onStart);
-canvas.addEventListener('mousemove', onMove);
-canvas.addEventListener('mouseup', onEnd);
-canvas.addEventListener('mouseleave', onEnd);
-
-// --- Main loop ---
-function loop() {
-  const now = performance.now();
-
-  // Update ripples during decay
-  if (decayActive) {
-    updateRipples(now);
-    const elapsed = now - decayStart;
-    if (elapsed >= DECAY_DURATION) {
-      decayActive = false;
-      ripples = [];
-      stallReached = false;
-      infoEl.style.opacity = '1';
+    if (dragDist >= stallDist) {
+        triggerStall(ptr);
     }
-  }
-
-  requestAnimationFrame(loop);
 }
 
-// Start
-draw();
-loop();
+function onUp(e) {
+    e.preventDefault();
+    if (state !== 'dragging') return;
+    state = 'idle';
+    dragOrigin = null;
+    dragPointer = null;
+    dragDist = 0;
+}
+
+/* Touch */
+canvas.addEventListener('touchstart', onDown, { passive: false });
+canvas.addEventListener('touchmove', onMove, { passive: false });
+canvas.addEventListener('touchend', onUp, { passive: false });
+canvas.addEventListener('touchcancel', onUp, { passive: false });
+
+/* Mouse — for desktop testing */
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('mousemove', onMove);
+canvas.addEventListener('mouseup', onUp);
+canvas.addEventListener('mouseleave', onUp);
+
+/* ---- Main Render Loop ---- */
+function frame() {
+    var now = performance.now();
+
+    drawVoid();
+
+    if (state === 'dragging' && dragPointer) {
+        var stoneSize = 10 + (dragDist / stallDist) * 16;
+        drawStone(dragPointer.x, dragPointer.y, stoneSize);
+    }
+
+    if (state === 'stalled' || state === 'decaying') {
+        if (impactPt) {
+            drawStone(impactPt.x, impactPt.y, 26);
+        }
+
+        if (state === 'decaying') {
+            updateRipples(now);
+            drawRipples();
+
+            var elapsed = now - decayTime;
+            if (elapsed >= DECAY_MS) {
+                state = 'idle';
+                ripples = [];
+                impactPt = null;
+                infoEl.textContent = 'Drag to drop the stone';
+                infoEl.style.color = '#3a4050';
+            }
+        }
+    }
+
+    requestAnimationFrame(frame);
+}
+
+/* Kick off */
+requestAnimationFrame(frame);
