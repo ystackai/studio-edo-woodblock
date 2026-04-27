@@ -113,10 +113,9 @@
     lpFilter.frequency.setValueAtTime(180, now);
     lpFilter.Q.value = 0.5;
 
-    // 800ms peak, 1.7s tail — no percussive attack
+    // 800ms smooth rise to peak, 1.7s tail decay — zero percussive transients
     masterGain.gain.setValueAtTime(0, now);
-    masterGain.gain.linearRampToValueAtTime(0.18, now + 0.2);
-    masterGain.gain.setValueAtTime(0.18, now + 0.8);
+    masterGain.gain.linearRampToValueAtTime(0.18, now + 0.8);
     masterGain.gain.linearRampToValueAtTime(0, now + 2.5);
 
     osc1.connect(lpFilter);
@@ -133,16 +132,17 @@
   // ─── Haptics ─────────────────────────────────────────────
   function fireHapticPulse() {
     if (navigator.vibrate) {
-      // Sharp high-amplitude pulse, decaying over 120ms
+      // Sharp high-amplitude stall pulse: 80ms strong, 30ms decay, 40ms softer — total ~150ms envelope
       navigator.vibrate([80, 30, 40]);
     }
-  }
+   }
 
   function fireHapticSettle() {
     if (navigator.vibrate) {
-      navigator.vibrate([20, 60, 10]);
+      // Smooth settling fade: gentle vibrations with growing gaps to simulate decay
+      navigator.vibrate([30, 80, 20, 100, 10]);
     }
-  }
+   }
 
   // ─── Input Handling ─────────────────────────────────────
   let isDragging = false;
