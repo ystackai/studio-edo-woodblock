@@ -2,20 +2,20 @@
     "use strict";
 
     /* --------------- constants --------------- */
-    var SNAP_THRESHOLD      = 0.65;      // 65% drag distance to bloom
-    var VEL_THRESHOLD       = 150;       // peak px/s velocity to trigger snap
-    var BLOOM_DURATION      = 250;       // ms — locked yield ease-out
-    var RESET_DELAY         = 1200;      // ms before state clears
-    var BASS_DELAY          = 40;        // ms delay relative to visual snap
+    var SNAP_THRESHOLD      = 0.65;       // 65% drag distance to bloom
+    var VEL_THRESHOLD       = 150;        // peak px/s velocity to trigger snap
+    var BLOOM_DURATION      = 250;        // ms — locked yield ease-out
+    var RESET_DELAY         = 1200;       // ms before state clears
+    var BASS_DELAY          = 40;         // ms delay relative to visual snap
     var BASS_FREQ           = 75;
     var HUM_FREQ            = 55;
-    var SCROLL_DAMPEN       = 0.7;      // 70% momentum reduction
+    var SCROLL_DAMPEN       = 0.7;       // 70% momentum reduction
     var HUM_DECAY_RATE      = 0.015;
     var MAX_QUEUE           = 3;
-    var EASE_POWER          = 3;         // ease-out exponent
-    var PRE_BLOOM_DELAY     = 12;        // ms of pre-bloom tension before yield
-    var SNAP_BLOOM_PEAK     = 0.35;     // peak opacity at snap moment
-    var YIELD_BLOOM_PEAK    = 0.65;     // peak opacity entering yield
+    var EASE_POWER          = 3;          // ease-out exponent
+    var PRE_BLOOM_DELAY     = 12;         // ms of pre-bloom tension before yield
+    var SNAP_BLOOM_PEAK     = 0.35;      // peak opacity at snap moment
+    var YIELD_BLOOM_PEAK    = 0.65;      // peak opacity entering yield
 
     /* --------------- phase enum --------------- */
     var PHASE = {
@@ -31,46 +31,50 @@
     /* --------------- state --------------- */
     var state = {
       phase:          PHASE.IDLE,
-      dragStartY:     0,
-      dragCurrentY:   0,
-      displacement:     0,
-      velocity:         0,
-      lastY:           0,
+      dragStartY:      0,
+      dragCurrentY:    0,
+      dragStartX:      0,
+      dragCurrentX:    0,
+      displacement:      0,
+      velocity:          0,
+      lastY:            0,
+      lastX:            0,
       lastTime:         0,
-      blobX:           0,
-      blobY:           0,
+      blobX:            0,
+      blobY:            0,
       blobRadius:       0,
       blobOpacity:      0,
       edgeSoftness:     0,
       humVolume:        0,
-      swiped:       false,
-      queued:           [],        // rapid-swipe queue (≤3)
+      swiped:          false,
+      queued:           [],         // rapid-swipe queue (≤3)
       yieldStart:       0,
       resetStart:       0,
       resetTimeout:     null,
       bassSchedTime:    0,
-      bassScheduled:  false,
-      bassPlayed:     false,
-      scrollDampened: false,
+      bassScheduled:   false,
+      bassPlayed:      false,
+      scrollDampened:  false,
       dampenExpiry:     0,
       lastFrameTime:    0,
-      activePointer: null,
-      tensionGlow:      0,        // tension glow during drag (0-1)
-      rippleCount:      0,        // number of ripple rings
-      ripples:          [],        // {cx, cy, radius, opacity, birth}
-      microHumPhase:    0         // idle hum oscillation
+      activePointer:   null,
+      tensionGlow:      0,         // tension glow during drag (0-1)
+      rippleCount:      0,         // number of ripple rings
+      ripples:          [],         // {cx, cy, radius, opacity, birth}
+      microHumPhase:    0          // idle hum oscillation
     };
 
     /* --------------- canvas setup --------------- */
     var canvas = document.getElementById("c");
     var ctx    = canvas.getContext("2d");
     var dpr    = Math.min(window.devicePixelRatio || 1, 2);
-    var W, H, viewH;
+    var cssW, cssH;
 
     function resize() {
-      viewH = window.innerHeight;
-      W = canvas.width    = window.innerWidth    * dpr;
-      H = canvas.height  = window.innerHeight * dpr;
+      cssW = window.innerWidth;
+      cssH = window.innerHeight;
+      canvas.width  = cssW * dpr;
+      canvas.height = cssH * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     window.addEventListener("resize", resize);
@@ -155,7 +159,7 @@
         cx: cx,
         cy: cy,
         radius: 0,
-        maxRadius: Math.max(W, H) * 0.6,
+        maxRadius: Math.max(cssW, cssH) * 0.6,
         opacity: 0.25,
         birth: performance.now()
       });
@@ -169,7 +173,7 @@
       for (var i = state.ripples.length - 1; i >= 0; i--) {
         var r = state.ripples[i];
         var age = (t - r.birth) / 1000;
-        r.radius = age * 300 * dpr; // px/s expansion rate
+        r.radius  = age * 300;
         r.opacity = Math.max(0, 0.25 * (1 - age * 0.8));
         if (r.opacity <= 0.001) {
           state.ripples.splice(i, 1);
@@ -183,18 +187,15 @@
       ctx.globalCompositeOperation = "lighter";
       for (var i = 0; i < state.ripples.length; i++) {
         var r = state.ripples[i];
-        var cx = r.cx * dpr;
-        var cy = r.cy * dpr;
-        var rad = r.radius;
-        var grad = ctx.createRadialGradient(cx, cy, rad * 0.85, cx, cy, rad);
-        grad.addColorStop(0, "rgba(30, 20, 50, 0)");
-        grad.addColorStop(0.5, "rgba(180, 140, 210, " + (r.opacity * 0.4).toFixed(3) + ")");
-        grad.addColorStop(0.8, "rgba(140, 100, 180, " + (r.opacity * 0.2).toFixed(3) + ")");
-        grad.addColorStop(1, "rgba(30, 20, 50, 0)");
+        var grad = ctx.createRadialGradient(r.cx, r.cy, r.radius * 0.85, r.cx, r.cy, r.radius);
+        grad.addColorStop(0,    "rgba(30, 20, 50, 0)");
+        grad.addColorStop(0.5,  "rgba(180, 140, 210, " + (r.opacity * 0.4).toFixed(3) + ")");
+        grad.addColorStop(0.8,  "rgba(140, 100, 180, " + (r.opacity * 0.2).toFixed(3) + ")");
+        grad.addColorStop(1,    "rgba(30, 20, 50, 0)");
         ctx.strokeStyle = grad;
-        ctx.lineWidth = 3 * dpr;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.arc(r.cx, r.cy, r.radius, 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();
@@ -203,10 +204,10 @@
     /* --------------- input handling --------------- */
     var pointers = new Map();
 
-    function getPointerY(e) {
-      if (e.touches && e.touches.length > 0) return e.touches[0].clientY;
-      if (e.changedTouches && e.changedTouches.length > 0) return e.changedTouches[0].clientY;
-      return e.clientY;
+    function getPointerPos(e) {
+      if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+      return { x: e.clientX, y: e.clientY };
     }
 
     function getPointerId(e) {
@@ -227,31 +228,36 @@
       e.preventDefault();
       ensureAudio();
 
-      var y  = getPointerY(e);
-      var id = getPointerId(e);
+      var pos = getPointerPos(e);
+      var x   = pos.x;
+      var y   = pos.y;
+      var id  = getPointerId(e);
       state.activePointer = id;
 
       if (state.phase === PHASE.IDLE) {
         // Fresh interaction — reset everything
-        state.phase            = PHASE.INITIATION;
-        state.dragStartY       = y;
-        state.dragCurrentY     = y;
-        state.lastY            = y;
-        state.lastTime         = performance.now();
-        state.displacement      = 0;
-        state.velocity          = 0;
-        state.blobX            = window.innerWidth / 2;
-        state.blobY            = y;
-        state.blobRadius       = 0;
-        state.blobOpacity      = 0;
-        state.edgeSoftness     = 0;
-        state.humVolume        = 0.08;
-        state.swiped           = false;
-        state.bassPlayed       = false;
-        state.bassScheduled    = false;
-        state.queued           = [];
-        state.tensionGlow      = 0;
-        state.ripples          = [];
+        state.phase           = PHASE.INITIATION;
+        state.dragStartY      = y;
+        state.dragCurrentY    = y;
+        state.dragStartX      = x;
+        state.dragCurrentX    = x;
+        state.lastY           = y;
+        state.lastX           = x;
+        state.lastTime        = performance.now();
+        state.displacement     = 0;
+        state.velocity         = 0;
+        state.blobX           = x;
+        state.blobY           = y;
+        state.blobRadius      = 0;
+        state.blobOpacity     = 0;
+        state.edgeSoftness    = 0;
+        state.humVolume       = 0.08;
+        state.swiped          = false;
+        state.bassPlayed      = false;
+        state.bassScheduled   = false;
+        state.queued          = [];
+        state.tensionGlow     = 0;
+        state.ripples         = [];
         setHumVol(0.08);
       } else if (
         state.phase === PHASE.RESET ||
@@ -262,37 +268,43 @@
         // Queue rapid swipe (max 3)
         if (state.queued.length < MAX_QUEUE) {
           state.queued.push({
+            x: x,
             y: y,
             t: performance.now(),
-            blobX: window.innerWidth / 2,
+            blobX: x,
             blobY: y
           });
         }
       }
-      pointers.set(id, y);
+      pointers.set(id, { x: x, y: y });
     }
 
     function onMove(e) {
       e.preventDefault();
-      var y  = getPointerY(e);
-      var id = getPointerId(e);
+      var pos = getPointerPos(e);
+      var x   = pos.x;
+      var y   = pos.y;
+      var id  = getPointerId(e);
 
       if (state.activePointer !== id) return;
 
       if (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD) {
-        var now  = performance.now();
-        var dt   = Math.max(0.5, now - state.lastTime);
-        var dy   = state.lastY - y;
+        var now   = performance.now();
+        var dt    = Math.max(0.5, now - state.lastTime);
+        var dy    = state.lastY - y;
+        var dx    = state.lastX - x;
 
-        state.velocity       = Math.abs(dy / dt * 16);
-        state.displacement   = Math.abs(y - state.dragStartY);
-        state.dragCurrentY   = y;
-        state.lastY          = y;
-        state.lastTime       = now;
-        state.blobY          = y;
-        state.blobX          = window.innerWidth / 2;
+        state.velocity     = Math.abs(dy / dt * 16);
+        state.displacement = Math.abs(y - state.dragStartY);
+        state.dragCurrentY = y;
+        state.dragCurrentX = x;
+        state.lastY       = y;
+        state.lastX       = x;
+        state.lastTime     = now;
+        state.blobY       = y;
+        state.blobX       = x;
 
-        var progress = state.displacement / viewH;
+        var progress = state.displacement / cssH;
 
         // Transition from initiation to hold at 8% drag
         if (progress >= 0.08 && state.phase === PHASE.INITIATION) {
@@ -306,7 +318,7 @@
         setHumVol(0.08 * (1 - progress * 0.7));
       }
 
-      pointers.set(id, y);
+      pointers.set(id, { x: x, y: y });
     }
 
     function onUp(e) {
@@ -320,7 +332,7 @@
 
       // If released during drag without snapping, transition to released state
       if (!state.swiped &&
-          (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD)) {
+        (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD)) {
         // Gentle release: fade tension and glow
         state.phase = PHASE.RELEASED;
         state.resetStart = performance.now();
@@ -369,7 +381,6 @@
     }, { passive: false });
 
     // Also intercept touch-scroll on body for mobile dampening
-    var scrollMomentum = 0;
     document.body.addEventListener("touchmove", function(e) {
       if (wheelDampenActive) {
         e.preventDefault();
@@ -379,11 +390,11 @@
     /* --------------- snap / yield logic --------------- */
     function triggerSnap() {
       if (state.swiped) return;
-      state.phase     = PHASE.SNAP;
-      state.swiped    = true;
+      state.phase      = PHASE.SNAP;
+      state.swiped     = true;
       state.yieldStart = performance.now();
       state.blobOpacity = 0.03;
-      state.blobRadius  = 15;
+      state.blobRadius   = 15;
       state.edgeSoftness = 0;
 
       // Haptic fires immediately at snap threshold
@@ -402,24 +413,27 @@
     function processQueue() {
       if (state.queued.length === 0) return;
       var entry = state.queued.shift();
-      state.phase            = PHASE.INITIATION;
-      state.dragStartY       = entry.y;
-      state.dragCurrentY     = entry.y;
-      state.lastY            = entry.y;
-      state.lastTime         = performance.now();
-      state.displacement     = 0;
-      state.velocity         = 0;
-      state.blobX            = entry.blobX;
-      state.blobY            = entry.blobY;
-      state.blobRadius       = 0;
-      state.blobOpacity      = 0;
-      state.edgeSoftness     = 0;
-      state.humVolume        = 0.08;
-      state.swiped           = false;
-      state.tensionGlow      = 0;
-      state.bassPlayed       = false;
-      state.bassScheduled    = false;
-      state.ripples          = [];
+      state.phase           = PHASE.INITIATION;
+      state.dragStartY      = entry.y;
+      state.dragCurrentY    = entry.y;
+      state.dragStartX      = entry.x;
+      state.dragCurrentX    = entry.x;
+      state.lastY           = entry.y;
+      state.lastX           = entry.x;
+      state.lastTime        = performance.now();
+      state.displacement    = 0;
+      state.velocity        = 0;
+      state.blobX           = entry.blobX;
+      state.blobY           = entry.blobY;
+      state.blobRadius      = 0;
+      state.blobOpacity     = 0;
+      state.edgeSoftness    = 0;
+      state.humVolume       = 0.08;
+      state.swiped          = false;
+      state.tensionGlow     = 0;
+      state.bassPlayed      = false;
+      state.bassScheduled   = false;
+      state.ripples         = [];
       setHumVol(0.08);
     }
 
@@ -427,39 +441,38 @@
 
     // Core indigo-to-void gradient holding tension
     function drawBaseGradient() {
-      var cx = state.blobX * dpr;
-      var cy = state.blobY * dpr;
-      var maxR = Math.max(W, H) * 0.7;
+      var cx = state.blobX;
+      var cy = state.blobY;
+      var maxR = Math.max(cssW, cssH) * 0.7;
 
       var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
 
       if (state.phase === PHASE.IDLE) {
-        grad.addColorStop(0,    "rgba(18, 12, 40, 1)");
+        grad.addColorStop(0,     "rgba(18, 12, 40, 1)");
         grad.addColorStop(0.4, "rgba(8, 6, 20, 1)");
-        grad.addColorStop(1,    "rgba(0, 0, 0, 1)");
+        grad.addColorStop(1,     "rgba(0, 0, 0, 1)");
       } else if (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD) {
         // Gradient holds firm during drag
-        var soft = state.edgeSoftness;
         var intensity = Math.min(1, state.tensionGlow);
         var r0 = Math.round(25 + intensity * 10);
         var g0 = Math.round(15 + intensity * 5);
         var b0 = Math.round(50 + intensity * 15);
-        grad.addColorStop(0,    "rgba(" + r0 + "," + g0 + "," + b0 + ", 0.98)");
+        grad.addColorStop(0,     "rgba(" + r0 + "," + g0 + "," + b0 + ", 0.98)");
         grad.addColorStop(0.3, "rgba(14, 9, 35, 0.96)");
         grad.addColorStop(0.6, "rgba(8, 5, 22, 0.93)");
-        grad.addColorStop(1,    "rgba(0, 0, 0, 0.9)");
+        grad.addColorStop(1,     "rgba(0, 0, 0, 0.9)");
       } else {
         var soft = state.edgeSoftness;
         var op0 = 0.95 - soft * 0.15;
         var op1 = 0.9  - soft * 0.2;
         var op2 = 0.85 - soft * 0.15;
-        grad.addColorStop(0,    "rgba(25, 15, 50, " + op0.toFixed(3) + ")");
+        grad.addColorStop(0,     "rgba(25, 15, 50, " + op0.toFixed(3) + ")");
         grad.addColorStop(0.4, "rgba(10, 7, 25, " + op1.toFixed(3) + ")");
-        grad.addColorStop(1,    "rgba(0, 0, 0, " + op2.toFixed(3) + ")");
+        grad.addColorStop(1,     "rgba(0, 0, 0, " + op2.toFixed(3) + ")");
       }
 
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
+      ctx.fillRect(0, 0, cssW, cssH);
     }
 
     // Tension glow during drag — subtle glow around thumb position
@@ -468,9 +481,9 @@
       if (state.tensionGlow < 0.01) return;
 
       var intensity = state.tensionGlow;
-      var cx = state.blobX * dpr;
-      var cy = state.blobY * dpr;
-      var r   = 40 * dpr * (0.6 + intensity * 0.6);
+      var cx = state.blobX;
+      var cy = state.blobY;
+      var r   = 40 * (0.6 + intensity * 0.6);
 
       var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
       var a = (0.04 + intensity * 0.18).toFixed(3);
@@ -492,19 +505,19 @@
       if (state.phase !== PHASE.INITIATION && state.phase !== PHASE.HOLD) return;
       if (Math.abs(state.dragCurrentY - state.dragStartY) < 3) return;
 
-      var sx  = state.blobX * dpr;
-      var sy1 = state.dragStartY * dpr;
-      var sy2 = state.dragCurrentY * dpr;
+      var sx   = state.dragStartX;
+      var sy1 = state.dragStartY;
+      var sy2 = state.dragCurrentY;
 
       var grad = ctx.createLinearGradient(sx, sy1, sx, sy2);
-      var prog = Math.min(1, state.displacement / viewH);
+      var prog = Math.min(1, state.displacement / cssH);
       var alpha = Math.min(0.4, prog * 0.5);
-      grad.addColorStop(0,  "rgba(150, 110, 200, " + alpha.toFixed(3) + ")");
-      grad.addColorStop(1,  "rgba(80, 50, 150, 0)");
+      grad.addColorStop(0, "rgba(150, 110, 200, " + alpha.toFixed(3) + ")");
+      grad.addColorStop(1, "rgba(80, 50, 150, 0)");
 
       ctx.save();
       ctx.strokeStyle = grad;
-      ctx.lineWidth   = 2 * dpr;
+      ctx.lineWidth   = 2;
       ctx.lineCap     = "round";
       ctx.beginPath();
       ctx.moveTo(sx, sy1);
@@ -517,9 +530,9 @@
     function drawBloom() {
       if (state.blobOpacity <= 0.005) return;
 
-      var cx = state.blobX * dpr;
-      var cy = state.blobY * dpr;
-      var r  = state.blobRadius * dpr;
+      var cx = state.blobX;
+      var cy = state.blobY;
+      var r  = state.blobRadius;
       var op = state.blobOpacity;
 
       // Primary amber core
@@ -544,8 +557,8 @@
       var glowR = r * 2.2;
       var glow = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, glowR);
       glow.addColorStop(0,   "rgba(255, 200, 100, " + (op * 0.18).toFixed(3) + ")");
-      glow.addColorStop(0.3, "rgba(235, 120, 85,  " + (op * 0.1).toFixed(3) + ")");
-      glow.addColorStop(0.6, "rgba(220, 90, 80,   " + (op * 0.05).toFixed(3) + ")");
+      glow.addColorStop(0.3, "rgba(235, 120, 85,   " + (op * 0.1).toFixed(3) + ")");
+      glow.addColorStop(0.6, "rgba(220, 90, 80,    " + (op * 0.05).toFixed(3) + ")");
       glow.addColorStop(1,   "rgba(80, 40, 60, 0)");
       ctx.fillStyle = glow;
       ctx.beginPath();
@@ -561,10 +574,10 @@
       var prog = Math.min(1, elapsed / 600);
       var eased = 1 - Math.pow(1 - prog, 2);
 
-      var cx = state.blobX * dpr;
-      var cy = state.blobY * dpr;
+      var cx = state.blobX;
+      var cy = state.blobY;
       var op = (0.08 * (1 - eased));
-      var r  = (25 + eased * 120) * dpr;
+      var r  = (25 + eased * 120);
 
       if (op < 0.005) return;
 
@@ -586,7 +599,7 @@
     var rafId = null;
 
     function update(t) {
-      var dt        = (t - (state.lastFrameTime || t)) / 1000;
+      var dt = (t - (state.lastFrameTime || t)) / 1000;
       dt = Math.min(dt, 0.05); // clamp to avoid huge jumps
       state.lastFrameTime = t;
 
@@ -594,11 +607,11 @@
       checkScheduledBass();
       updateRipples(t);
 
-      var progress = state.displacement / viewH;
+      var progress = state.displacement / cssH;
 
       /* ---- snap threshold check ---- */
       if (!state.swiped &&
-          (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD)) {
+        (state.phase === PHASE.INITIATION || state.phase === PHASE.HOLD)) {
         if (progress >= SNAP_THRESHOLD || state.velocity >= VEL_THRESHOLD) {
           triggerSnap();
         }
@@ -618,7 +631,7 @@
           state.yieldStart = t;
         } else {
           // Pre-bloom: subtle growth and warm hint
-          state.blobRadius = (15 + snapElapsed * 1.2);
+          state.blobRadius  = (15 + snapElapsed * 1.2);
           state.blobOpacity = 0.03 + snapElapsed * 0.008;
         }
       }
@@ -659,18 +672,18 @@
         state.tensionGlow   = Math.max(0, state.tensionGlow * (1 - dt * 4));
 
         if (rp >= 1) {
-          state.phase          = PHASE.IDLE;
-          state.blobRadius     = 0;
-          state.blobOpacity    = 0;
-          state.edgeSoftness   = 0;
-          state.displacement   = 0;
-          state.velocity       = 0;
-          state.swiped         = false;
-          state.bassPlayed     = false;
-          state.bassScheduled  = false;
-          state.tensionGlow    = 0;
-          state.ripples        = [];
-          state.rippleCount    = 0;
+          state.phase         = PHASE.IDLE;
+          state.blobRadius    = 0;
+          state.blobOpacity   = 0;
+          state.edgeSoftness  = 0;
+          state.displacement  = 0;
+          state.velocity      = 0;
+          state.swiped        = false;
+          state.bassPlayed    = false;
+          state.bassScheduled = false;
+          state.tensionGlow   = 0;
+          state.ripples       = [];
+          state.rippleCount   = 0;
 
           // Process queued rapid swipes
           if (state.queued.length > 0) {
@@ -689,12 +702,12 @@
       /* ---- released: gentle fade ---- */
       if (state.phase === PHASE.RELEASED) {
         var relElapsed = t - state.yieldStart;
-        var relProg = Math.min(1, relElapsed / 600);
+        var relProg    = Math.min(1, relElapsed / 600);
         setHumVol(0.03 * (1 - relProg));
       }
 
       /* ---- draw ---- */
-      ctx.clearRect(0, 0, W, H);
+      ctx.clearRect(0, 0, cssW, cssH);
       drawBaseGradient();
       drawTensionGlow();
       drawDragLine();
@@ -709,4 +722,4 @@
     }
 
     rafId = requestAnimationFrame(loop);
-  })();
+})();
