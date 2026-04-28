@@ -180,41 +180,6 @@
     c.stroke();
     }
 
-         /* Fill the cell region */
-        const sx0 = Math.floor(sx * cellW);
-        const sy0 = Math.floor(sy * cellH);
-        const sx1 = Math.floor((sx + 1) * cellW);
-        const sy1 = Math.floor((sy + 1) * cellH);
-
-        for (let py = sy0; py < sy1; py++) {
-          for (let px = sx0; px < sx1; px++) {
-            const pi = (py * w + px) * 4;
-            d[pi]     = Math.max(0, Math.min(255, r | 0));
-            d[pi + 1] = Math.max(0, Math.min(255, g | 0));
-            d[pi + 2] = Math.max(0, Math.min(255, b | 0));
-            d[pi + 3] = 255;
-          }
-        }
-      }
-    }
-
-    c.putImageData(imgData, 0, 0);
-
-     /* Matte water line near top third */
-    const lineY = Math.floor(h * 0.33);
-    c.strokeStyle = `rgba(${COLORS.highlight.join(',')}, 0.35)`;
-    c.lineWidth = 1.5;
-    c.beginPath();
-    c.moveTo(0, lineY);
-    for (let px = 0; px < w; px++) {
-      const sx = Math.floor(px / cellW);
-      if (sx >= GRID_W) break;
-      const wave = current[lineY / cellH * GRID_W + sx] || 0;
-      c.lineTo(px, lineY + wave * 8);
-    }
-    c.stroke();
-   }
-
    /* --- Main Loop --- */
   let lastTime = 0;
 
