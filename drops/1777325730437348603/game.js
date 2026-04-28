@@ -266,7 +266,7 @@
     for (let i = ripples.length - 1; i >= 0; i--) {
       const r = ripples[i];
       const elapsed = (now - r.birth) / 1000;
-      r.t = elapsed / RIPPLE_DURATION;
+      r.t = Math.max(0, Math.min(1, elapsed / RIPPLE_DURATION));
 
       if (r.t >= 1) {
         ripples.splice(i, 1);
@@ -275,7 +275,7 @@
 
       // Radius expands over duration
       const maxRadius = Math.max(W, H) * 0.8;
-      const radius = maxRadius * easeOutQuad(r.t);
+      const radius = Math.max(0.001, maxRadius * easeOutQuad(r.t));
 
       // Alpha: peaks at 0.12 early, then decays to 0
       const alpha = RIPPLE_MAX_ALPHA * (1 - r.t);
@@ -293,7 +293,7 @@
       ctx.fill();
 
       // Secondary ring — softer, larger, more diffused
-      const ringRadius = maxRadius * easeOutQuad(r.t) * 1.3;
+      const ringRadius = Math.max(0.001, maxRadius * easeOutQuad(r.t) * 1.3);
       const ringAlpha  = alpha * 0.4;
       const grad2 = ctx.createRadialGradient(r.cx, r.cy, ringRadius * 0.6, r.cx, r.cy, ringRadius);
       grad2.addColorStop(0, `rgba(200, 180, 150, 0)`);
