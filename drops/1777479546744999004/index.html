@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="studio-slug" content="edo-woodblock">
+  <title>Stone into Silt</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #1a1714;
+      font-family: 'Noto Serif', serif;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #scene {
+      position: relative;
+      width: 100%; height: 100%;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    #canvas {
+      display: block;
+      width: 100%; height: 100%;
+    }
+
+    #copy {
+      position: absolute;
+      bottom: 8vh; left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      color: #8c7d6b;
+      font-size: clamp(0.7rem, 2.2vw, 0.95rem);
+      letter-spacing: 0.08em;
+      line-height: 1.7;
+      pointer-events: none;
+      opacity: 0.7;
+      max-width: 80%;
+    }
+
+    #copy .hint {
+      font-size: clamp(0.6rem, 1.8vw, 0.8rem);
+      opacity: 0.5;
+      margin-top: 0.5em;
+    }
+
+    /* Texture overlay for woodblock grain */
+    #grain {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      opacity: 0.04;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+
+    /* Vignette for warm edges */
+    #vignette {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(10,8,5,0.4) 100%);
+    }
+  </style>
+</head>
+<body>
+  <div id="scene">
+    <canvas id="canvas"></canvas>
+    <div id="grain"></div>
+    <div id="vignette"></div>
+    <div id="copy">
+      Press the stone. Feel the earth yield.
+      <div class="hint">hold, press, release</div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  "use strict";
+
+  /* ===================================================================
+     PALETTE — Ukiyo-e earthen tones
+     =================================================================== */
+  const C = {
+    bgTop:       '#2c2825',
+    bgBot:       '#1a1714',
+    siltIdle:    '#7a7570',   /* cool grey */
+    siltDeep:    '#8B6914',   /* deep ochre */
+    stoneOuter:  '#4a4540',
+    stoneMid:    '#5c5650',
+    stoneInner:  '#6a6560',
+    stoneHighlight:'#7d7670',
+    sheen:       '#c8b896',
+    mist:        '#9a8d7a',
+    ripple:      '#b8924a',
+    text:        '#8c7d6b',
+  };
+
+  /* ===================================================================
+     STATE MACHINE
+     =================================================================== */
+  const STATE = {
+    IDLE:     0,
+    CONTACT:  1,
+    SETTLING: 2,
+    YIELDING: 3,
+    LINGER:   4,
+    RESETTING:5,
+  };
+
+  let state = STATE.IDLE;
+
+  /* ===================================================================
+     CONFIG — Timings and thresholds
+     =================================================================== */
+  const SETTLE_DURATION  = 180;   // ms — the pause before yield
+  const MIST_FADE_DUR    = 1200;  // ms — 1.2s ease-in fade
+  const RIPPLE_DUR       = 2500;  // ms — 2.5s warm ripple
+  const OCHRE_SHIFT_DUR  = 1500;  // ms — ochre shift duration
+  const POST_YIELD_LINGER = 400;  // ms — audio linger
+  const YIELD_DUR        = 800;   // ms — stone sinking animation
+  const RESET_DUR        = 600;   // ms — smooth reset
+
+  /* ===================================================================
+     DOM
+     =================================================================== */
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const copyEl = document.getElementById('copy');
+
+  let W, H, dpr;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* ===================================================================
+     INTERACTION TRACKING
+     =================================================================== */
+  let pressStart = 0;
+  let pressDepth = 0;      // 0 → 1 normalized press intensity
+  let pointerY = 0;
+  let pointerActive = false;
+  let settleTimer = 0;
+  let yieldProgress = 0;    // 0→1 during yield
+  let mistProgress = 0;     // 0→1 mist opacity
+  let rippleAge = 0;        // ms since yield began
+  let resetProgress = 0;    // 0→1 during reset
+  let ochreT = 0;           // 0=idle(grey), 1=deep ochre
+  let siltCompression = 0;  // how compressed the silt layer looks
+
+  // Drag curve: 85% resistance
+  const DRAG_FACTOR = 0.85;
+
+  /* Touch / mouse handlers */
+  function onPointerDown(e) {
+    e.preventDefault();
+    if (state === STATE.IDLE || state === STATE.LINGER || state === STATE.RESETTING) {
+      pointerActive = true;
+      pressStart = performance.now();
+      pointerY = (e.touches ? e.touches[0].clientY : e.clientY);
+      pressDepth = 0;
+      ochreT = 0;
+      siltCompression = 0;
+      mistProgress = 0;
+      rippleAge = 0;
+      state = STATE.CONTACT;
+      onAudioStart();
+    }
+  }
+
+  function onPointerMove(e) {
+    e.preventDefault();
+    if (!pointerActive) return;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY);
+    const dy = y - pointerY;
+    // 85% drag curve: only 15% of input gets through until threshold
+    pressDepth = Math.max(0, Math.min(1, (dy / (H * 0.3)) * (1 - DRAG_FACTOR)));
+    // Add non-linear compression
+    pressDepth = Math.pow(pressDepth, 1.4);
+    // Threshold check: need 0.05 press depth to break through
+    if (state === STATE.CONTACT && pressDepth >= 0.05) {
+      state = STATE.SETTLING;
+      settleTimer = performance.now();
+      onAudioSettle();
+    }
+  }
+
+  function onPointerUp(e) {
+    e.preventDefault();
+    if (!pointerActive) return;
+    pointerActive = false;
+
+    if (state === STATE.IDLE) return;
+
+    if (state === STATE.LINGER) {
+      // Clean release during linger — just reset
+      beginReset();
+      return;
+    }
+
+    if (state === STATE.YIELDING || state === STATE.SETTLING) {
+      // Release during yield: still complete the yield
+      beginReset();
+      return;
+    }
+
+    if (state === STATE.CONTACT) {
+      // Released before threshold — gentle reset
+      beginReset();
+      return;
+    }
+  }
+
+  canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+  canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+  canvas.addEventListener('touchend', onPointerUp, { passive: false });
+  canvas.addEventListener('touchcancel', onPointerUp, { passive: false });
+  canvas.addEventListener('mousedown', onPointerDown);
+  canvas.addEventListener('mousemove', onPointerMove);
+  canvas.addEventListener('mouseup', onPointerUp);
+
+  function beginReset() {
+    state = STATE.RESETTING;
+    resetProgress = 0;
+    onAudioRelease();
+  }
+
+  /* ===================================================================
+     EASING — Custom drag curve: zero overshoot, zero bounce
+     =================================================================== */
+  // 1.2s ease-in for mist fade — slow exhale
+  function easeIn(t) { return t * t; }
+
+  // Smooth ease-out for stone sinking
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+  // Custom drag curve: heavy resistance, non-linear
+  function dragCurve(t) {
+    return Math.pow(t, 2.5) * 0.85;
+  }
+
+  // 1.5s ochre shift: smooth but slow
+  function ochreEase(t) {
+    return t < 0.5
+      ? 2 * t * t
+      : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  }
+
+  /* ===================================================================
+     AUDIO — Web Audio API, fully synthesized
+     =================================================================== */
+  let audioCtx = null;
+  let masterGain = null;
+  let mudThud = null;
+  let wetDragNoise = null;
+  let squelchGain = null;
+  let postYieldLinger = null;
+  let audioBufferLag = 0.5 / 60 * 1000; // 0.5 frame in ms (~8.3ms at 60fps)
+  let audioStartTime = 0;
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Master gain with high-frequency roll-off (>8kHz) to prevent thumb fatigue
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.6;
+
+    const lowpass = audioCtx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 8000; // roll-off >8kHz
+    lowpass.Q.value = 0.7;
+
+    masterGain.connect(lowpass);
+    lowpass.connect(audioCtx.destination);
+  }
+
+  // Heavy mud thud synthesis
+  function playMudThud(depth) {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime + (audioBufferLag / 1000);
+
+    // Body: deep sine thud
+    const osc1 = audioCtx.createOscillator();
+    osc1.type = 'sine';
+    // Pitch modulates with press depth: deeper = lower
+    osc1.frequency.value = 60 + depth * 20;
+
+    const g1 = audioCtx.createGain();
+    g1.gain.setValueAtTime(0, t);
+    g1.gain.linearRampToValueAtTime(0.5 + depth * 0.2, t + 0.02);
+    g1.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+
+    osc1.connect(g1);
+    g1.connect(masterGain);
+    osc1.start(t);
+    osc1.stop(t + 1.5);
+
+    // Harmonics: muddy texture
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.value = 120 + depth * 15;
+
+    const g2 = audioCtx.createGain();
+    g2.gain.setValueAtTime(0, t);
+    g2.gain.linearRampToValueAtTime(0.15, t + 0.01);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+
+    osc2.connect(g2);
+    g2.connect(masterGain);
+    osc2.start(t);
+    osc2.stop(t + 0.8);
+
+    mudThud = { osc1, osc2, g1, g2 };
+  }
+
+  // Wet drag noise — filtered noise burst
+  function playWetDrag(depth) {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime + (audioBufferLag / 1000);
+
+    const bufferSize = audioCtx.sampleRate * 0.8;
+    const buf = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+    }
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 400 + depth * 300;
+    bp.Q.value = 1.5;
+
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.25 + depth * 0.15, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+
+    src.connect(bp);
+    bp.connect(g);
+    g.connect(masterGain);
+    src.start(t);
+    wetDragNoise = src;
+  }
+
+  // Squelch — triggered exactly at 180ms settle mark
+  function playSquelch() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+
+    // Low squelch: rising then falling
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(90, t);
+    osc.frequency.linearRampToValueAtTime(140, t + 0.08);
+    osc.frequency.linearRampToValueAtTime(80, t + 0.3);
+
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.35, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(t);
+    osc.stop(t + 0.6);
+
+    // Squelch noise layer
+    const bufferSize = audioCtx.sampleRate * 0.4;
+    const buf = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(600, t);
+    lp.frequency.linearRampToValueAtTime(200, t + 0.3);
+
+    const g2 = audioCtx.createGain();
+    g2.gain.setValueAtTime(0.15, t);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+
+    src.connect(lp);
+    lp.connect(g2);
+    g2.connect(masterGain);
+    src.start(t);
+
+    squelchGain = g;
+  }
+
+  // Post-yield 400ms linger — soft rumble
+  function playYieldLinger() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(55, t);
+    osc.frequency.linearRampToValueAtTime(45, t + 0.8);
+
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(t);
+    osc.stop(t + 0.8);
+
+    postYieldLinger = g;
+  }
+
+  // Warm ripple audio — post-yield
+  function playRippleSound() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, t);
+    osc.frequency.exponentialRampToValueAtTime(80, t + 1.5);
+
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.08, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(t);
+    osc.stop(t + 1.6);
+  }
+
+  // Audio event hooks
+  function onAudioStart() {
+    initAudio();
+    audioStartTime = performance.now();
+    // Play initial wets drag immediately on touch
+    playWetDrag(0.1);
+  }
+
+  function onAudioSettle() {
+    if (!audioCtx) return;
+    const elapsed = performance.now() - audioStartTime;
+    if (elapsed > 0) {
+      // Schedule squelch at exactly 180ms
+      setTimeout(() => {
+        playSquelch();
+      }, Math.max(0, SETTLE_DURATION - elapsed));
+    }
+  }
+
+  let yieldAudioTriggered = false;
+  function onAudioYield() {
+    if (!audioCtx || yieldAudioTriggered) return;
+    yieldAudioTriggered = true;
+    // Snap back before frame yield
+    playMudThud(pressDepth);
+    // Post-yield 400ms linger
+    setTimeout(() => playYieldLinger(), 400);
+    // Ripple sound
+    playRippleSound();
+  }
+
+  function onAudioRelease() {
+    yieldAudioTriggered = false;
+  }
+
+  /* ===================================================================
+     RENDER — Canvas-based, optimized for 60fps
+     =================================================================== */
+
+  // Stone geometry
+  const stone = {
+    cx: 0, cy: 0,
+    rx: 0, ry: 0,  // radii
+    baseY: 0,        // resting position
+    sinkY: 0,        // fully pressed position
+    offset: 0,       // current vertical displacement
+  };
+
+  // Ripple rings
+  let ripples = [];
+
+  function setupGeometry() {
+    stone.cx = W / 2;
+    stone.baseY = H * 0.42;
+    stone.sinkY = H * 0.55;
+    stone.rx = Math.min(W, H) * 0.12;
+    stone.ry = stone.rx * 0.75;
+    stone.offset = 0;
+  }
+  setupGeometry();
+  window.addEventListener('resize', setupGeometry);
+
+  // Interpolate color between two hex colors
+  function lerpColor(a, b, t) {
+    const pa = hexToRgb(a);
+    const pb = hexToRgb(b);
+    const r = Math.round(pa[0] + (pb[0] - pa[0]) * t);
+    const g = Math.round(pa[1] + (pb[1] - pa[1]) * t);
+    const bl = Math.round(pa[2] + (pb[2] - pa[2]) * t);
+    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+  }
+
+  function hexToRgb(hex1) {
+    const h = hex1.replace('#', '');
+    return [
+      parseInt(h.substring(0, 2), 16),
+      parseInt(h.substring(2, 4), 16),
+      parseInt(h.substring(4, 6), 16),
+    ];
+  }
+
+  // Draw the background gradient
+  function drawBackground() {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, C.bgTop);
+    grad.addColorStop(1, C.bgBot);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Draw the silt layer — shifts from cool grey to deep ochre
+  function drawSilt(t) {
+    const siltY = H * 0.38;
+    const siltH = H * 0.35;
+
+    // Silt surface color interpolates based on compression
+    const surfaceColor = lerpColor(C.siltIdle, C.siltDeep, ochreT);
+
+    // Compressed area around stone
+    const compY = siltY + (stone.sinkY - siltY) * siltCompression;
+
+    const grad = ctx.createLinearGradient(0, siltY, 0, siltY + siltH);
+    grad.addColorStop(0, surfaceColor);
+    const deeperColor = lerpColor('#5a5550', '#5a3d0a', ochreT);
+    grad.addColorStop(0.6, deeperColor);
+    grad.addColorStop(1, '#1a1410');
+
+    ctx.fillStyle = grad;
+
+    // Draw silt as a wave that deforms with compression
+    ctx.beginPath();
+    ctx.moveTo(0, siltY);
+
+    const segments = 60;
+    for (let i = 0; i <= segments; i++) {
+      const x = (W / segments) * i;
+      let y = siltY + Math.sin(i * 0.3) * 3;
+
+      // Deform near stone as it sinks
+      if (siltCompression > 0) {
+        const dx = x - stone.cx;
+        const dist = Math.abs(dx) / stone.rx;
+        if (dist < 3) {
+          y += siltCompression * Math.pow(1 - dist / 3, 2) * (stone.sinkY - siltY) * 0.6;
+        }
+      }
+
+      ctx.lineTo(x, y);
+    }
+
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fill();
+
+    // Subtle texture lines (woodblock style)
+    ctx.globalAlpha = 0.03 * Math.max(0.01, 1 - ochreT * 0.5);
+    ctx.strokeStyle = '#000';
+    for (let i = 0; i < 12; i++) {
+      const ly = siltY + 10 + i * (siltH / 12);
+      ctx.beginPath();
+      ctx.moveTo(0, ly);
+      ctx.lineTo(W, ly + Math.sin(i) * 4);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw the stone
+  function drawStone() {
+    const cx = stone.cx;
+    const cy = stone.baseY + stone.offset;
+
+    // Shadow on silt
+    ctx.globalAlpha = 0.25 + ochreT * 0.15;
+    const shadowGrad = ctx.createRadialGradient(
+      cx, stone.baseY + stone.ry * 0.5, 0,
+      cx, stone.baseY + stone.ry * 0.5, stone.rx * 1.8
+    );
+    shadowGrad.addColorStop(0, '#000');
+    shadowGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = shadowGrad;
+    ctx.fillRect(cx - stone.rx * 2, stone.baseY - stone.ry * 0.5, stone.rx * 4, stone.ry * 2);
+    ctx.globalAlpha = 1;
+
+    // Stone body — warm stone gradient
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, stone.rx, stone.ry, 0, 0, Math.PI * 2);
+
+    const stoneGrad = ctx.createRadialGradient(
+      cx - stone.rx * 0.25, cy - stone.ry * 0.3, 0,
+      cx, cy, stone.rx
+    );
+    stoneGrad.addColorStop(0, C.stoneHighlight);
+    stoneGrad.addColorStop(0.4, C.stoneInner);
+    stoneGrad.addColorStop(0.7, C.stoneMid);
+    stoneGrad.addColorStop(1, C.stoneOuter);
+
+    ctx.fillStyle = stoneGrad;
+    ctx.fill();
+
+    // Woodblock texture on stone — subtle cross-hatching
+    ctx.globalAlpha = 0.06;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 6; i++) {
+      const sx = cx - stone.rx * 0.6 + i * stone.rx * 0.24;
+      const sy1 = cy - stone.ry * 0.5 + i * 3;
+      const sy2 = cy + stone.ry * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy1);
+      ctx.lineTo(sx + 8, sy2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Wet sheen on edges — appears at yield
+    if (ochreT > 0.1) {
+      const sheenAlpha = Math.min(1, (ochreT - 0.1) * 2);
+      ctx.globalAlpha = sheenAlpha * 0.5;
+
+      // Left and right edge highlights
+      const sheenGrad1 = ctx.createLinearGradient(cx - stone.rx, cy, cx - stone.rx * 0.6, cy);
+      sheenGrad1.addColorStop(0, C.sheen);
+      sheenGrad1.addColorStop(1, 'transparent');
+      ctx.fillStyle = sheenGrad1;
+      ctx.beginPath();
+      ctx.ellipse(cx - stone.rx * 0.75, cy - stone.ry * 0.15, stone.rx * 0.12, stone.ry * 0.4, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      const sheenGrad2 = ctx.createLinearGradient(cx + stone.rx * 0.6, cy, cx + stone.rx, cy);
+      sheenGrad2.addColorStop(0, 'transparent');
+      sheenGrad2.addColorStop(1, C.sheen);
+      ctx.fillStyle = sheenGrad2;
+      ctx.beginPath();
+      ctx.ellipse(cx + stone.rx * 0.75, cy + stone.ry * 0.1, stone.rx * 0.1, stone.ry * 0.35, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
+    }
+
+    // Stone outline — subtle
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = lerpColor('#3a3630', '#5a4010', ochreT * 0.4);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, stone.rx, stone.ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // Draw mist overlay
+  function drawMist() {
+    if (mistProgress <= 0) return;
+
+    const alpha = easeIn(mistProgress) * 0.35;
+    ctx.globalAlpha = alpha;
+
+    const mistGrad = ctx.createRadialGradient(
+      stone.cx, stone.baseY + stone.offset, stone.rx * 0.5,
+      stone.cx, stone.baseY + stone.offset, stone.rx * 4
+    );
+    mistGrad.addColorStop(0, C.mist);
+    mistGrad.addColorStop(0.5, lerpColor(C.mist, '#5a4a3a', 0.6));
+    mistGrad.addColorStop(1, 'transparent');
+
+    ctx.fillStyle = mistGrad;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw ripple rings
+  function drawRipples() {
+    const now = performance.now();
+    const ripplesT = (now - rippleAge) / RIPPLE_DUR;
+
+    if (ripplesT < 0 || ripplesT > 1) return;
+
+    const numRings = 4;
+    for (let i = 0; i < numRings; i++) {
+      const ringT = Math.max(0, (ripplesT - i * 0.12) / (1 - i * 0.05));
+      if (ringT < 0 || ringT > 1) continue;
+
+      const radius = stone.rx * (0.5 + ringT * 5);
+      const alpha = (1 - ringT) * 0.18;
+
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = C.ripple;
+      ctx.beginPath();
+      ctx.ellipse(
+        stone.cx,
+        stone.baseY + stone.offset + radius * 0.3,
+        radius,
+        radius * 0.4,
+        0, 0, Math.PI * 2
+      );
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw silt disturbance where stone presses
+  function drawDisturbance() {
+    if (siltCompression < 0.01) return;
+
+    const cx = stone.cx;
+    const cy = stone.baseY + stone.offset;
+
+    // Deformed silt around stone
+    ctx.globalAlpha = siltCompression * 0.2;
+    const distGrad = ctx.createRadialGradient(cx, cy + stone.ry * 0.3, 0, cx, cy + stone.ry * 0.3, stone.rx * 2);
+    distGrad.addColorStop(0, lerpColor(C.siltIdle, C.siltDeep, ochreT));
+    distGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = distGrad;
+    ctx.fillRect(cx - stone.rx * 2.5, cy - stone.rx, stone.rx * 5, stone.rx * 3);
+    ctx.globalAlpha = 1;
+  }
+
+  /* ===================================================================
+     MAIN LOOP — requestAnimationFrame at 60fps
+     =================================================================== */
+  let lastTime = 0;
+
+  function tick(now) {
+    requestAnimationFrame(tick);
+
+    const dt = now - lastTime;
+    lastTime = now;
+
+    // Clamp dt to prevent jump after pause
+    const safeDt = Math.min(dt, 50) / 1000;
+
+    /* --- State machine transitions --- */
+    if (state === STATE.SETTLING) {
+      const settleElapsed = now - settleTimer;
+      if (settleElapsed >= SETTLE_DURATION) {
+        state = STATE.YIELDING;
+        yieldProgress = 0;
+        rippleAge = now;
+        onAudioYield();
+      }
+    }
+
+    if (state === STATE.YIELDING) {
+      const yieldElapsed = now - (settleTimer + SETTLE_DURATION);
+      yieldProgress = Math.min(1, yieldElapsed / YIELD_DUR);
+
+      // Update derived values
+      stone.offset = easeOut(yieldProgress) * (stone.sinkY - stone.baseY);
+      ochreT = ochreEase(Math.min(1, yieldElapsed / OCHRE_SHIFT_DUR));
+      siltCompression = easeOut(yieldProgress);
+      mistProgress = easeIn(Math.min(1, yieldElapsed / MIST_FADE_DUR));
+
+      if (yieldProgress >= 1) {
+        state = STATE.LINGER;
+      }
+    }
+
+    if (state === STATE.CONTACT && pointerActive) {
+      // During contact, stone moves slightly with drag but stays at surface
+      stone.offset = dragCurve(pressDepth) * 3;
+    }
+
+    if (state === STATE.RESETTING) {
+      resetProgress += safeDt * (1 / RESET_DUR);
+      if (resetProgress >= 1) {
+        resetProgress = 1;
+        state = STATE.IDLE;
+        stone.offset = 0;
+        ochreT = 0;
+        siltCompression = 0;
+        mistProgress = 0;
+        rippleAge = -99999;
+        pressDepth = 0;
+      } else {
+        const rt = resetProgress;
+        stone.offset = (1 - rt) * (stone.sinkY - stone.baseY) * (siltCompression || 1);
+        ochreT *= (1 - rt * 0.8);
+        siltCompression *= (1 - rt * 0.8);
+        mistProgress *= (1 - rt * 0.9);
+      }
+    }
+
+    /* --- Render --- */
+    drawBackground();
+    drawSilt(0);
+    drawDisturbance();
+    drawStone();
+    drawRipples();
+    drawMist();
+
+    /* --- Copy visibility --- */
+    if (state === STATE.IDLE) {
+      copyEl.style.opacity = '0.7';
+    } else if (state === STATE.LINGER) {
+      copyEl.style.opacity = String(0.3 + Math.sin(now * 0.002) * 0.15);
+    } else {
+      copyEl.style.opacity = '0.15';
+    }
+  }
+
+  requestAnimationFrame(tick);
+
+})();
+  </script>
+</body>
+</html>
