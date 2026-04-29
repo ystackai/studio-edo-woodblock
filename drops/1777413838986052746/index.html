@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pictures of the Floating World</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink-black: #1a1a2e;
+    --sumi: #2d2d44;
+    --beni-red: #c23b27;
+    --asagi-blue: #118ab2;
+    --midori-green: #40916c;
+    --sumi-gray: #6b7b8a;
+    --parchment: #f5f0e1;
+    --parchment-dark: #e8dcc8;
+    --gold-accent: #d4a843;
+    --wave-deep: #0c2d48;
+    --wave-mid: #1b4965;
+    --wave-light: #41b09d;
+  }
+
+  body {
+    background: var(--parchment);
+    font-family: 'Noto Sans JP', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+  }
+
+  /* Header */
+  #header {
+    text-align: center;
+    padding: 12px 16px 8px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  #header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(16px, 3.5vw, 24px);
+    font-weight: 700;
+    color: var(--ink-black);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  #header .subtitle {
+    font-size: clamp(10px, 2vw, 13px);
+    color: var(--sumi-gray);
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    margin-top: 2px;
+  }
+
+  /* Counter strip */
+  #counter-strip {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 4px 16px 6px;
+    flex-shrink: 0;
+  }
+
+  .counter-item {
+    font-size: clamp(10px, 1.8vw, 12px);
+    color: var(--sumi);
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .counter-item .val {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    min-width: 2ch;
+    text-align: center;
+  }
+
+  .dot-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold-accent);
+    opacity: 0.3;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+
+  .dot-indicator.active {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+
+  /* Main canvas area */
+  #canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 8px;
+    min-height: 0;
+  }
+
+  #canvas-container {
+    position: relative;
+    width: min(85vw, 75vh);
+    height: min(85vw, 75vh);
+    max-width: 600px;
+    max-height: 600px;
+    border: 3px solid var(--sumi);
+    background: #faf6eb;
+    box-shadow:
+      0 0 0 1px var(--gold-accent),
+      4px 4px 0 rgba(26,26,46,0.15),
+      inset 0 0 40px rgba(0,0,0,0.03);
+  }
+
+  #print-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+  }
+
+  #stamp-preview {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 10;
+    mix-blend-mode: multiply;
+  }
+
+  /* Bottom bar */
+  #bottom-bar {
+    flex-shrink: 0;
+    padding: 8px 12px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Stamp palette */
+  #stamp-palette {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stamp-btn {
+    width: clamp(40px, 10vmin, 56px);
+    height: clamp(40px, 10vmin, 56px);
+    border: 2px solid var(--parchment-dark);
+    background: var(--parchment);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .stamp-btn:hover {
+    border-color: var(--asagi-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(17,138,178,0.2);
+  }
+
+  .stamp-btn.selected {
+    border-color: var(--beni-red);
+    background: var(--parchment-dark);
+    box-shadow: 0 0 0 2px rgba(194,59,39,0.15);
+  }
+
+  .stamp-btn canvas {
+    width: 80%;
+    height: 80%;
+    image-rendering: auto;
+  }
+
+  /* Color swatches */
+  #color-swatches {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 1px solid var(--parchment-dark);
+  }
+
+  .color-swatch {
+    width: clamp(20px, 4vmin, 28px);
+    height: clamp(20px, 4vmin, 28px);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .color-swatch:hover {
+    transform: scale(1.15);
+  }
+
+  .color-swatch.selected {
+    border-color: var(--ink-black);
+    transform: scale(1.2);
+    box-shadow: 0 0 6px rgba(0,0,0,0.3);
+  }
+
+  /* Action buttons */
+  #actions {
+    display: flex;
+    gap: 6px;
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 1px solid var(--parchment-dark);
+  }
+
+  .action-btn {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(9px, 1.5vw, 11px);
+    padding: 6px 12px;
+    border: 1px solid var(--sumi);
+    background: var(--parchment);
+    color: var(--sumi);
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .action-btn:hover {
+    background: var(--sumi);
+    color: var(--parchment);
+  }
+
+  .action-btn.primary {
+    background: var(--sumi);
+    color: var(--parchment);
+    border-color: var(--sumi);
+  }
+
+  .action-btn.primary:hover {
+    background: var(--beni-red);
+    border-color: var(--beni-red);
+  }
+
+  /* Completion overlay */
+  #completion-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26,26,46,0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: none;
+    transition: background 1s;
+  }
+
+  #completion-overlay.show {
+    background: rgba(26,26,46,0.6);
+    pointer-events: auto;
+  }
+
+  .completion-text {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(18px, 4vw, 32px);
+    color: var(--parchment);
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s 0.3s;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  #completion-overlay.show .completion-text {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Mute button */
+  #mute-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  #mute-btn:hover { opacity: 1; }
+
+  #mute-btn svg { width: 20px; height: 20px; fill: var(--sumi); }
+
+  /* Stamp count badge */
+  .stamp-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--beni-red);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+
+  .stamp-count.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Responsive */
+  @media (max-width: 500px) {
+    #color-swatches, #actions {
+      margin-left: 0;
+      padding-left: 0;
+      border-left: none;
+      border-top: 1px solid var(--parchment-dark);
+      padding-top: 8px;
+    }
+    #bottom-bar {
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+
+  /* Woodblock texture overlay */
+  #canvas-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.01) 2px,
+      rgba(0,0,0,0.01) 4px
+    );
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* Guide lines on canvas */
+  .guide-line {
+    position: absolute;
+    background: rgba(194,59,39,0.08);
+    z-index: 2;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .guide-v { top: 0; bottom: 0; width: 1px; left: 50%; }
+  .guide-h { left: 0; right: 0; height: 1px; top: 50%; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>Pictures of the Floating World</h1>
+    <div class="subtitle">Ukiyo-e Woodblock Studio</div>
+  </div>
+
+  <div id="counter-strip">
+    <div class="counter-item">
+      Impressions <span class="val" id="stamp-count-display">0</span>
+    </div>
+    <div class="counter-item">
+      <div class="dot-indicator" id="dot-1"></div>
+      <div class="dot-indicator" id="dot-2"></div>
+      <div class="dot-indicator" id="dot-3"></div>
+      <div class="dot-indicator" id="dot-4"></div>
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <div id="canvas-container">
+      <canvas id="print-canvas"></canvas>
+      <canvas id="stamp-preview"></canvas>
+      <div class="guide-line guide-v"></div>
+      <div class="guide-line guide-h"></div>
+      <div class="stamp-count" id="badge"></div>
+
+      <button id="mute-btn" aria-label="Toggle sound" title="Toggle sound">
+        <svg viewBox="0 0 24 24" id="mute-icon">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.48 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+
+      <div id="completion-overlay">
+        <div class="completion-text">Print Complete</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-bar">
+    <div id="stamp-palette"></div>
+    <div id="color-swatches"></div>
+    <div id="actions">
+      <button class="action-btn" id="clear-btn">Clear</button>
+      <button class="action-btn primary" id="complete-btn">Complete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================================================
+//  AUDIO ENGINE — Web Audio based procedural sounds
+// ========================================================
+const AudioEngine = (() => {
+  let ctx = null;
+  let muted = false;
+  let gainNode = null;
+
+  function ensureCtx() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      gainNode = ctx.createGain();
+      gainNode.connect(ctx.destination);
+      gainNode.gain.value = 0.3;
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+
+  function stampSound(tone = 0) {
+    if (muted || !ctx) return;
+    const t = ctx.currentTime;
+    // Woodblock impact sound — short noise burst + tonal thud
+    const noise = ctx.createBufferSource();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.015));
+    noise.buffer = buf;
+
+    const noiseFilt = ctx.createBiquadFilter();
+    noiseFilt.type = 'bandpass';
+    noiseFilt.frequency.value = 800 + tone * 400;
+    noiseFilt.Q.value = 2;
+
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.5, t);
+    nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+    noise.connect(noiseFilt).connect(nGain).connect(gainNode);
+    noise.start(t);
+    noise.stop(t + 0.08);
+
+    // Low thud
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120 + tone * 30, t);
+    osc.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.4, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.connect(g).connect(gainNode);
+    osc.start(t);
+    osc.stop(t + 0.15);
+  }
+
+  function completeSound() {
+    if (muted || !ctx) return;
+    const t = ctx.currentTime;
+    const notes = [261.6, 329.6, 392, 523.3, 659.3];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t + i * 0.12);
+      g.gain.linearRampToValueAtTime(0.15, t + i * 0.12 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.6);
+      osc.connect(g).connect(gainNode);
+      osc.start(t + i * 0.12);
+      osc.stop(t + i * 0.12 + 0.6);
+    });
+    // Gentle wind noise tail
+    const noise = ctx.createBufferSource();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 1.5, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.8)) * 0.3;
+    }
+    noise.buffer = buf;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = 600;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.2, t + 0.6);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 2.1);
+    noise.connect(filt).connect(ng).connect(gainNode);
+    noise.start(t + 0.6);
+    noise.stop(t + 2.1);
+  }
+
+  function clearSound() {
+    if (muted || !ctx) return;
+    const t = ctx.currentTime;
+    for (let i = 0; i < 5; i++) {
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = 800 - i * 100;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t + i * 0.06);
+      g.gain.linearRampToValueAtTime(0.08, t + i * 0.06 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.2);
+      osc.connect(g).connect(gainNode);
+      osc.start(t + i * 0.06);
+      osc.stop(t + i * 0.06 + 0.2);
+    }
+  }
+
+  function hoverSound() {
+    if (muted || !ctx || !hoverSound._last || t - hoverSound._last < 150) return;
+    hoverSound._last = performance.now();
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 600;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.05, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    osc.connect(g).connect(gainNode);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  }
+
+  return {
+    init() { ensureCtx(); },
+    stamp,
+    complete: completeSound,
+    clear: clearSound,
+    hover: hoverSound,
+    toggleMute() { muted = !muted; return muted; },
+    isMuted() { return muted; },
+  };
+})();
+
+// ========================================================
+//  STAMP DRAWINGS — Procedural ukiyo-e patterns
+// ========================================================
+const StampPatterns = {
+  // Japanese wave (Hokusai style)
+  wave(c, s) {
+    c.save();
+    c.translate(s/2, s/2);
+    // Main curling wave
+    c.beginPath();
+    c.moveTo(-s*0.45, s*0.25);
+    c.quadraticCurveTo(-s*0.15, -s*0.4, s*0.1, -s*0.1);
+    c.quadraticCurveTo(s*0.3, s*0.15, s*0.35, -s*0.15);
+    c.quadraticCurveTo(s*0.2, -s*0.45, -s*0.05, -s*0.3);
+    c.stroke();
+    // Water lines
+    for (let i = 0; i < 3; i++) {
+      c.beginPath();
+      const y = -s*0.1 + i * s*0.15;
+      c.moveTo(-s*0.35, y);
+      c.quadraticCurveTo(0, y - s*0.05, s*0.35, y);
+      c.stroke();
+    }
+    // Foam dots
+    const dots = [[s*0.15,-s*0.2],[s*0.25,-s*0.05],[-s*0.1,s*0.15]];
+    dots.forEach(([x,y]) => {
+      c.beginPath(); c.arc(x,y,s*0.04,0,Math.PI*2); c.fill();
+    });
+    c.restore();
+  },
+
+  // Mount Fuji
+  mountain(c, s) {
+    c.save();
+    c.translate(s/2, s/2 + s*0.05);
+    // Mountain body
+    c.beginPath();
+    c.moveTo(-s*0.45, s*0.35);
+    c.lineTo(-s*0.1, -s*0.35);
+    c.lineTo(s*0.05, -s*0.42);
+    c.lineTo(s*0.2, -s*0.32);
+    c.lineTo(s*0.45, s*0.35);
+    c.closePath();
+    c.stroke();
+    // Snow cap
+    c.beginPath();
+    c.moveTo(-s*0.1, -s*0.35);
+    c.quadraticCurveTo(0, -s*0.45, s*0.2, -s*0.32);
+    c.quadraticCurveTo(s*0.08, -s*0.28, 0, -s*0.3);
+    c.closePath();
+    c.fill();
+    // Horizontal lines for texture
+    for (let i = 0; i < 3; i++) {
+      const y = -s*0.15 + i * s*0.15;
+      c.beginPath();
+      c.moveTo(-s*0.3 + i*s*0.05, y);
+      c.lineTo(s*0.3 - i*s*0.05, y);
+      c.stroke();
+    }
+    c.restore();
+  },
+
+  // Cherry blossom
+  blossom(c, s) {
+    c.save();
+    c.translate(s/2, s/2);
+    // Petals
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI/2;
+      const px = Math.cos(a) * s * 0.22;
+      const py = Math.sin(a) * s * 0.22;
+      c.beginPath();
+      c.ellipse(px, py, s*0.12, s*0.08, a, 0, Math.PI*2);
+      c.stroke();
+    }
+    // Center
+    c.beginPath();
+    c.arc(0, 0, s*0.06, 0, Math.PI*2);
+    c.fill();
+    // Falling petal
+    c.beginPath();
+    c.ellipse(s*0.25, s*0.2, s*0.06, s*0.03, 0.5, 0, Math.PI*2);
+    c.stroke();
+    c.restore();
+  },
+
+  // Koi fish
+  koi(c, s) {
+    c.save();
+    c.translate(s/2, s/2);
+    // Body
+    c.beginPath();
+    c.ellipse(s*0.05, 0, s*0.3, s*0.12, -0.1, 0, Math.PI*2);
+    c.stroke();
+    // Tail
+    c.beginPath();
+    c.moveTo(-s*0.22, 0);
+    c.quadraticCurveTo(-s*0.4, -s*0.18, -s*0.35, -s*0.2);
+    c.quadraticCurveTo(-s*0.35, 0, -s*0.35, s*0.2);
+    c.quadraticCurveTo(-s*0.4, s*0.18, -s*0.22, 0);
+    c.stroke();
+    // Eye
+    c.beginPath();
+    c.arc(s*0.22, -s*0.02, s*0.03, 0, Math.PI*2);
+    c.fill();
+    // Pattern spots
+    c.beginPath();
+    c.arc(s*0.05, s*0.03, s*0.05, 0, Math.PI*2);
+    c.stroke();
+    c.beginPath();
+    c.arc(-s*0.05, -s*0.04, s*0.04, 0, Math.PI*2);
+    c.stroke();
+    c.restore();
+  },
+
+  // Torii gate
+  torii(c, s) {
+    c.save();
+    c.translate(s/2, s/2);
+    // Pillars
+    c.lineWidth = s * 0.04;
+    c.beginPath(); c.moveTo(-s*0.25, -s*0.35); c.lineTo(-s*0.25, s*0.35); c.stroke();
+    c.beginPath(); c.moveTo(s*0.25, -s*0.35); c.lineTo(s*0.25, s*0.35); c.stroke();
+    // Top beam
+    c.lineWidth = s * 0.05;
+    c.beginPath(); c.moveTo(-s*0.38, -s*0.3); c.lineTo(s*0.38, -s*0.3); c.stroke();
+    // Second beam
+    c.lineWidth = s * 0.035;
+    c.beginPath(); c.moveTo(-s*0.28, -s*0.15); c.lineTo(s*0.28, -s*0.15); c.stroke();
+    // Center ornament
+    c.beginPath();
+    c.rect(-s*0.04, -s*0.36, s*0.08, s*0.06);
+    c.fill();
+    c.restore();
+  },
+
+  // Crane
+  crane(c, s) {
+    c.save();
+    c.translate(s/2, s/2);
+    // Body
+    c.beginPath();
+    c.ellipse(0, s*0.1, s*0.2, s*0.1, 0, 0, Math.PI*2);
+    c.stroke();
+    // Neck
+    c.lineWidth = s * 0.03;
+    c.beginPath();
+    c.moveTo(-s*0.12, 0);
+    c.quadraticCurveTo(-s*0.15, -s*0.2, -s*0.08, -s*0.32);
+    c.stroke();
+    // Head
+    c.beginPath();
+    c.arc(-s*0.08, -s*0.32, s*0.04, 0, Math.PI*2);
+    c.stroke();
+    // Beak
+    c.beginPath();
+    c.moveTo(-s*0.08, -s*0.32);
+    c.lineTo(-s*0.18, -s*0.3);
+    c.stroke();
+    // Legs
+    c.beginPath();
+    c.moveTo(s*0.05, s*0.18);
+    c.lineTo(s*0.05, s*0.35);
+    c.moveTo(s*0.12, s*0.18);
+    c.lineTo(s*0.12, s*0.35);
+    c.stroke();
+    // Wings
+    c.lineWidth = s * 0.02;
+    c.beginPath();
+    c.moveTo(s*0.05, 0);
+    c.quadraticCurveTo(s*0.35, -s*0.25, s*0.3, -s*0.3);
+    c.stroke();
+    c.restore();
+  },
+
+  // Bamboo
+  bamboo(c, s) {
+    c.save();
+    c.translate(s/2, s/2);
+    // Main stalk
+    c.lineWidth = s * 0.05;
+    c.beginPath();
+    c.moveTo(0, s*0.4);
+    c.quadraticCurveTo(s*0.02, 0, -s*0.05, -s*0.4);
+    c.stroke();
+    // Nodes
+    [-s*0.15, s*0.1, s*0.25].forEach(y => {
+      c.lineWidth = s * 0.06;
+      c.beginPath();
+      c.moveTo(-s*0.04, y);
+      c.lineTo(s*0.04, y);
+      c.stroke();
+    });
+    c.lineWidth = s * 0.025;
+    // Leaves
+    const leaves = [
+      [0, -s*0.3, s*0.2, -s*0.45],
+      [0, -s*0.05, -s*0.22, -s*0.15],
+      [0, s*0.15, s*0.25, s*0.05],
+    ];
+    leaves.forEach(([x1,y1,x2,y2]) => {
+      c.beginPath();
+      c.moveTo(x1, y1);
+      c.quadraticCurveTo((x1+x2)/2, y2 - s*0.05, x2, y2);
+      c.stroke();
+    });
+    c.restore();
+  },
+
+  // Cloud
+  cloud(c, s) {
+    c.save();
+    c.translate(s/2, s/2);
+    const arcs = [
+      [0, s*0.05, s*0.2],
+      [-s*0.15, s*0.08, s*0.15],
+      [s*0.15, s*0.08, s*0.15],
+      [-s*0.05, -s*0.02, s*0.12],
+      [s*0.05, -s*0.02, s*0.12],
+    ];
+    // Cloud body
+    c.beginPath();
+    arcs.forEach(([x,y,r], i) => {
+      if (i === 0) c.arc(x, y, r, 0, Math.PI * 2);
+      else c.arc(x, y, r, 0, Math.PI * 2);
+    });
+    c.stroke();
+    // Inner lines for ukiyo-e style
+    c.lineWidth = s * 0.015;
+    for (let i = 0; i < 4; i++) {
+      c.beginPath();
+      const y = -s*0.08 + i * s*0.07;
+      c.moveTo(-s*0.22, y);
+      c.quadraticCurveTo(0, y - s*0.02, s*0.22, y);
+      c.stroke();
+    }
+    c.restore();
+  },
+};
+
+// ========================================================
+//  STAMP DEFINITIONS
+// ========================================================
+const STAMPS = [
+  { id: 'wave', name: 'Wave', icon: 'wave' },
+  { id: 'mountain', name: 'Fuji', icon: 'mountain' },
+  { id: 'blossom', name: 'Blossom', icon: 'blossom' },
+  { id: 'koi', name: 'Koi', icon: 'koi' },
+  { id: 'torii', name: 'Torii', icon: 'torii' },
+  { id: 'crane', name: 'Crane', icon: 'crane' },
+  { id: 'bamboo', name: 'Bamboo', icon: 'bamboo' },
+  { id: 'cloud', name: 'Cloud', icon: 'cloud' },
+];
+
+const COLORS = [
+  { name: 'Sumi', hex: '#1a1a2e' },
+  { name: 'Asagi', hex: '#118ab2' },
+  { name: 'Beni', hex: '#c23b27' },
+  { name: 'Midori', hex: '#40916c' },
+  { name: 'Kin', hex: '#d4a843' },
+  { name: 'Murasaki', hex: '#7b5ea7' },
+];
+
+// ========================================================
+//  APP STATE
+// ========================================================
+const State = {
+  stamps: [], // {x, y, stampId, color, rotation, scale}
+  selectedStamp: 0,
+  selectedColor: 0,
+  stampCount: 0,
+  phase: 'stamp', // 'stamp' | 'complete'
+  animating: false,
+};
+
+// ========================================================
+//  CANVAS SETUP
+// ========================================================
+const canvas = document.getElementById('print-canvas');
+const canvasCtx = canvas.getContext('2d');
+const preview = document.getElementById('stamp-preview');
+const previewCtx = preview.getContext('2d');
+const container = document.getElementById('canvas-container');
+
+let W, H; // canvas internal size
+
+function resizeCanvas() {
+  const rect = container.getBoundingClientRect();
+  const scale = window.devicePixelRatio || 1;
+  W = rect.width * scale;
+  H = rect.height * scale;
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  preview.width = 180 * scale;
+  preview.height = 180 * scale;
+  redraw();
+}
+
+// ========================================================
+//  DRAWING
+// ========================================================
+function redraw() {
+  canvasCtx.clearRect(0, 0, W, H);
+
+  // Subtle texture background
+  canvasCtx.fillStyle = '#faf6eb';
+  canvasCtx.fillRect(0, 0, W, H);
+
+  // Wood grain lines (very subtle)
+  canvasCtx.save();
+  canvasCtx.globalAlpha = 0.03;
+  canvasCtx.strokeStyle = '#000';
+  canvasCtx.lineWidth = 1;
+  for (let y = 0; y < H; y += 4) {
+    canvasCtx.beginPath();
+    canvasCtx.moveTo(0, y + Math.sin(y * 0.05) * 2);
+    canvasCtx.lineTo(W, y + Math.cos(y * 0.03) * 2);
+    canvasCtx.stroke();
+  }
+  canvasCtx.restore();
+
+  State.stamps.forEach((s, idx) => {
+    drawStamp(canvasCtx, s.stampId, s.x * W, s.y * H, s.color, s.rotation, s.scale, idx < State.stamps.length - 1);
+  });
+}
+
+function drawStamp(c, stampId, cx, cy, color, rotation = 0, scale = 1, noFill = true) {
+  c.save();
+  c.translate(cx, cy);
+  c.rotate(rotation);
+  c.scale(scale, scale);
+
+  // Stamp pattern size
+  const sz = 160 * (c.canvas === canvas ? (window.devicePixelRatio||1) : (window.devicePixelRatio||1));
+
+  // Woodblock texture overlay
+  c.globalAlpha = 0.92;
+  c.strokeStyle = color;
+  c.lineWidth = 2.5;
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
+
+  const patternFn = StampPatterns[stampId];
+  if (patternFn) {
+    // Draw with slight variation to simulate woodblock impression
+    patternFn(c, sz);
+
+    // Second pass — slightly offset for authentic woodblock effect
+    if (noFill) {
+      c.globalAlpha = 0.4;
+      c.lineWidth = 1.5;
+      c.translate(1.5, 1.2);
+      patternFn(c, sz);
+    }
+  }
+
+  c.restore();
+}
+
+// ========================================================
+//  STAMP PALETTE UI
+// ========================================================
+function buildPalette() {
+  const pal = document.getElementById('stamp-palette');
+  pal.innerHTML = '';
+  STAMPS.forEach((st, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'stamp-btn' + (i === State.selectedStamp ? ' selected' : '');
+    btn.title = st.name;
+    btn.setAttribute('aria-label', `Select ${st.name} stamp`);
+
+    // Mini canvas preview
+    const mc = document.createElement('canvas');
+    mc.width = 80;
+    mc.height = 80;
+    const mctx = mc.getContext('2d');
+    mctx.strokeStyle = '#1a1a2e';
+    mctx.lineWidth = 1.5;
+    mctx.lineCap = 'round';
+    mctx.translate(40, 40);
+    StampPatterns[st.icon](mctx, 60);
+
+    btn.appendChild(mc);
+
+    // Badge
+    const badge = document.createElement('div');
+    badge.className = 'stamp-count';
+    badge.id = `badge-${i}`;
+    btn.appendChild(badge);
+
+    btn.addEventListener('click', () => {
+      AudioEngine.init();
+      State.selectedStamp = i;
+      buildPalette();
+    });
+
+    btn.addEventListener('mouseenter', () => {
+      AudioEngine.init();
+      AudioEngine.hover();
+    });
+
+    pal.appendChild(btn);
+  });
+
+  // Update badges
+  STAMPS.forEach((_, i) => {
+    const count = State.stamps.filter(s => s.stampId === STAMPS[i].id).length;
+    const b = document.getElementById(`badge-${i}`);
+    if (b) {
+      b.textContent = count;
+      b.className = 'stamp-count' + (count > 2 ? ' visible' : '');
+    }
+  });
+}
+
+function buildColorSwatches() {
+  const div = document.getElementById('color-swatches');
+  div.innerHTML = '';
+  COLORS.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (i === State.selectedColor ? ' selected' : '');
+    sw.style.background = c.hex;
+    sw.title = c.name;
+    sw.setAttribute('aria-label', `Select ${c.name} ink`);
+    sw.addEventListener('click', () => {
+      AudioEngine.init();
+      State.selectedColor = i;
+      buildColorSwatches();
+    });
+    sw.addEventListener('mouseenter', () => {
+      AudioEngine.init();
+      AudioEngine.hover();
+    });
+    div.appendChild(sw);
+  });
+}
+
+// ========================================================
+//  INTERACTION — stamp on click
+// ========================================================
+let isDragging = false;
+let lastStampTime = 0;
+
+function getCanvasCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) / rect.width,
+    y: (clientY - rect.top) / rect.height,
+  };
+}
+
+function placeStamp(e) {
+  AudioEngine.init();
+  const now = Date.now();
+  if (now - lastStampTime < 100) return; // debounce
+  lastStampTime = now;
+
+  const coords = getCanvasCoords(e);
+  const sz = 100;
+  // Clamp to canvas bounds
+  const x = Math.max(sz/W/2, Math.min(1 - sz/W/2, coords.x));
+  const y = Math.max(sz/H/2, Math.min(1 - sz/H/2, coords.y));
+
+  const stamp = {
+    stampId: STAMPS[State.selectedStamp].id,
+    x, y,
+    color: COLORS[State.selectedColor].hex,
+    rotation: (Math.random() - 0.5) * 0.15, // slight random rotation for natural feel
+    scale: 0.85 + Math.random() * 0.3, // slight size variation
+    placeTime: now,
+  };
+
+  State.stamps.push(stamp);
+  State.stampCount++;
+
+  // Audio + visual feedback
+  AudioEngine.stamp(State.selectedStamp);
+
+  // Animate: draw a flash at the location
+  animateStampFlash(x, y, sz);
+
+  // Update UI
+  updateCounter();
+  buildPalette();
+  updateCompletion();
+  redraw();
+
+  if (State.stamps.length >= 5) {
+    updateDots();
+  }
+}
+
+function animateStampFlash(nx, ny, sz) {
+  const flash = document.createElement('div');
+  flash.style.cssText = `
+    position: absolute;
+    left: ${nx * 100 - 25}%;
+    top: ${ny * 100 - 25}%;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid ${COLORS[State.selectedColor].hex};
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 50;
+    animation: flashRing 0.6s ease-out forwards;
+  `;
+  container.appendChild(flash);
+  setTimeout(() => flash.remove(), 650);
+}
+
+// Add keyframes for flash animation
+const flashStyle = document.createElement('style');
+flashStyle.textContent = `
+  @keyframes flashRing {
+    0% { transform: scale(0.5); opacity: 0.8; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+`;
+document.head.appendChild(flashStyle);
+
+// ========================================================
+//  STAMP PREVIEW follows cursor
+// ========================================================
+function showPreview(e) {
+  const coords = getCanvasCoords(e);
+  const rect = container.getBoundingClientRect();
+  preview.style.left = (coords.x * rect.width - preview.width/2) + 'px';
+  preview.style.top = (coords.y * rect.height - preview.height/2) + 'px';
+  preview.style.opacity = '0.5';
+}
+
+function hidePreview() {
+  preview.style.opacity = '0';
+}
+
+function drawPreview() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = preview.width / dpr;
+  previewCtx.clearRect(0, 0, preview.width, preview.height);
+  previewCtx.save();
+  previewCtx.strokeStyle = COLORS[State.selectedColor].hex;
+  previewCtx.lineWidth = 2;
+  previewCtx.lineCap = 'round';
+  previewCtx.translate(w/2, w/2);
+  StampPatterns[STAMPS[State.selectedStamp].icon](previewCtx, w * 0.7);
+  previewCtx.restore();
+}
+
+// Cursor tracking for preview
+canvas.addEventListener('mousemove', (e) => {
+  if (State.phase !== 'stamp') return;
+  showPreview(e);
+});
+canvas.addEventListener('mouseleave', hidePreview);
+
+// Touch: no hover preview, just place on tap
+canvas.addEventListener('touchstart', (e) => {
+  if (State.phase !== 'stamp') return;
+  e.preventDefault();
+  placeStamp(e);
+}, { passive: false });
+
+// Desktop: place on mousedown, allow repeat click
+canvas.addEventListener('mousedown', (e) => {
+  if (State.phase !== 'stamp') return;
+  placeStamp(e);
+});
+
+// ========================================================
+//  COUNTER & DOTS
+// ========================================================
+function updateCounter() {
+  document.getElementById('stamp-count-display').textContent = State.stampCount;
+}
+
+function updateDots() {
+  const count = Math.min(4, Math.floor(State.stamps.length / 3));
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    dot.className = 'dot-indicator' + (i <= count ? ' active' : '');
+  }
+}
+
+function updateCompletion() {
+  if (State.stamps.length >= 12) {
+    document.getElementById('clear-btn').style.display = '';
+  }
+}
+
+// ========================================================
+//  CLEAR & COMPLETE
+// ========================================================
+document.getElementById('clear-btn').addEventListener('click', () => {
+  AudioEngine.init();
+  State.stamps = [];
+  State.stampCount = 0;
+  State.phase = 'stamp';
+  AudioEngine.clear();
+  updateCounter();
+  updateDots();
+  buildPalette();
+
+  // Fade out animation
+  container.style.opacity = '0';
+  setTimeout(() => {
+    container.style.opacity = '1';
+    container.style.transition = 'opacity 0.5s';
+    redraw();
+    setTimeout(() => { container.style.transition = ''; }, 500);
+  }, 200);
+
+  document.getElementById('completion-overlay').classList.remove('show');
+});
+
+document.getElementById('complete-btn').addEventListener('click', () => {
+  if (State.stamps.length === 0) return;
+  AudioEngine.init();
+  State.phase = 'complete';
+  AudioEngine.complete();
+
+  // Hide guides
+  document.querySelectorAll('.guide-line').forEach(g => g.style.opacity = '0');
+
+  // Show completion overlay
+  setTimeout(() => {
+    document.getElementById('completion-overlay').classList.add('show');
+  }, 1200);
+
+  // Reset after delay
+  setTimeout(() => {
+    State.stamps = [];
+    State.stampCount = 0;
+    State.phase = 'stamp';
+    document.getElementById('completion-overlay').classList.remove('show');
+    document.querySelectorAll('.guide-line').forEach(g => g.style.opacity = '1');
+    updateCounter();
+    updateDots();
+    buildPalette();
+    redraw();
+  }, 4000);
+});
+
+// ========================================================
+//  MUTE
+// ========================================================
+const muteBtn = document.getElementById('mute-btn');
+const muteIcon = document.getElementById('mute-icon');
+
+muteBtn.addEventListener('click', () => {
+  AudioEngine.init();
+  const m = AudioEngine.toggleMute();
+  muteIcon.innerHTML = m
+    ? '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>'
+    : '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.48 7-8.77s-2.99-7.86-7-8.77z"/>';
+});
+
+// ========================================================
+//  KEYBOARD SHORTCUTS
+// ========================================================
+document.addEventListener('keydown', (e) => {
+  // 1-8 selects stamps
+  const n = parseInt(e.key);
+  if (n >= 1 && n <= STAMPS.length) {
+    AudioEngine.init();
+    State.selectedStamp = n - 1;
+    buildPalette();
+    drawPreview();
+  }
+  // Ctrl+Enter or Cmd+Enter to complete
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    document.getElementById('complete-btn').click();
+  }
+  // Escape to clear
+  if (e.key === 'Escape' && State.stamps.length > 0) {
+    document.getElementById('clear-btn').click();
+  }
+});
+
+// ========================================================
+//  RESIZE HANDLER
+// ========================================================
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  drawPreview();
+});
+
+// ========================================================
+//  INIT
+// ========================================================
+function init() {
+  resizeCanvas();
+  buildPalette();
+  buildColorSwatches();
+  drawPreview();
+  updateCounter();
+}
+
+// Delay init slightly to ensure layout is settled
+requestAnimationFrame(() => requestAnimationFrame(init));
+</script>
+</body>
+</html>
