@@ -3,7 +3,8 @@
 
 	// ─── Constants ──────────────────────────────────────────────
 	var STALL_THRESHOLD = 0.42;
-	var VISCOSITY = 0.85;
+	var VISCOSITY = 0.6;
+	var DRAG_RESISTANCE = 0.88; // each drag increment compounds resistance
 	var STONE_RADIUS = 28;
 	var MIST_FADE_MS = 1.2;
 
@@ -287,13 +288,16 @@
 	}
 
 	// Non-linear "plow through wet clay" easing.
-	// Starts slow, accelerates slightly, then drags heavily at the end.
+	// Heavy initial resistance, slow middle grind, terminal drag.
 	// No bounce, no overshoot, pure viscous resistance.
+	// The curve bows until the screen groans.
 	function easePlow(t) {
 		if (t <= 0) return 0;
 		if (t >= 1) return 1;
-		// Custom curve: heavy initial drag, middle push, then slow settle
-		return Math.pow(t, 0.55) * (1 - 0.3 * Math.pow(1 - t, 2));
+		// Heavy initial drag: cubic root to start slow
+		// Terminal drag: (1-t)^3 crushes movement at the end
+		// The mud is the truth — the curve must bow
+		return Math.pow(t, 0.35) * Math.pow(1 - 0.45 * Math.pow(1 - t, 2.5), 1);
 	}
 
 	// ─── Stalling timing ───────────────────────────────────────
