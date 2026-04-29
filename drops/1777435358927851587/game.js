@@ -287,13 +287,17 @@
 	}
 
 	// Non-linear "plow through wet clay" easing.
-	// Starts slow, accelerates slightly, then drags heavily at the end.
-	// No bounce, no overshoot, pure viscous resistance.
+	// Heavy initial resistance, slow middle push, terminal drag.
+	// No bounce, no overshoot. The curve breathes like wet clay.
 	function easePlow(t) {
 		if (t <= 0) return 0;
 		if (t >= 1) return 1;
-		// Custom curve: heavy initial drag, middle push, then slow settle
-		return Math.pow(t, 0.55) * (1 - 0.3 * Math.pow(1 - t, 2));
+			// Three-phase: hesitation (0-0.15), yield (0.15-0.7), drag (0.7-1)
+			// pow with 0.48 gives pronounced initial hesitation
+		var base = Math.pow(t, 0.48);
+		// Terminal drag: exponential hold at the end
+		var drag = 1 - Math.exp(-8 * (1 - t));
+		return base * drag;
 	}
 
 	// ─── Stalling timing ───────────────────────────────────────
@@ -418,8 +422,25 @@
 	function silence() {
 		for (var i = 0; i < activeGains.length; i++) {
 			try { activeGains[i].gain.setValueAtTime(0, audioCtx.currentTime); } catch (_) {}
-		}
+				}
 		activeGains = [];
+	}
+
+	function playReset() {
+		if (!audioCtx) return;
+		var t = audioCtx.currentTime;
+			// Soft upward tone — stone rising
+		var o = audioCtx.createOscillator();
+		var g = audioCtx.createGain();
+		o.type = "sine";
+		o.frequency.setValueAtTime(110, t);
+		o.frequency.linearRampToValueAtTime(140, t + 0.5);
+		g.gain.setValueAtTime(0.001, t);
+		g.gain.linearRampToValueAtTime(0.12, t + 0.05);
+		g.gain.linearRampToValueAtTime(0.001, t + 0.6);
+		o.connect(g).connect(audioCtx.destination);
+		o.start(t); o.stop(t + 0.65);
+		activeGains.push(g);
 	}
 
 	// ─── WebGL Init ────────────────────────────────────────────
@@ -493,6 +514,7 @@
 		if (state !== S_IDLE) return;
 		e.preventDefault();
 		ensureAudio();
+		startDragAudio();
 		dragStartY = pY(e);
 		dragStartX = pX(e);
 		dragStartStoneY = stoneY;
@@ -512,31 +534,36 @@
 		if (dy < 0) dy = 0;
 		dragDist = dy;
 
-		// Stone follows with slight viscous lag
-		stoneX = dragStartStoneX + (px - dragStartX) * 0.25;
-		stoneY = dragStartStoneY + dragDist;
-
+			// Stone follows with viscous drag — the deeper, the slower it tracks
 		var ratio = dragDist / maxDrag;
+		var lag = 1 - ratio * 0.5; // lag increases as you push deeper
+		stoneX = dragStartStoneX + (px - dragStartX) * 0.25 * lag;
+		stoneY = dragStartStoneY + dragDist * lag;
 
-		// Stall threshold
+			// Feed drag audio
+		updateDragAudio(Math.min(1, ratio));
+
+			// Stall threshold
 		if (ratio >= STALL_THRESHOLD) {
 			triggerStall();
-		}
+			}
 	}
 
 	function onUp(e) {
 		if (state === S_DRAGGING) {
+			stopDragAudio();
 			var ratio = dragDist / maxDrag;
 			if (ratio < STALL_THRESHOLD) {
 				resetAll();
-			}
-		} else if (state === S_SUNK) {
+				}
+			} else if (state === S_SUNK) {
 			beginReset();
-		}
+			}
 	}
 
 	var hintEl;
 	function triggerStall() {
+		stopDragAudio();
 		state = S_STALLED;
 		rippleActive = true;
 		rippleTime = 0;
@@ -557,26 +584,31 @@
 	}
 
 	function resetAll() {
-		state = S_IDLE;
+		state = S_RESETTING;
 		rippleActive = false;
 		rippleAlpha = 0;
-		stoneOpacity = 1;
-		stoneScale = 1;
-		stoneX = stoneBaseX;
-		stoneY = stoneBaseY;
+		resetStart = null;
 		silence();
-		if (mistEl) mistEl.style.opacity = "0";
-		var hint = document.getElementById("hint");
-		if (hint) hint.style.opacity = "1";
-		var cap = document.getElementById("caption");
-		if (cap) cap.classList.remove("show");
+		ensureAudio();
+		playReset();
+		if (mistEl) {
+			mistEl.style.transition = "opacity 0.4s ease-out";
+			mistEl.style.opacity = "0";
+		}
 	}
 
 	function beginReset() {
 		state = S_RESETTING;
 		rippleActive = false;
 		rippleAlpha = 0;
+		resetStart = null;
 		silence();
+		ensureAudio();
+		playReset();
+		if (mistEl) {
+			mistEl.style.transition = "opacity 0.4s ease-out";
+			mistEl.style.opacity = "0";
+		}
 	}
 
 	// Event listeners
@@ -692,6 +724,90 @@
 
 	var siltPulse = 0;
 	var resetStart = null;
+
+	// ─── Drag Audio — continuous wet drag while thumb pushes ─────
+	var dragOsc = null;
+	var dragGain = null;
+	var dragNoise = null;
+	var dragNoiseGain = null;
+	var dragNoiseFilter = null;
+	var dragActive = false;
+
+	function startDragAudio() {
+		if (!audioCtx || dragActive) return;
+		dragActive = true;
+		var t = audioCtx.currentTime;
+
+		// Low continuous drone — weight of the stone
+		dragOsc = audioCtx.createOscillator();
+		dragGain = audioCtx.createGain();
+		dragOsc.type = "triangle";
+		dragOsc.frequency.setValueAtTime(62, t);
+		dragGain.gain.setValueAtTime(0.001, t);
+		dragGain.gain.linearRampToValueAtTime(0.12, t + 0.06);
+		dragOsc.connect(dragGain);
+		dragGain.connect(audioCtx.destination);
+		dragOsc.start(t);
+
+		// Wet silt noise — the squelch
+		var sz = audioCtx.sampleRate * 4;
+		var buf = audioCtx.createBuffer(1, sz, audioCtx.sampleRate);
+		var d = buf.getChannelData(0);
+		for (var i = 0; i < sz; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+		dragNoise = audioCtx.createBufferSource();
+		dragNoise.buffer = buf;
+		dragNoise.loop = true;
+		dragNoiseFilter = audioCtx.createBiquadFilter();
+		dragNoiseFilter.type = "lowpass";
+		dragNoiseFilter.frequency.setValueAtTime(200, t);
+		dragNoiseGain = audioCtx.createGain();
+		dragNoiseGain.gain.setValueAtTime(0.001, t);
+		dragNoiseGain.gain.linearRampToValueAtTime(0.08, t + 0.08);
+		dragNoise.connect(dragNoiseFilter);
+		dragNoiseFilter.connect(dragNoiseGain);
+		dragNoiseGain.connect(audioCtx.destination);
+		dragNoise.start(t);
+	}
+
+	function updateDragAudio(ratio) {
+		if (!audioCtx || !dragActive) return;
+		var t = audioCtx.currentTime;
+		// Pitch rises with drag — resistance builds
+		var freq = 62 + ratio * 28;
+		dragOsc.frequency.linearRampToValueAtTime(freq, t + 0.033);
+		// Filter opens with drag distance — more mud exposed
+		var filtFreq = 200 + ratio * 250;
+		dragNoiseFilter.frequency.linearRampToValueAtTime(filtFreq, t + 0.033);
+		// Gain tracks resistance
+		var gain = 0.08 + ratio * 0.12;
+		dragGain.gain.linearRampToValueAtTime(gain, t + 0.033);
+		var nGain = 0.06 + ratio * 0.1;
+		dragNoiseGain.gain.linearRampToValueAtTime(nGain, t + 0.033);
+	}
+
+	function stopDragAudio() {
+		if (!audioCtx || !dragActive) return;
+		dragActive = false;
+		var t = audioCtx.currentTime;
+		// Quick fade — mud closes
+		if (dragGain) {
+			dragGain.gain.linearRampToValueAtTime(0.001, t + 0.04);
+		}
+		if (dragNoiseGain) {
+			dragNoiseGain.gain.linearRampToValueAtTime(0.001, t + 0.06);
+		}
+		if (dragOsc) {
+			dragOsc.stop(t + 0.06);
+			dragOsc = null;
+		}
+		if (dragNoise) {
+			dragNoise.stop(t + 0.08);
+			dragNoise = null;
+		}
+		dragGain = null;
+		dragNoiseGain = null;
+		dragNoiseFilter = null;
+	}
 
 	// ─── Boot ───────────────────────────────────────────────────
 	function init() {
