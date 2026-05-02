@@ -585,49 +585,135 @@ const Render = (() => {
        }
      }
 
-     // ─── Moon: luminous, atmospheric, ukiyo-e presence ───
-  function drawMoon(ctx) {
-       // Outer halo: soft glow
-     {
-      const haloGrad = ctx.createRadialGradient(moonX, moonY, moonR * .8, moonX, moonY, moonR * 2.8);
-      haloGrad.addColorStop(0, 'rgba(240,240,232,.08)');
-      haloGrad.addColorStop(.4, 'rgba(240,240,232,.03)');
-      haloGrad.addColorStop(1, 'rgba(240,240,232,0)');
-      ctx.fillStyle = haloGrad;
-      ctx.beginPath();
-      ctx.arc(moonX, moonY, moonR * 2.8, 0, Math.PI * 2);
-      ctx.fill();
-        }
+      // ─── Moon: luminous, atmospheric, ukiyo-e presence ───
+   function drawMoon(ctx) {
+        // Outer halo: soft glow, breathes with clock
+      {
+       const breath = Math.sin(clock * .15) * .5 + .5;
+       const haloR = moonR * (2.6 + breath * .4);
+       const haloGrad = ctx.createRadialGradient(moonX, moonY, moonR * .6, moonX, moonY, haloR);
+       haloGrad.addColorStop(0, 'rgba(240,240,232,' + (.06 + breath * .04) + ')');
+       haloGrad.addColorStop(.3, 'rgba(240,240,232,' + (.03 + breath * .02) + ')');
+       haloGrad.addColorStop(.7, 'rgba(240,240,232,.01)');
+       haloGrad.addColorStop(1, 'rgba(240,240,232,0)');
+       ctx.fillStyle = haloGrad;
+       ctx.beginPath();
+       ctx.arc(moonX, moonY, haloR, 0, Math.PI * 2);
+       ctx.fill();
+          }
 
-       // Registration ring: faint woodblock offset circle
-    ctx.strokeStyle = 'rgba(175,85,48,.06)';
-    ctx.lineWidth = .5;
-    ctx.beginPath();
-    ctx.arc(moonX + 1.5, moonY - 1.2, moonR + 14, 0, Math.PI * 2);
-    ctx.stroke();
+        // Second halo layer: wider, softer atmospheric scatter
+      {
+       const haloR2 = moonR * 4;
+       const grad2 = ctx.createRadialGradient(moonX, moonY, moonR, moonX, moonY, haloR2);
+       grad2.addColorStop(0, 'rgba(220,225,218,.03)');
+       grad2.addColorStop(.5, 'rgba(220,225,218,.01)');
+       grad2.addColorStop(1, 'rgba(220,225,218,0)');
+       ctx.fillStyle = grad2;
+       ctx.beginPath();
+       ctx.arc(moonX, moonY, haloR2, 0, Math.PI * 2);
+       ctx.fill();
+          }
 
-       // Key-line ring
-    ctx.strokeStyle = 'rgba(240,240,232,.18)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, moonR + 4, 0, Math.PI * 2);
-    ctx.stroke();
+        // ── Primary carved key line: bold, hand-printed black silhouette border ──
+        // The key line (키선) defines the moon's shape as in a woodblock print.
+        // Slightly irregular to suggest hand-carving, not machine perfection.
+    ctx.strokeStyle = 'rgba(26,32,64,' + (.22 + tideProgress * .12) + ')';
+    ctx.lineWidth = 1.6 + Math.abs(Math.sin(moonX * .1)) * .3;
+    _drawMoonKeyline(ctx, moonX, moonY, moonR + 1.5, 0);
 
-       // Moon body
+        // Woodblock registration offset: warm ochre, shifted +2px down-right (benizuri)
+       // The offset suggests a second ink block was applied with slight misalignment.
+    ctx.strokeStyle = 'rgba(175,85,48,' + (.09 + tideProgress * .06) + ')';
+    ctx.lineWidth = .6;
+    _drawMoonKeyline(ctx, moonX + 2.2, moonY + 1.8, moonR + 1.5, .3);
+
+        // Third pass: cool indigo registration, shifted opposite direction
+    ctx.strokeStyle = 'rgba(80,90,130,' + (.05 + tideProgress * .04) + ')';
+    ctx.lineWidth = .4;
+    _drawMoonKeyline(ctx, moonX - 1.4, moonY - 1.1, moonR + 1.5, -.25);
+
+        // Moon body: slightly warm white, flat fill like hand-printed pigment
     ctx.fillStyle = C.moon;
     ctx.beginPath();
     ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
     ctx.fill();
 
-       // Moon shadow: subtle offset dark edge, carved look
-    ctx.fillStyle = 'rgba(220,220,212,.15)';
-    const craterPositions = [[-.3,-.25],[.2,.3],[-.15,.1],[.35,-.1],[.05,-.4],[-.4,.15],[.15,.45]];
+        // ── Inner key line: carved edge detail on the moon interior ──
+        // Thin, dark ring just inside the edge to simulate carved wood depth
+    ctx.strokeStyle = 'rgba(26,32,64,.08)';
+    ctx.lineWidth = .5;
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonR - .8, 0, Math.PI * 2);
+    ctx.stroke();
+
+        // ── Moon surface texture: irregular craters and carved marks ──
+        // Each mark is slightly offset to suggest hand-carving variation
+    const craterPositions = [
+      [-.28,-.22, .085], [.18,.25,.09], [-.12,.08,.075], [.3,-.08,.07],
+      [.02,-.35,.065], [-.32,.12,.08], [.12,.38,.07], [-.05,.28,.06],
+      [.22,-.28,.055], [-.2,.32,.06]
+    ];
     craterPositions.forEach(cp => {
+      const cx = moonX + cp[0] * moonR;
+      const cy = moonY + cp[1] * moonR;
+      const cr = moonR * cp[2];
+
+        // Shadow side: slightly darker, suggesting carved depth
+      ctx.fillStyle = 'rgba(218,218,210,.18)';
       ctx.beginPath();
-      ctx.arc(moonX + cp[0] * moonR, moonY + cp[1] * moonR, moonR * .09, 0, Math.PI * 2);
+      ctx.arc(cx + .5, cy + .3, cr, 0, Math.PI * 2);
       ctx.fill();
-        });
+
+        // Crater rim: thin key line circle
+      ctx.strokeStyle = 'rgba(26,32,64,.06)';
+      ctx.lineWidth = .3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr * 1.1, 0, Math.PI * 2);
+      ctx.stroke();
+          });
+
+        // ── Tide-revealed: additional carved marks emerge as indigo wash passes ──
+    if (tideProgress > .2) {
+      const reveal = Easing.soak((tideProgress - .2) / .8);
+        // Subtle carved texture marks across the moon surface
+      _seed = 888;
+      const markCount = Math.floor(6 + reveal * 8);
+      ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .06) + ')';
+      ctx.lineWidth = .25;
+      for (let m = 0; m < markCount; m++) {
+        const ma = _sr() * Math.PI * 2;
+        const mr = _sr() * moonR * .7;
+        const mx = moonX + Math.cos(ma) * mr;
+        const my = moonY + Math.sin(ma) * mr;
+        const ml = 1.5 + _sr() * 3;
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx + Math.cos(ma + .5) * ml, my + Math.sin(ma + .5) * ml);
+        ctx.stroke();
+        }
       }
+    }
+
+   // Helper: draws a slightly irregular moon keyline (hand-carved feel)
+   function _drawMoonKeyline(ctx, cx, cy, r, phaseShift) {
+     const segments = 64;
+     ctx.beginPath();
+     for (let i = 0; i <= segments; i++) {
+       const a = (i / segments) * Math.PI * 2;
+        // Carved irregularity: 3-4 hand-carved bumps around the circumference
+       const irreg = Math.sin(a * 7 + phaseShift) * .8
+                    + Math.sin(a * 13 + phaseShift * 1.7) * .4
+                    + Math.sin(a * 3.7 - phaseShift * .5) * .6;
+       const rr = r + irreg * .3;
+       const px = cx + Math.cos(a) * rr;
+       const py = cy + Math.sin(a) * rr;
+       if (i === 0) ctx.moveTo(px, py);
+       else ctx.lineTo(px, py);
+       }
+     ctx.closePath();
+     ctx.stroke();
+    }
 
   /* ─── Deterministic Ripple Reflections ───
    * Not liquid physics. Displacement is deterministic from tide state and
@@ -729,157 +815,397 @@ const Render = (() => {
 
   function drawBridge(ctx) {
     const bridgeY = waterline - H * .04;
-    const postW = 5.5;
 
-      // ── Bridge posts: carved key-line silhouettes, visible at rest ──
-    bridgePosts.forEach((p, idx) => {
-      const ta = tideAt(p.x);
-      const postAlpha = .7 + ta * .3;
+       // ══ Bridge posts: hand-carved silhouettes anchoring the composition ══
+       // Each post has: bold key-line body, registration offsets, wood grain, and carved caps.
+       // Posts anchor the center without cluttering — bold enough to read, restrained enough to breathe.
+     const postW = 6;
+     bridgePosts.forEach((p, idx) => {
+       const ta = tideAt(p.x);
+       const postAlpha = .65 + ta * .35;
 
-        // Main key-line body: dark, hand-carved weight, always visible
-      ctx.fillStyle = lerpColor(C.paper, C.black, postAlpha);
-      ctx.fillRect(p.x - postW / 2, p.y1, postW, p.y2 - p.y1);
+          // ── Post body: solid dark fill, hand-printed weight ──
+       ctx.fillStyle = lerpColor(C.paper, C.black, postAlpha);
+       const postH = p.y2 - p.y1;
+          // Slight hand-carved irregularity: top and bottom edges not perfectly flat
+       const topBump = Math.sin(idx * 2.3) * .5;
+       const botBump = Math.sin(idx * 3.1 + 1) * .4;
+       ctx.fillRect(p.x - postW / 2, p.y1 - topBump, postW, postH + topBump + botBump);
 
-        // Key-line outline (thick, carved, offset for woodblock registration feel)
-      ctx.strokeStyle = 'rgba(26,32,64,' + (.72 + ta * .18) + ')';
-      ctx.lineWidth = 1.8;
-      ctx.strokeRect(p.x - postW / 2 - .6, p.y1 - .6, postW + 1.2, p.y2 - p.y1 + 1.2);
+          // ── Primary key-line: bold black border (karane block) ──
+       ctx.strokeStyle = 'rgba(26,32,64,' + (.68 + ta * .2) + ')';
+       ctx.lineWidth = 1.6;
+       ctx.strokeRect(
+         p.x - postW / 2 - .8, p.y1 - topBump - .8,
+         postW + 1.6, postH + topBump + botBump + 1.6
+         );
 
-        // Inner shadow: subtle offset line to suggest carved depth
-      ctx.strokeStyle = 'rgba(26,32,64,.22)';
-      ctx.lineWidth = .7;
-      ctx.beginPath();
-      ctx.moveTo(p.x + postW / 2 - 1.5, p.y1 + 3);
-      ctx.lineTo(p.x + postW / 2 - 1.5, p.y2 - 3);
-      ctx.stroke();
+          // ── Registration offset: ochre (benizuri) — shifted right-down ──
+       ctx.strokeStyle = 'rgba(175,85,48,' + (.08 + ta * .06) + ')';
+       ctx.lineWidth = .5;
+       ctx.strokeRect(
+         p.x - postW / 2 + 1.6, p.y1 - topBump + 1.3,
+         postW + 1.2, postH + topBump + botBump + 1.2
+         );
 
-        // Wood grain: horizontal hatch marks, always faintly visible
-      ctx.strokeStyle = 'rgba(107,88,69,' + (.12 + ta * .08) + ')';
-      ctx.lineWidth = .35;
-      const grainCount = 3 + ((idx * 3) % 3);
-      for (let g = 0; g < grainCount; g++) {
-        const gy = p.y1 + (p.y2 - p.y1) * (.2 + g * .22) + Math.sin(idx + g * 1.7) * 3;
-        const gxOff = (Math.sin(g * 2.3 + idx) - .5) * 2;
-        const gLen = 3 + Math.sin(g * 1.5 + idx * .7) * 1.5;
-        ctx.beginPath();
-        ctx.moveTo(p.x - postW / 2 + 2 + gxOff, gy);
-        ctx.lineTo(p.x - postW / 2 + 2 + gxOff + gLen, gy + (Math.sin(g + idx) > 0 ? .8 : -.5));
-        ctx.stroke();
-       }
+          // ── Registration offset: indigo (aozuri) — shifted left-up ──
+       ctx.strokeStyle = 'rgba(80,90,130,' + (.05 + ta * .04) + ')';
+       ctx.lineWidth = .4;
+       ctx.strokeRect(
+         p.x - postW / 2 - 1.4, p.y1 - topBump - 1.1,
+         postW + .8, postH + topBump + botBump + .8
+         );
 
-        // Tide-revealed: post cap detail (carved top piece)
-      if (ta > .15) {
-        const capAlpha = Easing.soak((ta - .15) * 2.2) * .28;
-        ctx.fillStyle = 'rgba(26,32,64,' + capAlpha + ')';
-        ctx.fillRect(p.x - postW / 2 - 1.5, p.y1 - 2, postW + 3, 4);
-        ctx.strokeStyle = 'rgba(26,32,64,' + (capAlpha * .6) + ')';
-        ctx.lineWidth = .5;
-        ctx.strokeRect(p.x - postW / 2 - 1.5, p.y1 - 2, postW + 3, 4);
-        }
-      });
+          // ── Inner carved depth: subtle right-edge shadow ──
+          // Simulates the carved wood depth visible in a real print
+       ctx.strokeStyle = 'rgba(26,32,64,.18)';
+       ctx.lineWidth = .5;
+       ctx.beginPath();
+       ctx.moveTo(p.x + postW / 2 - 1.2, p.y1 + 2);
+       ctx.lineTo(p.x + postW / 2 - 1.2, p.y2 - 2 + botBump);
+       ctx.stroke();
 
-    if (bridgePosts.length >= 2) {
-      const left = bridgePosts[1], right = bridgePosts[2];
-      const midX = (left.x + right.x) / 2;
-      const midY = bridgeY - H * .018;
-      const span = right.x - left.x;
+          // ── Wood grain: vertical and horizontal fiber marks ──
+          // Vertical grain: follows the post length
+       ctx.strokeStyle = 'rgba(107,88,69,' + (.1 + ta * .06) + ')';
+       ctx.lineWidth = .3;
+          // Vertical fibers
+       const vFiberCount = 2 + (idx % 2);
+       for (let vf = 0; vf < vFiberCount; vf++) {
+         const vfx = p.x - postW / 4 + vf * (postW / (vFiberCount * 2)) + Math.sin(idx + vf * 1.7) * .5;
+         ctx.beginPath();
+         ctx.moveTo(vfx, p.y1 + 4);
+         ctx.lineTo(vfx + Math.sin(vf * 1.3 + idx) * .3, p.y2 - 4);
+         ctx.stroke();
+         }
 
-      // ── Shadow wash beneath the bridge (indigo pool under deck) ──
-      const washY = bridgeY + 10;
-      const washH = H * .04;
-      const washGrad = ctx.createLinearGradient(left.x - 10, washY, left.x - 10, washY + washH);
-      washGrad.addColorStop(0, 'rgba(22,32,64,.08)');
-      washGrad.addColorStop(.6, 'rgba(22,32,64,.04)');
-      washGrad.addColorStop(1, 'rgba(22,32,64,0)');
-      ctx.fillStyle = washGrad;
-      ctx.fillRect(left.x - 12, washY, span + 24, washH);
+          // Horizontal grain: short cross marks, always faintly visible
+       ctx.strokeStyle = 'rgba(107,88,69,' + (.08 + ta * .05) + ')';
+       const hGrainCount = 3 + ((idx * 3) % 3);
+       for (let g = 0; g < hGrainCount; g++) {
+         const gy = p.y1 + (p.y2 - p.y1) * (.2 + g * .2) + Math.sin(idx + g * 1.7) * 3;
+         const gx = p.x - postW / 2 + 1.5 + (Math.sin(g * 2.1 + idx) - .5) * .8;
+         const gLen = 2.5 + Math.sin(g * 1.3 + idx * .6) * 1.2;
+         ctx.beginPath();
+         ctx.moveTo(gx, gy);
+         ctx.lineTo(gx + gLen, gy + (Math.sin(g + idx * 2) > .2 ? .5 : -.3));
+         ctx.stroke();
+         }
 
-        // ── Top curved deck beam (primary key-line, visible at rest) ──
-      ctx.strokeStyle = lerpColor(C.paper, C.black, .75);
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(left.x, bridgeY);
-      ctx.quadraticCurveTo(midX, midY, right.x, bridgeY);
-      ctx.stroke();
+          // ── Post cap: carved top detail, always faintly visible ──
+          // A wider top edge suggesting the post's wooden cap (kabuki)
+       ctx.strokeStyle = 'rgba(26,32,64,' + (.12 + ta * .08) + ')';
+       ctx.lineWidth = .6;
+       const capW = postW + 3;
+       const capH = 3;
+       ctx.strokeRect(p.x - capW / 2, p.y1 - capH - topBump, capW, capH);
+       ctx.fillStyle = 'rgba(26,32,64,' + (.06 + ta * .04) + ')';
+       ctx.fillRect(p.x - capW / 2 + .5, p.y1 - capH - topBump + .5, capW - 1, capH - 1);
 
-         // Secondary beam parallel for carved thickness
-      ctx.strokeStyle = lerpColor(C.paper, C.black, .45);
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(left.x, bridgeY + 4.5);
-      ctx.quadraticCurveTo(midX, midY + 4.5, right.x, bridgeY + 4.5);
-      ctx.stroke();
+          // ── Tide-revealed: deeper cap carving and post base waterline detail ──
+       if (ta > .2) {
+         const reveal = Easing.soak((ta - .2) * 2.5);
 
-      // ── Deck planks: horizontal hatches between posts ──
-      ctx.strokeStyle = 'rgba(42,48,72,' + (.07 + tideProgress * .03) + ')';
-      ctx.lineWidth = .35;
-      const plankCount = Math.floor(span / 6);
-      for (let i = 0; i < plankCount; i++) {
-        const t = (i + .5) / plankCount;
-        const px = left.x + t * span;
-        // Follow curve for y position
-        const u = t;
-        const curveY = (1 - u) * (1 - u) * bridgeY + 2 * (1 - u) * u * midY + u * u * bridgeY;
-        const plankY = curveY + 7;
-        const skew = Math.sin(u * Math.PI) * -6; // curve follows arc
-        ctx.beginPath();
-        ctx.moveTo(px - 2 + skew * .5, plankY);
-        ctx.lineTo(px + 2 + skew * .5, plankY + Math.sin(u * Math.PI) * 2);
-        ctx.stroke();
-      }
+              // Carved cap ridge: horizontal line across top of cap
+         ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .15) + ')';
+         ctx.lineWidth = .4;
+         ctx.beginPath();
+         ctx.moveTo(p.x - capW / 2 + 1, p.y1 - capH / 2 - topBump);
+         ctx.lineTo(p.x + capW / 2 - 1, p.y1 - capH / 2 - topBump);
+         ctx.stroke();
 
-      // ── Tide-revealed: suspension chains (hanebashi style) ──
-      if (tideProgress > .2) {
-        const chainAlpha = Easing.soak((tideProgress - .2) / .8) * .12;
-        ctx.strokeStyle = 'rgba(42,48,72,' + chainAlpha + ')';
-        ctx.lineWidth = .5;
-        const chains = [left, bridgePosts[0], right];
-        chains.forEach((cp, ci) => {
-          if (ci === 0 || ci === 2) return;
-          // Vertical chain lines from post to deck
-          const chainTop = bridgeY - 2 - Math.sin((ci / (chains.length - 1)) * Math.PI) * (bridgeY - midY) * .8;
-          ctx.beginPath();
-          ctx.moveTo(cp.x, chainTop - 8);
-          ctx.lineTo(cp.x, chainTop);
-          ctx.stroke();
+              // Waterline at post base: where water meets wood
+         const waterlineY = p.y1 + postH * .55;
+         ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .1) + ')';
+         ctx.lineWidth = .35;
+         ctx.beginPath();
+         ctx.moveTo(p.x - postW / 2 - .5, waterlineY);
+         ctx.lineTo(p.x + postW / 2 + .5, waterlineY);
+         ctx.stroke();
+
+              // Carved post mark: small diamond or circle at post midpoint
+         ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .08) + ')';
+         ctx.beginPath();
+         ctx.arc(p.x, p.y1 + postH * .45, 1.5, 0, Math.PI * 2);
+         ctx.stroke();
+          }
         });
-      }
-    }
-  }
 
-  function drawLanterns(ctx) {
-    const bridgeY = waterline - H * .04;
+       // ══ Bridge deck: arched hanebashi (suspension bridge) ══
+     if (bridgePosts.length >= 2) {
+       const left = bridgePosts[1], right = bridgePosts[2];
+       const midX = (left.x + right.x) / 2;
+       const midY = bridgeY - H * .02;
+       const deckDrop = bridgeY - midY;
+       const span = right.x - left.x;
+
+          // ── Shadow wash: indigo pool beneath the bridge ──
+          // Creates a sense of depth and structure: the bridge casts a shadow on the water
+       const washY = midY + 8;
+       const washH = H * .045;
+       const washGrad = ctx.createLinearGradient(0, washY, 0, washY + washH);
+       washGrad.addColorStop(0, 'rgba(22,32,64,.1)');
+       washGrad.addColorStop(.5, 'rgba(22,32,64,.04)');
+       washGrad.addColorStop(1, 'rgba(22,32,64,0)');
+       ctx.fillStyle = washGrad;
+       ctx.fillRect(left.x - 15, washY, span + 30, washH);
+
+          // ── Primary deck beam: bold arched key-line ──
+          // The thick, carved curve that reads as the bridge's main structure
+       ctx.strokeStyle = lerpColor(C.paper, C.black, .72);
+       ctx.lineWidth = 3.2;
+       ctx.lineCap = 'round';
+       ctx.beginPath();
+       ctx.moveTo(left.x - 2, bridgeY);
+       ctx.quadraticCurveTo(midX, midY, right.x + 2, bridgeY);
+       ctx.stroke();
+
+          // ── Secondary beam: parallel line for carved thickness ──
+       ctx.strokeStyle = lerpColor(C.paper, C.black, .42);
+       ctx.lineWidth = 1.8;
+       ctx.beginPath();
+       ctx.moveTo(left.x - 1, bridgeY + 5);
+       ctx.quadraticCurveTo(midX, midY + 5, right.x + 1, bridgeY + 5);
+       ctx.stroke();
+
+          // ── Deck planks: subtle horizontal hatches following the arch ──
+       ctx.strokeStyle = 'rgba(42,48,72,' + (.06 + tideProgress * .025) + ')';
+       ctx.lineWidth = .3;
+       const plankCount = Math.floor(span / 7);
+       for (let i = 0; i < plankCount; i++) {
+         const t = (i + .5) / plankCount;
+         const px = left.x + t * span;
+            // Bezier interpolation for y following the arch
+         const u = t;
+         const curveY = (1 - u) * (1 - u) * bridgeY + 2 * (1 - u) * u * midY + u * u * bridgeY;
+         const plankY = curveY + 8;
+            // Planks skew to follow arch angle
+         const skew = Math.sin(u * Math.PI) * -7;
+         ctx.beginPath();
+         ctx.moveTo(px - 2.5 + skew * .5, plankY);
+         ctx.lineTo(px + 2.5 + skew * .5, plankY + Math.sin(u * Math.PI) * 2.5);
+         ctx.stroke();
+        }
+
+          // ── Tide-revealed: suspension chains and structural details ──
+       if (tideProgress > .15) {
+         const reveal = Easing.soak((tideProgress - .15) / .85);
+
+              // Suspension chains: vertical links from post tops to deck level
+              // These suggest the hanebashi (suspension bridge) style
+         ctx.strokeStyle = 'rgba(42,48,72,' + (reveal * .1) + ')';
+         ctx.lineWidth = .5;
+         const chainPosts = [bridgePosts[0], left, right];
+         chainPosts.forEach((cp) => {
+            // Chain: from post top to arched deck
+           const t_cp = (cp.x - left.x) / span;
+           const deckY_at = (1 - t_cp) * (1 - t_cp) * bridgeY + 2 * (1 - t_cp) * t_cp * midY + t_cp * t_cp * bridgeY;
+           const chainY_top = cp.y1 - 4;
+           const chainY_bot = deckY_at - 3;
+           const segments = Math.max(3, Math.floor((chainY_bot - chainY_top) / 6));
+           for (let s = 0; s < segments; s++) {
+             const st = s / segments;
+             const sy = chainY_top + st * (chainY_bot - chainY_top);
+             const linkW = 2 + Math.sin(s * 1.3 + cp.x * .01) * .5;
+             const linkH = 3;
+             ctx.beginPath();
+             ctx.arc(cp.x, sy + linkH / 2, linkW, 0, Math.PI);
+             ctx.stroke();
+              }
+            });
+
+              // Post-to-deck connections: small carved brackets at each end
+           ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .07) + ')';
+           ctx.lineWidth = .6;
+              // Left bracket
+           ctx.beginPath();
+           ctx.arc(left.x, bridgeY + 3, 2, 0, Math.PI * 2);
+           ctx.stroke();
+              // Right bracket
+           ctx.beginPath();
+           ctx.arc(right.x, bridgeY + 3, 2, 0, Math.PI * 2);
+           ctx.stroke();
+
+              // Water ripples at post bases: where posts meet water
+           ctx.strokeStyle = 'rgba(42,48,72,' + (reveal * .06) + ')';
+           ctx.lineWidth = .3;
+           bridgePosts.forEach((cp) => {
+             const waterY = waterline + 4;
+             const rippleW = 6 + reveal * 4;
+             ctx.beginPath();
+             ctx.arc(cp.x, waterY, rippleW, .1 * Math.PI, .9 * Math.PI);
+             ctx.stroke();
+          // Second ripple ring
+             ctx.beginPath();
+             ctx.arc(cp.x, waterY + 3, rippleW * .6, .15 * Math.PI, .85 * Math.PI);
+             ctx.stroke();
+                });
+             }
+           }
+     }
+
+   function drawLanterns(ctx) {
+     const bridgeY = waterline - H * .04;
 
     lanternXs.forEach((lx, idx) => {
       const ly = bridgeY + 14;
       const ta = tideAt(lx);
+      const lanternW = 8;
+      const lanternH = 16;
 
-      ctx.fillStyle = lerpColor(C.black, C.amber, .25 + ta * .55);
-      ctx.fillRect(lx - 4, ly, 9, 14);
+        // ── Carved key-line silhouette: primary black edge (bold, hand-carved) ──
+        // Traditional lantern shape: rectangular body with top/bottom caps and hanging ring
+      ctx.strokeStyle = 'rgba(26,32,64,' + (.38 + ta * .22) + ')';
+      ctx.lineWidth = 1.4;
 
-      ctx.strokeStyle = 'rgba(42,48,72,.35)';
-      ctx.lineWidth = .8;
-      ctx.strokeRect(lx - 4, ly, 9, 14);
+        // Lantern body outline (rectangular with slight hand-carved irregularity)
+      const bump = Math.sin(idx * 3.7 + lx * .01) * .4;
+      ctx.beginPath();
+      ctx.moveTo(lx - lanternW / 2, ly);
+      ctx.lineTo(lx - lanternW / 2 + bump, ly + lanternH);
+      ctx.lineTo(lx + lanternW / 2 - bump, ly + lanternH);
+      ctx.lineTo(lx + lanternW / 2, ly);
+      ctx.closePath();
+      ctx.stroke();
 
-      const glowAlpha = .12 + ta * .25;
-      ctx.fillStyle = 'rgba(212,160,74,' + glowAlpha + ')';
-      ctx.fillRect(lx - 6, ly - 3, 14, 19);
+        // Woodblock registration offset: ochre pass, slightly shifted (benizuri)
+      ctx.strokeStyle = 'rgba(175,85,48,' + (.1 + ta * .07) + ')';
+      ctx.lineWidth = .5;
+      ctx.beginPath();
+      ctx.moveTo(lx - lanternW / 2 + 1.8, ly + 1.5);
+      ctx.lineTo(lx - lanternW / 2 + bump + 1.6, ly + lanternH + 1.2);
+      ctx.lineTo(lx + lanternW / 2 - bump + 2, ly + lanternH + 1.8);
+      ctx.lineTo(lx + lanternW / 2 + 1.4, ly + 1.6);
+      ctx.closePath();
+      ctx.stroke();
 
-      ctx.fillStyle = 'rgba(42,48,72,.25)';
-      ctx.fillRect(lx - 5, ly - 1, 11, 2);
-      ctx.fillRect(lx - 5, ly + 14, 11, 2);
+        // Second registration offset: cool indigo pass
+      ctx.strokeStyle = 'rgba(80,90,130,' + (.06 + ta * .04) + ')';
+      ctx.lineWidth = .4;
+      ctx.beginPath();
+      ctx.moveTo(lx - lanternW / 2 - 1.2, ly - 1);
+      ctx.lineTo(lx - lanternW / 2 + bump - 1, ly + lanternH - .8);
+      ctx.lineTo(lx + lanternW / 2 - bump - 1.5, ly + lanternH - 1.2);
+      ctx.lineTo(lx + lanternW / 2 - .8, ly - 1.4);
+      ctx.closePath();
+      ctx.stroke();
 
+        // ── Lantern body fill: amber glow, intensity modulated by tide ──
+      const bodyFill = .18 + ta * .42;
+      ctx.fillStyle = lerpColor(C.paper, C.amber, bodyFill);
+      ctx.fillRect(lx - lanternW / 2 + .5, ly + .5, lanternW - 1, lanternH - 1);
+
+        // ── Inner glow: warm amber radiating from center ──
+      const glowAlpha = .08 + ta * .2;
+      const glowGrad = ctx.createRadialGradient(lx, ly + lanternH / 2, 0, lx, ly + lanternH / 2, lanternW * 1.5);
+      glowGrad.addColorStop(0, 'rgba(212,160,74,' + glowAlpha + ')');
+      glowGrad.addColorStop(.5, 'rgba(212,160,74,' + (glowAlpha * .25) + ')');
+      glowGrad.addColorStop(1, 'rgba(212,160,74,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(lx - lanternW * 1.5, ly - lanternH * .3, lanternW * 3, lanternH * 1.6);
+
+        // ── Hanging ring and hook at top ──
+      ctx.strokeStyle = 'rgba(26,32,64,' + (.3 + ta * .15) + ')';
+      ctx.lineWidth = 1;
+        // Vertical suspension line from bridge
+      ctx.beginPath();
+      ctx.moveTo(lx, ly - 12);
+      ctx.lineTo(lx, ly - 1);
+      ctx.stroke();
+        // Hook/crest at top
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(lx - 3, ly - 2);
+      ctx.lineTo(lx + 3, ly - 2);
+      ctx.stroke();
+        // Hanging ring (small circle)
+      ctx.lineWidth = .7;
+      ctx.beginPath();
+      ctx.arc(lx, ly - 5, 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+        // ── Bottom cap with small tassel ──
+      ctx.strokeStyle = 'rgba(26,32,64,' + (.28 + ta * .12) + ')';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(lx - 4.5, ly + lanternH - .5);
+      ctx.lineTo(lx + 4.5, ly + lanternH - .5);
+      ctx.stroke();
+        // Tassel lines
+      ctx.lineWidth = .4;
+      const tasselEnd = ly + lanternH + 5 + ta * 3;
+      ctx.beginPath();
+      ctx.moveTo(lx - 1.5, ly + lanternH);
+      ctx.lineTo(lx - 1, tasselEnd);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(lx + 1.5, ly + lanternH);
+      ctx.lineTo(lx + 1, tasselEnd);
+      ctx.stroke();
+
+        // ── Vertical ribs (lantern panel divisions, carved lines) ──
+      ctx.strokeStyle = 'rgba(26,32,64,' + (.12 + ta * .08) + ')';
+      ctx.lineWidth = .4;
+      ctx.beginPath();
+      ctx.moveTo(lx - lanternW / 4, ly + 1);
+      ctx.lineTo(lx - lanternW / 4, ly + lanternH - 1);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(lx + lanternW / 4, ly + 1);
+      ctx.lineTo(lx + lanternW / 4, ly + lanternH - 1);
+      ctx.stroke();
+
+        // ── Horizontal bands (top and bottom frame of lantern body) ──
+      ctx.strokeStyle = 'rgba(26,32,64,' + (.18 + ta * .1) + ')';
+      ctx.lineWidth = .6;
+      ctx.beginPath();
+      ctx.moveTo(lx - lanternW / 2 + .5, ly + 1);
+      ctx.lineTo(lx + lanternW / 2 - .5, ly + 1);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(lx - lanternW / 2 + .5, ly + lanternH - 1);
+      ctx.lineTo(lx + lanternW / 2 - .5, ly + lanternH - 1);
+      ctx.stroke();
+
+        // ── Tide-revealed: interior pigment speckle and carved character marks ──
       if (ta > .15) {
-        ctx.fillStyle = 'rgba(212,160,74,' + (ta * .15) + ')';
-        for (let s = 0; s < 4; s++) {
+        const reveal = Easing.soak((ta - .15) * 2.5);
+          // Amber speckle dots simulating hand-printed pigment
+        _seed = 3000 + idx * 77;
+        const dotN = Math.floor(5 + reveal * 6);
+        ctx.fillStyle = 'rgba(212,160,74,' + (reveal * .12) + ')';
+        for (let s = 0; s < dotN; s++) {
           ctx.beginPath();
-          ctx.arc(lx - 2 + (s % 3) * 3.5, ly + 3 + Math.floor(s / 3) * 5, .6, 0, Math.PI * 2);
+          ctx.arc(
+            lx + (_sr() - .5) * lanternW * .8,
+            ly + 2 + _sr() * (lanternH - 4),
+             .4 + _sr() * .8, 0, Math.PI * 2
+          );
           ctx.fill();
+         }
+
+          // Carved character marks (suggest kanji without committing to legible text)
+        ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .1) + ')';
+        ctx.lineWidth = .35;
+        const charY = ly + lanternH * .35;
+        const charX = lx + (_sr() - .5) * 2;
+          // Horizontal stroke
+        ctx.beginPath();
+        ctx.moveTo(charX - 2.5, charY);
+        ctx.lineTo(charX + 2.5, charY + .3);
+        ctx.stroke();
+          // Vertical stroke
+        ctx.beginPath();
+        ctx.moveTo(charX + .5, charY - 2);
+        ctx.lineTo(charX + .4, charY + 2.5);
+        ctx.stroke();
+          // Small curved stroke
+        ctx.beginPath();
+        ctx.arc(charX - 0.5, charY - .5, 1.2, .5, 2.5);
+        ctx.stroke();
         }
-      }
-    });
-  }
+     });
+   }
 
    /* ─── Lantern Reflections with Deterministic Ripple ───
     * Each lantern reflection is broken into vertical segments.
@@ -1663,171 +1989,318 @@ const Render = (() => {
     ctx.restore();
   }
 
-  // ─── Registration lines: authentic ukiyo-e multi-pass registration marks ───
-  function drawRegistration(ctx) {
-    ctx.save();
+    // ─── Registration lines: authentic ukiyo-e multi-pass registration marks ───
+    // Three distinct ink passes are simulated, each with its own offset direction:
+    //   1. Key block (black) baseline — always fully visible
+    //   2. Benizuri (warm ochre) — offset +2/+1.5 from key block
+    //   3. Aozuri (cool indigo) — offset -1.5/-1 from key block
+    // The visibility of passes 2 and 3 increases with tide progress and is strongest in settled state.
+   function drawRegistration(ctx) {
+     ctx.save();
 
-    const regBoost = .5 + Math.min(.5, tideProgress * .4);
-    const settledBoost = settled ? 1.4 : 1;
+     // Base visibility: always somewhat visible (woodblock character), grows with tide
+     const regBase = .25 + Math.min(.75, tideProgress * .6);
+     const settledBoost = settled ? 1.6 : 1;
+     const ochreAlpha = (.12 * regBase * settledBoost);
+     const indigoAlpha = (.07 * regBase * settledBoost);
 
-     // ── Primary registration: warm ochre offset, suggests first color block ──
-    ctx.strokeStyle = `rgba(175,85,48,${(.1 * regBoost * settledBoost).toFixed(3)})`;
-    ctx.lineWidth = .5;
+       // ══ PASS 1: Benizuri (warm ochre) — primary registration offset ══
+     ctx.strokeStyle = 'rgba(175,85,48,' + ochreAlpha.toFixed(3) + ')';
+     ctx.lineWidth = .6;
 
-     // Bridge post registration offsets (subtle, always present)
-    bridgePosts.forEach((p, idx) => {
-      const dx = 1.4 + (idx % 3) * .3;
-      const dy = -1.2 - ((idx + 1) % 2) * .25;
-      ctx.beginPath();
-      ctx.moveTo(p.x + dx, p.y1 + dy);
-      const midY = (p.y1 + p.y2) / 2;
-      ctx.lineTo(p.x + dx + .35 * ((idx % 2 === 0) ? 1 : -1), midY + dy);
-      ctx.lineTo(p.x + dx - .2, p.y2 + dy);
-      ctx.stroke();
-       });
-
-     // Hill edge: subtle registration offset
-    {
-       const hillY = (x) => waterline - (.025 + Math.sin(x * .004) * .018 + Math.sin(x * .009 + .6) * .008) * H;
-       const rdx = 1.6;
-      const rdy = -1.2;
+       // Bridge post registration: each post has a unique offset simulating block misalignment
+     bridgePosts.forEach((p, idx) => {
+       const dx = 1.8 + (idx % 3) * .4;
+       const dy = -1.4 - ((idx + 1) % 2) * .3;
+       const wobble = Math.sin(p.x * .05 + idx * 1.3) * .5;
        ctx.beginPath();
-      for (let x = 0; x <= W; x += 6) {
-         const jitter = Math.sin(x * .31) * .35;
-        if (x === 0) ctx.moveTo(x + rdx, hillY(x) + rdy + jitter);
-        else ctx.lineTo(x + rdx, hillY(x) + rdy + jitter);
-         }
+       ctx.moveTo(p.x + dx, p.y1 + dy);
+       const midY = (p.y1 + p.y2) / 2;
+       ctx.lineTo(p.x + dx + .4 * ((idx % 2 === 0) ? 1 : -1) + wobble, midY + dy);
+       ctx.lineTo(p.x + dx - .3 + wobble * .5, p.y2 + dy);
        ctx.stroke();
-      }
+        });
 
-     // Boat registration: two offset passes (primary + secondary ink)
-    boats.forEach((b, idx) => {
-       // Primary offset: warm ochre
-      const dx1 = 1 + idx * .25;
-      const dy1 = -1 - (idx % 2) * .3;
-      ctx.strokeStyle = `rgba(175,85,48,${(.07 * regBoost * settledBoost).toFixed(3)})`;
-      ctx.lineWidth = .45;
-      ctx.beginPath();
-      ctx.moveTo(b.x + dx1, b.y + b.h - 1 + dy1);
-      ctx.quadraticCurveTo(
-        b.x + b.w * .18 + dx1, b.y - 1 + dy1,
-         b.x + b.w * .5 + dx1, b.y - b.h * .5 - 1 + dy1
-         );
+       // Bridge deck curve: ochre offset of the arched beam
+     if (bridgePosts.length >= 2) {
+       const leftPost = bridgePosts[1], rightPost = bridgePosts[2];
+       const bY = waterline - H * .04;
+       const midX_b = (leftPost.x + rightPost.x) / 2;
+       const midY_b = bY - H * .018;
+       ctx.beginPath();
+       ctx.moveTo(leftPost.x + 1.5, bY - 1.5);
+       ctx.quadraticCurveTo(midX_b + 1.5, midY_b - 1.2, rightPost.x + 1.5, bY - 1.5);
+       ctx.stroke();
+       // Secondary deck curve offset
+       ctx.lineWidth = .35;
+       ctx.beginPath();
+       ctx.moveTo(leftPost.x + 2.2, bY + 3);
+       ctx.quadraticCurveTo(midX_b + 2, midY_b + 3.2, rightPost.x + 2.3, bY + 3);
+       ctx.stroke();
+        }
+
+       // Moon registration: three concentric offset circles suggest multi-block printing
+       // Each color block was printed with slight misalignment on the original block
+     {
+       const moonRegR = moonR + 3;
+           // Ochre offset ring
+       ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .7).toFixed(3) + ')';
+       ctx.lineWidth = .4;
+        _drawMoonKeyline(ctx, moonX + 2, moonY + 1.5, moonRegR, .8);
+           // Third pass: deeper offset
+       ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .3).toFixed(3) + ')';
+       ctx.lineWidth = .3;
+        _drawMoonKeyline(ctx, moonX + 3.5, moonY + 2.5, moonRegR + .5, 1.5);
+     }
+
+       // Lantern registration: offset outlines
+     lanternXs.forEach((lx, idx) => {
+       const bY2 = waterline - H * .04;
+       const ly = bY2 + 14;
+       const lw = 8, lh = 16;
+       const bump = Math.sin(idx * 3.7 + lx * .01) * .4;
+       ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .5).toFixed(3) + ')';
+       ctx.lineWidth = .4;
+       ctx.beginPath();
+       ctx.moveTo(lx - lw / 2 + 1.6, ly + 1.2);
+       ctx.lineTo(lx - lw / 2 + bump + 1.4, ly + lh + 1);
+       ctx.lineTo(lx + lw / 2 - bump + 1.8, ly + lh + 1.5);
+       ctx.lineTo(lx + lw / 2 + 1.2, ly + 1.3);
+       ctx.closePath();
+       ctx.stroke();
+        });
+
+       // Far hill edge: ochre offset registration
+     {
+       const hillY_far = (x) => waterline - (.032 + Math.sin(x * .003 + 1.4) * .022 + Math.sin(x * .007 + .3) * .01) * H;
+       ctx.beginPath();
+       for (let x = 0; x <= W; x += 6) {
+         const jitter = Math.sin(x * .27) * .4;
+         if (x === 0) ctx.moveTo(x + 1.8, hillY_far(x) - 1.4 + jitter);
+         else ctx.lineTo(x + 1.8, hillY_far(x) - 1.4 + jitter);
+          }
+       ctx.stroke();
+        }
+
+       // ══ PASS 2: Aozuri (cool indigo) — secondary registration offset ══
+     ctx.strokeStyle = 'rgba(80,90,130,' + indigoAlpha.toFixed(3) + ')';
+     ctx.lineWidth = .45;
+
+       // Mid hill edge: indigo offset, opposite direction from ochre
+     {
+       const hillY_mid = (x) => waterline - (.025 + Math.sin(x * .004) * .018 + Math.sin(x * .009 + .6) * .008) * H;
+       ctx.beginPath();
+       for (let x = 0; x <= W; x += 6) {
+         const jitter = Math.cos(x * .33) * .3;
+         if (x === 0) ctx.moveTo(x - 1.4, hillY_mid(x) + 1.1 + jitter);
+         else ctx.lineTo(x - 1.4, hillY_mid(x) + 1.1 + jitter);
+          }
+       ctx.stroke();
+        }
+
+       // Boat registration: two offset passes per boat (ochre + indigo)
+     boats.forEach((b, idx) => {
+         // Indigo offset: shifted left and down
+       const dx2 = -1.5 - idx * .25;
+       const dy2 = .9 + (idx % 3) * .3;
+       ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .7).toFixed(3) + ')';
+       ctx.lineWidth = .4;
+       ctx.beginPath();
+       ctx.moveTo(b.x + dx2, b.y + b.h + dy2);
        ctx.quadraticCurveTo(
-        b.x + b.w * .82 + dx1, b.y - 1 + dy1,
-        b.x + b.w + dx1, b.y + b.h - 1 + dy1
-         );
-      ctx.closePath();
-      ctx.stroke();
+         b.x + b.w * .18 + dx2, b.y + dy2,
+          b.x + b.w * .5 + dx2, b.y - b.h * .5 + dy2
+           );
+        ctx.quadraticCurveTo(
+         b.x + b.w * .82 + dx2, b.y + dy2,
+         b.x + b.w * .95 + dx2, b.y + b.h * .5 + dy2
+           );
+       ctx.closePath();
+       ctx.stroke();
+     });
 
-       // Secondary offset: cool blue-indigo
-      const dx2 = -1.3 - idx * .2;
-      const dy2 = .8 + (idx % 3) * .25;
-      ctx.strokeStyle = `rgba(80,90,130,${(.04 * regBoost * settledBoost).toFixed(3)})`;
-      ctx.lineWidth = .35;
-      ctx.beginPath();
-      ctx.moveTo(b.x + dx2, b.y + b.h + dy2);
-      ctx.quadraticCurveTo(
-        b.x + b.w * .18 + dx2, b.y + dy2,
-         b.x + b.w * .5 + dx2, b.y - b.h * .5 + dy2
-         );
+       // Bridge posts: indigo offset (opposite direction from ochre)
+     bridgePosts.forEach((p, idx) => {
+       const dx = -1.8 - (idx % 2) * .5;
+       const dy = 1.6 + ((idx + 2) % 3) * .35;
+       const wobble = Math.cos(p.x * .07 + idx * .9) * .6;
+       ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .6).toFixed(3) + ')';
+       ctx.lineWidth = .4;
+       ctx.beginPath();
+       ctx.moveTo(p.x + dx, p.y1 + dy);
+       const midY = (p.y1 + p.y2) / 2;
+       ctx.lineTo(p.x + dx - .3 * ((idx % 2 === 0) ? 1 : -1) + wobble, midY + dy);
+       ctx.lineTo(p.x + dx + .2 - wobble * .5, p.y2 + dy);
+       ctx.stroke();
+        });
+
+       // Reed registration: sparse, only on primary reeds (not all)
+     for (let i = 0; i < reeds.length; i += 2) {
+       const r = reeds[i];
+       const dx = -1 + (i % 3) * .5;
+       const dy = ((i + 2) % 3) * .7;
+       ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .35).toFixed(3) + ')';
+       ctx.lineWidth = .25;
+       ctx.beginPath();
+       ctx.moveTo(r.x + dx, r.baseY + dy);
+       const tipX_r = r.x + r.lean * r.h * .6 + dx;
+       const tipY_r = r.baseY - r.h + dy;
        ctx.quadraticCurveTo(
-        b.x + b.w * .82 + dx2, b.y + dy2,
-        b.x + b.w + dx2, b.y + b.h + dy2
-         );
-      ctx.closePath();
-      ctx.stroke();
-       });
+         r.x + r.lean * r.h * .25 + dx,
+         r.baseY - r.h * .5 + dy,
+         tipX_r, tipY_r
+          );
+       ctx.stroke();
+        }
 
-     // Reed registration
-    reeds.forEach((r, idx) => {
-      const dx = (idx % 3 - 1) * 1;
-      const dy = ((idx + 1) % 2 === 0 ? -1 : 1) * .8;
-      ctx.strokeStyle = `rgba(175,85,48,${(.035 * regBoost * settledBoost).toFixed(3)})`;
-      ctx.lineWidth = .3;
-      ctx.beginPath();
-      ctx.moveTo(r.x + dx, r.baseY + dy - .5);
-      const tipX = r.x + r.lean * r.h * .6 + dx;
-      const tipY = r.baseY - r.h + dy;
-      ctx.quadraticCurveTo(
-        r.x + r.lean * r.h * .25 + dx,
-        r.baseY - r.h * .5 + dy,
-        tipX, tipY
-         );
-      ctx.stroke();
-       });
+       // ══ PASS 3: Key block reinforcement (dark, always visible) ══
+       // A very faint third pass of key block registration — the "karane" (key block)
+       // printed heaviest, showing through all other layers with hand-carved irregularity.
+     ctx.strokeStyle = 'rgba(26,32,64,' + (.04 * regBase * settledBoost).toFixed(3) + ')';
+     ctx.lineWidth = .3;
 
-     // Bridge deck registration
-    if (bridgePosts.length >= 2) {
-      const left = bridgePosts[1], right = bridgePosts[2];
-      const bridgeY = waterline - H * .04;
-      ctx.strokeStyle = `rgba(175,85,48,${(.06 * regBoost * settledBoost).toFixed(3)})`;
-      ctx.lineWidth = .4;
-      ctx.beginPath();
-      ctx.moveTo(left.x - .7, bridgeY - 1.2);
-      const midX = (left.x + right.x) / 2;
-      const midY = bridgeY - H * .018 - .7;
-      ctx.quadraticCurveTo(midX, midY, right.x - .7, bridgeY - 1.2);
-      ctx.stroke();
-       }
+       // Key block registration for moon (third pass, smallest offset)
+     _drawMoonKeyline(ctx, moonX - .5, moonY + .3, moonR + 2, -.3);
 
-     // Secondary registration pass: blue offset for bridge posts
-    ctx.strokeStyle = `rgba(90,100,140,${(.04 * regBoost * settledBoost).toFixed(3)})`;
-    ctx.lineWidth = .35;
+       // Key block registration for bridge deck (third pass)
+     if (bridgePosts.length >= 2) {
+       const leftPost = bridgePosts[1], rightPost = bridgePosts[2];
+       const bY3 = waterline - H * .04;
+       const midX_k = (leftPost.x + rightPost.x) / 2;
+       const midY_k = bY3 - H * .018;
+       ctx.beginPath();
+       ctx.moveTo(leftPost.x - .8, bY3 - .5);
+       ctx.quadraticCurveTo(midX_k - .8, midY_k - .6, rightPost.x - .8, bY3 - .5);
+       ctx.stroke();
+        }
 
-    bridgePosts.forEach((p, idx) => {
-      const dx = -1.6 - (idx % 2) * .4;
-      const dy = 1.8 + ((idx + 2) % 3) * .3;
-      ctx.beginPath();
-      ctx.moveTo(p.x + dx, p.y1 + dy);
-      const midY = (p.y1 + p.y2) / 2;
-      ctx.lineTo(p.x + dx - .25 * ((idx % 2 === 0) ? 1 : -1), midY + dy);
-      ctx.lineTo(p.x + dx + .15, p.y2 + dy);
-      ctx.stroke();
-       });
+       // ══ Corner registration marks (kumiko/chokokō) ══
+       // Authentic ukiyo-e corner marks: crosshairs with circles, showing
+       // the registration holes through each color block layer.
+     const mkSize = 8;
+     const mkOffset = 14;
+     const corners = [
+        [mkOffset, mkOffset],
+        [W - mkOffset, mkOffset],
+        [mkOffset, H - mkOffset],
+        [W - mkOffset, H - mkOffset],
+        ];
 
-     // ── Corner registration marks (chokokō) ──
-    const mkSize = 7;
-    const mkOffset = 12;
-    const marks = [
-      [mkOffset, mkOffset],
-      [W - mkOffset, mkOffset],
-      [mkOffset, H - mkOffset],
-      [W - mkOffset, H - mkOffset],
-      ];
-    marks.forEach(([mx, my], idx) => {
-       // Primary mark: crosshair
-      ctx.strokeStyle = `rgba(175,85,48,${(.12 * regBoost).toFixed(3)})`;
-      ctx.lineWidth = .6;
-      ctx.beginPath();
-      ctx.moveTo(mx - mkSize - 2, my);
-      ctx.lineTo(mx + mkSize + 2, my);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(mx, my - mkSize - 2);
-      ctx.lineTo(mx, my + mkSize + 2);
-      ctx.stroke();
+     corners.forEach(([mx, my], idx) => {
+         // Ochre pass: largest, defines the primary registration
+       ctx.strokeStyle = 'rgba(175,85,48,' + (.15 * regBase).toFixed(3) + ')';
+       ctx.lineWidth = .7;
+           // Horizontal and vertical crosshair
+       ctx.beginPath();
+       ctx.moveTo(mx - mkSize - 3, my);
+       ctx.lineTo(mx + mkSize + 3, my);
+       ctx.stroke();
+       ctx.beginPath();
+       ctx.moveTo(mx, my - mkSize - 3);
+       ctx.lineTo(mx, my + mkSize + 3);
+       ctx.stroke();
+           // Circle enclosing crosshair
+       ctx.beginPath();
+       ctx.arc(mx, my, mkSize, 0, Math.PI * 2);
+       ctx.stroke();
 
-       // Circle mark
-      ctx.beginPath();
-      ctx.arc(mx, my, mkSize, 0, Math.PI * 2);
-      ctx.stroke();
+         // Indigo pass: offset crosshair + circle
+       ctx.strokeStyle = 'rgba(80,90,130,' + (.08 * regBase).toFixed(3) + ')';
+       ctx.lineWidth = .45;
+       const offDx = (idx % 2 === 0) ? 1.5 : -1;
+       const offDy = (idx > 1) ? 1.5 : -1;
+       ctx.beginPath();
+       ctx.moveTo(mx - mkSize + offDx, my + offDy);
+       ctx.lineTo(mx + mkSize + offDx, my + offDy);
+       ctx.stroke();
+       ctx.beginPath();
+       ctx.moveTo(mx + offDx, my - mkSize + offDy);
+       ctx.lineTo(mx + offDx, my + mkSize + offDy);
+       ctx.stroke();
+       ctx.beginPath();
+       ctx.arc(mx + offDx, my + offDy, mkSize, 0, Math.PI * 2);
+       ctx.stroke();
 
-       // Offset second pass
-      ctx.strokeStyle = `rgba(175,85,48,${(.06 * regBoost).toFixed(3)})`;
-      ctx.lineWidth = .4;
-      const offDx = (idx % 2 === 0) ? 1.2 : -.8;
-      const offDy = (idx > 1) ? 1.2 : -.8;
-      ctx.beginPath();
-      ctx.moveTo(mx - mkSize, my + offDy);
-      ctx.lineTo(mx + mkSize, my + offDy);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(mx + offDx, my + offDy, mkSize, 0, Math.PI * 2);
-      ctx.stroke();
-      });
+         // Key block: smallest and darkest, centered on crosshair intersection
+       ctx.strokeStyle = 'rgba(26,32,64,' + (.06 * regBase).toFixed(3) + ')';
+       ctx.lineWidth = .3;
+       ctx.beginPath();
+       ctx.moveTo(mx - 3, my);
+       ctx.lineTo(mx + 3, my);
+       ctx.stroke();
+       ctx.beginPath();
+       ctx.moveTo(mx, my - 3);
+       ctx.lineTo(mx, my + 3);
+       ctx.stroke();
+        });
 
-    ctx.restore();
+       // ══ Edge registration bands (ban-eri) ══
+       // Thin lines along all four edges simulating the paper's registration border
+       // where the block edges were registered against a wooden frame (ken).
+     {
+       const bandAlpha = (.035 * regBase * settledBoost).toFixed(3);
+       const margin = 5;
+       ctx.strokeStyle = 'rgba(26,32,64,' + bandAlpha + ')';
+       ctx.lineWidth = .3;
+       ctx.setLineDash([3, 5]);
+           // Top edge
+       ctx.beginPath();
+       ctx.moveTo(margin, margin);
+       ctx.lineTo(W - margin, margin);
+       ctx.stroke();
+           // Bottom edge
+       ctx.beginPath();
+       ctx.moveTo(margin, H - margin);
+       ctx.lineTo(W - margin, H - margin);
+       ctx.stroke();
+           // Left edge
+       ctx.beginPath();
+       ctx.moveTo(margin, margin);
+       ctx.lineTo(margin, H - margin);
+       ctx.stroke();
+           // Right edge
+       ctx.beginPath();
+       ctx.moveTo(W - margin, margin);
+       ctx.lineTo(W - margin, H - margin);
+       ctx.stroke();
+       ctx.setLineDash([]);
+        }
+
+       // ══ Tide-revealed: additional registration details emerge at high tide ══
+     if (tideProgress > .4) {
+       const reveal = Easing.soak((tideProgress - .4) / .6);
+       const revealAlpha = (reveal * .04 * settledBoost).toFixed(4);
+
+           // Moon surface registration scars: tiny carved marks visible only at full tide
+        _seed = 7777;
+       const scarCount = Math.floor(5 + reveal * 8);
+       ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .03 * settledBoost).toFixed(3) + ')';
+       ctx.lineWidth = .2;
+       for (let s = 0; s < scarCount; s++) {
+         const sa = _sr() * Math.PI * 2;
+         const sr2 = _sr() * moonR * .6;
+         const sx = moonX + Math.cos(sa) * sr2;
+         const sy = moonY + Math.sin(sa) * sr2;
+         ctx.beginPath();
+         ctx.moveTo(sx, sy);
+         ctx.lineTo(sx + Math.cos(sa + .8) * (2 + _sr() * 3), sy + Math.sin(sa + .8) * (2 + _sr() * 3));
+         ctx.stroke();
+          }
+
+           // Bridge post registration: third-pass key block detail on each post
+        bridgePosts.forEach((p, idx) => {
+          const dx3 = .8 * ((idx % 2) ? -1 : 1);
+          const dy3 = .5 * ((idx % 2) ? 1 : -1);
+          ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .03).toFixed(3) + ')';
+          ctx.lineWidth = .25;
+          ctx.beginPath();
+          ctx.moveTo(p.x + dx3, p.y1 + dy3);
+          ctx.lineTo(p.x + dx3, p.y2 + dy3);
+          ctx.stroke();
+            });
+          }
+
+     ctx.restore();
     }
 
    // ─── Settle fiber texture generation ───
