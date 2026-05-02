@@ -24,7 +24,9 @@ html, body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
+ -webkit-tap-highlight-color: transparent;
+   /* Ink bleed filter: soft Gaussian blur merged with source to mimic pigment on absorbent paper */
+  filter: url('#inkBleed');
 }
 #main-canvas {
   display: block;
