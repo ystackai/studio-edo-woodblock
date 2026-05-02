@@ -8,14 +8,17 @@ const Audio = (() => {
   let paperSrc = null;
   let waterDrone = null;
   let initialized = false;
+  let settling = false;
 
-   // Noise buffer (baked on init)
+    // Noise buffer (baked on init)
   let noiseBuffer = null;
 
   function init() {
     if (initialized) return;
     try {
        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // Resume on platforms that suspend until user gesture (iOS, Android)
+       if (ctx.state === 'suspended') ctx.resume();
        master = ctx.createGain();
        master.gain.value = 0.32;
        master.connect(ctx.destination);
@@ -110,9 +113,10 @@ const Audio = (() => {
       }
     }
 
-   // ── Water-drag drone (depth-controlled) ──
+    // ── Water-drag drone (depth-controlled) ──
   function startWaterDrone() {
     if (!ctx || !initialized) return;
+    stopWaterDrone(); // prevent oscillator leak on re-init
 
     const o1 = ctx.createOscillator();
     const o2 = ctx.createOscillator();
@@ -160,10 +164,12 @@ const Audio = (() => {
     waterDrone = null;
    }
 
-         // ── Settling thump + paper hiss (release) ──
-       // Uses Web Audio scheduling instead of setInterval for reliable fade-out
+           // ── Settling thump + paper hiss (release) ──
+         // Uses Web Audio scheduling instead of setInterval for reliable fade-out
+         // Double-call guard prevents pointerup/pointercancel race
   function settle() {
-    if (!ctx || !initialized) return;
+    if (!ctx || !initialized || settling) return;
+    settling = true;
     const now = ctx.currentTime;
 
            // Thump: deep settling
