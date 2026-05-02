@@ -24,8 +24,9 @@ const Render = (() => {
   let moonX, moonY, moonR, waterline;
   let boats = [], reeds = [], bridgePosts = [], lanternXs = [];
   let clock = 0;
+  let frameCount = 0;           // monotonically increasing frame counter for deterministic seeding
 
-  // ── Touch micro-interaction state ──
+   // ── Touch micro-interaction state ──
   let touchX = 0, touchY = 0;       // current pointer position
   let touchAlpha = 0;                 // 0→1 press glow intensity
   let dragTrail = [];                 // recent positions for trailing stipple
@@ -48,7 +49,8 @@ const Render = (() => {
   let pigmentMap = null;        // offscreen canvas for accumulated ink
   let pigmentCtx = null;
   let grainPattern = null;      // pre-baked paper grain pattern
-  let initialTideFront = -1;    // saved for reset
+  let tideFrontVel = 0;     // tide front velocity for inertia-based deceleration
+  let initialTideFront = -1;     // saved for reset
 
   function init(canvas) {
     W = canvas.width = window.innerWidth;
@@ -156,15 +158,26 @@ const Render = (() => {
     const zone = 180 + pressure * 120;
     if (d > zone) return 1;
     // Smooth S-curve instead of linear: feels like ink soaking in
-    return _smoothstep(d / zone);
-   }
-  function _smoothstep(t) {
-    t = Math.max(0, Math.min(1, t));
-    return t * t * (3 - 2 * t);
-   }
+    return Easing.soak(d / zone);
+    }
 
-  // ─── Main draw pipeline ───
+   // ─── Easing curves: non-linear, ink-soak physics ───
+  const Easing = {
+    // Press: slow start, then quick engagement (like ink finding fibers)
+    press: t => Math.pow(Math.max(0, Math.min(1, t)), 2.2),
+    // Release: quick initial drop, slow tail (settling)
+    release: t => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 2.8),
+    // Soak: slow start, steady spread, gentle saturation (pigment in paper)
+    soak: t => Math.pow(Math.max(0, Math.min(1, t)), 1.4) * (1 + (1 - Math.pow(Math.max(0, Math.min(1, t)), .8)) * 1.2),
+    // Smoothstep for clean transitions
+    smoothstep: t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); },
+    // Symmetric ease-in-out for reset and balanced motion
+    inOut: t => -(Math.cos(Math.PI * Math.max(0, Math.min(1, t))) - 1) * .5,
+  };
+
+    // ─── Main draw pipeline ───
   function draw(ctx) {
+    frameCount++;
     ctx.clearRect(0, 0, W, H);
     drawPaper(ctx);
     drawSky(ctx);
@@ -581,7 +594,7 @@ const Render = (() => {
 
        if (ta > .1) {
          // ── Carved hatch marks: angled, variable length ──
-         const hatchAlpha = _smoothstep((ta - .1) * 2) * .28;
+          const hatchAlpha = Easing.soak((ta - .1) * 2) * .28;
          ctx.strokeStyle = 'rgba(42,48,72,' + hatchAlpha + ')';
          ctx.lineWidth = .5;
          const step = 4;
@@ -603,12 +616,12 @@ const Render = (() => {
           }
 
          // ── Stippled pigment: granular dots (consistent seed per frame) ──
-         if (ta > .35) {
-           const stipAlpha = _smoothstep((ta - .35) * 2.5) * .16;
-           const dotCount = Math.floor(6 + ta * 10);
-           ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha + ')';
-           _seed = 42 + i * 100 + Math.floor(tideProgress * 10);
-           for (let s = 0; s < dotCount; s++) {
+        if (ta > .35) {
+            const stipAlpha = Easing.smoothstep((ta - .35) * 2.5) * .16;
+            const dotCount = Math.floor(6 + ta * 10);
+            ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha + ')';
+             _seed = 42 + i * 100 + frameCount * 7;
+            for (let s = 0; s < dotCount; s++) {
              const sx = b.x + _sr() * b.w;
              const frac = (sx - b.x) / b.w;
              const syBase = b.y - b.h * (.5 * (1 - Math.pow(2 * frac - 1, 2)));
@@ -619,9 +632,9 @@ const Render = (() => {
             }
           }
 
-         // ── Pigment pool: darker spot where ink collects at keel ──
-         if (ta > .5) {
-           const poolAlpha = _smoothstep((ta - .5) * 2) * .12;
+          // ── Pigment pool: darker spot where ink collects at keel ──
+          if (ta > .5) {
+            const poolAlpha = Easing.soak((ta - .5) * 2) * .12;
            ctx.fillStyle = 'rgba(22,32,64,' + poolAlpha + ')';
            ctx.beginPath();
            ctx.ellipse(b.x + b.w * .45, b.y + b.h * .85, b.w * .3, b.h * .4, 0, 0, Math.PI * 2);
@@ -685,7 +698,7 @@ const Render = (() => {
 
         // Reed top tufts: blade segments and stippled dots
        if (ta > .15) {
-         const stipAlpha = _smoothstep((ta - .15) * 2.5);
+          const stipAlpha = Easing.soak((ta - .15) * 2.5);
 
           // Blade segments: hand-carved angled strokes
          ctx.strokeStyle = 'rgba(90,122,90,' + (stipAlpha * .3) + ')';
@@ -721,7 +734,7 @@ const Render = (() => {
 
         // Base stippling (where reed enters water, pigment collects)
        if (ta > .5) {
-         const baseAlpha = _smoothstep((ta - .5) * 2) * .08;
+          const baseAlpha = Easing.soak((ta - .5) * 2) * .08;
          ctx.fillStyle = 'rgba(27,42,74,' + baseAlpha + ')';
          _seed = 200 + i * 70;
          for (let s = 0; s < 4; s++) {
@@ -743,9 +756,9 @@ const Render = (() => {
     for (let x = Math.max(0, tideFront - 10); x < Math.min(W, tideFront + zone + 10); x += 2) {
        const d = x - tideFront;
        if (d < 0 || d > zone) continue;
-       const t = _smoothstep(d / zone);
+        const t = Easing.soak(d / zone);
 
-        // Primary indigo wash: fades toward edges like absorbent paper
+          // Primary indigo wash: fades toward edges like absorbent paper
        const alpha = .06 + Math.sin(t * Math.PI) * (.18 + pressure * .22);
        if (alpha > .025) {
          ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
@@ -1125,7 +1138,7 @@ const Render = (() => {
    }
 
     // ─── Input handlers ───
-  function onDown(x, y) {
+    function onDown(x, y) {
     pressed = true;
     settling = false;
     resetting = false;
@@ -1133,34 +1146,41 @@ const Render = (() => {
     lastY = y;
     touchX = x;
     touchY = y;
-    touchAlpha = 1;
+    touchAlpha = 0; // Start at 0 for eased press-in
     dragTrail = [{ x, y }];
     releaseRipple = null;
     if (tideFront <= 0) {
-        tideFront = x;
-        initialTideFront = x;
+         tideFront = x;
+         initialTideFront = x;
+          }
+         tideFrontVel = 0; // Reset velocity
         }
-      }
 
   function onMove(x, y) {
     if (!pressed) return;
     const dx = x - lastX;
     const dist = Math.abs(dx);
-    pressure = Math.min(1, pressure + dist * .004);
 
-    tideFront = Math.max(0, Math.min(W, tideFront + dx * .5));
-    tideProgress += dist * .007;
+      // Track velocity for inertia-based behavior
+    tideFrontVel = dx * .5;
 
-     // Track touch for visual feedback
+      // Pressure builds non-linearly: slow initial uptake, faster at depth (like ink soaking)
+    pressure = Math.min(1, pressure + Easing.press(dist * .004));
+
+      // Tide advances with velocity-based easing: fast drag = more force, but with soft upper bound
+    tideFront = Math.max(0, Math.min(W, tideFront + tideFrontVel));
+    tideProgress += Easing.soak(dist * .007);
+
+       // Track touch for visual feedback
     touchX = x;
     touchY = y;
     dragTrail.push({ x, y });
-     // Keep trail to last 20 points
+       // Keep trail to last 20 points
     if (dragTrail.length > 20) dragTrail.shift();
 
     lastX = x;
     lastY = y;
-   }
+     }
 
   function onUp() {
     pressed = false;
@@ -1248,9 +1268,9 @@ const Render = (() => {
         }
 
         // ── Reset animation: smooth return to origin ──
-    if (resetting) {
-      resetProgress = Math.min(1, resetProgress + .008);
-      const rp = _smoothstep(resetProgress);
+     if (resetting) {
+       resetProgress = Math.min(1, resetProgress + .008);
+       const rp = Easing.inOut(resetProgress);
 
             // Tide front slides back from current position to origin
        tideFront = resetStartTideFront * (1 - rp);
