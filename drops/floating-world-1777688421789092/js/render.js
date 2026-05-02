@@ -1,18 +1,21 @@
 const Render = (() => {
   const C = {
     paper: '#F0E9D8',
-    sky: '#C8D0DB',
-    moon: '#F0F0E8',
-    indigo: '#2B3A67',
-    darkIndigo: '#1B2A4A',
+    sky: '#B0BAC6',
+    moon: '#F5F5ED',
+    indigo: '#1B2A67',
+    darkIndigo: '#0E1A3A',
     amber: '#D4A04A',
-    reed: '#5A7A5A',
+    reed: '#4A6A4A',
     wood: '#6B5845',
-    black: '#2A3048',
-    water: '#8A9CB0',
+    black: '#1A2040',
+    water: '#6A7F94',
+    waterDeep: '#4A5F74',
     highlight: '#E8E2D0',
-    poolIndigo: '#162040',
-  };
+    poolIndigo: '#101830',
+    skyGradTop: '#8A94A6',
+    skyGradBot: '#B8C2CE',
+    };
 
   let W = 0, H = 0;
   let tideFront = -1;
@@ -118,28 +121,39 @@ const Render = (() => {
   }
 
   // ─── Bake truly static layers (paper + sky) to offscreen canvas ───
+ // Moonlit, muted, atmospheric — reads as ukiyo-e immediately
   function _bakeStaticBg() {
-    _staticBg = document.createElement('canvas');
-    _staticBg.width = W;
-    _staticBg.height = H;
+     _staticBg = document.createElement('canvas');
+     _staticBg.width = W;
+     _staticBg.height = H;
     const c = _staticBg.getContext('2d');
 
-    // Paper base + warm variation
+     // Paper base: subtle warm tone, not white
     c.fillStyle = C.paper;
     c.fillRect(0, 0, W, H);
-    {
-      const warm = c.createRadialGradient(W * .35, H * .35, 0, W * .5, H * .5, W * .7);
-      warm.addColorStop(0, 'rgba(245,240,228,.3)');
-      warm.addColorStop(1, 'rgba(230,224,210,.1)');
+     {
+      const warm = c.createRadialGradient(W * .75, H * .12, 0, W * .5, H * .5, W * .8);
+      warm.addColorStop(0, 'rgba(240,240,228,.18)');
+      warm.addColorStop(.6, 'rgba(240,240,228,.06)');
+      warm.addColorStop(1, 'rgba(230,224,210,0)');
       c.fillStyle = warm;
       c.fillRect(0, 0, W, H);
-    }
+     }
 
-    // Sky (static: no tide/clock dependency)
-    c.fillStyle = '#B5BFCB';
-    c.fillRect(0, 0, W, waterline);
-    c.fillStyle = 'rgba(200,208,219,.45)';
-    c.fillRect(0, waterline - H * .08, W, H * .08);
+     // Sky: muted moonlit gradient, deep at top, softer near waterline
+    {
+      const skyGrad = c.createLinearGradient(0, 0, 0, waterline);
+      skyGrad.addColorStop(0, 'rgba(90,100,125,.85)');
+      skyGrad.addColorStop(.3, 'rgba(110,120,142,.75)');
+      skyGrad.addColorStop(.7, 'rgba(140,152,172,.6)');
+      skyGrad.addColorStop(1, 'rgba(170,180,198,.45)');
+      c.fillStyle = skyGrad;
+      c.fillRect(0, 0, W, waterline);
+     }
+
+     // Subtle horizon band: warmth where sky meets water
+    c.fillStyle = 'rgba(195,190,178,.22)';
+    c.fillRect(0, waterline - H * .05, W, H * .05);
   }
 
   // ─── Bake paper grain as pre-filled canvas (avoids createPattern per frame) ───
@@ -255,10 +269,12 @@ const Render = (() => {
   const Easing = {
     press: t => Math.pow(Math.max(0, Math.min(1, t)), 2.2),
     release: t => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 2.8),
-    soak: t => Math.pow(Math.max(0, Math.min(1, t)), 1.4) * (1 + (1 - Math.pow(Math.max(0, Math.min(1, t)), .8)) * 1.2),
+    soak: t => { t = Math.max(0, Math.min(1, t)); return Math.min(1, Math.pow(t, 1.4) * (1 + (1 - Math.pow(t, .8)) * 1.2)); },
     smoothstep: t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); },
     inOut: t => -(Math.cos(Math.PI * Math.max(0, Math.min(1, t))) - 1) * .5,
-  };
+    deepIn: t => { t = Math.max(0, Math.min(1, t)); return t * t * t; },
+    easeOutSlow: t => { t = Math.max(0, Math.min(1, t)); return 1 - Math.pow(1 - t, 2.4); },
+    };
 
   // ─── Main draw pipeline with dirty-flag optimization ───
   function draw(ctx) {
@@ -315,30 +331,49 @@ const Render = (() => {
     }
   }
 
-  // ─── Hills ───
+   // ─── Hills: layered silhouettes, immediate ukiyo-e read ───
   function drawHills(ctx) {
-    const baseAlpha = .42 - tideProgress * .08;
-    const hillY = (x) => waterline - (.022 + Math.sin(x * .004) * .015 + Math.sin(x * .009) * .007) * H;
+    const baseAlpha = .45 - tideProgress * .06;
+    const hillY = (x) => waterline - (.025 + Math.sin(x * .004) * .018 + Math.sin(x * .009 + .6) * .008) * H;
+    const hillYFar = (x) => waterline - (.032 + Math.sin(x * .003 + 1.4) * .022 + Math.sin(x * .007 + .3) * .01) * H;
 
-    ctx.fillStyle = 'rgba(90,122,90,' + baseAlpha + ')';
+    // Far hill layer: lighter, more distant
+    ctx.fillStyle = 'rgba(115,135,115,' + (baseAlpha * .5) + ')';
+    ctx.beginPath();
+    ctx.moveTo(0, waterline);
+    for (let x = 0; x <= W; x += 3) ctx.lineTo(x, hillYFar(x));
+    ctx.lineTo(W, waterline);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(42,48,72,.12)';
+    ctx.lineWidth = .6;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 3) {
+      if (x === 0) ctx.moveTo(x, hillYFar(x));
+      else ctx.lineTo(x, hillYFar(x));
+     }
+    ctx.stroke();
+
+    // Mid hill layer: main silhouette
+    ctx.fillStyle = 'rgba(45,65,45,' + (baseAlpha * .65) + ')';
     ctx.beginPath();
     ctx.moveTo(0, waterline);
     for (let x = 0; x <= W; x += 3) ctx.lineTo(x, hillY(x));
     ctx.lineTo(W, waterline);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(42,48,72,.22)';
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(30,35,55,.32)';
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
     for (let x = 0; x <= W; x += 3) {
       if (x === 0) ctx.moveTo(x, hillY(x));
       else ctx.lineTo(x, hillY(x));
-    }
+     }
     ctx.stroke();
 
     if (tideProgress > .3) {
-      const hatchA = Math.min(.1, (tideProgress - .3) * .08);
-      ctx.strokeStyle = 'rgba(42,48,72,' + hatchA + ')';
+      const hatchA = Math.min(.12, (tideProgress - .3) * .1);
+      ctx.strokeStyle = 'rgba(30,35,55,' + hatchA + ')';
       ctx.lineWidth = .4;
       for (let x = 0; x < W; x += 12) {
         const hy = hillY(x);
@@ -349,103 +384,139 @@ const Render = (() => {
             ctx.moveTo(x, hy + dy);
             ctx.lineTo(x + 5, hy + dy + 2.5);
             ctx.stroke();
+           }
           }
         }
       }
-    }
-  }
+   }
 
-  // ─── Water ───
+    // ─── Water: moonlit harbor, deep and calm ───
   function drawWater(ctx) {
+      // Base: muted indigo-grey
     ctx.fillStyle = C.water;
     ctx.fillRect(0, waterline, W, H - waterline);
-    ctx.fillStyle = 'rgba(106,125,144,.35)';
-    ctx.fillRect(0, waterline + H * .45, W, H * .25);
 
-    ctx.strokeStyle = 'rgba(200,208,219,.18)';
-    ctx.lineWidth = .5;
-    for (let y = waterline + 5; y < H; y += 9) {
+     // Deep indigo wash at bottom
+    ctx.fillStyle = C.waterDeep;
+    ctx.fillRect(0, waterline + H * .5, W, H * .35);
+
+     // Shadow band near waterline reflecting sky
+    ctx.fillStyle = 'rgba(100,115,140,.2)';
+    ctx.fillRect(0, waterline + H * .02, W, H * .08);
+
+     // Subtle horizontal wave lines: very faint, suggest calm water
+    ctx.strokeStyle = 'rgba(160,175,195,.12)';
+    ctx.lineWidth = .4;
+    for (let y = waterline + 6; y < H * .85; y += 11) {
       ctx.beginPath();
-      for (let x = 0; x < W; x += 5) {
-        const wave = Math.sin(x * .005 + y * .02 + tideProgress * 2.5) * 1.2;
+      for (let x = 0; x < W; x += 6) {
+        const wave = Math.sin(x * .004 + y * .015 + tideProgress * 2.5) * 1;
         if (x === 0) ctx.moveTo(x, y + wave);
         else ctx.lineTo(x, y + wave);
-      }
+        }
       ctx.stroke();
-    }
-  }
+     }
+   }
 
-  // ─── Moonlight shimmer ───
+    // ─── Moonlight shimmer: restrained, near the column ───
   function drawMoonlightShimmer(ctx) {
-    _seed = 333 + Math.floor(clock * 37) % 10000;
-    const count = Math.min(18, Math.floor(W / 45));
+      _seed = 333 + Math.floor(clock * 37) % 10000;
+    const count = Math.min(12, Math.floor(W / 55));
     for (let i = 0; i < count; i++) {
-      const sx = _sr() * W;
-      const waveY = Math.sin(sx * .003 + clock * .4 + i * 1.7) * H * .04;
-      const sy = waterline + H * (.08 + _sr() * .55) + waveY;
+      const spread = W * .22;
+      const sx = moonX + (_sr() - .5) * spread;
+      const waveY = Math.sin(sx * .003 + clock * .3 + i * 1.7) * H * .02;
+      const sy = waterline + H * (.06 + _sr() * .5) + waveY;
       const dx = Math.abs(sx - moonX);
-      const proximity = Math.max(0, 1 - dx / (W * .35));
+      const proximity = Math.max(0, 1 - dx / (W * .2));
       const shimmer = (
-        Math.sin(clock * .9 + i * 2.3 + sx * .002) * .5 + .5
-      ) * (
-        Math.sin(clock * .35 + i * 1.1) * .5 + .5
-      );
-      const alpha = .025 + shimmer * proximity * .09;
-      if (alpha < .03) continue;
-      const dotR = .6 + shimmer * 1.2;
+         Math.sin(clock * .6 + i * 2.3 + sx * .002) * .5 + .5
+        ) * (
+         Math.sin(clock * .25 + i * 1.1) * .5 + .5
+        );
+      const alpha = .02 + shimmer * proximity * .1;
+      if (alpha < .025) continue;
+      const dotR = .5 + shimmer * .8;
       ctx.fillStyle = 'rgba(240,240,232,' + alpha.toFixed(3) + ')';
       ctx.beginPath();
-      ctx.ellipse(sx, sy, dotR * 1.6, dotR * .5, 0, 0, Math.PI * 2);
+      ctx.ellipse(sx, sy, dotR * 1.8, dotR * .45, 0, 0, Math.PI * 2);
       ctx.fill();
+       }
     }
-  }
 
-  // ─── Moonlight column ───
+     // ─── Moonlight column: soft, atmospheric, visible in first frame ───
   function drawMoonlightColumn(ctx) {
-    const breath = Math.sin(clock * .25) * .5 + .5;
-    const baseAlpha = .015 + breath * .012;
-    const colW = moonR * 2.2;
-    const topY = waterline - H * .06;
-    const rows = 12;
+    const breath = Math.sin(clock * .2) * .5 + .5;
+    const colW = moonR * 2.5;
+    const topY = waterline - H * .03;
+    const bottomY = waterline + H * .55;
+
+      // Glow halo behind column
+    {
+      const haloGrad = ctx.createRadialGradient(moonX, waterline + H * .2, colW * .3, moonX, waterline + H * .2, colW * 1.5);
+      const haloAlpha = .02 + breath * .015;
+      haloGrad.addColorStop(0, 'rgba(240,240,232,' + haloAlpha.toFixed(3) + ')');
+      haloGrad.addColorStop(1, 'rgba(240,240,232,0)');
+      ctx.fillStyle = haloGrad;
+      ctx.fillRect(moonX - colW * 1.5, waterline - H * .05, colW * 3, H * .65);
+      }
+
+    const rows = 18;
     for (let r = 0; r < rows; r++) {
       const t = r / rows;
-      const y = topY + t * H * .55;
-      const w = colW * (.3 + t * .7);
-      const rowAlpha = baseAlpha * (1 - t * .4);
+      const y = topY + t * (bottomY - topY);
+      const w = colW * (.25 + t * .8);
+      const rowAlpha = (.018 + breath * .012) * (1 - t * .5);
       ctx.fillStyle = 'rgba(240,240,232,' + rowAlpha.toFixed(3) + ')';
       ctx.beginPath();
-      ctx.ellipse(moonX, y, w, 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(moonX, y, w, 2.2, 0, 0, Math.PI * 2);
       ctx.fill();
-    }
-  }
+       }
+     }
 
-  // ─── Moon ───
+     // ─── Moon: luminous, atmospheric, ukiyo-e presence ───
   function drawMoon(ctx) {
-    ctx.strokeStyle = 'rgba(240,240,232,.12)';
-    ctx.lineWidth = 1;
+       // Outer halo: soft glow
+     {
+      const haloGrad = ctx.createRadialGradient(moonX, moonY, moonR * .8, moonX, moonY, moonR * 2.8);
+      haloGrad.addColorStop(0, 'rgba(240,240,232,.08)');
+      haloGrad.addColorStop(.4, 'rgba(240,240,232,.03)');
+      haloGrad.addColorStop(1, 'rgba(240,240,232,0)');
+      ctx.fillStyle = haloGrad;
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, moonR * 2.8, 0, Math.PI * 2);
+      ctx.fill();
+        }
+
+       // Registration ring: faint woodblock offset circle
+    ctx.strokeStyle = 'rgba(175,85,48,.06)';
+    ctx.lineWidth = .5;
     ctx.beginPath();
-    ctx.arc(moonX, moonY, moonR + 16, 0, Math.PI * 2);
+    ctx.arc(moonX + 1.5, moonY - 1.2, moonR + 14, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.strokeStyle = 'rgba(240,240,232,.22)';
-    ctx.lineWidth = 1.5;
+       // Key-line ring
+    ctx.strokeStyle = 'rgba(240,240,232,.18)';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.arc(moonX, moonY, moonR + 8, 0, Math.PI * 2);
+    ctx.arc(moonX, moonY, moonR + 4, 0, Math.PI * 2);
     ctx.stroke();
 
+       // Moon body
     ctx.fillStyle = C.moon;
     ctx.beginPath();
     ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = 'rgba(220,220,212,.3)';
+       // Moon shadow: subtle offset dark edge, carved look
+    ctx.fillStyle = 'rgba(220,220,212,.15)';
     const craterPositions = [[-.3,-.25],[.2,.3],[-.15,.1],[.35,-.1],[.05,-.4],[-.4,.15],[.15,.45]];
     craterPositions.forEach(cp => {
       ctx.beginPath();
-      ctx.arc(moonX + cp[0] * moonR, moonY + cp[1] * moonR, moonR * .08, 0, Math.PI * 2);
+      ctx.arc(moonX + cp[0] * moonR, moonY + cp[1] * moonR, moonR * .09, 0, Math.PI * 2);
       ctx.fill();
-    });
-  }
+        });
+      }
 
   function drawMoonReflection(ctx) {
     const reflY = waterline + H * .04;
@@ -484,30 +555,30 @@ const Render = (() => {
     const bridgeY = waterline - H * .04;
     const postW = 5.5;
 
-    // ── Bridge posts: carved key-line silhouettes ──
+      // ── Bridge posts: carved key-line silhouettes, visible at rest ──
     bridgePosts.forEach((p, idx) => {
       const ta = tideAt(p.x);
-      const postAlpha = .55 + ta * .35;
+      const postAlpha = .7 + ta * .3;
 
-      // Main key-line body: dark, hand-carved weight
+        // Main key-line body: dark, hand-carved weight, always visible
       ctx.fillStyle = lerpColor(C.paper, C.black, postAlpha);
       ctx.fillRect(p.x - postW / 2, p.y1, postW, p.y2 - p.y1);
 
-      // Key-line outline (thick, black, slightly offset for woodblock imprint feel)
-      ctx.strokeStyle = 'rgba(42,48,72,' + (.65 + ta * .2) + ')';
+        // Key-line outline (thick, carved, offset for woodblock registration feel)
+      ctx.strokeStyle = 'rgba(26,32,64,' + (.72 + ta * .18) + ')';
       ctx.lineWidth = 1.8;
       ctx.strokeRect(p.x - postW / 2 - .6, p.y1 - .6, postW + 1.2, p.y2 - p.y1 + 1.2);
 
-      // Inner shadow: subtle offset line to suggest carved depth
-      ctx.strokeStyle = 'rgba(42,48,72,.18)';
+        // Inner shadow: subtle offset line to suggest carved depth
+      ctx.strokeStyle = 'rgba(26,32,64,.22)';
       ctx.lineWidth = .7;
       ctx.beginPath();
       ctx.moveTo(p.x + postW / 2 - 1.5, p.y1 + 3);
       ctx.lineTo(p.x + postW / 2 - 1.5, p.y2 - 3);
       ctx.stroke();
 
-      // Wood grain: faint horizontal hatch marks, hand-carved feel
-      ctx.strokeStyle = 'rgba(107,88,69,' + (.08 + ta * .06) + ')';
+        // Wood grain: horizontal hatch marks, always faintly visible
+      ctx.strokeStyle = 'rgba(107,88,69,' + (.12 + ta * .08) + ')';
       ctx.lineWidth = .35;
       const grainCount = 3 + ((idx * 3) % 3);
       for (let g = 0; g < grainCount; g++) {
@@ -518,18 +589,18 @@ const Render = (() => {
         ctx.moveTo(p.x - postW / 2 + 2 + gxOff, gy);
         ctx.lineTo(p.x - postW / 2 + 2 + gxOff + gLen, gy + (Math.sin(g + idx) > 0 ? .8 : -.5));
         ctx.stroke();
-      }
+       }
 
-      // Tide-revealed: post cap detail (carved top piece)
-      if (ta > .25) {
-        const capAlpha = Easing.soak((ta - .25) * 2.5) * .25;
-        ctx.fillStyle = 'rgba(42,48,72,' + capAlpha + ')';
-        ctx.fillRect(p.x - postW / 2 - 1, p.y1 - 1.5, postW + 2, 3);
-        ctx.strokeStyle = 'rgba(42,48,72,' + (capAlpha * .5) + ')';
+        // Tide-revealed: post cap detail (carved top piece)
+      if (ta > .15) {
+        const capAlpha = Easing.soak((ta - .15) * 2.2) * .28;
+        ctx.fillStyle = 'rgba(26,32,64,' + capAlpha + ')';
+        ctx.fillRect(p.x - postW / 2 - 1.5, p.y1 - 2, postW + 3, 4);
+        ctx.strokeStyle = 'rgba(26,32,64,' + (capAlpha * .6) + ')';
         ctx.lineWidth = .5;
-        ctx.strokeRect(p.x - postW / 2 - 1, p.y1 - 1.5, postW + 2, 3);
-      }
-    });
+        ctx.strokeRect(p.x - postW / 2 - 1.5, p.y1 - 2, postW + 3, 4);
+        }
+      });
 
     if (bridgePosts.length >= 2) {
       const left = bridgePosts[1], right = bridgePosts[2];
@@ -547,21 +618,21 @@ const Render = (() => {
       ctx.fillStyle = washGrad;
       ctx.fillRect(left.x - 12, washY, span + 24, washH);
 
-      // ── Top curved deck beam (primary key-line) ──
-      ctx.strokeStyle = lerpColor(C.paper, C.black, .62);
-      ctx.lineWidth = 2.8;
+        // ── Top curved deck beam (primary key-line, visible at rest) ──
+      ctx.strokeStyle = lerpColor(C.paper, C.black, .75);
+      ctx.lineWidth = 3;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(left.x, bridgeY);
       ctx.quadraticCurveTo(midX, midY, right.x, bridgeY);
       ctx.stroke();
 
-      // Secondary beam parallel for carved thickness
-      ctx.strokeStyle = lerpColor(C.paper, C.black, .38);
-      ctx.lineWidth = 1.5;
+         // Secondary beam parallel for carved thickness
+      ctx.strokeStyle = lerpColor(C.paper, C.black, .45);
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(left.x, bridgeY + 4);
-      ctx.quadraticCurveTo(midX, midY + 4, right.x, bridgeY + 4);
+      ctx.moveTo(left.x, bridgeY + 4.5);
+      ctx.quadraticCurveTo(midX, midY + 4.5, right.x, bridgeY + 4.5);
       ctx.stroke();
 
       // ── Deck planks: horizontal hatches between posts ──
@@ -686,8 +757,9 @@ const Render = (() => {
       ctx.rotate(b.tilt + Math.sin(tideProgress * 1.2 + i * 1.5) * .006);
       ctx.translate(-cx, -cy);
 
-       // ── Hull fill: deeper indigo wash as tide passes ──
-      const hullColor = lerpColor(C.water, C.darkIndigo, .25 + ta * .55);
+         // ── Hull fill: moonlit silhouette, always visible ──
+      const hullBase = .35 + ta * .45;
+      const hullColor = lerpColor(C.water, C.darkIndigo, hullBase);
       ctx.fillStyle = hullColor;
       ctx.beginPath();
       ctx.moveTo(b.x, b.y + b.h);
@@ -698,9 +770,9 @@ const Render = (() => {
       ctx.closePath();
       ctx.fill();
 
-       // ── Primary key-line: thick, carved, slightly irregular ──
-      ctx.strokeStyle = 'rgba(42,48,72,' + (.45 + ta * .4) + ')';
-      ctx.lineWidth = 1.8 + ta * .6;
+        // ── Primary key-line: always strong, carved woodblock feel ──
+      ctx.strokeStyle = 'rgba(26,32,64,' + (.55 + ta * .35) + ')';
+      ctx.lineWidth = 2 + ta * .5;
       ctx.beginPath();
       ctx.moveTo(b.x, b.y + b.h);
       ctx.quadraticCurveTo(b.x + b.w * .15, b.y - b.h * .35, b.x + b.w * .45, b.y - b.h * .55);
@@ -903,7 +975,7 @@ const Render = (() => {
       const breath = Math.sin(clock * .18 + i * 1.1) * .4;
       const sway = base + rip + breath + ta * Math.sin(tideProgress * .7 + r.phase);
 
-      const rAlpha = .4 + ta * .5;
+      const rAlpha = .55 + ta * .45;
       const stalkColor = lerpColor(C.water, C.reed, rAlpha);
 
       ctx.strokeStyle = stalkColor;
@@ -1280,81 +1352,88 @@ const Render = (() => {
     ctx.restore();
   }
 
-  // ─── Registration lines ───
+  // ─── Registration lines: authentic ukiyo-e multi-pass registration marks ───
   function drawRegistration(ctx) {
     ctx.save();
 
-    const regBoost = .6 + Math.min(.4, tideProgress * .4);
-    const settledBoost = settled ? 1.3 : 1;
+    const regBoost = .5 + Math.min(.5, tideProgress * .4);
+    const settledBoost = settled ? 1.4 : 1;
 
-    ctx.strokeStyle = `rgba(175,85,48,${(.11 * regBoost * settledBoost).toFixed(3)})`;
-    ctx.lineWidth = .6;
+     // ── Primary registration: warm ochre offset, suggests first color block ──
+    ctx.strokeStyle = `rgba(175,85,48,${(.1 * regBoost * settledBoost).toFixed(3)})`;
+    ctx.lineWidth = .5;
 
+     // Bridge post registration offsets (subtle, always present)
     bridgePosts.forEach((p, idx) => {
-      const dx = 1.2 + (idx % 3) * .4;
-      const dy = -1.2 - ((idx + 1) % 2) * .3;
+      const dx = 1.4 + (idx % 3) * .3;
+      const dy = -1.2 - ((idx + 1) % 2) * .25;
       ctx.beginPath();
       ctx.moveTo(p.x + dx, p.y1 + dy);
       const midY = (p.y1 + p.y2) / 2;
-      ctx.lineTo(p.x + dx + .3 * ((idx % 2 === 0) ? 1 : -1), midY + dy);
+      ctx.lineTo(p.x + dx + .35 * ((idx % 2 === 0) ? 1 : -1), midY + dy);
       ctx.lineTo(p.x + dx - .2, p.y2 + dy);
       ctx.stroke();
-    });
+       });
 
+     // Hill edge: subtle registration offset
     {
-      const hillY = (x) => waterline - (.022 + Math.sin(x * .004) * .015 + Math.sin(x * .009) * .007) * H;
-      const rdx = 1.8;
+       const hillY = (x) => waterline - (.025 + Math.sin(x * .004) * .018 + Math.sin(x * .009 + .6) * .008) * H;
+       const rdx = 1.6;
       const rdy = -1.2;
-      ctx.beginPath();
+       ctx.beginPath();
       for (let x = 0; x <= W; x += 6) {
-        const jitter = Math.sin(x * .31) * .4;
+         const jitter = Math.sin(x * .31) * .35;
         if (x === 0) ctx.moveTo(x + rdx, hillY(x) + rdy + jitter);
         else ctx.lineTo(x + rdx, hillY(x) + rdy + jitter);
+         }
+       ctx.stroke();
       }
-      ctx.stroke();
-    }
 
+     // Boat registration: two offset passes (primary + secondary ink)
     boats.forEach((b, idx) => {
-      const dx1 = 1 + idx * .3;
-      const dy1 = -1 - (idx % 2) * .4;
-      ctx.strokeStyle = `rgba(175,85,48,${(.08 * regBoost * settledBoost).toFixed(3)})`;
-      ctx.lineWidth = .5;
+       // Primary offset: warm ochre
+      const dx1 = 1 + idx * .25;
+      const dy1 = -1 - (idx % 2) * .3;
+      ctx.strokeStyle = `rgba(175,85,48,${(.07 * regBoost * settledBoost).toFixed(3)})`;
+      ctx.lineWidth = .45;
       ctx.beginPath();
       ctx.moveTo(b.x + dx1, b.y + b.h - 1 + dy1);
       ctx.quadraticCurveTo(
         b.x + b.w * .18 + dx1, b.y - 1 + dy1,
-        b.x + b.w * .5 + dx1, b.y - b.h * .5 - 1 + dy1
-      );
-      ctx.quadraticCurveTo(
+         b.x + b.w * .5 + dx1, b.y - b.h * .5 - 1 + dy1
+         );
+       ctx.quadraticCurveTo(
         b.x + b.w * .82 + dx1, b.y - 1 + dy1,
         b.x + b.w + dx1, b.y + b.h - 1 + dy1
-      );
+         );
       ctx.closePath();
       ctx.stroke();
 
-      const dx2 = -1.5 - idx * .2;
-      const dy2 = 1 + (idx % 3) * .3;
-      ctx.strokeStyle = `rgba(90,100,140,${(.05 * regBoost * settledBoost).toFixed(3)})`;
-      ctx.lineWidth = .4;
+       // Secondary offset: cool blue-indigo
+      const dx2 = -1.3 - idx * .2;
+      const dy2 = .8 + (idx % 3) * .25;
+      ctx.strokeStyle = `rgba(80,90,130,${(.04 * regBoost * settledBoost).toFixed(3)})`;
+      ctx.lineWidth = .35;
       ctx.beginPath();
       ctx.moveTo(b.x + dx2, b.y + b.h + dy2);
       ctx.quadraticCurveTo(
         b.x + b.w * .18 + dx2, b.y + dy2,
-        b.x + b.w * .5 + dx2, b.y - b.h * .5 + dy2
-      );
-      ctx.quadraticCurveTo(
+         b.x + b.w * .5 + dx2, b.y - b.h * .5 + dy2
+         );
+       ctx.quadraticCurveTo(
         b.x + b.w * .82 + dx2, b.y + dy2,
         b.x + b.w + dx2, b.y + b.h + dy2
-      );
+         );
       ctx.closePath();
       ctx.stroke();
-    });
+       });
 
+     // Reed registration
     reeds.forEach((r, idx) => {
-      const dx = (idx % 3 - 1) * 1.1;
-      const dy = ((idx + 1) % 2 === 0 ? -1 : 1) * .9;
-      ctx.strokeStyle = `rgba(175,85,48,${(.04 * regBoost * settledBoost).toFixed(3)})`;
-      ctx.lineWidth = .35;
+      const dx = (idx % 3 - 1) * 1;
+      const dy = ((idx + 1) % 2 === 0 ? -1 : 1) * .8;
+      ctx.strokeStyle = `rgba(175,85,48,${(.035 * regBoost * settledBoost).toFixed(3)})`;
+      ctx.lineWidth = .3;
       ctx.beginPath();
       ctx.moveTo(r.x + dx, r.baseY + dy - .5);
       const tipX = r.x + r.lean * r.h * .6 + dx;
@@ -1363,76 +1442,82 @@ const Render = (() => {
         r.x + r.lean * r.h * .25 + dx,
         r.baseY - r.h * .5 + dy,
         tipX, tipY
-      );
+         );
       ctx.stroke();
-    });
+       });
 
+     // Bridge deck registration
     if (bridgePosts.length >= 2) {
       const left = bridgePosts[1], right = bridgePosts[2];
       const bridgeY = waterline - H * .04;
-      ctx.strokeStyle = `rgba(175,85,48,${(.07 * regBoost * settledBoost).toFixed(3)})`;
-      ctx.lineWidth = .5;
+      ctx.strokeStyle = `rgba(175,85,48,${(.06 * regBoost * settledBoost).toFixed(3)})`;
+      ctx.lineWidth = .4;
       ctx.beginPath();
-      ctx.moveTo(left.x - .8, bridgeY - 1.2);
+      ctx.moveTo(left.x - .7, bridgeY - 1.2);
       const midX = (left.x + right.x) / 2;
-      const midY = bridgeY - H * .018 - .8;
-      ctx.quadraticCurveTo(midX, midY, right.x - .8, bridgeY - 1.2);
+      const midY = bridgeY - H * .018 - .7;
+      ctx.quadraticCurveTo(midX, midY, right.x - .7, bridgeY - 1.2);
       ctx.stroke();
-    }
+       }
 
-    ctx.strokeStyle = `rgba(120,100,130,${(.045 * regBoost * settledBoost).toFixed(3)})`;
-    ctx.lineWidth = .4;
+     // Secondary registration pass: blue offset for bridge posts
+    ctx.strokeStyle = `rgba(90,100,140,${(.04 * regBoost * settledBoost).toFixed(3)})`;
+    ctx.lineWidth = .35;
 
     bridgePosts.forEach((p, idx) => {
-      const dx = -1.8 - (idx % 2) * .5;
-      const dy = 2 + ((idx + 2) % 3) * .4;
+      const dx = -1.6 - (idx % 2) * .4;
+      const dy = 1.8 + ((idx + 2) % 3) * .3;
       ctx.beginPath();
       ctx.moveTo(p.x + dx, p.y1 + dy);
       const midY = (p.y1 + p.y2) / 2;
-      ctx.lineTo(p.x + dx - .3 * ((idx % 2 === 0) ? 1 : -1), midY + dy);
-      ctx.lineTo(p.x + dx + .2, p.y2 + dy);
+      ctx.lineTo(p.x + dx - .25 * ((idx % 2 === 0) ? 1 : -1), midY + dy);
+      ctx.lineTo(p.x + dx + .15, p.y2 + dy);
       ctx.stroke();
-    });
+       });
 
-    const mkSize = 8;
-    const mkOffset = 14;
+     // ── Corner registration marks (chokokō) ──
+    const mkSize = 7;
+    const mkOffset = 12;
     const marks = [
       [mkOffset, mkOffset],
       [W - mkOffset, mkOffset],
       [mkOffset, H - mkOffset],
       [W - mkOffset, H - mkOffset],
-    ];
+      ];
     marks.forEach(([mx, my], idx) => {
-      ctx.strokeStyle = `rgba(175,85,48,${(.13 * regBoost).toFixed(3)})`;
-      ctx.lineWidth = .7;
+       // Primary mark: crosshair
+      ctx.strokeStyle = `rgba(175,85,48,${(.12 * regBoost).toFixed(3)})`;
+      ctx.lineWidth = .6;
       ctx.beginPath();
-      ctx.moveTo(mx - mkSize - 3, my);
-      ctx.lineTo(mx + mkSize + 3, my);
+      ctx.moveTo(mx - mkSize - 2, my);
+      ctx.lineTo(mx + mkSize + 2, my);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(mx, my - mkSize - 3);
-      ctx.lineTo(mx, my + mkSize + 3);
+      ctx.moveTo(mx, my - mkSize - 2);
+      ctx.lineTo(mx, my + mkSize + 2);
       ctx.stroke();
 
+       // Circle mark
       ctx.beginPath();
       ctx.arc(mx, my, mkSize, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.strokeStyle = `rgba(175,85,48,${(.065 * regBoost).toFixed(3)})`;
-      ctx.lineWidth = .5;
-      const offDx = (idx % 2 === 0) ? 1.5 : -1;
-      const offDy = (idx > 1) ? 1.5 : -1;
+       // Offset second pass
+      ctx.strokeStyle = `rgba(175,85,48,${(.06 * regBoost).toFixed(3)})`;
+      ctx.lineWidth = .4;
+      const offDx = (idx % 2 === 0) ? 1.2 : -.8;
+      const offDy = (idx > 1) ? 1.2 : -.8;
       ctx.beginPath();
-      ctx.moveTo(mx - mkSize - 1, my + offDy);
-      ctx.lineTo(mx + mkSize + 1, my + offDy);
+      ctx.moveTo(mx - mkSize, my + offDy);
+      ctx.lineTo(mx + mkSize, my + offDy);
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(mx + offDx, my + offDy, mkSize, 0, Math.PI * 2);
       ctx.stroke();
-    });
+      });
 
     ctx.restore();
-  }
+    }
 
   // ─── Input handlers ───
   function onDown(x, y) {
@@ -1512,38 +1597,38 @@ const Render = (() => {
   }
 
   function idleDrift(t) {
-    clock += .016;
+    clock += .014;
 
-    // Touch glow ramps UP while pressing
+      // Touch glow ramps UP while pressing
     if (pressed) {
-      touchAlpha = Math.min(1, touchAlpha + .06);
-    }
+      touchAlpha = Math.min(1, touchAlpha + .05);
+       }
 
     if (tideFront > 0) {
-      tideFront += Math.sin(t * 1.1) * .25;
-    } else {
-      tideFront = Math.sin(t * 0.7) * 2;
-    }
-    tideProgress += .004;
-    pressure = Math.max(0, pressure - .0025);
+      tideFront += Math.sin(t * .7) * .18;
+      } else {
+      tideFront = Math.sin(t * .45) * 2.5;
+      }
+    tideProgress += .003;
+    pressure = Math.max(0, pressure - .002);
 
-    touchAlpha = Math.max(0, touchAlpha - .03);
+    touchAlpha = Math.max(0, touchAlpha - .025);
     if (touchAlpha < .01) dragTrail = [];
 
     if (releaseRipple) {
-      releaseRipple.t += .012;
+      releaseRipple.t += .01;
       if (releaseRipple.t >= 1) releaseRipple = null;
-    }
+       }
 
     if (settling) {
-      settleProgress = Math.min(1, settleProgress + .005);
+      settleProgress = Math.min(1, settleProgress + .006);
       const sp = settleProgress;
 
-      tideSettleExtra += .15 * (1 - sp * .6);
+      tideSettleExtra += .18 * (1 - sp * .5);
       tideFront = initialTideFront + tideSettleExtra;
 
-      pressure *= .995;
-      settleBloom *= .998;
+      pressure *= .996;
+      settleBloom *= .997;
 
       if (sp >= 1 && settling) {
         settling = false;
@@ -1552,9 +1637,9 @@ const Render = (() => {
         if (el) {
           el.classList.add('visible');
           el.style.bottom = (4 + Math.max(0, (settleBloom - .3) * 1.5).toFixed(1)) + 'vh';
+          }
+         }
         }
-      }
-    }
 
     if (resetting) {
       resetProgress = Math.min(1, resetProgress + .008);

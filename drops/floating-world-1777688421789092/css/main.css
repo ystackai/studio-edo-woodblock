@@ -102,15 +102,35 @@ html, body {
    opacity: 1;
 }
 
+/* ── Hanko seal (浮世 - 'floating world') ── */
+#hanko {
+  position: absolute;
+  top: 3.5vh;
+  right: 3.5vw;
+  color: rgba(175, 55, 48, .22);
+  font-size: clamp(10px, 1.8vw, 16px);
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+  letter-spacing: .1em;
+  writing-mode: vertical-rl;
+  pointer-events: none;
+  z-index: 4;
+  line-height: 1.3;
+}
+
 /* ── Mobile refinements ── */
 @media (max-width: 600px) {
-   #prompt {
+    #prompt {
     font-size: clamp(9px, 3.2vw, 12px);
     letter-spacing: .1em;
     bottom: 5vh;
-   }
-   #final-title {
+    }
+    #final-title {
     font-size: clamp(8px, 2.8vw, 10px);
     bottom: 3vh;
-   }
+    }
+    #hanko {
+    top: 2.5vh;
+    right: 2.5vw;
+    font-size: clamp(9px, 2.5vw, 13px);
+    }
 }
