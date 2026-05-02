@@ -42,11 +42,17 @@ const Render = (() => {
   let tideSettleExtra = 0;
   let settled = false;
 
-  // Reset state
-  let resetting = false;
-  let resetProgress = 0;
-  let resetStartTideFront = 0;
-  let resetStartTideProgress = 0;
+    // Reset state
+   let resetting = false;
+   let resetProgress = 0;
+   let resetStartTideFront = 0;
+   let resetStartTideProgress = 0;
+
+    // ── Settle fiber texture: non-repeating texture shift when tide settles ──
+   let _settleFiberSeed = 0;
+   let _settleFibers = [];
+   let _fiberTextureAlpha = 0;
+   let _fiberTextureTarget = 0;
 
   // ── Performance: offscreen buffers ──
   let pigmentMap = null;
@@ -317,12 +323,16 @@ const Render = (() => {
     drawReeds(ctx);
     drawTide(ctx);
     drawPigmentLayer(ctx);
-    drawPaperGrain(ctx);
+       drawPaperGrain(ctx);
+    drawEdgeStain(ctx);
+    drawSettleFibers(ctx);
     drawRegistration(ctx);
     drawTouchGlow(ctx);
     drawGrainShift(ctx);
     drawDragTrailStipple(ctx);
     drawReleaseRipple(ctx);
+    drawVignette(ctx);
+    drawPaperCast(ctx);
 
     // Store current state for next frame's dirty check
     if (!pressed) {
@@ -1374,34 +1384,76 @@ const Render = (() => {
   }
 
   // ─── Paper grain: drawImage-tiled (no createPattern per frame) ───
-  function drawPaperGrain(ctx) {
-    const grainAlpha = settled ? .085 : (.06 + tideProgress * .015);
+   function drawPaperGrain(ctx) {
+     const grainAlpha = settled ? .085 : (.06 + tideProgress * .015);
 
-    if (_grainCanvas) {
-      ctx.save();
-      ctx.globalAlpha = grainAlpha;
-      ctx.drawImage(_grainCanvas, 0, 0);
-      ctx.restore();
-    }
+     if (_grainCanvas) {
+       ctx.save();
+       ctx.globalAlpha = grainAlpha;
+       ctx.drawImage(_grainCanvas, 0, 0);
+       ctx.restore();
+      }
 
-    ctx.save();
-    ctx.globalAlpha = .02 + (settled ? .015 : tideProgress * .008);
-    ctx.strokeStyle = 'rgba(42,48,72,1)';
-    ctx.lineWidth = .25;
-    _seed = 700;
-    const fiberCount = settled ? 32 : (20 + Math.floor(tideProgress * 10));
-    for (let i = 0; i < fiberCount; i++) {
-      const yy = _sr() * H;
-      const xx = _sr() * W;
-      const len = 6 + _sr() * 22;
-      const angle = (_sr() - .5) * .5;
-      ctx.beginPath();
-      ctx.moveTo(xx, yy);
-      ctx.lineTo(xx + len * Math.cos(angle), yy + len * Math.sin(angle));
-      ctx.stroke();
+     ctx.save();
+     ctx.globalAlpha = .02 + (settled ? .015 : tideProgress * .008);
+     ctx.strokeStyle = 'rgba(42,48,72,1)';
+     ctx.lineWidth = .25;
+      _seed = 700;
+     const fiberCount = settled ? 32 : (20 + Math.floor(tideProgress * 10));
+     for (let i = 0; i < fiberCount; i++) {
+       const yy = _sr() * H;
+       const xx = _sr() * W;
+       const len = 6 + _sr() * 22;
+       const angle = (_sr() - .5) * .5;
+       ctx.beginPath();
+       ctx.moveTo(xx, yy);
+       ctx.lineTo(xx + len * Math.cos(angle), yy + len * Math.sin(angle));
+       ctx.stroke();
+      }
+     ctx.restore();
+     }
+
+    // ── Edge stain: mimics ink bleed at the borders of a real woodblock print ──
+   // Appears only in settled state, darkening the edges to frame the print.
+   function drawEdgeStain(ctx) {
+     if (!settled) return;
+     const edgeAlpha = .025 + settleBloom * .015;
+     const margin = 18 + settleBloom * 8;
+
+        // Top and bottom edges
+     {
+       const g = ctx.createLinearGradient(0, 0, 0, margin);
+       g.addColorStop(0, 'rgba(35,30,22,' + edgeAlpha.toFixed(4) + ')');
+       g.addColorStop(1, 'rgba(35,30,22,0)');
+       ctx.fillStyle = g;
+       ctx.fillRect(0, 0, W, margin);
+      }
+
+     {
+       const g = ctx.createLinearGradient(0, H - margin, 0, H);
+       g.addColorStop(0, 'rgba(35,30,22,0)');
+       g.addColorStop(1, 'rgba(35,30,22,' + edgeAlpha.toFixed(4) + ')');
+       ctx.fillStyle = g;
+       ctx.fillRect(0, H - margin, W, margin);
+      }
+
+        // Left and right edges (slightly stronger — traditional ban-eri registration bands)
+     {
+       const g = ctx.createLinearGradient(0, 0, margin, 0);
+       g.addColorStop(0, 'rgba(30,26,18,' + (edgeAlpha * 1.2).toFixed(4) + ')');
+       g.addColorStop(1, 'rgba(30,26,18,0)');
+       ctx.fillStyle = g;
+       ctx.fillRect(0, 0, margin, H);
+      }
+
+     {
+       const g = ctx.createLinearGradient(W - margin, 0, W, 0);
+       g.addColorStop(0, 'rgba(30,26,18,0)');
+       g.addColorStop(1, 'rgba(30,26,18,' + (edgeAlpha * 1.2).toFixed(4) + ')');
+       ctx.fillStyle = g;
+       ctx.fillRect(W - margin, 0, margin, H);
+      }
     }
-    ctx.restore();
-  }
 
   // ─── Touch glow ───
   function drawTouchGlow(ctx) {
@@ -1670,25 +1722,150 @@ const Render = (() => {
     ctx.restore();
     }
 
-  // ─── Input handlers ───
-  function onDown(x, y) {
-    pressed = true;
-    settling = false;
-    resetting = false;
-    lastX = x;
-    lastY = y;
-    touchX = x;
-    touchY = y;
-    touchAlpha = 0;
-    dragTrail = [{ x, y }];
-    releaseRipple = null;
-    if (tideFront <= 0) {
-      tideFront = x;
-      initialTideFront = x;
+   // ─── Settle fiber texture generation ───
+   // Each settle creates a unique, non-repeating pattern of fiber lines
+   // that reinforce the tactile ukiyo-e aesthetic.
+   function _generateSettleFibers() {
+     _settleFibers = [];
+     let s = _settleFiberSeed;
+     function sr() {
+       s = (s * 16807) % 2147483647;
+       return s / 2147483647;
+     }
+
+     // Three layers of fiber: long structural fibers, mid-grain, and fine dust
+     const density = 15 + Math.floor(tideProgress * 25);
+
+       // Long directional fibers (follow the general paper grain)
+     for (let i = 0; i < density * 3; i++) {
+       const x = sr() * W;
+       const y = sr() * H;
+       const len = 10 + sr() * 45;
+       const angle = .05 + sr() * .3;
+         // Occasional cross-grain fiber for visual interest
+       const crossGrain = sr() > .88;
+       const finalAngle = crossGrain ? angle + 1.3 : angle;
+       _settleFibers.push({
+         x, y,
+         x2: x + Math.cos(finalAngle) * len,
+         y2: y + Math.sin(finalAngle) * len,
+         alpha: .012 + sr() * .035,
+         width: .2 + sr() * .4,
+       });
+     }
+
+       // Mid-grain clusters: small groups of fibers near the tide front
+     for (let i = 0; i < Math.floor(density * .6); i++) {
+       const cx = tideFront + (sr() - .5) * 200;
+       const cy = waterline + sr() * H * .5;
+       for (let j = 0; j < 2 + Math.floor(sr() * 3); j++) {
+         const angle = sr() * Math.PI;
+         const len = 3 + sr() * 10;
+         _settleFibers.push({
+           x: cx + sr() * 8 - 4,
+           y: cy + sr() * 8 - 4,
+           x2: cx + Math.cos(angle) * len,
+           y2: cy + Math.sin(angle) * len,
+           alpha: .008 + sr() * .02,
+           width: .15 + sr() * .25,
+         });
+       }
+     }
+
+       // Fine speckle: very faint dots scattered near high-tide zones
+     for (let i = 0; i < Math.floor(density * .4); i++) {
+       _settleFibers.push({
+         x: tideFront + (sr() - .5) * 300,
+         y: waterline + sr() * H * .6,
+         dot: true,
+         r: .3 + sr() * .7,
+         alpha: .006 + sr() * .015,
+       });
+     }
+   }
+
+   // ─── Draw settle fiber texture ───
+   function drawSettleFibers(ctx) {
+     if (_fiberTextureAlpha < .001 || _settleFibers.length === 0) return;
+
+     ctx.save();
+     let s = _settleFiberSeed + 50000;
+     for (let i = 0; i < _settleFibers.length; i++) {
+       const f = _settleFibers[i];
+       const a = f.alpha * _fiberTextureAlpha;
+       if (a < .002) continue;
+
+       if (f.dot) {
+         ctx.fillStyle = 'rgba(120,110,90,' + a.toFixed(4) + ')';
+         ctx.beginPath();
+         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+         ctx.fill();
+       } else {
+         ctx.strokeStyle = 'rgba(100,95,80,' + a.toFixed(4) + ')';
+         ctx.lineWidth = f.width;
+         ctx.beginPath();
+         ctx.moveTo(f.x, f.y);
+         ctx.lineTo(f.x2, f.y2);
+         ctx.stroke();
+       }
+     }
+     ctx.restore();
+   }
+
+   // ─── Negative space vignette ───
+   // Guides the eye toward center-moon and harbor by darkening edges.
+   // Very subtle: 3-5% alpha max. Only visible in settled state.
+   function drawVignette(ctx) {
+     const vAlpha = settled ? (.035 + settleBloom * .02) : 0;
+     if (vAlpha < .005) return;
+
+     const cx = W * .5;
+     const cy = H * .4;
+     const grad = ctx.createRadialGradient(cx, cy, Math.min(W, H) * .25, cx, cy, Math.max(W, H) * .72);
+     grad.addColorStop(0, 'rgba(0,0,0,0)');
+     grad.addColorStop(.5, 'rgba(0,0,0,0)');
+     grad.addColorStop(.8, 'rgba(20,18,28,' + (vAlpha * .5).toFixed(4) + ')');
+     grad.addColorStop(1, 'rgba(15,12,22,' + vAlpha.toFixed(4) + ')');
+     ctx.fillStyle = grad;
+     ctx.fillRect(0, 0, W, H);
+   }
+
+   // ─── Warm paper cast ───
+   // Adds a slight warm tone over the entire composition in settled state
+   // to simulate aged paper. Reinforces ukiyo-e aesthetic.
+   function drawPaperCast(ctx) {
+     const castAlpha = settled ? (.03 + settleBloom * .015) : 0;
+     if (castAlpha < .005) return;
+
+       // Warm paper tone: very subtle beige overlay
+     ctx.fillStyle = 'rgba(230,215,185,' + castAlpha.toFixed(4) + ')';
+     ctx.fillRect(0, 0, W, H);
+   }
+
+    // ─── Input handlers ───
+   function onDown(x, y) {
+     pressed = true;
+     settling = false;
+     resetting = false;
+     settled = false;
+     lastX = x;
+     lastY = y;
+     touchX = x;
+     touchY = y;
+     touchAlpha = 0;
+     dragTrail = [{ x, y }];
+     releaseRipple = null;
+     _fiberTextureAlpha = 0;
+     _settleFibers = [];
+     if (tideFront <= 0) {
+       tideFront = x;
+       initialTideFront = x;
+      }
+     tideFrontVel = 0;
+     _dirty = true; // force redraw on press
+      const el = document.getElementById('final-title');
+      if (el) el.classList.remove('visible');
     }
-    tideFrontVel = 0;
-    _dirty = true; // force redraw on press
-  }
 
   function onMove(x, y) {
     if (!pressed) return;
@@ -1710,47 +1887,69 @@ const Render = (() => {
     _dirty = true;
   }
 
-  function onUp() {
-    pressed = false;
-    pressure = Math.max(0, pressure - .08);
-    tideProgress += .3;
+   function onUp() {
+     pressed = false;
+     pressure = Math.max(0, pressure - .08);
+     tideProgress += .3;
 
-    releaseRipple = { x: touchX, y: touchY, t: 0, alpha: .6 };
+     releaseRipple = { x: touchX, y: touchY, t: 0, alpha: .6 };
 
-    if (!resetting) {
-      settling = true;
-      settleProgress = 0;
-      settleBloom = Math.max(.15, pressure * .6 + tideProgress * .02);
-      tideSettleExtra = 0;
-      initialTideFront = tideFront;
+     if (!resetting) {
+       settling = true;
+       settleProgress = 0;
+       settleBloom = Math.max(.15, pressure * .6 + tideProgress * .02);
+       tideSettleExtra = 0;
+       initialTideFront = tideFront;
+
+        // Generate non-repeating fiber texture for this settle
+       _settleFiberSeed = Math.floor(performance.now() % 99999) + frameCount;
+       _generateSettleFibers();
+       _fiberTextureTarget = .04 + Math.min(.08, tideProgress * .025);
+      }
+     _dirty = true;
     }
-    _dirty = true;
-  }
 
-  function resetTouchState() {
-    touchX = 0;
-    touchY = 0;
-    touchAlpha = 0;
-    dragTrail = [];
-    releaseRipple = null;
-  }
+    function resetTouchState() {
+      touchX = 0;
+      touchY = 0;
+      touchAlpha = 0;
+      dragTrail = [];
+      releaseRipple = null;
+       _fiberTextureAlpha = 0;
+       _fiberTextureTarget = 0;
+      }
 
-  function resetScene() {
-    resetting = true;
-    resetProgress = 0;
-    settling = false;
-    settleBloom = 0;
-    tideSettleExtra = 0;
-    resetStartTideFront = tideFront;
-    resetStartTideProgress = tideProgress;
-    resetTouchState();
-    _dirty = true;
-  }
+   function resetScene() {
+     resetting = true;
+     resetProgress = 0;
+     settling = false;
+     settled = false;
+     settleBloom = 0;
+     tideSettleExtra = 0;
+     resetStartTideFront = tideFront;
+     resetStartTideProgress = tideProgress;
+     _settleFibers = [];
+     resetTouchState();
+      _dirty = true;
+     const el = document.getElementById('final-title');
+     if (el) el.classList.remove('visible');
+    }
 
   function idleDrift(t) {
     clock += .014;
 
-      // Touch glow ramps UP while pressing
+      // Fiber texture alpha: ramp up as tide settles, hold, then slow fade
+    if (settling) {
+      _fiberTextureAlpha += (_fiberTextureTarget - _fiberTextureAlpha) * .03;
+       } else if (settled) {
+        _fiberTextureAlpha += (_fiberTextureTarget * .9 - _fiberTextureAlpha) * .008;
+       } else if (resetting) {
+        _fiberTextureAlpha *= (1 - resetProgress * .15);
+       } else {
+        _fiberTextureAlpha *= .99;
+      }
+
+     // Touch glow ramps UP while pressing
     if (pressed) {
       touchAlpha = Math.min(1, touchAlpha + .05);
        }
