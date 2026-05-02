@@ -150,7 +150,10 @@ const App = (() => {
       started = true;
       Audio.init();
       window._hidePrompt && window._hidePrompt();
-     }
+
+        // Start ambient harbor tone on first press — fades in slowly (~8s)
+      Audio.startAmbient();
+      }
 
     Render.onDown(x, y);
     Audio.tap();
@@ -228,6 +231,7 @@ const App = (() => {
     setTimeout(() => {
       Audio.startPaperRub();
       Audio.startWaterDrone();
+      Audio.startAmbient();
 
        // Use Web Audio's exponentialRamp for smooth volume ramp-down (no setInterval)
       Audio.setPaperVolume(.04);
