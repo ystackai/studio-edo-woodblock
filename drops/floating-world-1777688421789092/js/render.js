@@ -364,83 +364,220 @@ const Render = (() => {
     ctx.fill();
    }
 
-   // ─── Initial press feedback: indigo halo + paper grain compression ───
-  // Fires on first press and expands gently before tide advances.
-  // Halo fades as drag begins. Grain shift shows localized fiber response.
-  function drawInitialPressFeedback(ctx) {
-    const ha = pressHalo.alpha;
-    const ga = pressGrain.alpha;
-    if (ha < .003 && ga < .003) return;
+    // ─── Initial press feedback: indigo halo + paper grain compression ───
+    // Fires on first press, expanding gently like ink blooming on absorbent paper.
+    // Halo: organic, multi-layered speckle with irregular radius — never a perfect circle.
+    // Grain: localized fiber compression, fibers pulled inward toward press point.
+    // Timing: appears immediately with tap audio, fades as drag takes over.
+   function drawInitialPressFeedback(ctx) {
+     const ha = pressHalo.alpha;
+     const ga = pressGrain.alpha;
+     if (ha < .003 && ga < .003) return;
 
-    // ── Indigo halo: soft expanding ring, fades as drag engagement grows ──
-    if (ha > .003) {
-      const haloR = (40 + pressHalo.t * 55) * (1 + pressure * .3);
-      const grad = ctx.createRadialGradient(pressHalo.x, pressHalo.y, haloR * .3, pressHalo.x, pressHalo.y, haloR);
-      const coreA = ha * .12;
-      grad.addColorStop(0, 'rgba(14,26,58,' + coreA.toFixed(4) + ')');
-      grad.addColorStop(.5, 'rgba(27,42,74,' + (coreA * .5).toFixed(4) + ')');
-      grad.addColorStop(1, 'rgba(27,42,74,0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(pressHalo.x, pressHalo.y, haloR, 0, Math.PI * 2);
-      ctx.fill();
+     // ── Organic indigo halo: layered blooming, NOT a perfect circle ──
+     // Three layers: core bloom, mid-ring speckle, outer whisper
+     if (ha > .003) {
+       const t = pressHalo.t;
+       const px = pressHalo.x;
+       const py = pressHalo.y;
 
-        // Edge ring: faint indigo circle
-      const ringA = ha * .08 * (1 - pressHalo.t * .5);
-      if (ringA > .005) {
-        ctx.strokeStyle = 'rgba(14,26,58,' + ringA.toFixed(4) + ')';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.arc(pressHalo.x, pressHalo.y, haloR * .8, 0, Math.PI * 2);
-        ctx.stroke();
-        }
+          // Core bloom: very soft radial wash, irregular radius per angle
+       // Simulates ink pooling at the press point
+       {
+         const petalCount = 12;
+         const baseR = 18 + t * 35;
 
-        // Stippled halo dots: scattered indigo speckle expanding from press point
-      _seed = 9000 + Math.floor(pressHalo.t * 200);
-      const dotN = 6 + Math.floor(ha * 12);
-      for (let i = 0; i < dotN; i++) {
-        const angle = _sr() * Math.PI * 2;
-        const dist = (12 + _sr() * 50) * (1 + pressHalo.t * .6);
-        const dx = pressHalo.x + Math.cos(angle) * dist;
-        const dy = pressHalo.y + Math.sin(angle) * dist;
-        const dR = .3 + _sr() * 1.2;
-        const dA = ha * (.06 + _sr() * .12) * Math.max(0, 1 - dist / 70);
-        if (dA > .005) {
-          ctx.fillStyle = 'rgba(14,26,58,' + dA.toFixed(4) + ')';
-          ctx.beginPath();
-          ctx.arc(dx, dy, dR, 0, Math.PI * 2);
-          ctx.fill();
+         for (let p = 0; p < petalCount; p++) {
+           const angle = (p / petalCount) * Math.PI * 2;
+           const rNoise = Math.sin(angle * 5 + t * 8) * 6 + Math.cos(angle * 3 - t * 5) * 4;
+           const r = (baseR + rNoise) * (1 + pressure * .25);
+
+           const grad = ctx.createRadialGradient(px, py, 0, px, py, r);
+           const coreA = ha * (.06 + pressure * .05) * (.5 + Math.sin(angle * 3 + t * 4) * .3);
+           if (coreA < .005) continue;
+
+           grad.addColorStop(0, 'rgba(14,26,58,' + (coreA * 1.3).toFixed(4) + ')');
+           grad.addColorStop(.4, 'rgba(27,42,74,' + (coreA * .6).toFixed(4) + ')');
+           grad.addColorStop(1, 'rgba(27,42,74,0)');
+           ctx.fillStyle = grad;
+           ctx.beginPath();
+           // Slightly offset center per petal for organic feel
+           ctx.arc(
+             px + Math.cos(angle) * 3 * (1 - t),
+             py + Math.sin(angle) * 3 * (1 - t),
+             r, angle - .3, angle + .3
+             );
+           ctx.fill();
+           }
+         }
+
+          // Mid-ring stipple: scattered dots at intermediate radius
+         // These dots suggest capillary wicking along fiber paths
+        _seed = 9100 + Math.floor(t * 150);
+       const midDotN = 8 + Math.floor(ha * 18);
+       for (let i = 0; i < midDotN; i++) {
+         const angle = _sr() * Math.PI * 2;
+         const baseDist = 20 + _sr() * 35;
+         const dist = baseDist * (1 + t * .8 + pressure * .3);
+         const dx = px + Math.cos(angle) * dist;
+         const dy = py + Math.sin(angle) * dist;
+         const dR = .3 + _sr() * 1.5;
+          // Density drops with distance and time
+         const distFactor = Math.max(0, 1 - dist / (50 + t * 30));
+         const dA = ha * (.04 + _sr() * .08) * distFactor;
+         if (dA > .005) {
+           ctx.fillStyle = 'rgba(14,26,58,' + dA.toFixed(4) + ')';
+           ctx.beginPath();
+           ctx.arc(dx, dy, dR, 0, Math.PI * 2);
+           ctx.fill();
+            }
           }
-        }
-      }
 
-    // ── Paper grain compression: localized fiber displacement at press point ───
-    if (ga > .003) {
-      const compR = 35 + pressGrain.t * 20;
-        _seed = 9500 + Math.floor(frameCount);
+          // Outer whisper: very faint, irregular ring of dots
+          // Appears only in first moment of press, fades quickly
+        if (t < .5) {
+          const whisperAlpha = ha * (1 - t * 2) * .04;
+          if (whisperAlpha > .003) {
+            _seed = 9200 + Math.floor(frameCount * 7);
+            const whisperN = 5 + Math.floor(ha * 8);
+            for (let i = 0; i < whisperN; i++) {
+              const angle = _sr() * Math.PI * 2;
+              const dist = 30 + _sr() * 25 + t * 20;
+              const dx = px + Math.cos(angle) * dist;
+              const dy = py + Math.sin(angle) * dist;
+              const dR = .2 + _sr() * .8;
+              ctx.fillStyle = 'rgba(22,32,64,' + (whisperAlpha * (.3 + _sr() * .7)).toFixed(4) + ')';
+              ctx.beginPath();
+              ctx.arc(dx, dy, dR, 0, Math.PI * 2);
+              ctx.fill();
+                }
+              }
+            }
+
+          // Faint edge ring: irregular, NOT a perfect circle
+          // Simulates the outermost reach of pigment on paper
+         const ringT = Math.min(1, t * 1.5);
+         const ringA = ha * .05 * (1 - ringT * .6);
+         if (ringA > .005) {
+           const ringR = (35 + ringT * 45) * (1 + pressure * .2);
+           ctx.strokeStyle = 'rgba(14,26,58,' + ringA.toFixed(4) + ')';
+           ctx.lineWidth = .8;
+           ctx.setLineDash([1.5, 3 + ringT * 4]);
+           ctx.beginPath();
+           ctx.arc(px, py, ringR, 0, Math.PI * 2);
+           ctx.stroke();
+           ctx.setLineDash([]);
+            }
+          }
+
+     // ── Paper grain compression: localized fiber displacement ───
+    // Fibers are pulled toward the press point, with varying strength
+    // and length to simulate real paper surface responding to touch.
+    // Three zones of compression, each with different fiber density.
+     if (ga > .003) {
+       const compR = 30 + pressGrain.t * 25;
+       _seed = 9500 + Math.floor(frameCount * 3);
        ctx.save();
-       ctx.globalAlpha = ga;
-       ctx.strokeStyle = 'rgba(100,95,80,1)';
-       ctx.lineWidth = .25;
-       const lineN = 8 + Math.floor(ga * 15);
-       for (let i = 0; i < lineN; i++) {
-        const angle = _sr() * Math.PI * 2;
-        const dist = _sr() * compR;
-        const sx = pressGrain.x + Math.cos(angle) * dist;
-        const sy = pressGrain.y + Math.sin(angle) * dist;
-          // Compress fibers inward toward press point
-        const pullX = (pressGrain.x - sx) * .08 * ga;
-        const pullY = (pressGrain.y - sy) * .08 * ga;
-        const len = 4 + _sr() * 10;
-        const fiberAngle = (Math.random() - .5) * .4 + Math.atan2(pullY, pullX) * .3;
-         ctx.beginPath();
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(sx + len * Math.cos(fiberAngle) + pullX, sy + len * Math.sin(fiberAngle) + pullY);
-        ctx.stroke();
+
+          // Inner zone: tight fibers directly under press — strongest compression
+       {
+         const innerR = compR * .4;
+         const lineN = 6 + Math.floor(ga * 10);
+         ctx.strokeStyle = 'rgba(90,85,70,' + (ga * .35).toFixed(4) + ')';
+         ctx.lineWidth = .3;
+         for (let i = 0; i < lineN; i++) {
+           const angle = _sr() * Math.PI * 2;
+           const dist = _sr() * innerR;
+           const sx = pressGrain.x + Math.cos(angle) * dist;
+           const sy = pressGrain.y + Math.sin(angle) * dist;
+             // Strong inward pull: fibers visibly compressed
+           const pullStrength = ga * .15;
+           const pullX = (pressGrain.x - sx) * pullStrength;
+           const pullY = (pressGrain.y - sy) * pullStrength;
+           const len = 3 + _sr() * 7;
+            // Fibers align toward the press point
+           const fiberAngle = Math.atan2(pullY, pullX) + (_sr() - .5) * .6;
+           ctx.beginPath();
+           ctx.moveTo(sx, sy);
+           const endX = sx + len * Math.cos(fiberAngle) * .5 + pullX;
+           const endY = sy + len * Math.sin(fiberAngle) * .5 + pullY;
+           ctx.quadraticCurveTo(
+             (sx + endX) / 2 + (_sr() - .5) * 3,
+             (sy + endY) / 2 + (_sr() - .5) * 2,
+             endX, endY
+             );
+           ctx.stroke();
+            }
+          }
+
+          // Mid zone: moderate compression, fibers beginning to respond
+       {
+         const midR = compR * .7;
+         const innerR2 = compR * .4;
+         const lineN = 6 + Math.floor(ga * 8);
+         ctx.strokeStyle = 'rgba(100,95,80,' + (ga * .2).toFixed(4) + ')';
+         ctx.lineWidth = .25;
+         for (let i = 0; i < lineN; i++) {
+           const angle = _sr() * Math.PI * 2;
+           const rawDist = innerR2 + _sr() * (midR - innerR2);
+           const sx = pressGrain.x + Math.cos(angle) * rawDist;
+           const sy = pressGrain.y + Math.sin(angle) * rawDist;
+           const pullStrength = ga * .06;
+           const pullX = (pressGrain.x - sx) * pullStrength;
+           const pullY = (pressGrain.y - sy) * pullStrength;
+           const len = 4 + _sr() * 10;
+           const fiberAngle = (_sr() - .5) * .5 + Math.atan2(pullY, pullX) * .2;
+           ctx.beginPath();
+           ctx.moveTo(sx, sy);
+           ctx.lineTo(sx + len * Math.cos(fiberAngle) + pullX, sy + len * Math.sin(fiberAngle) + pullY);
+           ctx.stroke();
+            }
+          }
+
+          // Outer zone: faintest response, mostly ambient grain shift
+       {
+         const outerR = compR;
+         const midR2 = compR * .7;
+         const lineN = 4 + Math.floor(ga * 5);
+         ctx.strokeStyle = 'rgba(110,100,85,' + (ga * .1).toFixed(4) + ')';
+         ctx.lineWidth = .2;
+         const dotN = 3 + Math.floor(ga * 4);
+         for (let i = 0; i < lineN; i++) {
+           const angle = _sr() * Math.PI * 2;
+           const rawDist = midR2 + _sr() * (outerR - midR2);
+           const sx = pressGrain.x + Math.cos(angle) * rawDist;
+           const sy = pressGrain.y + Math.sin(angle) * rawDist;
+           const len = 3 + _sr() * 6;
+           const fiberAngle = (_sr() - .5) * .4;
+           ctx.beginPath();
+           ctx.moveTo(sx, sy);
+           ctx.lineTo(sx + len * Math.cos(fiberAngle), sy + len * Math.sin(fiberAngle));
+           ctx.stroke();
+            }
+          }
+
+          // Micro-compression stipple: tiny dots where fibers are most compressed
+          // These appear as the paper surface "dimples" under pressure
+        _seed = 9600 + Math.floor(ga * 100);
+       const stipN = 4 + Math.floor(ga * 12);
+       for (let i = 0; i < stipN; i++) {
+         const angle = _sr() * Math.PI * 2;
+         const dist = _sr() * compR * .6;
+         const sx = pressGrain.x + Math.cos(angle) * dist;
+         const sy = pressGrain.y + Math.sin(angle) * dist;
+         const distFactor = 1 - dist / (compR * .6);
+         const dA = ga * .08 * distFactor;
+         if (dA > .005) {
+           ctx.fillStyle = 'rgba(80,75,60,' + dA.toFixed(4) + ')';
+           ctx.beginPath();
+           ctx.arc(sx, sy, .3 + _sr() * .5, 0, Math.PI * 2);
+           ctx.fill();
+            }
+          }
+
+         ctx.restore();
         }
-       ctx.restore();
-      }
-   }
+     }
 
     // ─── Hills: layered silhouettes, immediate ukiyo-e read ───
   function drawHills(ctx) {
@@ -1634,113 +1771,165 @@ const Render = (() => {
 
    let combinedTide = 0; // module-scoped to carry across reed iteration
 
-  // ─── Tide band ───
-  function drawTide(ctx) {
-    if (tideFront <= 0) return;
+    // ─── Tide band: ink soaking into absorbent paper ───
+   // The leading edge is never a hard line — instead, indigo pigment
+   // appears as stippled dots, lateral bleed strokes, and a soft wash
+   // that gradually deepens into the full tide wash behind it.
+   function drawTide(ctx) {
+     if (tideFront <= 0) return;
 
-    const zone = 180 + pressure * 120;
+     const zone = 180 + pressure * 120;
+     const rowH = H * .72;
 
-     // Phase 1: Indigo wash — stippled leading edge, no hard cutoff
-    const leadingEdgeW = 55 + pressure * 30;
-    const washStart = Math.max(0, tideFront - leadingEdgeW);
-    const washEnd = Math.min(W, tideFront + zone + 10);
-    _seed = 7000 + Math.floor(tideProgress * 40);
-    for (let x = washStart; x < washEnd; x += 2) {
-      const d = x - tideFront;
-      if (d > zone) break;
+      // ══ Phase 0: Far-ahead whisper stipple
+     // A very faint pre-shadow of dots, suggesting pigment reaching
+     // ahead of the visible tide front through capillary fiber paths.
+      _seed = 7000 + Math.floor(tideProgress * 40);
+     const whisperDepth = 30 + pressure * 20;
+     for (let i = 0; i < 12 + Math.floor(pressure * 8); i++) {
+       const wx = tideFront - whisperDepth + (_sr() - .5) * whisperDepth;
+       const wy = waterline - H * .03 + _sr() * rowH;
+       const wR = .2 + _sr() * .6;
+       const wA = (.015 + _sr() * .025) * (1 - _sr());
+       if (wA > .005) {
+         ctx.fillStyle = 'rgba(27,42,74,' + wA.toFixed(3) + ')';
+         ctx.beginPath();
+         ctx.arc(wx, wy, wR, 0, Math.PI * 2);
+         ctx.fill();
+          }
+        }
 
-      // Behind/at front: stippled ink-bleed fade-in (no hard leading edge)
-      if (d >= -leadingEdgeW && d <= 8) {
-        const edgeT = (d + leadingEdgeW) / leadingEdgeW;
-        const density = Math.sin(edgeT * Math.PI) * (.5 + pressure * .5);
-        const rowH = H * .72;
-        const colCount = 2 + Math.floor(density * 4);
-        for (let c = 0; c < colCount; c++) {
-          const jx = x + _sr() * 3;
-          const jy = waterline - H * .04 + _sr() * rowH;
-          const jR = .4 + _sr() * 1.6;
-          const jA = Math.sin(edgeT * Math.PI) * (.08 + pressure * .12) * (.4 + _sr() * .6);
-          if (jA > .015) {
-            ctx.fillStyle = 'rgba(14,26,58,' + jA.toFixed(3) + ')';
-            ctx.beginPath();
-            ctx.arc(jx, jy, jR, 0, Math.PI * 2);
-            ctx.fill();
+      // ══ Phase 1: Leading edge — soft stippled fade-in (no hard cutoff)
+     // Density follows a sin-curve: sparse at far edge, peak at tideFront,
+     // then fades into the wash. Multi-sampled to avoid banding.
+     const leadingEdgeW = 65 + pressure * 35;
+     const washStart = Math.max(0, tideFront - leadingEdgeW);
+     const washEnd = Math.min(W, tideFront + zone + 10);
+      _seed = 8000 + Math.floor(tideProgress * 50);
+     for (let x = washStart; x < washEnd; x += 2) {
+       const d = x - tideFront;
+
+        // Far ahead of front → whisper zone (handled above, skip here)
+        // At front region: dense stipple with sin density envelope
+       if (d >= -leadingEdgeW && d <= zone * .15) {
+         const edgeT = (d + leadingEdgeW) / (leadingEdgeW + zone * .15);
+         const densityEnv = Math.sin(edgeT * Math.PI) * (.5 + pressure * .5);
+         const colCount = 1 + Math.floor(densityEnv * 5);
+         for (let c = 0; c < colCount; c++) {
+           const jx = x + _sr() * 3;
+           const jy = waterline - H * .04 + _sr() * rowH;
+           const jR = .3 + _sr() * 1.8;
+           const baseAlpha = (.04 + pressure * .1);
+           const jA = Math.sin(edgeT * Math.PI) * baseAlpha * (.3 + _sr() * .7);
+           if (jA > .01) {
+             ctx.fillStyle = 'rgba(14,26,58,' + jA.toFixed(3) + ')';
+             ctx.beginPath();
+             ctx.arc(jx, jy, jR, 0, Math.PI * 2);
+             ctx.fill();
+              }
+            }
+          }
+
+        // Ahead of front: indigo wash bars with soft falloff
+       if (d > 0) {
+         const t = Easing.soak(d / zone);
+         // Soft sinusoidal fade: no sharp step into the wash
+         const alpha = .025 + Math.sin(t * Math.PI) * (.12 + pressure * .16);
+         if (alpha > .015) {
+           ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
+           ctx.fillRect(x, waterline - H * .04, 2, H * .72);
             }
           }
         }
 
-        // Ahead of front: indigo wash bars
-      if (d > 0) {
-        const t = Easing.soak(d / zone);
-        const alpha = .04 + Math.sin(t * Math.PI) * (.14 + pressure * .18);
-        if (alpha > .02) {
-          ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
-          ctx.fillRect(x, waterline - H * .04, 2, H * .72);
-          }
+      // ══ Phase 1.5: Lateral ink-bleed strokes
+     // Short horizontal dashes at the leading edge, suggesting ink
+     // spreading laterally through paper fibers (capillary wicking).
+     // Only visible when tide is actively advancing.
+      _seed = 7500 + Math.floor(tideProgress * 35);
+     const bleedZoneW = leadingEdgeW * .6;
+     const bleedYStart = waterline - H * .04;
+     const bleedYEnd = bleedYStart + rowH;
+     const bleedRowCount = Math.floor(10 + pressure * 8);
+     for (let i = 0; i < bleedRowCount; i++) {
+       const bx = tideFront - bleedZoneW * .5 + _sr() * bleedZoneW;
+       const edgePos = (bx - (tideFront - bleedZoneW * .5)) / bleedZoneW;
+       const fadeAlpha = Math.sin(edgePos * Math.PI) * (.03 + pressure * .04);
+       if (fadeAlpha < .008) continue;
+
+       const by = bleedYStart + _sr() * (bleedYEnd - bleedYStart);
+       const bLen = 2 + _sr() * 8;
+       const bAngle = (_sr() - .3) * .5; // mostly horizontal, slight tilt
+
+       ctx.strokeStyle = 'rgba(22,32,64,' + fadeAlpha.toFixed(3) + ')';
+       ctx.lineWidth = .25 + _sr() * .4;
+       ctx.beginPath();
+       ctx.moveTo(bx, by);
+       ctx.lineTo(bx + bLen * Math.cos(bAngle), by + bLen * Math.sin(bAngle));
+       ctx.stroke();
         }
-     }
 
-    // Phase 2: Hatch marks
-    _seed = 50 + Math.floor(tideProgress * 20);
-    for (let x = Math.max(0, tideFront + zone * .08); x < Math.min(W, tideFront + zone * .82); x += 5) {
-      const d = x - tideFront;
-      const t = d / zone;
-      const hatchT = (t - .08) / .74;
-      if (hatchT < 0 || hatchT > 1) continue;
+      // ══ Phase 2: Hatch marks (cross-hatch revealed as tide passes)
+      _seed = 50 + Math.floor(tideProgress * 20);
+     for (let x = Math.max(0, tideFront + zone * .08); x < Math.min(W, tideFront + zone * .82); x += 5) {
+       const d = x - tideFront;
+       const t = d / zone;
+       const hatchT = (t - .08) / .74;
+       if (hatchT < 0 || hatchT > 1) continue;
 
-      const hatchAlpha = Math.sin(hatchT * Math.PI) * (.05 + pressure * .07);
-      if (hatchAlpha < .015) continue;
+       const hatchAlpha = Math.sin(hatchT * Math.PI) * (.05 + pressure * .07);
+       if (hatchAlpha < .015) continue;
 
-      ctx.strokeStyle = 'rgba(42,48,72,' + hatchAlpha.toFixed(3) + ')';
-      ctx.lineWidth = .35;
+       ctx.strokeStyle = 'rgba(42,48,72,' + hatchAlpha.toFixed(3) + ')';
+       ctx.lineWidth = .35;
 
-      const rows = 3;
-      for (let row = 0; row < rows; row++) {
-        const baseY = waterline - H * .03 + row * (H * .23);
-        const angle = (row % 2 === 0) ? 2.2 : -1.6;
-        const len = 3 + ((x + row * 7) % 4);
-        const off = (row % 3) * 2.5;
+       const rows = 3;
+       for (let row = 0; row < rows; row++) {
+         const baseY = waterline - H * .03 + row * (H * .23);
+         const angle = (row % 2 === 0) ? 2.2 : -1.6;
+         const len = 3 + ((x + row * 7) % 4);
+         const off = (row % 3) * 2.5;
 
-        ctx.beginPath();
-        ctx.moveTo(x + off, baseY + _sr() * 3);
-        ctx.lineTo(x + off + len * .6, baseY + _sr() * 3 + angle);
-        ctx.stroke();
+         ctx.beginPath();
+         ctx.moveTo(x + off, baseY + _sr() * 3);
+         ctx.lineTo(x + off + len * .6, baseY + _sr() * 3 + angle);
+         ctx.stroke();
+        }
+       }
+
+      // ══ Phase 3: Stippled pigment (deeper tide)
+      _seed = 120 + Math.floor(tideProgress * 30);
+     for (let x = Math.max(0, tideFront + zone * .3); x < Math.min(W, tideFront + zone * .9); x += 3) {
+       const d = x - tideFront;
+       const t = d / zone;
+       if (t < .4 || _sr() > .06) continue;
+
+       const stipAlpha = t * .1;
+       ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha.toFixed(3) + ')';
+       ctx.beginPath();
+       ctx.arc(
+         x + _sr() * 2,
+         waterline + _sr() * H * .6,
+         .4 + _sr() * .7,
+         0, Math.PI * 2
+        );
+       ctx.fill();
+      }
+
+      // ══ Phase 4: Pigment pooling
+      _seed = 300 + Math.floor(tideProgress * 15);
+     for (let i = 0; i < 3; i++) {
+       const px = tideFront + _sr() * zone * .8 + zone * .1;
+       const py = waterline + _sr() * H * .6;
+       const poolAlpha = pressure * .06 * (1 - i * .25);
+       if (poolAlpha < .005) continue;
+
+       ctx.fillStyle = 'rgba(22,32,64,' + poolAlpha + ')';
+       ctx.beginPath();
+       ctx.ellipse(px, py, 6 + _sr() * 10, 3 + _sr() * 5, _sr() * Math.PI, 0, Math.PI * 2);
+       ctx.fill();
       }
     }
-
-    // Phase 3: Stippled pigment
-    _seed = 120 + Math.floor(tideProgress * 30);
-    for (let x = Math.max(0, tideFront + zone * .3); x < Math.min(W, tideFront + zone * .9); x += 3) {
-      const d = x - tideFront;
-      const t = d / zone;
-      if (t < .4 || _sr() > .06) continue;
-
-      const stipAlpha = t * .1;
-      ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha.toFixed(3) + ')';
-      ctx.beginPath();
-      ctx.arc(
-        x + _sr() * 2,
-        waterline + _sr() * H * .6,
-        .4 + _sr() * .7,
-        0, Math.PI * 2
-      );
-      ctx.fill();
-    }
-
-    // Phase 4: Pigment pooling
-    _seed = 300 + Math.floor(tideProgress * 15);
-    for (let i = 0; i < 3; i++) {
-      const px = tideFront + _sr() * zone * .8 + zone * .1;
-      const py = waterline + _sr() * H * .6;
-      const poolAlpha = pressure * .06 * (1 - i * .25);
-      if (poolAlpha < .005) continue;
-
-      ctx.fillStyle = 'rgba(22,32,64,' + poolAlpha + ')';
-      ctx.beginPath();
-      ctx.ellipse(px, py, 6 + _sr() * 10, 3 + _sr() * 5, _sr() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
 
   // ─── Permanent pigment layer ───
   function drawPigmentLayer(ctx) {
