@@ -827,9 +827,9 @@ const Render = (() => {
       ctx.fillStyle = grad2;
       ctx.fillRect(bloomX - bloomWidth * .5, waterline, bloomWidth * 1.5, H * .5);
 
-        // Bloom stipple: fine dots spreading outward (simulates pigment granulation into paper)
-      _seed = 800 + Math.floor(settleProgress * 50);
-      const stippleCount = Math.floor(15 + settleBloom * 40);
+                // Bloom stipple: fine dots spreading outward (simulates pigment granulation into paper)
+        _seed = 800 + Math.floor(settleProgress * 50);
+       const stippleCount = Math.floor(20 + settleBloom * 50);
       for (let s = 0; s < stippleCount; s++) {
         const dist = _sr() * bloomWidth * 1.2;
         const angle = _sr() * Math.PI;
@@ -965,10 +965,10 @@ const Render = (() => {
     if (!pressed) return;
     const dx = x - lastX;
     const dist = Math.abs(dx);
-    pressure = Math.min(1, pressure + dist * .005);
+    pressure = Math.min(1, pressure + dist * .004);
 
-    tideFront += dx * .55;
-    tideProgress += dist * .008;
+    tideFront = Math.max(0, Math.min(W, tideFront + dx * .5));
+    tideProgress += dist * .007;
 
     lastX = x;
     lastY = y;
@@ -1000,49 +1000,54 @@ const Render = (() => {
        }
 
   function idleDrift(t) {
-    tideFront += Math.sin(t * 1.1) * .25;
-    tideProgress += .004;
-    pressure = Math.max(0, pressure - .0025);
+     if (tideFront > 0) {
+      tideFront += Math.sin(t * 1.1) * .25;
+     } else {
+       // Subtle idle shimmer at origin
+      tideFront = Math.sin(t * 0.7) * 2;
+     }
+     tideProgress += .004;
+     pressure = Math.max(0, pressure - .0025);
 
-       // ── Settle animation ──
+         // ── Settle animation ──
     if (settling) {
       settleProgress = Math.min(1, settleProgress + .005);
       const sp = settleProgress;
 
-        // Slow, intentional tide advance during settle
+          // Slow, intentional tide advance during settle
       tideSettleExtra += .15 * (1 - sp * .6);
       tideFront = initialTideFront + tideSettleExtra;
 
-        // Gentle pressure decay
+          // Gentle pressure decay
       pressure *= .995;
 
-        // Bloom fades very slowly
+          // Bloom fades very slowly
       settleBloom *= .998;
 
-        // When settle reaches ~1, transition to idle (but bloom persists)
+          // When settle reaches ~1, transition to idle (but bloom persists)
       if (sp >= 1 && settling) {
         settling = false;
-       }
-      }
+         }
+        }
 
-      // ── Reset animation: smooth return to origin ──
+        // ── Reset animation: smooth return to origin ──
     if (resetting) {
       resetProgress = Math.min(1, resetProgress + .008);
       const rp = _smoothstep(resetProgress);
 
-          // Tide front slides back from current position to origin
+            // Tide front slides back from current position to origin
        tideFront = resetStartTideFront * (1 - rp);
        tideProgress = resetStartTideProgress * (1 - rp);
        pressure = 0;
        settleBloom *= (1 - rp * .95);
 
-          // Fade pigment map
+            // Fade pigment map
        if (pigmentCtx) {
          pigmentCtx.globalCompositeOperation = 'destination-out';
          pigmentCtx.fillStyle = 'rgba(0,0,0,' + (.04 + rp * .06).toFixed(3) + ')';
          pigmentCtx.fillRect(0, 0, W, H);
          pigmentCtx.globalCompositeOperation = 'source-over';
-          }
+           }
 
        if (rp >= 1) {
          resetting = false;
@@ -1051,13 +1056,13 @@ const Render = (() => {
          pressure = 0;
          settleBloom = 0;
          tideSettleExtra = 0;
-            // Clear pigment map fully
+             // Clear pigment map fully
          if (pigmentCtx) {
            pigmentCtx.clearRect(0, 0, W, H);
-            }
-            }
-         }
-     }
+             }
+             }
+          }
+       }
 
   return { init, draw, onDown, onMove, onUp, idleDrift, resetScene };
 })();
