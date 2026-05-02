@@ -147,73 +147,72 @@ const Audio = (() => {
 
   function setWaterVolume(v) {
     if (waterDrone && ctx) {
-       waterDrone.g.gain.setTargetAtTime(Math.max(0, Math.min(.3, v)), ctx.currentTime, .06);
-      }
-    }
+        waterDrone.g.gain.setTargetAtTime(Math.max(0, Math.min(.3, v)), ctx.currentTime, .06);
+        }
+       }
 
-     // ── Settling thump + paper hiss (release) ──
+   function stopWaterDrone() {
+    if (!waterDrone) return;
+    const now = ctx.currentTime;
+       try { waterDrone.o1.stop(now); } catch (_) {}
+       try { waterDrone.o2.stop(now); } catch (_) {}
+       try { waterDrone.lfo.stop(now); } catch (_) {}
+    waterDrone = null;
+   }
+
+         // ── Settling thump + paper hiss (release) ──
+       // Uses Web Audio scheduling instead of setInterval for reliable fade-out
   function settle() {
     if (!ctx || !initialized) return;
     const now = ctx.currentTime;
 
-         // Thump: deep settling
+           // Thump: deep settling
         {
-         const o = ctx.createOscillator();
-         const g = ctx.createGain();
-         o.type = 'sine';
-         o.frequency.setValueAtTime(55, now);
-         o.frequency.linearRampToValueAtTime(32, now + .1);
-         g.gain.setValueAtTime(.2, now);
-         g.gain.linearRampToValueAtTime(0, now + .08);
-         g.gain.linearRampToValueAtTime(0, now + .12);
-         o.connect(g).connect(master);
-         o.start(now);
-         o.stop(now + .14);
-          }
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(55, now);
+          o.frequency.linearRampToValueAtTime(32, now + .1);
+          g.gain.setValueAtTime(.2, now);
+          g.gain.linearRampToValueAtTime(0, now + .08);
+          g.gain.linearRampToValueAtTime(0, now + .12);
+          o.connect(g).connect(master);
+          o.start(now);
+          o.stop(now + .14);
+            }
 
-           // Fading paper hiss
-         {
-         const src = ctx.createBufferSource();
-         src.buffer = noiseBuffer;
+             // Fading paper hiss
+           {
+          const src = ctx.createBufferSource();
+          src.buffer = noiseBuffer;
 
-         const lpf = ctx.createBiquadFilter();
-         lpf.type = 'lowpass';
-         lpf.frequency.setValueAtTime(1200, now);
-         lpf.frequency.linearRampToValueAtTime(200, now + .6);
+          const lpf = ctx.createBiquadFilter();
+          lpf.type = 'lowpass';
+          lpf.frequency.setValueAtTime(1200, now);
+          lpf.frequency.linearRampToValueAtTime(200, now + .6);
 
-         const g = ctx.createGain();
-         g.gain.setValueAtTime(.05, now);
-         g.gain.linearRampToValueAtTime(.01, now + .15);
-         g.gain.linearRampToValueAtTime(0, now + .7);
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(.05, now);
+          g.gain.linearRampToValueAtTime(.01, now + .15);
+          g.gain.linearRampToValueAtTime(0, now + .7);
 
-         src.connect(lpf).connect(g).connect(master);
-         src.start(now);
-         src.stop(now + .8);
-          }
+          src.connect(lpf).connect(g).connect(master);
+          src.start(now);
+          src.stop(now + .8);
+            }
 
-           // Fade out continuous layers
+             // Fade out continuous layers using exponential ramp (no setInterval)
     if (paperGain) {
-        const fade = setInterval(() => {
-          const cur = paperGain.gain.value;
-          if (cur < .003) {
-            clearInterval(fade);
-            stopPaperRub();
-            return;
-             }
-          setPaperVolume(cur * .9);
-            }, 50);
-          }
+        const cur = paperGain.gain.value;
+        paperGain.gain.setValueAtTime(cur, now);
+        paperGain.gain.exponentialRampToValueAtTime(.001, now + 1.5);
+        setTimeout(() => stopPaperRub(), 1600);
+            }
     if (waterDrone) {
-        const fade = setInterval(() => {
-          const cur = waterDrone.g.gain.value;
-          if (cur < .003) {
-            clearInterval(fade);
-            return;
-             }
-          setWaterVolume(cur * .88);
-            }, 50);
+        waterDrone.g.gain.setValueAtTime(waterDrone.g.gain.value, now);
+        waterDrone.g.gain.exponentialRampToValueAtTime(.001, now + 1.2);
+            }
           }
-        }
 
      // ── Reset audio: softer tap + brief paper sigh ──
   function playReset() {
@@ -257,6 +256,6 @@ const Audio = (() => {
           }
         }
 
-  return { init, tap, startPaperRub, setPaperVolume, stopPaperRub,
-            startWaterDrone, setWaterVolume, settle, playReset };
+   return { init, tap, startPaperRub, setPaperVolume, stopPaperRub,
+             startWaterDrone, setWaterVolume, stopWaterDrone, settle, playReset };
 })();
