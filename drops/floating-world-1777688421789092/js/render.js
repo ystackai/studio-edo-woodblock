@@ -23,6 +23,7 @@ const Render = (() => {
   let lastX = 0, lastY = 0;
   let moonX, moonY, moonR, waterline;
   let boats = [], reeds = [], bridgePosts = [], lanternXs = [];
+  let clock = 0;
 
    // Settle state
     let settling = false;
@@ -163,8 +164,10 @@ const Render = (() => {
     drawSky(ctx);
     drawHills(ctx);
     drawWater(ctx);
+    drawMoonlightColumn(ctx);
     drawMoon(ctx);
     drawMoonReflection(ctx);
+    drawMoonlightShimmer(ctx);
     drawBridge(ctx);
     drawLanterns(ctx);
     drawBoats(ctx);
@@ -265,6 +268,59 @@ const Render = (() => {
        ctx.stroke();
      }
    }
+
+  // ─── Moonlight shimmer on water: small luminous sparkles, deterministic ───
+  function drawMoonlightShimmer(ctx) {
+    // Only draws in water region
+    _seed = 333 + Math.floor(clock * 37) % 10000;
+    // Number of sparkles scales with screen width
+    const count = Math.min(18, Math.floor(W / 45));
+    for (let i = 0; i < count; i++) {
+      // Deterministic x position from seeded random
+      const sx = _sr() * W;
+      const cy = moonY * 1.2;
+      // Vertical position: weighted toward center of water region
+      const waveY = Math.sin(sx * .003 + clock * .4 + i * 1.7) * H * .04;
+      const sy = waterline + H * (.08 + _sr() * .55) + waveY;
+      // Proximity to moon column center increases intensity
+      const dx = Math.abs(sx - moonX);
+      const proximity = Math.max(0, 1 - dx / (W * .35));
+      // Shimmer: slow dual-frequency modulation (organic, not random)
+      const shimmer = (
+        Math.sin(clock * .9 + i * 2.3 + sx * .002) * .5 + .5
+      ) * (
+        Math.sin(clock * .35 + i * 1.1) * .5 + .5
+      );
+      const alpha = .025 + shimmer * proximity * .09;
+      if (alpha < .03) continue;
+      const dotR = .6 + shimmer * 1.2;
+      ctx.fillStyle = 'rgba(240,240,232,' + alpha.toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, dotR * 1.6, dotR * .5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ─── Moonlight column: soft luminous path from moon to water ───
+  function drawMoonlightColumn(ctx) {
+    const breath = Math.sin(clock * .25) * .5 + .5;
+    const baseAlpha = .015 + breath * .012;
+    const colW = moonR * 2.2;
+    const topY = waterline - H * .06;
+    // Tapered column via stacked ellipses
+    const rows = 12;
+    for (let r = 0; r < rows; r++) {
+      const t = r / rows;
+      const y = topY + t * H * .55;
+      // Width narrows near moon, widens toward water surface
+      const w = colW * (.3 + t * .7);
+      const rowAlpha = baseAlpha * (1 - t * .4);
+      ctx.fillStyle = 'rgba(240,240,232,' + rowAlpha.toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.ellipse(moonX, y, w, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 
   function drawMoon(ctx) {
     // Outer glow ring
@@ -581,7 +637,11 @@ const Render = (() => {
   function drawReeds(ctx) {
     reeds.forEach((r, i) => {
        const ta = tideAt(r.x);
-       const sway = Math.sin(tideProgress * .7 + r.phase) * (1.5 + ta);
+       // Dual-frequency organic sway: slow base + subtle secondary ripple
+      const base = Math.sin(clock * .55 + r.phase) * 1.8;
+      const rip = Math.sin(clock * 1.1 + r.phase * 2.3 + i * .7) * .6;
+      const breath = Math.sin(clock * .18 + i * 1.1) * .4;
+      const sway = base + rip + breath + ta * Math.sin(tideProgress * .7 + r.phase);
 
        const rAlpha = .4 + ta * .5;
        const stalkColor = lerpColor(C.water, C.reed, rAlpha);
@@ -1001,12 +1061,13 @@ const Render = (() => {
        }
 
   function idleDrift(t) {
+     clock += .016;
      if (tideFront > 0) {
       tideFront += Math.sin(t * 1.1) * .25;
-     } else {
-       // Subtle idle shimmer at origin
+      } else {
+        // Subtle idle shimmer at origin
       tideFront = Math.sin(t * 0.7) * 2;
-     }
+      }
      tideProgress += .004;
      pressure = Math.max(0, pressure - .0025);
 
