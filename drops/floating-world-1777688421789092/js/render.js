@@ -25,11 +25,12 @@ const Render = (() => {
   let W = 0, H = 0;
    let zoneW = 180;
    function zoneWidth(p) { return 180 + (p || pressure) * 120; }
-  let tideProgress = 0;
-  let pressed = false;
-  let pressure = 0;
-  let lastX = 0, lastY = 0;
-  let moonX, moonY, moonR, waterline;
+   let tideProgress = 0;
+   let tideFront = -1;
+   let pressed = false;
+   let pressure = 0;
+   let lastX = 0, lastY = 0;
+   let moonX, moonY, moonR, waterline;
   let boats = [], reeds = [], bridgePosts = [], lanternXs = [];
   let clock = 0;
   let frameCount = 0;
@@ -2021,25 +2022,24 @@ const Render = (() => {
         const waveFreq = .025 + pressure * .01;
         const lineCount = 3;
 
-        for (let li = 0; li < lineCount; li++) {
-          const offset = (li - 1) * (1.5 + pressure * .8);
-          const lineAlpha = (.08 + pressure * .06) * (1 - li * .2);
-          ctx.strokeStyle = 'rgba(14,26,58,' + lineAlpha.toFixed(3) + ')';
-          ctx.lineWidth = .5 + (li === 0 ? .5 : 0);
-          ctx.beginPath();
-          for (let x = washStart; x <= washEnd; x += 4) {
+         for (let li = 0; li < lineCount; li++) {
+           const offset = (li - 1) * (1.5 + pressure * .8);
+           const lineAlpha = (.08 + pressure * .06) * (1 - li * .2);
+           ctx.strokeStyle = 'rgba(14,26,58,' + lineAlpha.toFixed(3) + ')';
+           ctx.lineWidth = .5 + (li === 0 ? .5 : 0);
+           ctx.beginPath();
+           let startedDrawing = false;
+           for (let x = washStart; x <= washEnd; x += 4) {
             const waveOffset = Math.sin(x * waveFreq + tideProgress * 3 + li * 1.2) * waveAmp;
             const vertY = waveYBase + waveOffset + offset + Math.sin(x * .01 + tideProgress) * 8;
             // Only draw within the leading edge zone
             if (x >= tideFront - leadingEdgeW * .5 && x <= tideFront + zone * .12) {
-              const edgeNorm = (x - (tideFront - leadingEdgeW * .5)) / (leadingEdgeW * .5 + zone * .12);
-              const env = Math.sin(edgeNorm * Math.PI);
-              if (env < .1) continue;
-              if (x === washStart || Math.abs(x - tideFront) < leadingEdgeW * .5) {
-                if (!ctx.isPointInPath) ctx.moveTo(x, vertY);
-                else ctx.lineTo(x, vertY);
+               const edgeNorm = (x - (tideFront - leadingEdgeW * .5)) / (leadingEdgeW * .5 + zone * .12);
+               const env = Math.sin(edgeNorm * Math.PI);
+               if (env < .1) continue;
+               if (!startedDrawing) { ctx.moveTo(x, vertY); startedDrawing = true; }
+               else ctx.lineTo(x, vertY);
                }
-             }
            }
           ctx.stroke();
          }
@@ -3319,10 +3319,10 @@ const Render = (() => {
      if (el) el.classList.remove('visible');
     }
 
-  function idleDrift(t) {
-    clock += .014;
+     function idleDrift(t, isPressing) {
+     clock += .014;
 
-      // Fiber texture alpha: ramp up as tide settles, hold, then slow fade
+        // Fiber texture alpha: ramp up as tide settles, hold, then slow fade
     if (settling) {
       _fiberTextureAlpha += (_fiberTextureTarget - _fiberTextureAlpha) * .03;
        } else if (settled) {
@@ -3347,16 +3347,23 @@ const Render = (() => {
          pressGrain.alpha *= .96;
     }
 
-    if (tideFront > 0) {
-      tideFront += Math.sin(t * .7) * .18;
-      } else {
-      tideFront = Math.sin(t * .45) * 2.5;
-      }
-    tideProgress += .003;
-    pressure = Math.max(0, pressure - .002);
+    // Idle tide creep: only when not pressing, settling, or resetting
+    if (!isPressing && !settling && !resetting) {
+      if (tideFront > 0) {
+        tideFront += Math.sin(t * .7) * .18;
+         } else {
+        tideFront = Math.sin(t * .45) * 2.5;
+         }
+      tideProgress += .003;
+      pressure = Math.max(0, pressure - .002);
+    }
 
-    touchAlpha = Math.max(0, touchAlpha - .025);
-    if (touchAlpha < .01) dragTrail = [];
+    // Idle drift (no-touch tide creep) only happens when not pressing
+    // and not in active settle/reset - pressing has explicit controls
+    if (!isPressing) {
+      touchAlpha = Math.max(0, touchAlpha - .015);
+      if (touchAlpha < .01) dragTrail = [];
+    }
 
     if (releaseRipple) {
       releaseRipple.t += .01;
