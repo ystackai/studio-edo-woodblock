@@ -81,40 +81,61 @@ const App = (() => {
          }
        }, { passive: false });
 
-     window.addEventListener('pointerup', e => {
-       if (e.pointerId !== activePointerId) return;
-       onPointerUp();
-       }, { passive: true });
-     window.addEventListener('pointercancel', e => {
-       if (e.pointerId !== activePointerId) return;
-       onPointerUp();
-       }, { passive: true });
-     return;
-     }
+      window.addEventListener('pointerup', e => {
+        if (e.pointerId !== activePointerId) return;
+        onPointerUp();
+        }, { passive: true });
+      window.addEventListener('pointercancel', e => {
+        if (e.pointerId !== activePointerId) return;
+        onPointerUp();
+        }, { passive: true });
 
-     // Fallback: separate mouse + touch listeners for older browsers
-    el.addEventListener('mousedown', e => onPointerDown(e.clientX, e.clientY));
-    window.addEventListener('mousemove', e => { if (isPressing) onPointerMove(e.clientX, e.clientY); });
-    window.addEventListener('mouseup', onPointerUp);
+        // CRITICAL: pointerleave fires when pointer exits viewport (e.g., scroll, swipe,
+        // browser chrome). Without this, isPressing stays true perpetually, causing
+        // stuck audio layers and visual artifacts on next press.
+      window.addEventListener('pointerleave', e => {
+        if (e.pointerId === activePointerId && isPressing) {
+          onPointerUp();
+          }
+        }, { passive: true });
 
-    el.addEventListener('touchstart', e => {
-      e.preventDefault();
-      if (e.touches.length !== 1) return;
-      const t = e.touches[0];
-      onPointerDown(t.clientX, t.clientY);
-     }, { passive: false });
+        // Visibility change: treat as release if pressing
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && isPressing) {
+          onPointerUp();
+          }
+        });
 
-    window.addEventListener('touchmove', e => {
-      if (!isPressing) return;
-      if (e.touches.length !== 1) { onPointerUp(); return; }
-      e.preventDefault();
-      const t = e.touches[0];
-      onPointerMove(t.clientX, t.clientY);
-      }, { passive: false });
+      return;
+      }
 
-    window.addEventListener('touchend', onPointerUp);
-    window.addEventListener('touchcancel', onPointerUp);
-   }
+      // Fallback: separate mouse + touch listeners for older browsers.
+      // Guard: only register these if PointerEvent is NOT supported, otherwise
+      // both paths would fire simultaneously (double audio taps, double visual updates).
+    if (!window.PointerEvent) {
+      el.addEventListener('mousedown', e => onPointerDown(e.clientX, e.clientY));
+      window.addEventListener('mousemove', e => { if (isPressing) onPointerMove(e.clientX, e.clientY); });
+      window.addEventListener('mouseup', onPointerUp);
+
+      el.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (e.touches.length !== 1) return;
+        const t = e.touches[0];
+        onPointerDown(t.clientX, t.clientY);
+        }, { passive: false });
+
+      window.addEventListener('touchmove', e => {
+        if (!isPressing) return;
+        if (e.touches.length !== 1) { onPointerUp(); return; }
+        e.preventDefault();
+        const t = e.touches[0];
+        onPointerMove(t.clientX, t.clientY);
+        }, { passive: false });
+
+      window.addEventListener('touchend', onPointerUp);
+      window.addEventListener('touchcancel', onPointerUp);
+      }
+  }
 
    // ── Double-tap detection ──
   function checkDoubleTap(x, y) {
