@@ -293,15 +293,15 @@ const App = (() => {
       const dt = Math.min(50, now - _lastFrameTime);
        _lastFrameTime = now;
 
-      if (ctx && canvas) {
-           // Always draw - the render.js dirty flag handles skipping expensive layers
-        Render.draw(ctx);
+       if (ctx && canvas) {
+             // Always draw - the render.js dirty flag handles skipping expensive layers
+         Render.draw(ctx);
 
-        if (!isPressing && started) {
-          idleT += dt * .008;
-          Render.idleDrift(idleT);
+         if (started) {
+           idleT += dt * .008;
+           Render.idleDrift(idleT, isPressing);
+             }
           }
-        }
       }
     requestAnimationFrame(frame);
     }
