@@ -29,6 +29,10 @@ const Render = (() => {
   let clock = 0;
   let frameCount = 0;
 
+  // ── Press feedback: indigo halo + grain compression ──
+  let pressHalo = { x: 0, y: 0, t: 0, alpha: 0 };
+  let pressGrain = { x: 0, y: 0, t: 0, alpha: 0 };
+
   // ── Touch micro-interaction state ──
   let touchX = 0, touchY = 0;
   let touchAlpha = 0;
@@ -283,36 +287,35 @@ const Render = (() => {
     easeOutSlow: t => { t = Math.max(0, Math.min(1, t)); return 1 - Math.pow(1 - t, 2.4); },
     };
 
-  // ─── Main draw pipeline with dirty-flag optimization ───
+    // ─── Main draw pipeline with dirty-flag optimization ───
   function draw(ctx) {
     frameCount++;
 
-    // Check dirty: only redraw tide-dependent layers if something changed
+     // Check dirty: only redraw tide-dependent layers if something changed
     const tideChanged = (
       Math.abs(tideProgress - _prevTideProgress) > 1e-6 ||
       Math.abs(tideFront - _prevTideFront) > .5 ||
       Math.abs(pressure - _prevPressure) > .001 ||
-      _dirty
-    );
-    _dirty = false;
+       _dirty
+     );
+     _dirty = false;
 
-    // Always blit static background (paper + sky)
+     // Always blit static background (paper + sky)
     if (_staticBg) {
       ctx.drawImage(_staticBg, 0, 0);
-    }
+     }
 
-    // Water base and hill changes slowly with tideProgress
-    // Hills: tideProgress dependency, redraw when tide changes
+     // Water base and hill changes slowly with tideProgress
+     // Hills: tideProgress dependency, redraw when tide changes
     if (!pressed && !settling && !resetting && !tideChanged) {
-      // Idle: still draw clock-dependent elements (shimmer, reeds)
-      // but skip tide-varying layers (hills hatch marks, water waves)
-      // Actually always draw - the idle drift changes clock which affects shimmer/reeds
-    }
+     }
 
-    // Full draw for all dynamic layers
+     // Full draw for all dynamic layers
     drawHills(ctx);
     drawWater(ctx);
     drawMoonlightColumn(ctx);
+    drawPressFeeling(ctx);
+    drawInitialPressFeedback(ctx);
     drawMoon(ctx);
     drawMoonReflection(ctx);
     drawMoonlightShimmer(ctx);
@@ -342,7 +345,102 @@ const Render = (() => {
     }
   }
 
-   // ─── Hills: layered silhouettes, immediate ukiyo-e read ───
+     // ─── Subtle press-depth color feeling: indigo deepens with pressure ───
+  // A soft wash that blooms at the press point and tracks pressure depth.
+  // Syncs with audio tap and paper rub layers.
+  function drawPressFeeling(ctx) {
+    if (!pressed || touchAlpha < .05) return;
+    const r = 30 + pressure * 25;
+    const grad = ctx.createRadialGradient(touchX, touchY, 0, touchX, touchY, r);
+    const a = touchAlpha * (.04 + pressure * .06);
+    grad.addColorStop(0, 'rgba(27,42,74,' + a.toFixed(3) + ')');
+    grad.addColorStop(.6, 'rgba(27,42,74,' + (a * .3).toFixed(3) + ')');
+    grad.addColorStop(1, 'rgba(27,42,74,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(touchX, touchY, r, 0, Math.PI * 2);
+    ctx.fill();
+   }
+
+   // ─── Initial press feedback: indigo halo + paper grain compression ───
+  // Fires on first press and expands gently before tide advances.
+  // Halo fades as drag begins. Grain shift shows localized fiber response.
+  function drawInitialPressFeedback(ctx) {
+    const ha = pressHalo.alpha;
+    const ga = pressGrain.alpha;
+    if (ha < .003 && ga < .003) return;
+
+    // ── Indigo halo: soft expanding ring, fades as drag engagement grows ──
+    if (ha > .003) {
+      const haloR = (40 + pressHalo.t * 55) * (1 + pressure * .3);
+      const grad = ctx.createRadialGradient(pressHalo.x, pressHalo.y, haloR * .3, pressHalo.x, pressHalo.y, haloR);
+      const coreA = ha * .12;
+      grad.addColorStop(0, 'rgba(14,26,58,' + coreA.toFixed(4) + ')');
+      grad.addColorStop(.5, 'rgba(27,42,74,' + (coreA * .5).toFixed(4) + ')');
+      grad.addColorStop(1, 'rgba(27,42,74,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(pressHalo.x, pressHalo.y, haloR, 0, Math.PI * 2);
+      ctx.fill();
+
+        // Edge ring: faint indigo circle
+      const ringA = ha * .08 * (1 - pressHalo.t * .5);
+      if (ringA > .005) {
+        ctx.strokeStyle = 'rgba(14,26,58,' + ringA.toFixed(4) + ')';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(pressHalo.x, pressHalo.y, haloR * .8, 0, Math.PI * 2);
+        ctx.stroke();
+        }
+
+        // Stippled halo dots: scattered indigo speckle expanding from press point
+      _seed = 9000 + Math.floor(pressHalo.t * 200);
+      const dotN = 6 + Math.floor(ha * 12);
+      for (let i = 0; i < dotN; i++) {
+        const angle = _sr() * Math.PI * 2;
+        const dist = (12 + _sr() * 50) * (1 + pressHalo.t * .6);
+        const dx = pressHalo.x + Math.cos(angle) * dist;
+        const dy = pressHalo.y + Math.sin(angle) * dist;
+        const dR = .3 + _sr() * 1.2;
+        const dA = ha * (.06 + _sr() * .12) * Math.max(0, 1 - dist / 70);
+        if (dA > .005) {
+          ctx.fillStyle = 'rgba(14,26,58,' + dA.toFixed(4) + ')';
+          ctx.beginPath();
+          ctx.arc(dx, dy, dR, 0, Math.PI * 2);
+          ctx.fill();
+          }
+        }
+      }
+
+    // ── Paper grain compression: localized fiber displacement at press point ───
+    if (ga > .003) {
+      const compR = 35 + pressGrain.t * 20;
+        _seed = 9500 + Math.floor(frameCount);
+       ctx.save();
+       ctx.globalAlpha = ga;
+       ctx.strokeStyle = 'rgba(100,95,80,1)';
+       ctx.lineWidth = .25;
+       const lineN = 8 + Math.floor(ga * 15);
+       for (let i = 0; i < lineN; i++) {
+        const angle = _sr() * Math.PI * 2;
+        const dist = _sr() * compR;
+        const sx = pressGrain.x + Math.cos(angle) * dist;
+        const sy = pressGrain.y + Math.sin(angle) * dist;
+          // Compress fibers inward toward press point
+        const pullX = (pressGrain.x - sx) * .08 * ga;
+        const pullY = (pressGrain.y - sy) * .08 * ga;
+        const len = 4 + _sr() * 10;
+        const fiberAngle = (Math.random() - .5) * .4 + Math.atan2(pullY, pullX) * .3;
+         ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + len * Math.cos(fiberAngle) + pullX, sy + len * Math.sin(fiberAngle) + pullY);
+        ctx.stroke();
+        }
+       ctx.restore();
+      }
+   }
+
+    // ─── Hills: layered silhouettes, immediate ukiyo-e read ───
   function drawHills(ctx) {
     const baseAlpha = .45 - tideProgress * .06;
     const hillY = (x) => waterline - (.025 + Math.sin(x * .004) * .018 + Math.sin(x * .009 + .6) * .008) * H;
@@ -928,12 +1026,11 @@ const Render = (() => {
             sternX + b.w * .07, sternBaseY - b.h * .7,
             sternX + b.w * .085, sternBaseY - b.h * .6
             );
-          ctx.stroke();
+           ctx.stroke();
+            }
           }
-        }
-       }
 
-       // ── Waterline on hull: carved horizontal band ──
+        // ── Waterline on hull: carved horizontal band ──
       if (ta > .1) {
         const wlAlpha = Easing.soak((ta - .1) * 2) * .22;
         ctx.strokeStyle = 'rgba(42,48,72,' + wlAlpha + ')';
@@ -1215,36 +1312,45 @@ const Render = (() => {
 
     const zone = 180 + pressure * 120;
 
-    // Phase 1: Indigo wash
-    for (let x = Math.max(0, tideFront - 10); x < Math.min(W, tideFront + zone + 10); x += 2) {
+     // Phase 1: Indigo wash — stippled leading edge, no hard cutoff
+    const leadingEdgeW = 55 + pressure * 30;
+    const washStart = Math.max(0, tideFront - leadingEdgeW);
+    const washEnd = Math.min(W, tideFront + zone + 10);
+    _seed = 7000 + Math.floor(tideProgress * 40);
+    for (let x = washStart; x < washEnd; x += 2) {
       const d = x - tideFront;
-      if (d < 0 || d > zone) continue;
-      const t = Easing.soak(d / zone);
+      if (d > zone) break;
 
-      const alpha = .06 + Math.sin(t * Math.PI) * (.18 + pressure * .22);
-      if (alpha > .025) {
-        ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
-        ctx.fillRect(x, waterline - H * .04, 2, H * .72);
-      }
+      // Behind/at front: stippled ink-bleed fade-in (no hard leading edge)
+      if (d >= -leadingEdgeW && d <= 8) {
+        const edgeT = (d + leadingEdgeW) / leadingEdgeW;
+        const density = Math.sin(edgeT * Math.PI) * (.5 + pressure * .5);
+        const rowH = H * .72;
+        const colCount = 2 + Math.floor(density * 4);
+        for (let c = 0; c < colCount; c++) {
+          const jx = x + _sr() * 3;
+          const jy = waterline - H * .04 + _sr() * rowH;
+          const jR = .4 + _sr() * 1.6;
+          const jA = Math.sin(edgeT * Math.PI) * (.08 + pressure * .12) * (.4 + _sr() * .6);
+          if (jA > .015) {
+            ctx.fillStyle = 'rgba(14,26,58,' + jA.toFixed(3) + ')';
+            ctx.beginPath();
+            ctx.arc(jx, jy, jR, 0, Math.PI * 2);
+            ctx.fill();
+            }
+          }
+        }
 
-      if (t > .01 && t < .09) {
-        const edgeAlpha = .45 * Math.sin(t / .09 * Math.PI);
-        ctx.strokeStyle = 'rgba(27,42,74,' + edgeAlpha + ')';
-        ctx.lineWidth = 2.5 + pressure * 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x, waterline - H * .05);
-        const wave = Math.sin(x * .02 + tideProgress * 3) * 3;
-        ctx.lineTo(x + wave, waterline + H * .65);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(240,240,232,' + (edgeAlpha * .35) + ')';
-        ctx.lineWidth = .7;
-        ctx.beginPath();
-        ctx.moveTo(x + 3, waterline - H * .05);
-        ctx.lineTo(x + 3 + wave, waterline + H * .65);
-        ctx.stroke();
-      }
-    }
+        // Ahead of front: indigo wash bars
+      if (d > 0) {
+        const t = Easing.soak(d / zone);
+        const alpha = .04 + Math.sin(t * Math.PI) * (.14 + pressure * .18);
+        if (alpha > .02) {
+          ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
+          ctx.fillRect(x, waterline - H * .04, 2, H * .72);
+          }
+        }
+     }
 
     // Phase 2: Hatch marks
     _seed = 50 + Math.floor(tideProgress * 20);
@@ -1853,10 +1959,14 @@ const Render = (() => {
      touchX = x;
      touchY = y;
      touchAlpha = 0;
-     dragTrail = [{ x, y }];
-     releaseRipple = null;
-     _fiberTextureAlpha = 0;
-     _settleFibers = [];
+      dragTrail = [{ x, y }];
+      releaseRipple = null;
+       _fiberTextureAlpha = 0;
+       _settleFibers = [];
+
+       // Initialize press feedback: halo and grain compression fire together
+        pressHalo = { x, y, t: 0, alpha: 1 };
+       pressGrain = { x, y, t: 0, alpha: 1 };
      if (tideFront <= 0) {
        tideFront = x;
        initialTideFront = x;
@@ -1949,10 +2059,19 @@ const Render = (() => {
         _fiberTextureAlpha *= .99;
       }
 
-     // Touch glow ramps UP while pressing
+        // Touch glow ramps UP while pressing
     if (pressed) {
       touchAlpha = Math.min(1, touchAlpha + .05);
-       }
+        // Press feedback: advance halo/grain time, fade as drag engagement grows
+      pressHalo.t = Math.min(1, pressHalo.t + .025);
+      pressGrain.t = Math.min(1, pressGrain.t + .02);
+        // Halo fades faster once pressure builds (drag has taken over)
+      pressHalo.alpha *= (1 - pressure * .04 - .008);
+      pressGrain.alpha *= (1 - pressure * .05 - .012);
+        } else {
+         pressHalo.alpha *= .96;
+         pressGrain.alpha *= .96;
+    }
 
     if (tideFront > 0) {
       tideFront += Math.sin(t * .7) * .18;
