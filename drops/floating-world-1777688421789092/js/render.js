@@ -518,36 +518,101 @@ const Render = (() => {
         });
       }
 
+  /* ─── Deterministic Ripple Reflections ───
+   * Not liquid physics. Displacement is deterministic from tide state and
+   * segment index, producing a "pigment soaking into paper" distortion that
+   * stretches and warps as the dark indigo tide band passes.
+   *
+   * Ripple intensity = f(tideAt, pressure, depth) — always the same output
+   * for the same inputs.  Mobile degrades by reducing segment count.
+   */
+
+  // Seeded ripple lookup — returns a stable displacement for any (seed, idx, time)
+  function _rippleDistort(seed, idx, time, intensity) {
+    return Math.sin(seed * 1.7 + idx * 2.3 + time * .7) * intensity * (1 + idx * .12);
+  }
+  // Secondary perpendicular ripple (creates cross-hatch distortion feel)
+  function _rippleMicro(seed, idx, time, intensity) {
+    return Math.cos(seed * 3.1 + idx * 1.9 - time * .4) * intensity * .45;
+  }
+
   function drawMoonReflection(ctx) {
     const reflY = waterline + H * .04;
     const mR = moonR * .35;
     const ta = tideAt(moonX);
 
-    const columnN = 10;
-    for (let i = 0; i < columnN; i++) {
-      const ry = reflY + i * 6;
-      const rx = moonX + Math.sin(i * .55 + tideProgress * 1.8) * (1.5 + i * .35);
-      const rw = mR * (.35 + i * .09) * (1 + ta * .3);
-      const alpha = (.1 * (1 - ta * .5)) + .04;
+    // Ripple state: distortion grows as tide approaches and passes
+    const rippleIntensity = pressure * 3.5 + ta * 5 + tideProgress * 2.2;
+    const stretchFactor = 1 + ta * 1.4 + pressure * .6;
 
-      ctx.fillStyle = 'rgba(240,240,232,' + alpha + ')';
+    // Mobile degrades: fewer segments on small screens
+    const columnN = (W < 600) ? 7 : 14;
+    const segH = 5 + (W < 600 ? 1 : 0);
+
+    for (let i = 0; i < columnN; i++) {
+      const segT = i / (columnN - 1);
+      const ry = reflY + i * segH;
+      const depth = segT * H * .4;
+
+      // Deterministic horizontal ripple offset — pigment-soak warping
+      const rippleX = _rippleDistort(42, i, tideProgress * 1.8, rippleIntensity * .3);
+      const rippleMicro = _rippleMicro(42, i, tideProgress * 1.8, rippleIntensity * .15);
+
+      // Vertical stretch: tide + pressure stretches the reflection like wet pigment
+      const segStretch = stretchFactor * (1 + Math.sin(segT * Math.PI) * ta * .4);
+      const ellH = (1.2 + ta * 1.8) * segStretch;
+
+      // Width: each segment widens as tide passes, like ink blooming
+      const rw = mR * (.3 + segT * .18) * (1 + ta * .5 + pressure * .15);
+
+      // Position: base X + ripple offset
+      const rx = moonX + rippleX + rippleMicro;
+
+      // Alpha: fades with depth, but intensifies where tide has soaked through
+      const baseAlpha = .06 * (1 - segT * .55);
+      const tideBoost = ta * .08 * (1 - segT * .3);
+      const alpha = baseAlpha + tideBoost;
+
+      ctx.fillStyle = 'rgba(240,240,232,' + alpha.toFixed(3) + ')';
       ctx.beginPath();
-      ctx.ellipse(rx, ry, rw, 1.4, 0, 0, Math.PI * 2);
+      ctx.ellipse(rx, ry, rw * segStretch * .7, ellH, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    if (ta > .2) {
-      const ca = (ta - .2) * .12;
-      ctx.strokeStyle = 'rgba(42,48,72,' + ca + ')';
-      ctx.lineWidth = .5;
-      for (let i = 0; i < 3; i++) {
-        const ry = reflY + i * 18 + 10;
-        const rx = moonX + Math.sin(i * .55 + tideProgress * 1.8) * 3;
+    // Cross-cut lines: appear when tide passes, like carved ink lines through wet paper
+    if (ta > .18) {
+      const lineCount = (W < 600) ? 2 : 4;
+      for (let i = 0; i < lineCount; i++) {
+        const ry = reflY + (i + .5) * (H * .09);
+        const rippleX = _rippleDistort(77, i, tideProgress * 2.1, rippleIntensity * .25);
+        const rx = moonX + rippleX;
+        const lineLen = mR * (.5 + ta * 1.2) * (1 + pressure * .3);
+        const ca = (ta - .18) * .1 * (1 - i * .2);
+
+        ctx.strokeStyle = 'rgba(42,48,72,' + ca.toFixed(3) + ')';
+        ctx.lineWidth = .4 + ta * .3;
         ctx.beginPath();
-        ctx.moveTo(rx - mR * .6, ry);
-        ctx.lineTo(rx + mR * .6, ry);
+        ctx.moveTo(rx - lineLen, ry);
+        ctx.lineTo(rx + lineLen, ry);
         ctx.stroke();
       }
+    }
+
+    // Pigment bloom halo: soft warm glow where tide has soaked moon reflection
+    if (ta > .3) {
+      const bloomX = moonX + _rippleDistort(99, 5, tideProgress, rippleIntensity * .4);
+      const bloomY = reflY + H * .12;
+      const bloomR = mR * 1.8 * (1 + ta * .5);
+      const bloomA = (ta - .3) * .04;
+
+      const grad = ctx.createRadialGradient(bloomX, bloomY, 0, bloomX, bloomY, bloomR);
+      grad.addColorStop(0, 'rgba(240,240,232,' + bloomA.toFixed(3) + ')');
+      grad.addColorStop(.5, 'rgba(240,240,232,' + (bloomA * .3).toFixed(3) + ')');
+      grad.addColorStop(1, 'rgba(240,240,232,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(bloomX, bloomY, bloomR, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
@@ -705,47 +770,80 @@ const Render = (() => {
     });
   }
 
+   /* ─── Lantern Reflections with Deterministic Ripple ───
+    * Each lantern reflection is broken into vertical segments.
+    * As tide passes, the ripple distort function offsets each segment
+    * horizontally, stretches vertically, and modulates color intensity —
+    * giving a "wet pigment on paper" look without liquid physics.
+    */
   function drawLanternReflections(ctx) {
     lanternXs.forEach((lx, i) => {
       const reflY = waterline + H * (.06 + i * .025);
-      const reflH = H * (.14 + i * .02);
+      const reflH = H * (.16 + i * .02);
       const ta = tideAt(lx);
-      const alpha = .08 + ta * .22;
 
-      const stretch = 1 + ta * .8;
-      const colH = reflH * stretch;
+       // Ripple intensity tied to drag depth + tide
+      const rippleInt = pressure * 4.5 + ta * 5.5 + tideProgress * 2.8;
+      const stretch = 1 + ta * 1.2 + pressure * .7;
 
-      const segH = 4;
-      for (let sy = reflY; sy < reflY + colH; sy += segH) {
-        const segT = (sy - reflY) / colH;
-        const sx = lx + Math.sin(sy * .06 + i * 1.3 + tideProgress * 2) * (2 + segT * 3);
-        const segAlpha = alpha * (1 - segT * .6);
-        ctx.fillStyle = 'rgba(212,160,74,' + segAlpha + ')';
-        ctx.fillRect(sx - 2, sy, 4, segH - 1);
-      }
+       // Mobile: fewer segments
+      const segCount = (W < 600) ? 8 : 18;
+      const segH = (reflH * stretch) / segCount;
 
-      if (ta > .1) {
-        const washAlpha = (ta - .1) * .08;
-        ctx.fillStyle = 'rgba(212,160,74,' + washAlpha + ')';
+      for (let s = 0; s < segCount; s++) {
+        const segT = s / (segCount - 1);
+        const sy = reflY + s * segH;
+
+         // Deterministic ripple offset — same wave for all segments but
+         // intensity grows with depth (segT) to simulate wet paper stretching
+        const waveX = _rippleDistort(120 + i * 37, s + i * 10, tideProgress * 2, rippleInt * (.3 + segT * .5));
+        const microX = _rippleMicro(120 + i * 37, s + i * 10, tideProgress * 2, rippleInt * .2);
+
+         // Vertical stretch factor: deeper = wider blob (pigment bloom)
+        const segStretch = stretch * (1 + segT * .6 * ta);
+        const segW = (3 + ta * 5) * segStretch;
+
+        const sx = lx + waveX + microX;
+        const segAlpha = (.06 + ta * .2) * (1 - segT * .5);
+
+        ctx.fillStyle = 'rgba(212,160,74,' + segAlpha.toFixed(3) + ')';
         ctx.beginPath();
-        ctx.ellipse(lx, reflY + colH * .5, 12 + ta * 6, colH * .3, 0, 0, Math.PI * 2);
+        ctx.ellipse(sx, sy, segW * .5, segH * .45 * segStretch, waveX * .02, 0, Math.PI * 2);
         ctx.fill();
-      }
+       }
 
-      if (ta > .3) {
-        const ka = (ta - .3) * .1;
-        ctx.strokeStyle = 'rgba(42,48,72,' + ka + ')';
-        ctx.lineWidth = .4;
-        for (let ly = reflY + 8; ly < reflY + colH; ly += 14) {
-          const lx2 = lx + Math.sin(ly * .06 + i * 1.3 + tideProgress * 2) * 2.5;
+       // Amber wash bloom: wide, low-alpha ellipse where tide has soaked
+      if (ta > .08) {
+        const washX = lx + _rippleDistort(150 + i * 23, 3, tideProgress, rippleInt * .3);
+        const washAlpha = (ta - .08) * .06;
+        const washRy = (reflH * stretch) * .5;
+
+        ctx.fillStyle = 'rgba(212,160,74,' + washAlpha.toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.ellipse(washX, reflY + washRy, 10 + ta * 8, washRy * .4, 0, 0, Math.PI * 2);
+        ctx.fill();
+       }
+
+       // Carved cross-hatch lines appear at higher tide
+      if (ta > .25) {
+        const lineN = (W < 600) ? 2 : 4;
+        for (let l = 0; l < lineN; l++) {
+          const ly = reflY + (l + .5) * (reflH * stretch / lineN);
+          const waveX = _rippleDistort(200 + i * 41, l + i * 7, tideProgress * 1.5, rippleInt * .2);
+          const lx2 = lx + waveX;
+          const ka = (ta - .25) * .08 * (1 - l * .15);
+          const lineLen = 3 + ta * 4;
+
+          ctx.strokeStyle = 'rgba(42,48,72,' + ka.toFixed(3) + ')';
+          ctx.lineWidth = .3 + ta * .25;
           ctx.beginPath();
-          ctx.moveTo(lx2 - 3, ly);
-          ctx.lineTo(lx2 + 3, ly);
+          ctx.moveTo(lx2 - lineLen, ly);
+          ctx.lineTo(lx2 + lineLen, ly);
           ctx.stroke();
-        }
-      }
-    });
-  }
+         }
+       }
+     });
+   }
 
   function drawBoats(ctx) {
     boats.forEach((b, i) => {
