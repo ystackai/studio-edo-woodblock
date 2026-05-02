@@ -88,11 +88,35 @@ html, body {
   opacity: 0;
 }
 
+/* ── Final print state title ── */
+#final-title {
+   position: absolute;
+   bottom: 4vh;
+   left: 50%;
+   transform: translateX(-50%);
+   color: rgba(42, 48, 72, .15);
+   font-size: clamp(9px, 1.3vw, 11px);
+   letter-spacing: .18em;
+   text-transform: lowercase;
+   pointer-events: none;
+   opacity: 0;
+   transition: opacity 2.8s ease;
+   white-space: nowrap;
+   z-index: 5;
+}
+#final-title.visible {
+   opacity: 1;
+}
+
 /* ── Mobile refinements ── */
 @media (max-width: 600px) {
-  #prompt {
+   #prompt {
     font-size: clamp(9px, 3.2vw, 12px);
     letter-spacing: .1em;
     bottom: 5vh;
-  }
+   }
+   #final-title {
+    font-size: clamp(8px, 2.8vw, 10px);
+    bottom: 3vh;
+   }
 }

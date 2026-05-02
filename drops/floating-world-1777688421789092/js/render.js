@@ -25,10 +25,11 @@ const Render = (() => {
   let boats = [], reeds = [], bridgePosts = [], lanternXs = [];
 
    // Settle state
-  let settling = false;
-  let settleProgress = 0;       // 0→1 during settle animation
-  let settleBloom = 0;          // pigment bloom intensity (fades slowly)
-  let tideSettleExtra = 0;      // additional advance during settle
+    let settling = false;
+  let settleProgress = 0;        // 0→1 during settle animation
+  let settleBloom = 0;           // pigment bloom intensity (fades slowly)
+  let tideSettleExtra = 0;       // additional advance during settle
+  let settled = false;            // final print state reached
 
      // Reset state
   let resetting = false;
@@ -1024,10 +1025,16 @@ const Render = (() => {
           // Bloom fades very slowly
       settleBloom *= .998;
 
-          // When settle reaches ~1, transition to idle (but bloom persists)
+            // When settle reaches ~1, transition to idle (but bloom persists)
       if (sp >= 1 && settling) {
         settling = false;
-         }
+        settled = true;
+        const el = document.getElementById('final-title');
+        if (el) {
+          el.classList.add('visible');
+          el.style.bottom = (4 + Math.max(0, (settleBloom - .3) * 1.5).toFixed(1)) + 'vh';
+        }
+          }
         }
 
         // ── Reset animation: smooth return to origin ──
@@ -1049,18 +1056,21 @@ const Render = (() => {
          pigmentCtx.globalCompositeOperation = 'source-over';
            }
 
-       if (rp >= 1) {
-         resetting = false;
-         tideFront = -1;
-         tideProgress = 0;
-         pressure = 0;
-         settleBloom = 0;
-         tideSettleExtra = 0;
-             // Clear pigment map fully
-         if (pigmentCtx) {
-           pigmentCtx.clearRect(0, 0, W, H);
-             }
-             }
+        if (rp >= 1) {
+          resetting = false;
+          tideFront = -1;
+          tideProgress = 0;
+          pressure = 0;
+          settleBloom = 0;
+          tideSettleExtra = 0;
+          settled = false;
+               // Clear pigment map fully
+          if (pigmentCtx) {
+            pigmentCtx.clearRect(0, 0, W, H);
+               }
+               const el = document.getElementById('final-title');
+          if (el) el.classList.remove('visible');
+               }
           }
        }
 
