@@ -15,18 +15,11 @@
    user-select: none;
  }
  canvas { display: block; width: 100%; height: 100%; }
- #copy {
-   position: fixed; bottom: 6vh; left: 0; right: 0;
-   text-align: center; font-family: Georgia, 'Times New Roman', serif;
-   font-size: clamp(0.7rem, 2.2vw, 0.95rem); letter-spacing: 0.12em;
-   color: rgba(180,170,155,0.5); pointer-events: none;
-   text-transform: lowercase; user-select: none;
- }
+
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="copy">The earth decides when to hold.</div>
 <script>
 (function() {
   'use strict';
@@ -155,9 +148,13 @@
   // Moonlight fractures
   var moonlightFractures = [];
 
-  // Highlight sheen state
+   // Highlight sheen state
   var sheenActive = false;
   var sheenIntensity = 0;
+
+   // Copy overlay state - carved wood whisper
+  var copyOpacity = 0;
+  var copyVisible = false;
 
   // Audio context
   var audioCtx = null;
@@ -299,7 +296,9 @@
     sheenActive = false;
     sheenIntensity = 0;
     settleStartTime = 0;
-    // Reset audio state for re-trigger
+    copyOpacity = 0;
+    copyVisible = false;
+     // Reset audio state for re-trigger
     stopGrind();
     lowGrainOsc = null;
     lowGrainGain = null;
@@ -348,6 +347,8 @@
     sheenActive = false;
     sheenIntensity = 0;
     settleStartTime = 0;
+    copyOpacity = 0;
+    copyVisible = false;
     stopGrind();
     lowGrainOsc = null;
     lowGrainGain = null;
@@ -495,19 +496,27 @@
     }
 
     if (state === 'settling') {
-      // Mist opacity grows with ease-in over 1.2s
-      var settleElapsed = ts - settleStartTime;
-      var mistT = Math.min(settleElapsed / 1200, 1);
-      mistOpacity = easeIn(mistT) * 0.45; // final opacity 0.45, ease-in curve
+       // Mist opacity grows with ease-in over 1.2s
+       var settleElapsed = ts - settleStartTime;
+       var mistT = Math.min(settleElapsed / 1200, 1);
+       mistOpacity = easeIn(mistT) * 0.45; // final opacity 0.45, ease-in curve
 
-      // Audio decays to near-silence within 400ms post-yield
-      // Handled by triggerThud envelope
+        // Copy fades in staggered: begins at 400ms, completes by 1600ms
+        if (settleElapsed > 400) {
+         copyVisible = true;
+         var copyElapsed = settleElapsed - 400;
+         var copyT = Math.min(copyElapsed / 1200, 1);
+         copyOpacity = easeIn(copyT) * 0.35;
+        }
 
-      // When ripple and mist are done
-      if (settleElapsed > 2000) {
-        state = 'done';
+        // Audio decays to near-silence within 400ms post-yield
+        // Handled by triggerThud envelope
+
+        // When ripple and mist are done
+       if (settleElapsed > 2000) {
+         state = 'done';
+        }
       }
-    }
 
     // Update ripples
     for (var i = 0; i < ripples.length; i++) {
@@ -600,11 +609,16 @@
     // 6. Moonlight fractures
     renderMoonlight();
 
-    // 7. Mist fade overlay
+      // 7. Mist fade overlay
     if (mistOpacity > 0) {
       renderMist();
+      }
+
+      // 8. Copy overlay: carved wood whisper
+    if (copyVisible && copyOpacity > 0) {
+      renderCopy();
+      }
     }
-  }
 
   function renderCompressionZone() {
     var cx = visualX;
@@ -705,8 +719,8 @@
   }
 
   function renderMist() {
-    // Mist fade: 1.2s ease-in, slow exhale
-    // Heavy breath feel: radial cloud from center of interaction
+      // Mist fade: 1.2s ease-in, slow exhale
+      // Heavy breath feel: radial cloud from center of interaction
     var grad = ctx.createRadialGradient(visualX, visualY, 0, visualX, visualY, Math.max(W, H) * 0.6);
     grad.addColorStop(0, 'rgba(140, 135, 125, ' + (mistOpacity * 0.6) + ')');
     grad.addColorStop(0.4, 'rgba(120, 115, 108, ' + (mistOpacity * 0.35) + ')');
@@ -714,7 +728,30 @@
 
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
-  }
+    }
+
+  function renderCopy() {
+      // Carved wood whisper: text rendered into canvas with carve shadow
+      // Positioned low, centered, fades in as earth settles
+    var fontSize = Math.max(10, Math.min(W * 0.025, 15));
+    var textY = H - H * 0.06;
+    var text = 'the earth decides when to hold.';
+
+    ctx.save();
+    ctx.globalAlpha = copyOpacity;
+    ctx.font = fontSize + 'px Georgia, "Times New Roman", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+     // Carved shadow: dark offset to simulate text carved into wood
+    ctx.fillStyle = 'rgba(25, 23, 20, 0.7)';
+    ctx.fillText(text, W * 0.5 + 1.5, textY + 1.5);
+     // Carved highlight: faint lighter edge to sell carved depth
+    ctx.fillStyle = 'rgba(160, 148, 130, 0.8)';
+    ctx.fillText(text, W * 0.5, textY);
+
+    ctx.restore();
+    }
 
   // --- Init ---
   resize();

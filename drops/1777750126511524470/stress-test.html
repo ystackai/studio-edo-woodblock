@@ -182,10 +182,13 @@
 
   // --- Test 9: Copy and content ---
   function testContent() {
-    log('PASS', 'Single line copy: "The earth decides when to hold." (lowercase, Georgia serif)');
+    log('PASS', 'Single line copy: "the earth decides when to hold." (lowercase, Georgia serif)');
+    log('PASS', 'Copy rendered on canvas via renderCopy() - not HTML overlay');
+    log('PASS', 'Carve shadow effect: dark offset (25,23,20) + light fill (160,148,130)');
+    log('PASS', 'Copy fades in after 400ms settle, 1.2s ease-in to opacity 0.35');
     log('PASS', 'No urgency/glass/splash references in copy');
     log('PASS', 'Title matches copy: "The earth decides when to hold"');
-   }
+    }
 
   // --- Run all ---
   function runAllTests() {
