@@ -151,70 +151,112 @@ const Audio = (() => {
       }
     }
 
-   // ── Settling thump + paper hiss (release) ──
+     // ── Settling thump + paper hiss (release) ──
   function settle() {
     if (!ctx || !initialized) return;
     const now = ctx.currentTime;
 
-     // Thump: deep settling
-    {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(55, now);
-      o.frequency.linearRampToValueAtTime(32, now + .1);
-      g.gain.setValueAtTime(.2, now);
-      g.gain.linearRampToValueAtTime(0, now + .08);
-      g.gain.linearRampToValueAtTime(0, now + .12);
-      o.connect(g).connect(master);
-      o.start(now);
-      o.stop(now + .14);
-     }
+         // Thump: deep settling
+        {
+         const o = ctx.createOscillator();
+         const g = ctx.createGain();
+         o.type = 'sine';
+         o.frequency.setValueAtTime(55, now);
+         o.frequency.linearRampToValueAtTime(32, now + .1);
+         g.gain.setValueAtTime(.2, now);
+         g.gain.linearRampToValueAtTime(0, now + .08);
+         g.gain.linearRampToValueAtTime(0, now + .12);
+         o.connect(g).connect(master);
+         o.start(now);
+         o.stop(now + .14);
+          }
 
-     // Fading paper hiss
-    {
-      const src = ctx.createBufferSource();
-      src.buffer = noiseBuffer;
+           // Fading paper hiss
+         {
+         const src = ctx.createBufferSource();
+         src.buffer = noiseBuffer;
 
-      const lpf = ctx.createBiquadFilter();
-      lpf.type = 'lowpass';
-      lpf.frequency.setValueAtTime(1200, now);
-      lpf.frequency.linearRampToValueAtTime(200, now + .6);
+         const lpf = ctx.createBiquadFilter();
+         lpf.type = 'lowpass';
+         lpf.frequency.setValueAtTime(1200, now);
+         lpf.frequency.linearRampToValueAtTime(200, now + .6);
 
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(.05, now);
-      g.gain.linearRampToValueAtTime(.01, now + .15);
-      g.gain.linearRampToValueAtTime(0, now + .7);
+         const g = ctx.createGain();
+         g.gain.setValueAtTime(.05, now);
+         g.gain.linearRampToValueAtTime(.01, now + .15);
+         g.gain.linearRampToValueAtTime(0, now + .7);
 
-      src.connect(lpf).connect(g).connect(master);
-      src.start(now);
-      src.stop(now + .8);
-     }
+         src.connect(lpf).connect(g).connect(master);
+         src.start(now);
+         src.stop(now + .8);
+          }
 
-     // Fade out continuous layers
+           // Fade out continuous layers
     if (paperGain) {
-       const fade = setInterval(() => {
-         const cur = paperGain.gain.value;
-         if (cur < .003) {
-           clearInterval(fade);
-           stopPaperRub();
-           return;
+        const fade = setInterval(() => {
+          const cur = paperGain.gain.value;
+          if (cur < .003) {
+            clearInterval(fade);
+            stopPaperRub();
+            return;
+             }
+          setPaperVolume(cur * .9);
+            }, 50);
           }
-         setPaperVolume(cur * .9);
-         }, 50);
-      }
     if (waterDrone) {
-       const fade = setInterval(() => {
-         const cur = waterDrone.g.gain.value;
-         if (cur < .003) {
-           clearInterval(fade);
-           return;
+        const fade = setInterval(() => {
+          const cur = waterDrone.g.gain.value;
+          if (cur < .003) {
+            clearInterval(fade);
+            return;
+             }
+          setWaterVolume(cur * .88);
+            }, 50);
           }
-         setWaterVolume(cur * .88);
-         }, 50);
-      }
-    }
+        }
+
+     // ── Reset audio: softer tap + brief paper sigh ──
+  function playReset() {
+    if (!ctx || !initialized) return;
+    const now = ctx.currentTime;
+
+         // Faint wood tap (half the force of press tap)
+        {
+         const o = ctx.createOscillator();
+         const g = ctx.createGain();
+         o.type = 'sine';
+         o.frequency.setValueAtTime(80, now);
+         o.frequency.linearRampToValueAtTime(50, now + .06);
+         g.gain.setValueAtTime(.1, now);
+         g.gain.linearRampToValueAtTime(0, now + .05);
+         o.connect(g).connect(master);
+         o.start(now);
+         o.stop(now + .08);
+          }
+
+           // Gentle paper sigh: rising then falling noise, very quiet
+         {
+         const src = ctx.createBufferSource();
+         src.buffer = noiseBuffer;
+
+         const lpf = ctx.createBiquadFilter();
+         lpf.type = 'lowpass';
+         lpf.frequency.setValueAtTime(300, now);
+         lpf.frequency.linearRampToValueAtTime(900, now + .5);
+         lpf.frequency.linearRampToValueAtTime(300, now + 1.2);
+
+         const g = ctx.createGain();
+         g.gain.setValueAtTime(.005, now);
+         g.gain.linearRampToValueAtTime(.025, now + .3);
+         g.gain.linearRampToValueAtTime(.005, now + .8);
+         g.gain.linearRampToValueAtTime(0, now + 1.2);
+
+         src.connect(lpf).connect(g).connect(master);
+         src.start(now);
+         src.stop(now + 1.4);
+          }
+        }
 
   return { init, tap, startPaperRub, setPaperVolume, stopPaperRub,
-           startWaterDrone, setWaterVolume, settle };
+            startWaterDrone, setWaterVolume, settle, playReset };
 })();

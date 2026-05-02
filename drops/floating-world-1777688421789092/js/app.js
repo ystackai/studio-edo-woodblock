@@ -6,6 +6,13 @@ const App = (() => {
   let dragSpeed = 0;
   let lastDragTime = 0;
 
+     // Double-tap tracking
+  let lastTapTime = 0;
+  let lastTapX = 0, lastTapY = 0;
+
+     // Reset in-progress guard
+  let isResetting = false;
+
   function init() {
     canvas = document.getElementById('main-canvas');
     if (!canvas) return;
@@ -20,16 +27,16 @@ const App = (() => {
     const prompt = document.getElementById('prompt');
     window._hidePrompt = () => {
       if (prompt) prompt.classList.add('hidden');
-     };
+        };
 
     renderLoop();
-   }
+    }
 
   function onResize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     Render.init(canvas);
-   }
+    }
 
   function setupInput(el) {
     el.addEventListener('mousedown', e => onPointerDown(e.clientX, e.clientY));
@@ -40,18 +47,41 @@ const App = (() => {
       e.preventDefault();
       const t = e.touches[0];
       onPointerDown(t.clientX, t.clientY);
-     }, { passive: false });
+        }, { passive: false });
     window.addEventListener('touchmove', e => {
       if (!isPressing) return;
       e.preventDefault();
       const t = e.touches[0];
       onPointerMove(t.clientX, t.clientY);
-     }, { passive: false });
+        }, { passive: false });
     window.addEventListener('touchend', onPointerUp);
     window.addEventListener('touchcancel', onPointerUp);
-   }
+    }
+
+     // ── Double-tap detection ──
+  function checkDoubleTap(x, y) {
+    const now = performance.now();
+    const dt = now - lastTapTime;
+    const dx = Math.abs(x - lastTapX);
+    const dy = Math.abs(y - lastTapY);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dt < 400 && dist < 100 && started) {
+        return true;
+        }
+    lastTapTime = now;
+    lastTapX = x;
+    lastTapY = y;
+    return false;
+    }
 
   function onPointerDown(x, y) {
+     // Before engaging press, check for double-tap → reset
+    if (checkDoubleTap(x, y)) {
+      triggerReset();
+      return;
+      }
+
     isPressing = true;
     dragSpeed = 0;
 
@@ -59,7 +89,7 @@ const App = (() => {
       started = true;
       Audio.init();
       window._hidePrompt && window._hidePrompt();
-     }
+        }
 
     Render.onDown(x, y);
     Audio.tap();
@@ -67,7 +97,7 @@ const App = (() => {
     Audio.setPaperVolume(.12);
     Audio.startWaterDrone();
     Audio.setWaterVolume(0);
-   }
+    }
 
   function onPointerMove(x, y) {
     const now = performance.now();
@@ -83,8 +113,10 @@ const App = (() => {
 
   function onPointerUp() {
     isPressing = false;
-    Render.onUp();
-    Audio.settle();
+    if (!isResetting) {
+      Render.onUp();
+      Audio.settle();
+       }
 
     let v = .2;
     const fade = setInterval(() => {
@@ -96,9 +128,33 @@ const App = (() => {
         Audio.setPaperVolume(0);
         Audio.setWaterVolume(0);
         setTimeout(() => Audio.stopPaperRub(), 200);
-       }
-     }, 40);
-   }
+         }
+       }, 40);
+     }
+
+      // ── Reset handler ──
+  function triggerReset() {
+    isResetting = true;
+    Render.resetScene();
+    Audio.playReset();
+
+       // Reset audio layers to quiet state
+    let v = .08;
+    const fade = setInterval(() => {
+      v *= .92;
+      Audio.setPaperVolume(v);
+      Audio.setWaterVolume(v * .2);
+      if (v < .003) {
+        clearInterval(fade);
+        Audio.setPaperVolume(0);
+        Audio.setWaterVolume(0);
+        setTimeout(() => {
+          Audio.stopPaperRub();
+          isResetting = false;
+          }, 500);
+          }
+         }, 50);
+     }
 
   function renderLoop() {
     let idleT = 0;

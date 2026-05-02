@@ -24,10 +24,23 @@ const Render = (() => {
   let moonX, moonY, moonR, waterline;
   let boats = [], reeds = [], bridgePosts = [], lanternXs = [];
 
-  // Permanent pigment bloom — accumulates in tide-washed regions
-  let pigmentMap = null;       // offscreen canvas for accumulated ink
+   // Settle state
+  let settling = false;
+  let settleProgress = 0;       // 0→1 during settle animation
+  let settleBloom = 0;          // pigment bloom intensity (fades slowly)
+  let tideSettleExtra = 0;      // additional advance during settle
+
+     // Reset state
+  let resetting = false;
+  let resetProgress = 0;          // 0→1 during reset animation
+  let resetStartTideFront = 0;   // tideFront at reset start
+  let resetStartTideProgress = 0; // tideProgress at reset start
+
+   // Permanent pigment bloom — accumulates in tide-washed regions
+  let pigmentMap = null;        // offscreen canvas for accumulated ink
   let pigmentCtx = null;
-  let grainPattern = null;     // pre-baked paper grain pattern
+  let grainPattern = null;      // pre-baked paper grain pattern
+  let initialTideFront = -1;    // saved for reset
 
   function init(canvas) {
     W = canvas.width = window.innerWidth;
@@ -751,38 +764,88 @@ const Render = (() => {
      }
    }
 
-  // ─── Permanent pigment layer: tide leaves lasting ink marks ───
+    // ─── Permanent pigment layer: tide leaves lasting ink marks ───
   function drawPigmentLayer(ctx) {
-    if (tideFront <= 0) return;
+    if (tideFront <= 0 && !resetting && settleBloom < .01) return;
 
-     // Accumulate new ink into offscreen canvas
+      // Accumulate new ink into offscreen canvas
     const zone = 180 + pressure * 120;
     const advanceX = Math.max(0, tideFront - 2);
     const paintW = Math.min(12, zone * .05);
 
     if (pressed && paintW > 0) {
-       pigmentCtx.fillStyle = 'rgba(27,42,74,.015)';
-       pigmentCtx.fillRect(advanceX, waterline - H * .04, paintW, H * .72);
+      pigmentCtx.fillStyle = 'rgba(27,42,74,.015)';
+      pigmentCtx.fillRect(advanceX, waterline - H * .04, paintW, H * .72);
 
         // Stipple into pigment layer
-       _seed = 500 + Math.floor(performance.now() / 100) % 1000;
-       pigmentCtx.fillStyle = 'rgba(27,42,74,.008)';
-       for (let s = 0; s < 6; s++) {
-         const sx = advanceX + _sr() * paintW;
-         const sy = waterline + _sr() * H * .6;
-         pigmentCtx.beginPath();
-         pigmentCtx.arc(sx, sy, .4 + _sr() * .6, 0, Math.PI * 2);
-         pigmentCtx.fill();
-        }
-     }
+         _seed = 500 + Math.floor(performance.now() / 100) % 1000;
+        pigmentCtx.fillStyle = 'rgba(27,42,74,.008)';
+        for (let s = 0; s < 6; s++) {
+          const sx = advanceX + _sr() * paintW;
+          const sy = waterline + _sr() * H * .6;
+          pigmentCtx.beginPath();
+          pigmentCtx.arc(sx, sy, .4 + _sr() * .6, 0, Math.PI * 2);
+          pigmentCtx.fill();
+          }
+       }
 
-    // Draw accumulated pigment onto main canvas
+      // Draw accumulated pigment onto main canvas
     if (pigmentMap) {
       ctx.globalAlpha = .85;
       ctx.drawImage(pigmentMap, 0, 0);
       ctx.globalAlpha = 1;
+       }
+
+      // ── Settle pigment bloom: soft indigo glow at tide edge ──
+    if (settleBloom > .005) {
+      const bloomX = tideFront;
+      const bloomWidth = 80 + settleBloom * 120;
+      const bloomAlpha = settleBloom * .12;
+
+        // Radial bloom: soft indigo pooling
+      const grad = ctx.createRadialGradient(
+        bloomX, waterline + H * .3, 0,
+        bloomX, waterline + H * .3, bloomWidth
+        );
+        // Deep indigo core, fading to nearly nothing
+      grad.addColorStop(0, 'rgba(22,32,64,' + (bloomAlpha * 1.5).toFixed(3) + ')');
+      grad.addColorStop(.4, 'rgba(27,42,74,' + (bloomAlpha * .7).toFixed(3) + ')');
+      grad.addColorStop(.8, 'rgba(43,58,103,' + (bloomAlpha * .25).toFixed(3) + ')');
+      grad.addColorStop(1, 'rgba(43,58,103,0)');
+
+      ctx.fillStyle = grad;
+      ctx.fillRect(bloomX - bloomWidth, waterline - H * .04, bloomWidth * 2, H * .72);
+
+        // Secondary bloom: lighter, wider (pigment bleeding into paper fibers)
+      const grad2 = ctx.createRadialGradient(
+        bloomX + 30, waterline + H * .35, 0,
+        bloomX + 30, waterline + H * .35, bloomWidth * .7
+        );
+      grad2.addColorStop(0, 'rgba(43,58,103,' + (bloomAlpha * .4).toFixed(3) + ')');
+      grad2.addColorStop(1, 'rgba(43,58,103,0)');
+
+      ctx.fillStyle = grad2;
+      ctx.fillRect(bloomX - bloomWidth * .5, waterline, bloomWidth * 1.5, H * .5);
+
+        // Bloom stipple: fine dots spreading outward (simulates pigment granulation into paper)
+      _seed = 800 + Math.floor(settleProgress * 50);
+      const stippleCount = Math.floor(15 + settleBloom * 40);
+      for (let s = 0; s < stippleCount; s++) {
+        const dist = _sr() * bloomWidth * 1.2;
+        const angle = _sr() * Math.PI;
+        const sx = bloomX + dist * Math.cos(angle * .3 - .15);
+        const sy = waterline - H * .02 + Math.sin(angle) * H * .35 + _sr() * H * .2;
+        const dotR = .3 + _sr() * 1.5;
+        const dotA = settleBloom * .08 * (1 - dist / (bloomWidth * 1.2));
+        if (dotA > .003) {
+          ctx.fillStyle = 'rgba(22,32,64,' + dotA.toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.arc(sx, sy, dotR, 0, Math.PI * 2);
+          ctx.fill();
+           }
+          }
+       }
      }
-   }
 
   // ─── Paper grain: procedural texture overlay ───
   function drawPaperGrain(ctx) {
@@ -885,15 +948,18 @@ const Render = (() => {
     ctx.restore();
    }
 
-  // ─── Input handlers ───
+    // ─── Input handlers ───
   function onDown(x, y) {
     pressed = true;
+    settling = false;
+    resetting = false;
     lastX = x;
     lastY = y;
     if (tideFront <= 0) {
-       tideFront = x;
+        tideFront = x;
+        initialTideFront = x;
+        }
       }
-   }
 
   function onMove(x, y) {
     if (!pressed) return;
@@ -912,13 +978,86 @@ const Render = (() => {
     pressed = false;
     pressure = Math.max(0, pressure - .08);
     tideProgress += .3;
-   }
+
+      // Begin settle: slow, intentional advance + pigment bloom
+    if (!resetting) {
+      settling = true;
+      settleProgress = 0;
+      settleBloom = Math.max(.15, pressure * .6 + tideProgress * .02);
+      tideSettleExtra = 0;
+      initialTideFront = tideFront;
+      }
+    }
+
+  function resetScene() {
+    resetting = true;
+    resetProgress = 0;
+    settling = false;
+    settleBloom = 0;
+    tideSettleExtra = 0;
+    resetStartTideFront = tideFront;
+    resetStartTideProgress = tideProgress;
+       }
 
   function idleDrift(t) {
     tideFront += Math.sin(t * 1.1) * .25;
     tideProgress += .004;
     pressure = Math.max(0, pressure - .0025);
-   }
 
-  return { init, draw, onDown, onMove, onUp, idleDrift };
+       // ── Settle animation ──
+    if (settling) {
+      settleProgress = Math.min(1, settleProgress + .005);
+      const sp = settleProgress;
+
+        // Slow, intentional tide advance during settle
+      tideSettleExtra += .15 * (1 - sp * .6);
+      tideFront = initialTideFront + tideSettleExtra;
+
+        // Gentle pressure decay
+      pressure *= .995;
+
+        // Bloom fades very slowly
+      settleBloom *= .998;
+
+        // When settle reaches ~1, transition to idle (but bloom persists)
+      if (sp >= 1 && settling) {
+        settling = false;
+       }
+      }
+
+      // ── Reset animation: smooth return to origin ──
+    if (resetting) {
+      resetProgress = Math.min(1, resetProgress + .008);
+      const rp = _smoothstep(resetProgress);
+
+          // Tide front slides back from current position to origin
+       tideFront = resetStartTideFront * (1 - rp);
+       tideProgress = resetStartTideProgress * (1 - rp);
+       pressure = 0;
+       settleBloom *= (1 - rp * .95);
+
+          // Fade pigment map
+       if (pigmentCtx) {
+         pigmentCtx.globalCompositeOperation = 'destination-out';
+         pigmentCtx.fillStyle = 'rgba(0,0,0,' + (.04 + rp * .06).toFixed(3) + ')';
+         pigmentCtx.fillRect(0, 0, W, H);
+         pigmentCtx.globalCompositeOperation = 'source-over';
+          }
+
+       if (rp >= 1) {
+         resetting = false;
+         tideFront = -1;
+         tideProgress = 0;
+         pressure = 0;
+         settleBloom = 0;
+         tideSettleExtra = 0;
+            // Clear pigment map fully
+         if (pigmentCtx) {
+           pigmentCtx.clearRect(0, 0, W, H);
+            }
+            }
+         }
+     }
+
+  return { init, draw, onDown, onMove, onUp, idleDrift, resetScene };
 })();
