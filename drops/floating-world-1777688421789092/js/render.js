@@ -1,21 +1,26 @@
 const Render = (() => {
-  const C = {
-    paper: '#F0E9D8',
-    sky: '#B0BAC6',
-    moon: '#F5F5ED',
-    indigo: '#1B2A67',
-    darkIndigo: '#0E1A3A',
-    amber: '#D4A04A',
-    reed: '#4A6A4A',
-    wood: '#6B5845',
-    black: '#1A2040',
-    water: '#6A7F94',
-    waterDeep: '#4A5F74',
-    highlight: '#E8E2D0',
-    poolIndigo: '#101830',
-    skyGradTop: '#8A94A6',
-    skyGradBot: '#B8C2CE',
-    };
+   const C = {
+     paper: '#F0E9D8',
+     sky: '#B0BAC6',
+     moon: '#F5F5ED',
+     indigo: '#1B2A67',
+     darkIndigo: '#0E1A3A',
+     amber: '#D4A04A',
+     reed: '#4A6A4A',
+     wood: '#6B5845',
+     black: '#1A2040',
+     water: '#6A7F94',
+     waterDeep: '#4A5F74',
+     highlight: '#E8E2D0',
+     poolIndigo: '#101830',
+     skyGradTop: '#8A94A6',
+     skyGradBot: '#B8C2CE',
+     // Color grading palette targets
+     amberGlow: '#D4A04A',   // warm lantern amber
+     reedGreen: '#4A6A4A',   // reed green wash
+     moonWash: '#F5F5ED',    // moon white wash
+     indigoWash: '#1B2A67',   // muted indigo wash
+      };
 
   let W = 0, H = 0;
    let zoneW = 180;
@@ -413,10 +418,12 @@ const Render = (() => {
         drawDragTrailStipple(ctx);
         drawReleaseRipple(ctx);
         drawVignette(ctx);
+        drawColorGrading(ctx);
+        drawEdgeSoftening(ctx);
         drawPaperCast(ctx);
-       }
+        }
 
-     // Always update dirty-track state each frame so we detect changes correctly
+      // Always update dirty-track state each frame so we detect changes correctly
      _prevTideProgress = tideProgress;
      _prevTideFront = tideFront;
      _prevPressure = pressure;
@@ -3039,7 +3046,92 @@ const Render = (() => {
      ctx.fillRect(0, 0, W, H);
    }
 
-    // ─── Input handlers ───
+      // ─── Color grading: non-repeating palette shift as tide advances ───
+     // Transitions from moon white + muted indigo → warm lantern amber + reed green
+     // Only visible when tide has advanced past ~10% to preserve the initial composition
+    function drawColorGrading(ctx) {
+      if (tideProgress < .05) return;
+      const t = Easing.soak(Math.min(1, (tideProgress - .05) / .8));
+      if (t < .005) return;
+
+        // Amber wash: warms the harbor region as tide covers it
+      {
+       const amberAlpha = t * .12;
+       const grad = ctx.createLinearGradient(tideFront - 200, waterline, tideFront + 200, waterline);
+       grad.addColorStop(0, 'rgba(212,160,74,0)');
+       grad.addColorStop(.3, 'rgba(212,160,74,' + (amberAlpha * .4).toFixed(4) + ')');
+       grad.addColorStop(.7, 'rgba(212,160,74,' + (amberAlpha * .7).toFixed(4) + ')');
+       grad.addColorStop(1, 'rgba(212,160,74,' + amberAlpha.toFixed(4) + ')');
+       ctx.fillStyle = grad;
+       ctx.fillRect(Math.max(0, tideFront - 200), waterline - H * .04, Math.min(W - Math.max(0, tideFront - 200), 400), H * .72);
+        }
+
+        // Reed green wash: deepens along the waterline as tide passes reed zones
+      {
+       const reedAlpha = t * .08;
+       const grad = ctx.createLinearGradient(0, waterline - H * .02, 0, waterline + H * .12);
+       grad.addColorStop(0, 'rgba(74,106,74,0)');
+       grad.addColorStop(.4, 'rgba(74,106,74,' + (reedAlpha * .5).toFixed(4) + ')');
+       grad.addColorStop(.8, 'rgba(74,106,74,' + (reedAlpha * .3).toFixed(4) + ')');
+       grad.addColorStop(1, 'rgba(74,106,74,0)');
+       ctx.fillStyle = grad;
+       const gradeStart = Math.max(0, tideFront - 100);
+       ctx.fillRect(gradeStart, waterline - H * .02, W - gradeStart, H * .14);
+        }
+
+        // Indigo fade: as amber emerges, the deep indigo cools slightly
+        // Creates a non-linear, non-repeating transition because it's tied to tideProgress which
+        // advances non-linearly based on user input speed and pressure
+      {
+       const fadeAlpha = t * .06 * (1 - t * .4);
+       const grad = ctx.createRadialGradient(tideFront, waterline + H * .3, 0, tideFront, waterline + H * .3, 150 + t * 100);
+       grad.addColorStop(0, 'rgba(27,42,74,' + (fadeAlpha).toFixed(4) + ')');
+       grad.addColorStop(.5, 'rgba(27,42,74,' + (fadeAlpha * .4).toFixed(4) + ')');
+       grad.addColorStop(1, 'rgba(27,42,74,0)');
+       ctx.fillStyle = grad;
+       ctx.fillRect(tideFront - 250, waterline - H * .04, 500, H * .72);
+        }
+
+        // Warm highlight: moon reflection picks up amber as tide passes
+      {
+       const highlightAlpha = t * .04;
+       const grad = ctx.createLinearGradient(moonX - 30, waterline, moonX + 30, waterline + H * .2);
+       grad.addColorStop(0, 'rgba(212,160,74,' + (highlightAlpha * .6).toFixed(4) + ')');
+       grad.addColorStop(.5, 'rgba(212,160,74,' + (highlightAlpha * .3).toFixed(4) + ')');
+       grad.addColorStop(1, 'rgba(212,160,74,0)');
+       ctx.fillStyle = grad;
+       if (tideFront > moonX - 100) {
+         ctx.fillRect(moonX - 50, waterline, 100, H * .2);
+          }
+        }
+      }
+
+     // ─── Edge softening: canvas-level blur to mimic ink on absorbent paper ───
+     // Applies a very subtle blur to the entire rendered scene, then sharpens only the
+     // key carved linework on top. This is the opposite of digital crispness.
+    function drawEdgeSoftening(ctx) {
+      if (tideProgress < .02) return;
+      const t = Math.min(1, tideProgress * 1.5);
+      // We don't blur the whole canvas (too expensive); instead we draw a
+      // softened underlay of the ink-wash regions only
+      {
+       ctx.save();
+       ctx.filter = 'blur(' + (.8 + t * .7) + 'px)';
+        // Re-draw the tide wash at very low alpha with blur
+       const zone = 180 + pressure * 120;
+       if (tideFront > 0) {
+         const washAlpha = (.03 + t * .04) * (1 - t * .3);
+         ctx.fillStyle = 'rgba(27,42,74,' + washAlpha.toFixed(4) + ')';
+         const washX = Math.max(0, tideFront - 65 - pressure * 35);
+         const washW = Math.min(W - washX, 180 + pressure * 120 + 100);
+         ctx.fillRect(washX, waterline - H * .04, washW, H * .72);
+         ctx.filter = 'none';
+          }
+        ctx.restore();
+        }
+      }
+
+      // ─── Input handlers ───
    function onDown(x, y) {
      pressed = true;
      settling = false;
