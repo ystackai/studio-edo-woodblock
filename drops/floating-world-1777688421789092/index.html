@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ink Tide: Moonlit Harbor Press</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #f0e8d8;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #scene {
+            position: relative;
+            width: 100%; height: 100%;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+
+        #press-canvas { z-index: 1; }
+        #tide-canvas { z-index: 2; }
+        #detail-canvas { z-index: 3; }
+
+        #gesture-hint {
+            position: absolute;
+            bottom: 6vh;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            font-family: 'Hiragino Mincho Pro', 'Noto Serif JP', 'Georgia', serif;
+            font-size: 13px;
+            color: rgba(30, 25, 40, 0.55);
+            letter-spacing: 0.08em;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+            white-space: nowrap;
+        }
+        #gesture-hint.hidden { opacity: 0; }
+
+        #reset-btn {
+            position: absolute;
+            top: 3vh;
+            right: 4vw;
+            z-index: 10;
+            font-family: 'Hiragino Mincho Pro', 'Noto Serif JP', 'Georgia', serif;
+            font-size: 11px;
+            color: rgba(30, 25, 40, 0.4);
+            background: none;
+            border: 1px solid rgba(30, 25, 40, 0.2);
+            padding: 4px 12px;
+            cursor: pointer;
+            display: none;
+            letter-spacing: 0.06em;
+        }
+    </style>
+</head>
+<body>
+    <div id="scene">
+        <canvas id="press-canvas"></canvas>
+        <canvas id="tide-canvas"></canvas>
+        <canvas id="detail-canvas"></canvas>
+        <div id="gesture-hint">Press the water to begin the tide</div>
+        <button id="reset-btn">reset</button>
+    </div>
+
+    <script src="audio.js"></script>
+    <script>
+    /* ================================================================
+       Ink Tide: Moonlit Harbor Press — Interaction + Rendering
+       ================================================================ */
+
+    // ── Audio ──────────────────────────────────────────────────────
+    const audio = new InkTideAudio();
+    let audioReady   = false;
+    let audioAttempted = false;
+
+    function tryInitAudio() {
+        if (audioAttempted) return;
+        audioAttempted = true;
+        audioReady = audio.init();
+     }
+
+    // ── Canvas setup ───────────────────────────────────────────────
+    const pressCanvas  = document.getElementById('press-canvas');
+    const tideCanvas   = document.getElementById('tide-canvas');
+    const detailCanvas = document.getElementById('detail-canvas');
+    const pressCtx  = pressCanvas.getContext('2d');
+    const tideCtx   = tideCanvas.getContext('2d');
+    const detailCtx = detailCanvas.getContext('2d');
+    const hintEl   = document.getElementById('gesture-hint');
+    const resetBtn = document.getElementById('reset-btn');
+
+    let W = 0, H = 0;
+
+    function resize() {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        [pressCanvas, tideCanvas, detailCanvas].forEach(c => {
+            c.width  = W;
+            c.height = H;
+         });
+        drawScene();
+     }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ── Palette ────────────────────────────────────────────────────
+    const C = {
+        paper:       '#f0e8d8',
+        paperDark:   '#e4dace',
+        indigo:      '#1a2744',
+        indigoMed:   '#2a3b62',
+        indigoLight: '#3a4f78',
+        blackLine:   '#15120f',
+        moonWhite:   '#e8e0d0',
+        lantern:     '#c8a040',
+        lanternSoft: '#d4b058',
+        reed:        '#3a4a35',
+        reedLight:   '#4d6345',
+        water:       '#2a3550',
+        waterLight:  '#3a4a68',
+    };
+
+    // ── Scene geometry ─────────────────────────────────────────────
+    // Pre-computed elements of the harbor scene
+    const scene = {
+        // Moon position (top-right)
+        moonX: 0, moonY: 0, moonR: 0,
+
+        // Tide origin: bottom-left
+        tideOriginX: 0,
+        tideOriginY: 0,
+
+        // Tide state
+        tideY: 0,            // % of water area consumed [0..H]
+        tideDepth: 0,        // 0→1 based on drag distance
+        isPressing: false,
+        isDragging: false,
+        settled: false,
+
+        // Composition
+        boats: [],
+        reeds: [],
+        bridgePosts: [],
+        lanternReflections: [],
+        waterRipples: [],
+        hatchMarks: [],
+        stippleDots: [],
+    };
+
+    function layoutScene() {
+        scene.moonX = W * 0.78;
+        scene.moonY = H * 0.12;
+        scene.moonR = Math.min(W, H) * 0.06;
+
+        scene.tideOriginX = W * 0.05;
+        scene.tideOriginY = H * 0.55;
+
+         // Boats — small silhouettes
+        scene.boats = [
+            { x: W * 0.15, y: H * 0.45, w: W * 0.12, h: H * 0.025, tilted: true },
+            { x: W * 0.55, y: H * 0.38, w: W * 0.09, h: H * 0.02, tilted: false },
+            { x: W * 0.35, y: H * 0.52, w: W * 0.11, h: H * 0.022, tilted: true },
+         ];
+
+         // Reeds — grouped clusters along the shoreline
+        scene.reeds = [];
+        for (let i = 0; i < 14; i++) {
+            scene.reeds.push({
+                x: W * (0.08 + i * 0.058),
+                y: H * 0.58,
+                h: H * (0.08 + Math.random() * 0.06),
+                lean: (Math.random() - 0.5) * 0.15,
+            });
+         }
+
+         // Bridge posts
+        scene.bridgePosts = [
+            { x: W * 0.22, y: H * 0.30 },
+            { x: W * 0.34, y: H * 0.28 },
+            { x: W * 0.66, y: H * 0.28 },
+            { x: W * 0.78, y: H * 0.30 },
+         ];
+
+         // Lantern reflections (paired with bridge posts)
+        scene.lanternReflections = [
+            { x: W * 0.22, y: H * 0.42, w: W * 0.015, h: H * 0.12 },
+            { x: W * 0.34, y: H * 0.40, w: W * 0.015, h: H * 0.10 },
+         ];
+
+         // Pre-generate hatch mark positions
+        scene.hatchMarks = [];
+        for (let i = 0; i < 60; i++) {
+            scene.hatchMarks.push({
+                x: Math.random() * W,
+                y: H * (0.35 + Math.random() * 0.45),
+                angle: -0.4 + Math.random() * 0.3,
+                len: 4 + Math.random() * 8,
+            });
+         }
+
+         // Pre-generate stipple dot positions
+        scene.stippleDots = [];
+        for (let i = 0; i < 200; i++) {
+            scene.stippleDots.push({
+                x: Math.random() * W,
+                y: H * (0.3 + Math.random() * 0.5),
+                r: 0.5 + Math.random() * 1.5,
+            });
+         }
+
+         // Water ripple guides
+        scene.waterRipples = [];
+        for (let i = 0; i < 12; i++) {
+            scene.waterRipples.push({
+                x: W * (0.1 + Math.random() * 0.8),
+                y: H * (0.4 + Math.random() * 0.45),
+                rx: 8 + Math.random() * 25,
+                ry: 1.5 + Math.random() * 3,
+            });
+         }
+     }
+
+    // ── Drawing: base scene (no tide) ─────────────────────────────
+    function drawScene() {
+        layoutScene();
+         // Press canvas: static composition (paper, key lines, moon, shoreline)
+        drawBaseLayer(pressCtx);
+         // Tide canvas: starts empty
+        tideCtx.clearRect(0, 0, W, H);
+         // Detail canvas: starts empty
+        detailCtx.clearRect(0, 0, W, H);
+     }
+
+    function drawBaseLayer(ctx) {
+         // Paper grain background
+        ctx.fillStyle = C.paper;
+        ctx.fillRect(0, 0, W, H);
+
+         // Subtle grain via tiny random dots
+        ctx.fillStyle = 'rgba(180, 165, 140, 0.12)';
+        for (let i = 0; i < 400; i++) {
+            const x = Math.random() * W;
+            const y = Math.random() * H;
+            ctx.fillRect(x, y, 1, 1);
+         }
+
+         // Sky area — soft wash
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.45);
+        skyGrad.addColorStop(0, '#2a3050');
+        skyGrad.addColorStop(0.5, '#3a4568');
+        skyGrad.addColorStop(1, '#d0c8b8');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, H * 0.45);
+
+         // Moon
+        ctx.beginPath();
+        ctx.arc(scene.moonX, scene.moonY, scene.moonR, 0, Math.PI * 2);
+        ctx.fillStyle = C.moonWhite;
+        ctx.fill();
+         // Moon glow
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        ctx.arc(scene.moonX, scene.moonY, scene.moonR * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = C.moonWhite;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+         // Moon reflection in water (vertical column)
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = C.moonWhite;
+        for (let i = 0; i < 8; i++) {
+            const ry = H * 0.45 + i * H * 0.04;
+            const rx = scene.moonX + (Math.sin(i * 1.3) * W * 0.01);
+            ctx.fillRect(rx - W * 0.006, ry, W * 0.012, H * 0.015);
+         }
+        ctx.restore();
+
+         // Distant mountains — carved silhouette along horizon
+        ctx.fillStyle = C.indigo;
+        ctx.strokeStyle = C.blackLine;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(0, H * 0.42);
+        ctx.lineTo(W * 0.05, H * 0.36);
+        ctx.lineTo(W * 0.12, H * 0.38);
+        ctx.lineTo(W * 0.20, H * 0.33);
+        ctx.lineTo(W * 0.30, H * 0.37);
+        ctx.lineTo(W * 0.42, H * 0.32);
+        ctx.lineTo(W * 0.52, H * 0.36);
+        ctx.lineTo(W * 0.62, H * 0.31);
+        ctx.lineTo(W * 0.72, H * 0.35);
+        ctx.lineTo(W * 0.82, H * 0.33);
+        ctx.lineTo(W * 0.92, H * 0.37);
+        ctx.lineTo(W, H * 0.40);
+        ctx.lineTo(W, H * 0.45);
+        ctx.lineTo(0, H * 0.45);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+         // Water body
+        ctx.fillStyle = C.water;
+        ctx.fillRect(0, H * 0.43, W, H * 0.57);
+
+         // Key-line water surface
+        ctx.strokeStyle = C.blackLine;
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 6; i++) {
+            const y = H * (0.46 + i * 0.07);
+            ctx.beginPath();
+            for (let x = 0; x < W; x += 4) {
+                const wave = Math.sin(x * 0.015 + i * 2.1) * 2;
+                if (x === 0) ctx.moveTo(x, y + wave);
+                else ctx.lineTo(x, y + wave);
+             }
+            ctx.stroke();
+         }
+
+         // Shoreline (left side) — reed bed
+        ctx.fillStyle = C.paperDark;
+        ctx.beginPath();
+        ctx.moveTo(0, H * 0.80);
+        ctx.quadraticCurveTo(W * 0.08, H * 0.55, W * 0.18, H * 0.60);
+        ctx.lineTo(W * 0.18, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = C.blackLine;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+         // Reed stems
+        for (const r of scene.reeds) {
+            ctx.strokeStyle = C.reed;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(r.x, r.y + r.h * 0.3);
+            ctx.quadraticCurveTo(
+                r.x + r.lean * r.h,
+                r.y - r.h * 0.4,
+                r.x + r.lean * r.h * 1.2,
+                r.y - r.h
+             );
+            ctx.stroke();
+
+             // Reed key lines (carved look)
+            ctx.strokeStyle = C.blackLine;
+            ctx.lineWidth = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(r.x - 2, r.y + r.h * 0.1);
+            ctx.lineTo(r.x + r.lean * r.h * 0.5 - 2, r.y - r.h * 0.6);
+            ctx.stroke();
+         }
+
+         // Bridge silhouette
+        ctx.fillStyle = C.blackLine;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.10, H * 0.34);
+        ctx.quadraticCurveTo(W * 0.40, H * 0.18, W * 0.90, H * 0.34);
+        ctx.lineTo(W * 0.90, H * 0.37);
+        ctx.quadraticCurveTo(W * 0.40, H * 0.21, W * 0.10, H * 0.37);
+        ctx.closePath();
+        ctx.fill();
+
+         // Bridge posts
+        for (const p of scene.bridgePosts) {
+            ctx.fillStyle = C.blackLine;
+            ctx.fillRect(p.x - 3, p.y - H * 0.06, 6, H * 0.14);
+         }
+
+         // Lanterns on bridge posts
+        ctx.fillStyle = C.lantern;
+        for (let i = 0; i < scene.bridgePosts.length; i += 2) {
+            const p = scene.bridgePosts[i];
+            ctx.beginPath();
+            ctx.arc(p.x, p.y - H * 0.07, 6, 0, Math.PI * 2);
+            ctx.fill();
+             // Lantern glow
+            ctx.globalAlpha = 0.1;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y - H * 0.07, 18, 0, Math.PI * 2);
+            ctx.fillStyle = C.lanternSoft;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+         }
+
+         // Boat silhouettes
+        for (const b of scene.boats) {
+            ctx.fillStyle = C.indigo;
+            ctx.strokeStyle = C.blackLine;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            const bx = b.x, by = b.y, bw = b.w, bh = b.h;
+            ctx.moveTo(bx, by);
+            ctx.quadraticCurveTo(bx + bw * 0.3, by - bh * 2, bx + bw * 0.5, by - bh);
+            ctx.quadraticCurveTo(bx + bw * 0.7, by - bh * 2, bx + bw, by);
+            ctx.quadraticCurveTo(bx + bw * 0.5, by + bh, bx, by);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+         }
+
+         // Lantern reflections in water
+        for (const lr of scene.lanternReflections) {
+            ctx.globalAlpha = 0.25;
+            ctx.fillStyle = C.lanternSoft;
+            for (let i = 0; i < 5; i++) {
+                const ry = lr.y + i * H * 0.025;
+                const rx = lr.x + Math.sin(i * 0.9) * W * 0.005;
+                ctx.fillRect(rx - lr.w, ry, lr.w * 2, H * 0.008);
+             }
+            ctx.globalAlpha = 1;
+         }
+     }
+
+    // ── Tide rendering layer ───────────────────────────────────────
+    function drawTide(tideFrontY) {
+        tideCtx.clearRect(0, 0, W, H);
+
+        if (tideFrontY <= H * 0.43) return; // Tide hasn't reached water edge
+
+        const waterTop = H * 0.43;
+        const waterBot = H;
+        const tideProgress = (tideFrontY - waterTop) / (waterBot - waterTop);
+
+         // Indigo tide band — like ink soaking into paper
+        const tideH = (waterBot - waterTop) * tideProgress;
+        const tideGrad = tideCtx.createLinearGradient(0, tideFrontY - 30, 0, tideFrontY + 20);
+        tideGrad.addColorStop(0, 'rgba(26, 39, 68, 0.0)');
+        tideGrad.addColorStop(0.3, 'rgba(26, 39, 68, 0.65)');
+        tideGrad.addColorStop(1, 'rgba(20, 30, 55, 0.85)');
+
+        tideCtx.fillStyle = tideGrad;
+        tideCtx.fillRect(0, waterTop, W, tideH);
+
+         // Irregular tide edge — wavy, like woodblock ink
+        tideCtx.strokeStyle = C.indigo;
+        tideCtx.lineWidth = 2;
+        tideCtx.beginPath();
+        for (let x = 0; x <= W; x += 2) {
+            const edge = tideFrontY
+                + Math.sin(x * 0.03) * 4
+                + Math.sin(x * 0.07) * 2
+                + Math.sin(x * 0.005) * 8;
+            if (x === 0) tideCtx.moveTo(x, edge);
+            else tideCtx.lineTo(x, edge);
+         }
+        tideCtx.stroke();
+
+         // Tide fill below the edge
+        tideCtx.fillStyle = 'rgba(18, 28, 52, 0.75)';
+        tideCtx.beginPath();
+        tideCtx.moveTo(0, tideFrontY);
+        for (let x = 0; x <= W; x += 2) {
+            const edge = tideFrontY
+                + Math.sin(x * 0.03) * 4
+                + Math.sin(x * 0.07) * 2
+                + Math.sin(x * 0.005) * 8;
+            tideCtx.lineTo(x, edge);
+         }
+        tideCtx.lineTo(W, H);
+        tideCtx.lineTo(0, H);
+        tideCtx.closePath();
+        tideCtx.fill();
+
+         // Moon reflection becomes more visible with tide
+        tideCtx.strokeStyle = C.moonWhite;
+        tideCtx.globalAlpha = tideProgress * 0.4;
+        tideCtx.lineWidth = 1;
+        for (let i = 0; i < 10; i++) {
+            const ry = tideFrontY + i * H * 0.03;
+            if (ry > H) break;
+            const rx = scene.moonX + Math.sin(i * 1.1) * W * 0.008;
+            const rw = W * 0.004 + tideProgress * W * 0.006;
+            tideCtx.beginPath();
+            tideCtx.moveTo(rx - rw, ry);
+            tideCtx.lineTo(rx + rw, ry);
+            tideCtx.stroke();
+         }
+        tideCtx.globalAlpha = 1;
+
+         // Lantern reflections stretch with tide
+        for (const lr of scene.lanternReflections) {
+            const stretch = 1 + tideProgress * 0.8;
+            tideCtx.globalAlpha = tideProgress * 0.35;
+            tideCtx.fillStyle = C.lanternSoft;
+            for (let i = 0; i < 5; i++) {
+                const ry = lr.y + i * (H * 0.025 * stretch);
+                if (ry > tideFrontY + H * 0.3) continue;
+                const rx = lr.x + Math.sin(i * 0.8) * W * 0.006;
+                tideCtx.fillRect(rx - lr.w, ry, lr.w * 2, H * 0.006);
+             }
+         }
+        tideCtx.globalAlpha = 1;
+
+         // Water ripples intensify
+        tideCtx.strokeStyle = C.indigoLight;
+        tideCtx.lineWidth = 0.6;
+        tideCtx.globalAlpha = tideProgress * 0.5;
+        for (const rr of scene.waterRipples) {
+            if (rr.y > tideFrontY + H * 0.4) continue;
+            tideCtx.beginPath();
+            tideCtx.ellipse(rr.x, rr.y, rr.rx * (1 + tideProgress * 0.5), rr.ry, 0, 0, Math.PI * 2);
+            tideCtx.stroke();
+         }
+        tideCtx.globalAlpha = 1;
+     }
+
+    // ── Detail rendering layer (hatch marks, stipple) ────────────────
+    function drawDetails(tideProgress) {
+        detailCtx.clearRect(0, 0, W, H);
+        if (tideProgress < 0.05) return;
+
+        const alpha = Math.min(1, (tideProgress - 0.05) / 0.4);
+
+         // Hatch marks — carved linework appearing with tide
+        detailCtx.strokeStyle = C.indigo;
+        detailCtx.lineWidth = 0.7;
+        detailCtx.globalAlpha = alpha * 0.6;
+        for (const h of scene.hatchMarks) {
+            if (h.y > tideFrontY() + H * 0.35) continue;
+            detailCtx.save();
+            detailCtx.translate(h.x, h.y);
+            detailCtx.rotate(h.angle);
+            detailCtx.beginPath();
+            detailCtx.moveTo(0, 0);
+            detailCtx.lineTo(h.len, 1.5);
+            detailCtx.stroke();
+            detailCtx.restore();
+         }
+
+         // Stipple dots — pigment settling
+        detailCtx.fillStyle = C.indigo;
+        detailCtx.globalAlpha = alpha * 0.4;
+        for (const d of scene.stippleDots) {
+            if (d.y > tideFrontY() + H * 0.35) continue;
+            detailCtx.beginPath();
+            detailCtx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+            detailCtx.fill();
+         }
+
+         // Boats get more defined with tide
+        if (alpha > 0.3) {
+            detailCtx.globalAlpha = (alpha - 0.3) * 0.8;
+            detailCtx.fillStyle = C.blackLine;
+            for (const b of scene.boats) {
+                const by = b.y;
+                if (by > tideFrontY() + H * 0.3) continue;
+                 // Add tiny mast
+                detailCtx.fillRect(b.x + b.w * 0.45, by - b.h * 4, 1.5, b.h * 4.5);
+                 // Add small sail
+                detailCtx.beginPath();
+                detailCtx.moveTo(b.x + b.w * 0.45, by - b.h * 3.5);
+                detailCtx.lineTo(b.x + b.w * 0.45, by - b.h * 6);
+                detailCtx.lineTo(b.x + b.w * 0.70, by - b.h * 5);
+                detailCtx.lineTo(b.x + b.w * 0.45, by - b.h * 3.5);
+                detailCtx.fill();
+             }
+         }
+
+         // Registration marks — slight offset lines suggesting woodblock printing
+        detailCtx.globalAlpha = alpha * 0.15;
+        detailCtx.strokeStyle = C.indigo;
+        detailCtx.lineWidth = 1;
+         // Shoreline registration offset
+        detailCtx.beginPath();
+        detailCtx.moveTo(0, H * 0.80 + 3);
+        detailCtx.quadraticCurveTo(W * 0.08, H * 0.55 + 3, W * 0.18, H * 0.60 + 3);
+        detailCtx.stroke();
+
+         // Bridge registration offset
+        detailCtx.beginPath();
+        detailCtx.moveTo(W * 0.10, H * 0.34 - 2);
+        detailCtx.quadraticCurveTo(W * 0.40, H * 0.18 - 2, W * 0.90, H * 0.34 - 2);
+        detailCtx.stroke();
+
+        detailCtx.globalAlpha = 1;
+     }
+
+    // ── Tide front Y tracker ─────────────────────────────────────
+    let tideFrontY = 0;
+
+    function tideFrontY() {
+        return tideFrontY;
+     }
+
+    // ── Interaction state ────────────────────────────────────────
+    let pressX = 0, pressY = 0;
+    let dragStartY = 0;
+    let dragProgress = 0;
+    let settled = false;
+    let resetAvailable = false;
+
+    function getPos(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+         }
+        return { x: e.clientX, y: e.clientY };
+     }
+
+    function onPointerDown(e) {
+        e.preventDefault();
+        tryInitAudio();
+
+        const pos = getPos(e);
+        pressX = pos.x;
+        pressY = pos.y;
+        dragStartY = pos.y;
+        scene.isPressing = true;
+        scene.isDragging = false;
+        settled = false;
+
+         // Hide hint on first press
+        hintEl.classList.add('hidden');
+
+         // Audio: wooden tap + paper rub
+        audio.playPress();
+     }
+
+    function onPointerMove(e) {
+        if (!scene.isPressing) return;
+        e.preventDefault();
+
+        const pos = getPos(e);
+        const dy = pos.y - dragStartY;
+
+         // Only advance tide on downward drag (positive dy)
+        if (dy > 5) {
+            scene.isDragging = true;
+            dragProgress = Math.min(1, dy / (H * 0.5));
+
+             // Update tide front: moves from water top downward
+            const waterTop = H * 0.43;
+            tideFrontY = waterTop + dragProgress * H * 0.57;
+
+             // Audio: drag depth controls water/ink drag layer
+            audio.playDrag(dragProgress);
+         }
+     }
+
+    function onPointerUp(e) {
+        if (!scene.isPressing) return;
+        scene.isPressing = false;
+
+         // Settle state
+        if (scene.isDragging && dragProgress > 0.05) {
+            settled = true;
+
+             // Audio: settling thump + paper hiss
+            audio.playRelease();
+
+             // Pigment bloom — final ink settles
+            drawPigmentBloom();
+
+             // Enable one-time reset
+            resetAvailable = true;
+            resetBtn.style.display = 'block';
+         } else {
+            tideFrontY = H * 0.43;
+            tideCtx.clearRect(0, 0, W, H);
+            detailCtx.clearRect(0, 0, W, H);
+         }
+
+        scene.isDragging = false;
+        dragProgress = 0;
+     }
+
+    // ── Pigment bloom on settle ─────────────────────────────────
+    function drawPigmentBloom() {
+         // Soft indigo bloom at the tide front edge
+        const waterTop = H * 0.43;
+        const waterBot = H;
+        const finalH = (waterBot - waterTop) * Math.min(1, (tideFrontY - waterTop) / (waterBot - waterTop));
+
+        tideCtx.save();
+        tideCtx.globalAlpha = 0.08;
+        tideCtx.fillStyle = C.indigo;
+        tideCtx.beginPath();
+        tideCtx.ellipse(W * 0.5, tideFrontY - 15, W * 0.35, 40, 0, 0, Math.PI * 2);
+        tideCtx.fill();
+        tideCtx.restore();
+
+         // Additional bloom at press origin
+        tideCtx.save();
+        tideCtx.globalAlpha = 0.05;
+        tideCtx.fillStyle = C.indigoMed;
+        tideCtx.beginPath();
+        tideCtx.ellipse(pressX, pressY, 60, 30, 0, 0, Math.PI * 2);
+        tideCtx.fill();
+        tideCtx.restore();
+     }
+
+    // ── Reset ────────────────────────────────────────────────────
+    resetBtn.addEventListener('click', () => {
+        resetBtn.style.display = 'none';
+        resetAvailable = false;
+        settled = false;
+        tideFrontY = H * 0.43;
+        tideCtx.clearRect(0, 0, W, H);
+        detailCtx.clearRect(0, 0, W, H);
+        dragProgress = 0;
+         // Redraw scene after a brief pause
+        setTimeout(() => {
+            drawScene();
+         }, 200);
+     });
+
+    // ── Event binding ────────────────────────────────────────────
+    const target = document.getElementById('scene');
+
+    target.addEventListener('mousedown',    onPointerDown);
+    target.addEventListener('mousemove',    onPointerMove);
+    target.addEventListener('mouseup',      onPointerUp);
+    target.addEventListener('mouseleave',   onPointerUp);
+
+    target.addEventListener('touchstart',   onPointerDown, { passive: false });
+    target.addEventListener('touchmove',    onPointerMove,   { passive: false });
+    target.addEventListener('touchend',     onPointerUp);
+    target.addEventListener('touchcancel',  onPointerUp);
+
+    // ── Render loop ──────────────────────────────────────────────
+    function renderLoop() {
+         // Draw tide if actively dragging
+        if (scene.isPressing && scene.isDragging) {
+            drawTide(tideFrontY);
+            drawDetails(dragProgress);
+         }
+
+         // On settled state, keep tide + details visible (already drawn)
+         // Only re-render on micro-interactions if needed
+
+        requestAnimationFrame(renderLoop);
+     }
+
+    // ── Init ─────────────────────────────────────────────────────
+    drawScene();
+    requestAnimationFrame(renderLoop);
+    </script>
+</body>
+</html>
