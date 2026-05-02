@@ -61,10 +61,73 @@ const Render = (() => {
     // ── Settle fiber texture: non-repeating texture shift when tide settles ──
    let _settleFiberSeed = 0;
    let _settleFibers = [];
-   let _fiberTextureAlpha = 0;
-   let _fiberTextureTarget = 0;
+let _fiberTextureAlpha = 0;
+  let _fiberTextureTarget = 0;
 
-  // ── Performance: offscreen buffers ──
+    // ── 2D Mask: tide-front wave canvas and pixel values ──
+  let _tideMaskCanvas = null;
+  let _maskWidth = 0;
+  let _maskHeight = 0;
+  let _maskData = null;
+
+    // ── Wave front: deterministic 2D mask of the advancing tide ──
+  // The wave front is not a vertical line but an organic, undulating boundary
+  // that shifts with pressure and tide progress. Same inputs always produce same output.
+  function _getWaveFront(x, y) {
+    const base =
+      Math.sin(y * .008 + tideProgress * 1.3) * 12
+    + Math.sin(y * .023 + clock * .35 + tideProgress * .7) * 6
+    + Math.sin(y * .014 + tideProgress * .9) * 10
+    + Math.cos(y * .005 - tideProgress * .4) * 7;
+    return tideFront + base * (.55 + pressure * .65);
+  }
+
+    // ── Update the 2D mask canvas based on current tide state ──
+    // Called on each frame during active interaction or settle. Pixels = 0-255
+    // representing tide intensity at each (x, y) position. Only updated when tideFront changed.
+  function _updateTideMask() {
+    if (!pigmentMap || tideFront < 0) return;
+
+     // Ensure mask canvas matches canvas dimensions
+    if (!_tideMaskCanvas || _maskWidth !== W || _maskHeight !== H) {
+      _tideMaskCanvas = document.createElement('canvas');
+      _tideMaskCanvas.width = W;
+       _tideMaskCanvas.height = H;
+      _maskWidth = W;
+       _maskHeight = H;
+      _maskData = _tideMaskCanvas.getContext('2d').createImageData(W, H);
+     }
+
+    const data = _maskData.data;
+    const zone = 180 + pressure * 120;
+    const softEdge = 50 + pressure * 60;
+
+    for (let y = 0; y < H; y++) {
+      const waveFront = _getWaveFront(0, y);
+
+      for (let x = 0; x < W; x++) {
+        const idx = (y * W + x) * 4;
+        const d = x - waveFront;
+
+        if (d <= 0) {
+          data[idx] = data[idx + 1] = data[idx + 2] = data[idx + 3] = 0;
+         } else if (d > zone) {
+          data[idx] = data[idx + 1] = data[idx + 2] = 255;
+          data[idx + 3] = 255;
+         } else {
+          const eased = Easing.soak(Math.max(0, Math.min(1, d / zone)));
+           // Leading edge softens with pressure: higher pressure = gentler fade-in
+          const softness = Math.min(1, d / softEdge) * (.6 + pressure * .4);
+          const v = Math.round(Math.min(255, eased * 255 * (.5 + softness * .5)));
+          data[idx] = data[idx + 1] = data[idx + 2] = v;
+          data[idx + 3] = 255;
+         }
+       }
+     }
+     _tideMaskCanvas.getContext('2d').putImageData(_maskData, 0, 0);
+   }
+
+    // ── Performance: offscreen buffers ──
   let pigmentMap = null;
   let pigmentCtx = null;
   let grainPattern = null;
@@ -350,14 +413,17 @@ const Render = (() => {
     return _seed / 2147483647;
   }
 
-  function tideAt(x) {
+  function tideAt(x, y) {
     if (tideFront <= 0) return 0;
-    const d = x - tideFront;
+    const waveFront = _getWaveFront(x, y);
+    const d = x - waveFront;
     if (d < 0) return 0;
     const zone = 180 + pressure * 120;
     if (d > zone) return 1;
-    return Easing.soak(d / zone);
-  }
+    const softEdge = 50 + pressure * 60;
+    const softness = Math.min(1, d / softEdge) * (.6 + pressure * .4);
+    return Math.min(1, Easing.soak(d / zone) * (.5 + softness * .5));
+   }
 
   const Easing = {
     press: t => Math.pow(Math.max(0, Math.min(1, t)), 2.2),
@@ -391,6 +457,9 @@ const Render = (() => {
      const clockChanged = (clock - _prevClock > .01) || _dirty;
 
      // Only redraw dynamic layers when tide, pressure, clock, or explicit dirty changes
+      // Always keep the 2D mask canvas in sync with current tide state
+     if (tideChanged) _updateTideMask();
+
       if (!tideChanged && !clockChanged && !pressed && !settling && !resetting) {
          // Nothing changed — skip expensive draw, still blit static BG above.
        } else {
@@ -1064,7 +1133,7 @@ const Render = (() => {
   function drawMoonReflection(ctx) {
     const reflY = waterline + H * .04;
     const mR = moonR * .35;
-    const ta = tideAt(moonX);
+    const ta = tideAt(moonX, reflY + H * .18);
 
     // Ripple state: distortion grows as tide approaches and passes
     const rippleIntensity = pressure * 3.5 + ta * 5 + tideProgress * 2.2;
@@ -1148,9 +1217,10 @@ const Render = (() => {
        // Each post has: bold key-line body, registration offsets, wood grain, and carved caps.
        // Posts anchor the center without cluttering — bold enough to read, restrained enough to breathe.
      const postW = 6;
-     bridgePosts.forEach((p, idx) => {
-       const ta = tideAt(p.x);
-       const postAlpha = .65 + ta * .35;
+      bridgePosts.forEach((p, idx) => {
+        const postMidY = p.y1 + (p.y2 - p.y1) * .5;
+        const ta = tideAt(p.x, postMidY);
+        const postAlpha = .65 + ta * .35;
 
           // ── Post body: solid dark fill, hand-printed weight ──
        ctx.fillStyle = lerpColor(C.paper, C.black, postAlpha);
@@ -1377,7 +1447,7 @@ const Render = (() => {
 
     lanternXs.forEach((lx, idx) => {
       const ly = bridgeY + 14;
-      const ta = tideAt(lx);
+      const ta = tideAt(lx, ly + 8);
       const lanternW = 8;
       const lanternH = 16;
 
@@ -1545,7 +1615,7 @@ const Render = (() => {
     lanternXs.forEach((lx, i) => {
       const reflY = waterline + H * (.06 + i * .025);
       const reflH = H * (.16 + i * .02);
-      const ta = tideAt(lx);
+      const ta = tideAt(lx, reflY + reflH * .5);
 
        // Ripple intensity tied to drag depth + tide
       const rippleInt = pressure * 4.5 + ta * 5.5 + tideProgress * 2.8;
@@ -1613,7 +1683,7 @@ const Render = (() => {
   function drawBoats(ctx) {
     boats.forEach((b, i) => {
       const cx = b.x + b.w / 2, cy = b.y;
-      const ta = tideAt(cx);
+      const ta = tideAt(cx, cy + b.h * .3);
 
       ctx.save();
       ctx.translate(cx, cy);
@@ -1831,7 +1901,8 @@ const Render = (() => {
 
    function drawReeds(ctx) {
     reeds.forEach((r, i) => {
-      const ta = tideAt(r.x);
+      const reedMidY = r.baseY - r.h * .5;
+      const ta = tideAt(r.x, reedMidY);
 
         // ── Reed sway: compound, tide-responsive motion ──
         // Three phases modulate the sway:
@@ -1981,28 +2052,205 @@ const Render = (() => {
    // The leading edge is never a hard line — instead, indigo pigment
    // appears as stippled dots, lateral bleed strokes, and a soft wash
    // that gradually deepens into the full tide wash behind it.
-   function drawTide(ctx) {
-     if (tideFront <= 0) return;
+  function drawTide(ctx) {
+    if (tideFront <= 0) return;
 
-     const zone = 180 + pressure * 120;
-     const rowH = H * .72;
+    const zone = 180 + pressure * 120;
+    const rowH = H * .72;
+    const softEdge = 50 + pressure * 60;
 
       // ══ Phase 0: Far-ahead whisper stipple
-     // A very faint pre-shadow of dots, suggesting pigment reaching
-     // ahead of the visible tide front through capillary fiber paths.
+     // Faint pre-shadow of dots suggesting pigment reaching ahead of the 2D wave front
+     // through capillary fiber paths in the paper.
       _seed = 7000 + Math.floor(tideProgress * 40);
-     const whisperDepth = 30 + pressure * 20;
-     for (let i = 0; i < 12 + Math.floor(pressure * 8); i++) {
-       const wx = tideFront - whisperDepth + (_sr() - .5) * whisperDepth;
-       const wy = waterline - H * .03 + _sr() * rowH;
-       const wR = .2 + _sr() * .6;
-       const wA = (.015 + _sr() * .025) * (1 - _sr());
-       if (wA > .005) {
-         ctx.fillStyle = 'rgba(27,42,74,' + wA.toFixed(3) + ')';
-         ctx.beginPath();
-         ctx.arc(wx, wy, wR, 0, Math.PI * 2);
-         ctx.fill();
+    const whisperDepth = 30 + pressure * 20;
+    for (let i = 0; i < 12 + Math.floor(pressure * 8); i++) {
+      const wy = waterline - H * .03 + _sr() * rowH;
+      const wf = _getWaveFront(0, wy);
+      const wx = wf - whisperDepth * .5 + _sr() * whisperDepth;
+      const wR = .2 + _sr() * .6;
+      const wA = (.015 + _sr() * .025) * (1 - _sr());
+      if (wA > .005) {
+        ctx.fillStyle = 'rgba(27,42,74,' + wA.toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(wx, wy, wR, 0, Math.PI * 2);
+        ctx.fill();
           }
+        }
+
+      // ══ Phase 1: 2D mask-driven wash
+     // Uses the precomputed _tideMaskCanvas as a mask. Draws vertical wash strips
+     // whose alpha is taken directly from the mask at each column. This gives the
+     // tide a soft, organic leading edge that varies with Y position.
+    const washStart = Math.max(0, tideFront - 80 - pressure * 40);
+    const washEnd = Math.min(W, tideFront + zone + 10);
+
+    if (_tideMaskCanvas && _maskData) {
+      const step = 3 + (W < 600 ? 2 : 0);
+      for (let x = washStart; x < washEnd; x += step) {
+        // Sample mask at center of the water band
+        const my = Math.round((waterline + H * .32) - (waterline - H * .04));
+        if (my < 0 || my >= _maskHeight) continue;
+        const mi = my * W + x;
+        const maskVal = _maskData.data[mi * 4] / 255;
+
+        if (maskVal > .005) {
+          const alpha = maskVal * (.06 + pressure * .12);
+          if (alpha > .01) {
+            ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
+            ctx.fillRect(x, waterline - H * .04, step, rowH);
+           }
+          }
+        }
+       }
+
+      // ══ Leading wave line: carved edge following the 2D wave front path
+     // Three parallel lines tracing the actual 2D wave, with wobble and
+     // hand-carved registration offsets. Each line follows the organic front
+     // defined by _getWaveFront, making the wave feel alive but deterministic.
+       {
+        const yStep = 6;
+        const lineCount = 3;
+
+        for (let li = 0; li < lineCount; li++) {
+          const xOff = (li - 1) * (2 + pressure * .9);
+          const yOff = (li - 1) * .8;
+          const lineAlpha = (.1 + pressure * .06) * (1 - li * .22);
+          ctx.strokeStyle = 'rgba(14,26,58,' + lineAlpha.toFixed(3) + ')';
+          ctx.lineWidth = .6 + (li === 0 ? .6 : 0);
+          ctx.beginPath();
+          let started = false;
+          for (let y = waterline - H * .04; y <= waterline + rowH; y += yStep) {
+            const fx = _getWaveFront(0, y) + xOff;
+            const wobble = Math.sin(y * .03 + tideProgress * 2 + li * 1.5) * 1.8;
+            const px = fx + wobble;
+            if (!started) { ctx.moveTo(px, y + yOff); started = true; } else ctx.lineTo(px, y + yOff);
+           }
+         ctx.stroke();
+         }
+       }
+
+      // ══ Phase 1.5: Lateral ink-bleed strokes along the wave front
+     // Short horizontal dashes radiating from the 2D front, suggesting capillary wicking.
+     // Positioned relative to _getWaveFront so they always emanate from the organic front.
+      _seed = 7500 + Math.floor(tideProgress * 35);
+    const bleedZoneW = zone * .25;
+    const bleedYStart = waterline - H * .04;
+    const bleedYEnd = bleedYStart + rowH;
+    const bleedRowCount = Math.floor(12 + pressure * 10);
+    for (let i = 0; i < bleedRowCount; i++) {
+      const by = bleedYStart + _sr() * (bleedYEnd - bleedYStart);
+      const bf = _getWaveFront(0, by);
+      const bx = bf + (_sr() - .5) * bleedZoneW;
+      const edgeDist = Math.abs(bx - bf) / (bleedZoneW * .5);
+      const fadeAlpha = edgeDist < 1 ? Math.sin(edgeDist * Math.PI) * (.035 + pressure * .045) : 0;
+      if (fadeAlpha < .008) continue;
+
+      const bLen = 2 + _sr() * 10;
+      const bAngle = (_sr() - .3) * .45;
+
+      ctx.strokeStyle = 'rgba(22,32,64,' + fadeAlpha.toFixed(3) + ')';
+      ctx.lineWidth = .25 + _sr() * .45;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + bLen * Math.cos(bAngle), by + bLen * Math.sin(bAngle));
+      ctx.stroke();
+       }
+
+        // ══ Phase 2: Hatch marks (cross-hatch revealed as tide passes, 2D-aware)
+        // Carved feel: marks are not uniform — varying length, weight, and angle
+        // to simulate hand-carved woodblock hatching. Now uses 2D mask for placement.
+        _seed = 50 + Math.floor(tideProgress * 20);
+     for (let x = Math.max(0, tideFront + zone * .02); x < Math.min(W, tideFront + zone * .92); x += 5) {
+        // Sample mask at this x position (at water mid-height)
+        const my2 = Math.round((waterline + H * .3) - (waterline - H * .04));
+        if (my2 < 0 || my2 >= _maskHeight) continue;
+        const maskVal2 = _maskData && _maskData.data[(my2 * W + x) * 4] / 255;
+        if (maskVal2 < .08 || maskVal2 > .85) continue;
+
+       const hatchT = maskVal2;
+       const hatchAlpha = Math.sin(hatchT * Math.PI) * (.06 + pressure * .08);
+       if (hatchAlpha < .015) continue;
+
+       ctx.strokeStyle = 'rgba(26,32,64,' + hatchAlpha.toFixed(3) + ')';
+       ctx.lineWidth = .35;
+
+       const rows = 4;
+       for (let row = 0; row < rows; row++) {
+         const baseY = waterline - H * .03 + row * (H * .17);
+         const angle = (row % 2 === 0) ? 2.2 : -1.6;
+         const len = 3 + ((x + row * 7) % 5);
+         const off = (row % 3) * 2.5;
+
+         ctx.beginPath();
+         ctx.moveTo(x + off, baseY + _sr() * 3);
+         ctx.lineTo(x + off + len * .6, baseY + _sr() * 3 + angle);
+         ctx.stroke();
+          }
+         }
+
+         // ══ Phase 2.5: Fine hatch marks — secondary carving detail (2D-aware)
+       if (tideProgress > .12) {
+         const fineHatchIntensity = Easing.soak((tideProgress - .12) / .6);
+          _seed = 550 + Math.floor(tideProgress * 45);
+         for (let x = Math.max(0, tideFront - 20); x < Math.min(W, tideFront + zone + 20); x += 8) {
+           const my3 = Math.round((waterline + H * .3) - (waterline - H * .04));
+           if (my3 < 0 || my3 >= _maskHeight) continue;
+           const mv3 = _maskData ? _maskData.data[(my3 * W + x) * 4] / 255 : 0;
+           if (mv3 < .12 || mv3 > .88) continue;
+
+           const fineAlpha = Math.sin(mv3 * Math.PI) * (.03 + fineHatchIntensity * .04);
+           if (fineAlpha < .01) continue;
+
+           ctx.strokeStyle = 'rgba(42,48,72,' + fineAlpha.toFixed(3) + ')';
+           ctx.lineWidth = .25;
+           const fineAngle = _sr() > .5 ? 1.8 : -1.4;
+           const fineY = waterline + _sr() * H * .55;
+           const fineLen = 2 + _sr() * 3;
+           ctx.beginPath();
+           ctx.moveTo(x, fineY);
+           ctx.lineTo(x + fineLen * .5, fineY + fineAngle);
+           ctx.stroke();
+            }
+          }
+
+      // ══ Phase 3: Stippled pigment (deeper tide, 2D mask guided)
+      _seed = 120 + Math.floor(tideProgress * 30);
+    for (let i = 0; i < 40 + Math.floor(pressure * 30); i++) {
+      const sx = _sr() * W;
+      const sy = waterline + _sr() * H * .6;
+      const my4 = Math.round((sy) - (waterline - H * .04));
+      if (my4 < 0 || my4 >= _maskHeight) continue;
+      const mv4 = _maskData ? _maskData.data[(my4 * W + Math.min(W - 1, Math.max(0, Math.round(sx)))) * 4] / 255 : 0;
+      if (mv4 < .3 || mv4 > .95) continue;
+
+      const stipAlpha = mv4 * .12;
+      ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha.toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(
+        sx + _sr() * 2,
+        sy,
+         .4 + _sr() * .7,
+         0, Math.PI * 2
+        );
+      ctx.fill();
+       }
+
+      // ══ Phase 4: Pigment pooling (2D mask guided)
+      _seed = 300 + Math.floor(tideProgress * 15);
+    for (let i = 0; i < 3; i++) {
+      const py = waterline + _sr() * H * .6;
+      const pf = _getWaveFront(0, py);
+      const px = pf + _sr() * zone * .8 + zone * .1;
+      const poolAlpha = pressure * .06 * (1 - i * .25);
+      if (poolAlpha < .005) continue;
+
+      ctx.fillStyle = 'rgba(22,32,64,' + poolAlpha + ')';
+      ctx.beginPath();
+      ctx.ellipse(px, py, 6 + _sr() * 10, 3 + _sr() * 5, _sr() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+      }
+    }
         }
 
       // ══ Phase 1: Leading edge — soft stippled fade-in (no hard cutoff)
@@ -2201,27 +2449,35 @@ const Render = (() => {
     }
 
     // ─── Permanent pigment layer ───
-   function drawPigmentLayer(ctx) {
-     if (tideFront <= 0 && !resetting && settleBloom < .01) return;
+    function drawPigmentLayer(ctx) {
+      if (tideFront <= 0 && !resetting && settleBloom < .01) return;
 
-     const zone = 180 + pressure * 120;
-     const advanceX = Math.max(0, tideFront - 2);
-     const paintW = Math.min(12, zone * .05);
+      const zone = 180 + pressure * 120;
+      const advanceX = Math.max(0, tideFront - 2);
+      const paintW = Math.min(12, zone * .05);
+      // 2D-aware pigment: advance along the wave front path
+      const waveFrontX = _getWaveFront(0, waterline + H * .3);
 
-     if (pressed && paintW > 0) {
-       pigmentCtx.fillStyle = 'rgba(27,42,74,.015)';
-       pigmentCtx.fillRect(advanceX, waterline - H * .04, paintW, H * .72);
-
-       _seed = 500 + Math.floor(performance.now() / 100) % 1000;
-       pigmentCtx.fillStyle = 'rgba(27,42,74,.008)';
-       for (let s = 0; s < 6; s++) {
-         const sx = advanceX + _sr() * paintW;
-         const sy = waterline + _sr() * H * .6;
-         pigmentCtx.beginPath();
-         pigmentCtx.arc(sx, sy, .4 + _sr() * .6, 0, Math.PI * 2);
-         pigmentCtx.fill();
+      if (pressed && paintW > 0) {
+        // Pigment fills in vertical strips following the wave front
+        const stripCount = 6;
+        for (let si = 0; si < stripCount; si++) {
+          const stripY = waterline - H * .04 + si * (H * .72 / stripCount);
+          const wfX = _getWaveFront(0, stripY) - paintW * .5;
+          pigmentCtx.fillStyle = 'rgba(27,42,74,.012)';
+          pigmentCtx.fillRect(wfX, stripY, paintW, H * .72 / stripCount);
          }
-       }
+
+        _seed = 500 + Math.floor(performance.now() / 100) % 1000;
+        pigmentCtx.fillStyle = 'rgba(27,42,74,.008)';
+        for (let s = 0; s < 6; s++) {
+          const sx = waveFrontX + (_sr() - .5) * paintW;
+          const sy = waterline + _sr() * H * .6;
+          pigmentCtx.beginPath();
+          pigmentCtx.arc(sx, sy, .4 + _sr() * .6, 0, Math.PI * 2);
+          pigmentCtx.fill();
+          }
+        }
 
      if (pigmentMap) {
        ctx.globalAlpha = .85;
