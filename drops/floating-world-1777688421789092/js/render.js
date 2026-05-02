@@ -385,35 +385,36 @@ const Render = (() => {
      const clockChanged = (clock - _prevClock > .01) || _dirty;
 
      // Only redraw dynamic layers when tide, pressure, clock, or explicit dirty changes
-     if (!tideChanged && !clockChanged && !pressed && !settling && !resetting) {
-       // Nothing changed — skip expensive draw, still blit static BG above.
-     } else {
-       drawHills(ctx);
-       drawWater(ctx);
-       drawMoonlightColumn(ctx);
-       drawPressFeeling(ctx);
-       drawInitialPressFeedback(ctx);
-       drawMoon(ctx);
-       drawMoonReflection(ctx);
-       drawMoonlightShimmer(ctx);
-       drawBridge(ctx);
-       drawLanterns(ctx);
-       drawBoats(ctx);
-       drawLanternReflections(ctx);
-       drawReeds(ctx);
-       drawTide(ctx);
-       drawPigmentLayer(ctx);
-       drawPaperGrain(ctx);
-       drawEdgeStain(ctx);
-       drawSettleFibers(ctx);
-       drawRegistration(ctx);
-       drawTouchGlow(ctx);
-       drawGrainShift(ctx);
-       drawDragTrailStipple(ctx);
-       drawReleaseRipple(ctx);
-       drawVignette(ctx);
-       drawPaperCast(ctx);
-     }
+      if (!tideChanged && !clockChanged && !pressed && !settling && !resetting) {
+         // Nothing changed — skip expensive draw, still blit static BG above.
+       } else {
+        drawHills(ctx);
+        drawWater(ctx);
+        drawMoonlightColumn(ctx);
+        drawMoonlightGradient(ctx);
+        drawPressFeeling(ctx);
+        drawInitialPressFeedback(ctx);
+        drawMoon(ctx);
+        drawMoonReflection(ctx);
+        drawMoonlightShimmer(ctx);
+        drawBridge(ctx);
+        drawLanterns(ctx);
+        drawBoats(ctx);
+        drawLanternReflections(ctx);
+        drawReeds(ctx);
+        drawTide(ctx);
+        drawPigmentLayer(ctx);
+        drawPaperGrain(ctx);
+        drawEdgeStain(ctx);
+        drawSettleFibers(ctx);
+        drawRegistration(ctx);
+        drawTouchGlow(ctx);
+        drawGrainShift(ctx);
+        drawDragTrailStipple(ctx);
+        drawReleaseRipple(ctx);
+        drawVignette(ctx);
+        drawPaperCast(ctx);
+       }
 
      // Always update dirty-track state each frame so we detect changes correctly
      _prevTideProgress = tideProgress;
@@ -839,11 +840,74 @@ const Render = (() => {
       ctx.ellipse(moonX, y, w, 2.2, 0, 0, Math.PI * 2);
       ctx.fill();
        }
-     }
+      }
 
-      // ─── Moon: luminous, atmospheric, ukiyo-e presence ───
-   function drawMoon(ctx) {
-        // Outer halo: soft glow, breathes with clock
+      // ─── Moonlight gradient: deterministic overlay that shifts with tide depth ───
+      // A soft cool-to-warm gradient that deepens as the indigo tide advances.
+      // The moonlight takes on richer character as more of the harbor is revealed,
+      // shifting from pale ambient wash to a full moonlit atmosphere.
+   function drawMoonlightGradient(ctx) {
+      const t = Math.max(0, Math.min(1, tideProgress));
+      const breath = Math.sin(clock * .12) * .5 + .5;
+      const velAlpha = Math.min(.06, Math.abs(tideFrontVel) * .008);
+
+       // Ambient moonlight wash: always present, very faint
+       // Radiates from moon position, moon white to cool indigo at edges
+      {
+        const grad = ctx.createRadialGradient(
+          moonX, moonY, moonR * .3,
+          moonX, (moonY + waterline) * .5, Math.max(W, H) * .7
+         );
+        const base = .01 + breath * .005;
+        grad.addColorStop(0, 'rgba(240,240,232,' + base.toFixed(3) + ')');
+        grad.addColorStop(.4, 'rgba(228,230,225,' + (base * .35).toFixed(3) + ')');
+        grad.addColorStop(1, 'rgba(228,230,225,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+       }
+
+       // Tide-driven deepening: as indigo tide advances, the overall scene
+       // cools and deepens — moonlight feels more present against darker water
+      if (t > .02) {
+        const deepT = Easing.inOut((t - .02) / .98);
+        const alpha = deepT * (.025 + velAlpha);
+
+         // Sky: cools from warm grey toward indigo as tide rises
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, waterline);
+        skyGrad.addColorStop(0, 'rgba(38,45,70,' + (alpha * .4).toFixed(3) + ')');
+        skyGrad.addColorStop(.5, 'rgba(42,50,72,' + (alpha * .25).toFixed(3) + ')');
+        skyGrad.addColorStop(1, 'rgba(50,58,78,' + (alpha * .15).toFixed(3) + ')');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, waterline);
+
+         // Water: deepens to rich indigo as tide fills the harbor
+        const waterGrad = ctx.createLinearGradient(0, waterline, 0, H);
+        waterGrad.addColorStop(0, 'rgba(22,32,62,' + (alpha * .5).toFixed(3) + ')');
+        waterGrad.addColorStop(.3, 'rgba(18,28,55,' + (alpha * .8).toFixed(3) + ')');
+        waterGrad.addColorStop(.7, 'rgba(14,22,48,' + (alpha).toFixed(3) + ')');
+        waterGrad.addColorStop(1, 'rgba(10,18,40,' + (alpha * .3).toFixed(3) + ')');
+        ctx.fillStyle = waterGrad;
+        ctx.fillRect(0, waterline, W, H - waterline);
+       }
+
+       // Settled state: warm moonlight reflection pool on water surface
+      if (settled) {
+        const poolAlpha = (.015 + settleBloom * .012) * (1 + breath * .12);
+        const poolGrad = ctx.createRadialGradient(
+          moonX, waterline + H * .08, 0,
+          moonX, waterline + H * .08, W * .22
+         );
+        poolGrad.addColorStop(0, 'rgba(240,238,222,' + poolAlpha.toFixed(3) + ')');
+        poolGrad.addColorStop(.5, 'rgba(235,232,215,' + (poolAlpha * .3).toFixed(3) + ')');
+        poolGrad.addColorStop(1, 'rgba(235,232,215,0)');
+        ctx.fillStyle = poolGrad;
+        ctx.fillRect(moonX - W * .22, waterline - H * .02, W * .44, H * .2);
+          }
+      }
+
+           // ─── Moon: luminous, atmospheric, ukiyo-e presence ───
+    function drawMoon(ctx) {
+         // Outer halo: soft glow, breathes with clock
       {
        const breath = Math.sin(clock * .15) * .5 + .5;
        const haloR = moonR * (2.6 + breath * .4);
@@ -1774,29 +1838,44 @@ const Render = (() => {
       const ambient3 = Math.sin(clock * .18 + i * 1.1) * .4;
       const ambientSway = ambient1 + ambient2 + ambient3;
 
-        // Tide-approach force: sine envelope keyed to distance from tide front
-      let tideForce = 0;
-      if (tideFront > 0) {
-        const distToTide = r.x - tideFront;
-        const approachZone = 250 + pressure * 180;
-        if (distToTide > -zoneWidth() * .5 && distToTide < approachZone) {
-          const approachT = Easing.smoothstep(Math.max(0, Math.min(1, (-distToTide + approachZone) / (approachZone + zoneWidth()))));
-          const passageT = ta;
-          combinedTide = Easing.inOut(approachT) * (1 - passageT) + passageT;
-          tideForce = combinedTide * (8 + pressure * 12) *
-            Math.sin(tideProgress * 1.3 + r.phase * .8 + i * .35);
+          // Tide-approach force: sine envelope keyed to distance from tide front
+          // Tightly couples to tideFrontVel so reeds react to how fast the tide is actually moving
+       let tideForce = 0;
+       if (tideFront > 0) {
+         const distToTide = r.x - tideFront;
+         const approachZone = 250 + pressure * 180;
+         if (distToTide > -zoneWidth() * .5 && distToTide < approachZone) {
+           const approachT = Easing.smoothstep(Math.max(0, Math.min(1, (-distToTide + approachZone) / (approachZone + zoneWidth()))));
+           const passageT = ta;
+           combinedTide = Easing.inOut(approachT) * (1 - passageT) + passageT;
+
+             // Base displacement from tide presence
+           const baseDisp = combinedTide * (8 + pressure * 12) *
+             Math.sin(tideProgress * 1.3 + r.phase * .8 + i * .35);
+
+             // Velocity-coupled displacement: reeds respond proportionally to how fast
+             // the tide front is moving. When drag is fast, reeds bend more; when idle,
+             // the sway dampens to near-zero. This creates a direct physical link between
+             // user gesture speed and reed response.
+           const velDisp = Math.abs(tideFrontVel) * .35 *
+             Math.sin(tideProgress * 1.8 + r.phase * 1.2 + i * .5) *
+             (1 + pressure * .5);
+
+           tideForce = baseDisp + velDisp;
+            }
           }
-        }
 
-        // Settling oscillation: decaying wave after release
-      let settleForce = 0;
-      if (settling) {
-        const decay = Math.pow(1 - settleProgress, 1.8);
-        settleForce = Math.sin(clock * 2.2 + r.phase * 3.1 + i * 1.7) *
-          (5 + r.h * .01) * decay;
-        }
+          // Settling oscillation: decaying wave after release
+       let settleForce = 0;
+       if (settling) {
+         const decay = Math.pow(1 - settleProgress, 1.8);
+           // Settle inherits residual velocity — fast tide → stronger settling oscillation
+         const residualVel = Math.abs(tideFrontVel) * .15;
+         settleForce = Math.sin(clock * 2.2 + r.phase * 3.1 + i * 1.7) *
+            (5 + r.h * .01 + residualVel) * decay;
+          }
 
-      const sway = ambientSway + tideForce + settleForce;
+       const sway = ambientSway + tideForce + settleForce;
 
         // Moonlit tint on reed tips during tide passage
       const moonlitTint = ta * .08;
@@ -2927,12 +3006,12 @@ const Render = (() => {
          ctx.stroke();
        }
      }
-     ctx.restore();
-   }
+      ctx.restore();
+    }
 
-   // ─── Negative space vignette ───
-   // Guides the eye toward center-moon and harbor by darkening edges.
-   // Very subtle: 3-5% alpha max. Only visible in settled state.
+     // ─── Negative space vignette ───
+    // Guides the eye toward center-moon and harbor by darkening edges.
+    // Very subtle: 3-5% alpha max. Only visible in settled state.
    function drawVignette(ctx) {
      const vAlpha = settled ? (.035 + settleBloom * .02) : 0;
      if (vAlpha < .005) return;
