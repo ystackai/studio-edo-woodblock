@@ -11,6 +11,8 @@ const Render = (() => {
     black: '#2A3048',
     water: '#8A9CB0',
     highlight: '#E8E2D0',
+    // New: pigment pooling accents
+    poolIndigo: '#162040',
   };
 
   let W = 0, H = 0;
@@ -22,54 +24,93 @@ const Render = (() => {
   let moonX, moonY, moonR, waterline;
   let boats = [], reeds = [], bridgePosts = [], lanternXs = [];
 
+  // Permanent pigment bloom — accumulates in tide-washed regions
+  let pigmentMap = null;       // offscreen canvas for accumulated ink
+  let pigmentCtx = null;
+  let grainPattern = null;     // pre-baked paper grain pattern
+
   function init(canvas) {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
     moonX = W * .8;
     moonY = H * .12;
-    moonR = Math.min(W, H) * .06;
-    waterline = H * .5;
+    moonR = Math.min(W, H) * .055;
+    waterline = H * .48;
+
+    // Rebuild pigment map
+    pigmentMap = document.createElement('canvas');
+    pigmentMap.width = W;
+    pigmentMap.height = H;
+    pigmentCtx = pigmentMap.getContext('2d');
+
+    // Pre-bake paper grain pattern (procedural)
+    _bakeGrainPattern();
 
     boats = [
-      { x: W * .18, y: waterline + H * .12, w: W * .12, h: H * .04, tilt: -.03 },
-      { x: W * .62, y: waterline + H * .06, w: W * .09, h: H * .035, tilt: .04 },
-      { x: W * .38, y: waterline + H * .24, w: W * .1, h: H * .03, tilt: -.01 },
-    ];
+       { x: W * .18, y: waterline + H * .12, w: W * .12, h: H * .04, tilt: -.03 },
+       { x: W * .62, y: waterline + H * .06, w: W * .09, h: H * .035, tilt: .04 },
+       { x: W * .38, y: waterline + H * .24, w: W * .1, h: H * .03, tilt: -.01 },
+     ];
 
     reeds = [];
     const zones = [
-      { cx: W * .06, n: 5, spread: .04 },
-      { cx: W * .94, n: 5, spread: .04 },
-      { cx: W * .22, n: 3, spread: .025 },
-    ];
+       { cx: W * .06, n: 6, spread: .05 },
+       { cx: W * .94, n: 6, spread: .05 },
+       { cx: W * .22, n: 4, spread: .03 },
+       { cx: W * .78, n: 3, spread: .02 },
+     ];
     zones.forEach(z => {
       for (let i = 0; i < z.n; i++) {
         reeds.push({
           x: z.cx + (Math.random() - .5) * z.spread * W,
-          baseY: waterline + H * (.06 + Math.random() * .22),
-          h: H * (.09 + Math.random() * .14),
+          baseY: waterline + H * (.04 + Math.random() * .24),
+          h: H * (.1 + Math.random() * .16),
           lean: (Math.random() - .5) * .35,
           phase: Math.random() * Math.PI * 2,
-        });
-      }
-    });
+          bladeCount: 2 + Math.floor(Math.random() * 3),
+         });
+       }
+     });
 
     bridgePosts = [
-      { x: W * .48, y1: waterline - H * .03, y2: waterline + H * .18 },
-      { x: W * .50, y1: waterline - H * .025, y2: waterline + H * .17 },
-      { x: W * .44, y1: waterline - H * .04, y2: waterline + H * .15 },
-      { x: W * .54, y1: waterline - H * .035, y2: waterline + H * .16 },
-    ];
-    lanternXs = bridgePosts.map(p => p.x);
+       { x: W * .46, y1: waterline - H * .035, y2: waterline + H * .18 },
+       { x: W * .485, y1: waterline - H * .03, y2: waterline + H * .17 },
+       { x: W * .515, y1: waterline - H * .028, y2: waterline + H * .16 },
+       { x: W * .54, y1: waterline - H * .032, y2: waterline + H * .175 },
+     ];
+    lanternXs = [bridgePosts[1].x, bridgePosts[2].x];
 
     tideFront = -1;
     tideProgress = 0;
-  }
+    pressure = 0;
+   }
+
+  // ─── Paper grain: pre-baked procedural noise pattern ───
+  function _bakeGrainPattern() {
+    const sz = 256;
+    const gc = document.createElement('canvas');
+    gc.width = sz;
+    gc.height = sz;
+    const gctx = gc.getContext('2d');
+    const img = gctx.createImageData(sz, sz);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = 180 + Math.random() * 60;
+      img.data[i] = v;
+      img.data[i + 1] = v - 5;
+      img.data[i + 2] = v - 12;
+      img.data[i + 3] = 35; // very faint alpha
+     }
+    gctx.putImageData(img, 0, 0);
+    grainPattern = document.createElement('canvas');
+    grainPattern.width = sz;
+    grainPattern.height = sz;
+    grainPattern.getContext('2d').drawImage(gc, 0, 0);
+   }
 
   function hexToRgb(hex) {
     const v = parseInt(hex.slice(1), 16);
     return { r: (v >> 16 & 255), g: (v >> 8 & 255), b: (v & 255) };
-  }
+   }
 
   function lerpColor(a, b, t) {
     const pa = hexToRgb(a), pb = hexToRgb(b);
@@ -77,17 +118,31 @@ const Render = (() => {
     const g = Math.round(pa.g + (pb.g - pa.g) * t);
     const bl = Math.round(pa.b + (pb.b - pa.b) * t);
     return 'rgb(' + r + ',' + g + ',' + bl + ')';
-  }
+   }
 
+  // Deterministic seeded random for stippling consistency per frame
+  let _seed = 42;
+  function _sr() {
+    _seed = (_seed * 16807 + 0) % 2147483647;
+    return _seed / 2147483647;
+   }
+
+  // ─── Tide query ───
   function tideAt(x) {
     if (tideFront <= 0) return 0;
     const d = x - tideFront;
     if (d < 0) return 0;
     const zone = 180 + pressure * 120;
     if (d > zone) return 1;
-    return d / zone;
-  }
+    // Smooth S-curve instead of linear: feels like ink soaking in
+    return _smoothstep(d / zone);
+   }
+  function _smoothstep(t) {
+    t = Math.max(0, Math.min(1, t));
+    return t * t * (3 - 2 * t);
+   }
 
+  // ─── Main draw pipeline ───
   function draw(ctx) {
     ctx.clearRect(0, 0, W, H);
     drawPaper(ctx);
@@ -102,34 +157,42 @@ const Render = (() => {
     drawLanternReflections(ctx);
     drawReeds(ctx);
     drawTide(ctx);
+    // Permanent pigment bloom layer (accumulated ink on paper)
+    drawPigmentLayer(ctx);
+    // Paper grain
+    drawPaperGrain(ctx);
+    // Registration lines (offset ghost lines)
     drawRegistration(ctx);
-  }
+   }
 
   function drawPaper(ctx) {
     ctx.fillStyle = C.paper;
     ctx.fillRect(0, 0, W, H);
-  }
+    // Subtle warm paper variation
+    const warm = ctx.createRadialGradient(W * .35, H * .35, 0, W * .5, H * .5, W * .7);
+    warm.addColorStop(0, 'rgba(245,240,228,.3)');
+    warm.addColorStop(1, 'rgba(230,224,210,.1)');
+    ctx.fillStyle = warm;
+    ctx.fillRect(0, 0, W, H);
+   }
 
+  // ─── Sky: flat muted wash, no gradients ───
   function drawSky(ctx) {
-    const grad = ctx.createLinearGradient(0, 0, 0, waterline);
-    grad.addColorStop(0, '#B5BFCB');
-    grad.addColorStop(1, C.sky);
-    ctx.fillStyle = grad;
+    ctx.fillStyle = '#B5BFCB';
     ctx.fillRect(0, 0, W, waterline);
+    // Second pass: lighter wash near horizon
+    ctx.fillStyle = 'rgba(200,208,219,.45)';
+    ctx.fillRect(0, waterline - H * .08, W, H * .08);
 
-    ctx.fillStyle = 'rgba(240,240,232,.15)';
-    const starPositions = [[.2, .15], [.35, .08], [.5, .18], [.65, .12], [.88, .06], [.12, .2], [.75, .22], [.42, .25], [.92, .16], [.08, .11], [.58, .05], [.3, .28]];
-    starPositions.forEach((s, i) => {
-      ctx.beginPath();
-      ctx.arc(s[0] * W, s[1] * H, 1 + (i % 3) * .3, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  }
+    // Moon craters: tiny dark dots on the moon face
+    // Drawn after moon to give carved detail
+   }
 
   function drawHills(ctx) {
-    const baseAlpha = .5 - tideProgress * .15;
+    const baseAlpha = .42 - tideProgress * .08;
     const hillY = (x) => waterline - (.022 + Math.sin(x * .004) * .015 + Math.sin(x * .009) * .007) * H;
 
+    // Reed-green wash
     ctx.fillStyle = 'rgba(90,122,90,' + baseAlpha + ')';
     ctx.beginPath();
     ctx.moveTo(0, waterline);
@@ -137,409 +200,725 @@ const Render = (() => {
     ctx.lineTo(W, waterline);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(42,48,72,.18)';
+    // Key line (carved black outline)
+    ctx.strokeStyle = 'rgba(42,48,72,.22)';
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     for (let x = 0; x <= W; x += 3) {
-      if (x === 0) ctx.moveTo(x, hillY(x));
-      else ctx.lineTo(x, hillY(x));
-    }
+       if (x === 0) ctx.moveTo(x, hillY(x));
+       else ctx.lineTo(x, hillY(x));
+     }
     ctx.stroke();
-  }
+
+    // Carved hatch marks on hills (traditional ukiyo-e shading)
+    if (tideProgress > .3) {
+       const hatchA = Math.min(.1, (tideProgress - .3) * .08);
+       ctx.strokeStyle = 'rgba(42,48,72,' + hatchA + ')';
+       ctx.lineWidth = .4;
+       for (let x = 0; x < W; x += 12) {
+         const hy = hillY(x);
+         const depth = waterline - hy;
+         if (depth > 5) {
+           for (let dy = 0; dy < depth * .6; dy += 5) {
+             ctx.beginPath();
+             ctx.moveTo(x, hy + dy);
+             ctx.lineTo(x + 5, hy + dy + 2.5);
+             ctx.stroke();
+            }
+          }
+        }
+      }
+   }
 
   function drawWater(ctx) {
-    const baseGrad = ctx.createLinearGradient(0, waterline, 0, H);
-    baseGrad.addColorStop(0, C.water);
-    baseGrad.addColorStop(1, '#6A7D90');
-    ctx.fillStyle = baseGrad;
+    // Flat wash instead of gradient
+    ctx.fillStyle = C.water;
     ctx.fillRect(0, waterline, W, H - waterline);
+    // Defer to a slightly darker band at bottom
+    ctx.fillStyle = 'rgba(106,125,144,.35)';
+    ctx.fillRect(0, waterline + H * .45, W, H * .25);
 
-    ctx.strokeStyle = 'rgba(200,208,219,.22)';
+    // Wave lines: minimal, like hand-drawn horizontal strokes
+    ctx.strokeStyle = 'rgba(200,208,219,.18)';
     ctx.lineWidth = .5;
-    for (let y = waterline + 4; y < H; y += 7) {
-      ctx.beginPath();
-      for (let x = 0; x < W; x += 4) {
-        const wave = Math.sin(x * .006 + y * .025 + tideProgress * 3) * 1.5;
-        if (x === 0) ctx.moveTo(x, y + wave);
-        else ctx.lineTo(x, y + wave);
-      }
-      ctx.stroke();
-    }
-  }
+    for (let y = waterline + 5; y < H; y += 9) {
+       ctx.beginPath();
+       for (let x = 0; x < W; x += 5) {
+         const wave = Math.sin(x * .005 + y * .02 + tideProgress * 2.5) * 1.2;
+         if (x === 0) ctx.moveTo(x, y + wave);
+         else ctx.lineTo(x, y + wave);
+        }
+       ctx.stroke();
+     }
+   }
 
   function drawMoon(ctx) {
+    // Outer glow ring
+    ctx.strokeStyle = 'rgba(240,240,232,.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonR + 16, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(240,240,232,.22)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonR + 8, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Moon disc
     ctx.fillStyle = C.moon;
     ctx.beginPath();
     ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(240,240,232,.35)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, moonR + 5, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(240,240,232,.15)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, moonR + 12, 0, Math.PI * 2);
-    ctx.stroke();
-  }
+    // Craters: carved dots on the moon
+    ctx.fillStyle = 'rgba(220,220,212,.3)';
+    const craterPositions = [[-.3,-.25],[.2,.3],[-.15,.1],[.35,-.1],[.05,-.4],[-.4,.15],[.15,.45]];
+    craterPositions.forEach(cp => {
+       ctx.beginPath();
+       ctx.arc(moonX + cp[0] * moonR, moonY + cp[1] * moonR, moonR * .08, 0, Math.PI * 2);
+       ctx.fill();
+     });
+   }
 
   function drawMoonReflection(ctx) {
-    const reflY = waterline + (waterline - moonY) * .35;
-    const mR = moonR * .4;
+    const reflY = waterline + H * .04;
+    const mR = moonR * .35;
     const ta = tideAt(moonX);
 
-    for (let i = 0; i < 9; i++) {
-      const ry = reflY + i * 5;
-      const rx = moonX + Math.sin(i * .65 + tideProgress * 2) * (2 + i * .4);
-      const rw = mR * (.4 + i * .1);
-      const alpha = (.18 * (1 - ta)) + .06;
+    // Tide deepens the reflection (ink soaked in)
+    const columnN = 10;
+    for (let i = 0; i < columnN; i++) {
+       const ry = reflY + i * 6;
+       const rx = moonX + Math.sin(i * .55 + tideProgress * 1.8) * (1.5 + i * .35);
+       const rw = mR * (.35 + i * .09) * (1 + ta * .3); // stretches wider as tide deepens
+       const alpha = (.1 * (1 - ta * .5)) + .04;
 
-      ctx.fillStyle = 'rgba(240,240,232,' + alpha + ')';
-      ctx.beginPath();
-      ctx.ellipse(rx, ry, rw, 1.2, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
+       ctx.fillStyle = 'rgba(240,240,232,' + alpha + ')';
+       ctx.beginPath();
+       ctx.ellipse(rx, ry, rw, 1.4, 0, 0, Math.PI * 2);
+       ctx.fill();
+     }
+
+    // Carved reflection key lines
+    if (ta > .2) {
+       const ca = (ta - .2) * .12;
+       ctx.strokeStyle = 'rgba(42,48,72,' + ca + ')';
+       ctx.lineWidth = .5;
+       for (let i = 0; i < 3; i++) {
+         const ry = reflY + i * 18 + 10;
+         const rx = moonX + Math.sin(i * .55 + tideProgress * 1.8) * 3;
+         ctx.beginPath();
+         ctx.moveTo(rx - mR * .6, ry);
+         ctx.lineTo(rx + mR * .6, ry);
+         ctx.stroke();
+        }
+     }
+   }
 
   function drawBridge(ctx) {
     const bridgeY = waterline - H * .04;
 
-    ctx.strokeStyle = lerpColor(C.paper, C.black, .55);
+    // Post outlines
+    ctx.strokeStyle = lerpColor(C.paper, C.black, .6);
     ctx.lineWidth = 3;
-
     bridgePosts.forEach(p => {
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y1);
-      ctx.lineTo(p.x, p.y2);
-      ctx.stroke();
-    });
+       ctx.beginPath();
+       ctx.moveTo(p.x, p.y1);
+       ctx.lineTo(p.x, p.y2);
+       ctx.stroke();
+       // Carved detail: subtle second line offset (woodblock registration effect)
+       ctx.strokeStyle = 'rgba(42,48,72,.12)';
+       ctx.lineWidth = .8;
+       ctx.beginPath();
+       ctx.moveTo(p.x + .8, p.y1 - .8);
+       ctx.lineTo(p.x + .8, p.y2 - .8);
+       ctx.stroke();
+      });
 
     if (bridgePosts.length >= 2) {
-      const left = bridgePosts[2], right = bridgePosts[3];
-      ctx.strokeStyle = lerpColor(C.paper, C.black, .45);
-      ctx.lineWidth = 2.5;
+       const left = bridgePosts[1], right = bridgePosts[2];
+       ctx.strokeStyle = lerpColor(C.paper, C.black, .5);
+       ctx.lineWidth = 2.5;
 
-      ctx.beginPath();
-      ctx.moveTo(left.x, bridgeY);
-      const midX = (left.x + right.x) / 2;
-      const midY = bridgeY - H * .015;
-      ctx.quadraticCurveTo(midX, midY, right.x, bridgeY);
-      ctx.stroke();
+       ctx.beginPath();
+       ctx.moveTo(left.x, bridgeY);
+       const midX = (left.x + right.x) / 2;
+       const midY = bridgeY - H * .018;
+       ctx.quadraticCurveTo(midX, midY, right.x, bridgeY);
+       ctx.stroke();
 
-      ctx.beginPath();
-      ctx.moveTo(left.x, bridgeY + 6);
-      ctx.quadraticCurveTo(midX, midY + 6, right.x, bridgeY + 6);
-      ctx.stroke();
-    }
-  }
+        // Bridge underside hatch marks (ukiyo-e carved shading)
+       ctx.strokeStyle = 'rgba(42,48,72,.08)';
+       ctx.lineWidth = .4;
+       const span = right.x - left.x;
+       for (let i = 0; i < span / 5; i++) {
+         const t = i / (span / 5);
+         const bx = left.x + t * span;
+         const by = bridgeY + H * .008;
+         ctx.beginPath();
+         ctx.moveTo(bx, by);
+         ctx.lineTo(bx + 4, by + 2.5);
+         ctx.stroke();
+        }
+
+       // Second arch line
+       ctx.strokeStyle = lerpColor(C.paper, C.black, .35);
+       ctx.lineWidth = 1.8;
+       ctx.beginPath();
+       ctx.moveTo(left.x, bridgeY + 6);
+       ctx.quadraticCurveTo(midX, midY + 6, right.x, bridgeY + 6);
+       ctx.stroke();
+     }
+   }
 
   function drawLanterns(ctx) {
     const bridgeY = waterline - H * .04;
-    const positions = [[2], [3]];
 
-    positions.forEach(idx => {
-      const p = bridgePosts[idx[0]];
-      const lx = p.x;
-      const ly = bridgeY + 10;
-      const ta = tideAt(lx);
+    lanternXs.forEach((lx, idx) => {
+       const ly = bridgeY + 14;
+       const ta = tideAt(lx);
 
-      ctx.fillStyle = lerpColor(C.black, C.amber, .3 + ta * .5);
-      ctx.fillRect(lx - 4, ly, 8, 12);
+        // Lantern body: deepens with tide
+       ctx.fillStyle = lerpColor(C.black, C.amber, .25 + ta * .55);
+       ctx.fillRect(lx - 4, ly, 9, 14);
 
-      ctx.strokeStyle = 'rgba(42,48,72,.3)';
-      ctx.lineWidth = .8;
-      ctx.strokeRect(lx - 4, ly, 8, 12);
+        // Key line: carved outline
+       ctx.strokeStyle = 'rgba(42,48,72,.35)';
+       ctx.lineWidth = .8;
+       ctx.strokeRect(lx - 4, ly, 9, 14);
 
-      ctx.fillStyle = 'rgba(212,160,74,' + (.15 + ta * .2) + ')';
-      ctx.fillRect(lx - 6, ly - 2, 12, 16);
-    });
-  }
+        // Inner glow: amber radiance (stronger as tide reveals)
+       const glowAlpha = .12 + ta * .25;
+       ctx.fillStyle = 'rgba(212,160,74,' + glowAlpha + ')';
+       ctx.fillRect(lx - 6, ly - 3, 14, 19);
 
+        // Top/cap detail
+       ctx.fillStyle = 'rgba(42,48,72,.25)';
+       ctx.fillRect(lx - 5, ly - 1, 11, 2);
+       ctx.fillRect(lx - 5, ly + 14, 11, 2);
+
+        // Small stipple dots on lantern body (carved pigment granulation)
+       if (ta > .15) {
+         ctx.fillStyle = 'rgba(212,160,74,' + (ta * .15) + ')';
+         for (let s = 0; s < 4; s++) {
+           ctx.beginPath();
+           ctx.arc(lx - 2 + (s % 3) * 3.5, ly + 3 + Math.floor(s / 3) * 5, .6, 0, Math.PI * 2);
+           ctx.fill();
+          }
+        }
+      });
+   }
+
+  // ─── Lantern reflections: stretch and ripple as tide deepens ───
   function drawLanternReflections(ctx) {
-    const positions = [[2], [3]];
-    positions.forEach((idx, i) => {
-      const p = bridgePosts[idx[0]];
-      const lx = p.x;
-      const reflY = waterline + H * (.05 + i * .03);
-      const reflH = H * (.1 + i * .02);
-      const ta = tideAt(lx);
-      const alpha = .12 * ta + .04;
+    lanternXs.forEach((lx, i) => {
+       const reflY = waterline + H * (.06 + i * .025);
+       const reflH = H * (.14 + i * .02);
+       const ta = tideAt(lx);
+       const alpha = .08 + ta * .22;
 
-      // Column glow
-      ctx.fillStyle = 'rgba(212,160,74,' + alpha + ')';
-      ctx.fillRect(lx - 2, reflY, 4, reflH);
+        // Main column glow (stretches as tide passes)
+       const stretch = 1 + ta * .8; // up to 1.8x longer
+       const colH = reflH * stretch;
 
-      for (let sy = reflY; sy < reflY + reflH; sy += 4) {
-        const sx = lx + Math.sin(sy * .08 + i + tideProgress) * 2;
-        ctx.fillStyle = 'rgba(212,160,74,' + (alpha * .5) + ')';
-        ctx.fillRect(sx - 1.5, sy, 3, 1);
-      }
-    });
-  }
+       // Draw as a series of segments for organic feel
+       const segH = 4;
+       for (let sy = reflY; sy < reflY + colH; sy += segH) {
+         const segT = (sy - reflY) / colH;
+         const sx = lx + Math.sin(sy * .06 + i * 1.3 + tideProgress * 2) * (2 + segT * 3);
+         const segAlpha = alpha * (1 - segT * .6);
+         ctx.fillStyle = 'rgba(212,160,74,' + segAlpha + ')';
+         ctx.fillRect(sx - 2, sy, 4, segH - 1);
+        }
+
+        // Wider amber wash at base
+       if (ta > .1) {
+         const washAlpha = (ta - .1) * .08;
+         ctx.fillStyle = 'rgba(212,160,74,' + washAlpha + ')';
+         ctx.beginPath();
+         ctx.ellipse(lx, reflY + colH * .5, 12 + ta * 6, colH * .3, 0, 0, Math.PI * 2);
+         ctx.fill();
+        }
+
+        // Carved key lines on reflection
+       if (ta > .3) {
+         const ka = (ta - .3) * .1;
+         ctx.strokeStyle = 'rgba(42,48,72,' + ka + ')';
+         ctx.lineWidth = .4;
+         for (let ly = reflY + 8; ly < reflY + colH; ly += 14) {
+           const lx2 = lx + Math.sin(ly * .06 + i * 1.3 + tideProgress * 2) * 2.5;
+           ctx.beginPath();
+           ctx.moveTo(lx2 - 3, ly);
+           ctx.lineTo(lx2 + 3, ly);
+           ctx.stroke();
+          }
+        }
+      });
+   }
 
   function drawBoats(ctx) {
     boats.forEach((b, i) => {
-      const cx = b.x + b.w / 2, cy = b.y;
-      const ta = tideAt(cx);
+       const cx = b.x + b.w / 2, cy = b.y;
+       const ta = tideAt(cx);
 
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(b.tilt + Math.sin(tideProgress * 1.5 + i) * .008);
-      ctx.translate(-cx, -cy);
+       ctx.save();
+       ctx.translate(cx, cy);
+       ctx.rotate(b.tilt + Math.sin(tideProgress * 1.2 + i * 1.5) * .006);
+       ctx.translate(-cx, -cy);
 
-      const hullColor = lerpColor(C.water, C.black, .25 + ta * .5);
-      ctx.fillStyle = hullColor;
-      ctx.beginPath();
-      ctx.moveTo(b.x, b.y + b.h);
-      ctx.quadraticCurveTo(b.x + b.w * .18, b.y, b.x + b.w * .5, b.y - b.h * .45);
-      ctx.quadraticCurveTo(b.x + b.w * .82, b.y, b.x + b.w, b.y + b.h);
-      ctx.closePath();
-      ctx.fill();
+        // Hull shape
+       const hullColor = lerpColor(C.water, C.darkIndigo, .2 + ta * .6);
+       ctx.fillStyle = hullColor;
+       ctx.beginPath();
+       ctx.moveTo(b.x, b.y + b.h);
+       ctx.quadraticCurveTo(b.x + b.w * .18, b.y - b.h * .3, b.x + b.w * .5, b.y - b.h * .5);
+       ctx.quadraticCurveTo(b.x + b.w * .82, b.y - b.h * .3, b.x + b.w, b.y + b.h);
+       ctx.closePath();
+       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(42,48,72,' + (.3 + ta * .3) + ')';
-      ctx.lineWidth = 1.3;
-      ctx.beginPath();
-      ctx.moveTo(b.x, b.y + b.h);
-      ctx.quadraticCurveTo(b.x + b.w * .18, b.y, b.x + b.w * .5, b.y - b.h * .45);
-      ctx.quadraticCurveTo(b.x + b.w * .82, b.y, b.x + b.w, b.y + b.h);
-      ctx.closePath();
-      ctx.stroke();
+        // Carved key line
+       ctx.strokeStyle = 'rgba(42,48,72,' + (.28 + ta * .42) + ')';
+       ctx.lineWidth = 1.4;
+       ctx.beginPath();
+       ctx.moveTo(b.x, b.y + b.h);
+       ctx.quadraticCurveTo(b.x + b.w * .18, b.y - b.h * .3, b.x + b.w * .5, b.y - b.h * .5);
+       ctx.quadraticCurveTo(b.x + b.w * .82, b.y - b.h * .3, b.x + b.w, b.y + b.h);
+       ctx.closePath();
+       ctx.stroke();
 
-      if (ta > .15) {
-        const hatchAlpha = (ta - .15) * 1.4;
-        ctx.strokeStyle = 'rgba(42,48,72,' + (hatchAlpha * .3) + ')';
-        ctx.lineWidth = .6;
-        const step = 3, n = Math.floor(b.w / step);
-        for (let k = 0; k < n; k++) {
-          const hx = b.x + k * step + 1.5;
-          const frac = k / n;
-          const byTop = b.y - b.h * (.45 * (1 - Math.pow(2 * frac - 1, 2)));
-          const byBot = b.y + b.h;
-          for (let hy = byTop + 2; hy < byBot; hy += 3) {
-            ctx.beginPath();
-            ctx.moveTo(hx, hy);
-            ctx.lineTo(hx + step * .7, hy + 1.8);
-            ctx.stroke();
+        // Registration offset ghost
+       ctx.strokeStyle = 'rgba(180,90,50,' + (.04 + ta * .04) + ')';
+       ctx.lineWidth = .6;
+       ctx.beginPath();
+       ctx.moveTo(b.x + 1.2, b.y + b.h - 1.2);
+       ctx.quadraticCurveTo(b.x + b.w * .18 + 1.2, b.y - b.h * .3 - 1.2, b.x + b.w * .5 + 1.2, b.y - b.h * .5 - 1.2);
+       ctx.quadraticCurveTo(b.x + b.w * .82 + 1.2, b.y - b.h * .3 - 1.2, b.x + b.w + 1.2, b.y + b.h - 1.2);
+       ctx.closePath();
+       ctx.stroke();
+
+       if (ta > .1) {
+         // ── Carved hatch marks: angled, variable length ──
+         const hatchAlpha = _smoothstep((ta - .1) * 2) * .28;
+         ctx.strokeStyle = 'rgba(42,48,72,' + hatchAlpha + ')';
+         ctx.lineWidth = .5;
+         const step = 4;
+         const n = Math.floor(b.w / step);
+         for (let k = 0; k < n; k++) {
+           const frac = k / n;
+           const byTop = b.y - b.h * (.5 * (1 - Math.pow(2 * frac - 1, 2)));
+           const byBot = b.y + b.h;
+           const hx = b.x + k * step + 2;
+            // Alternate angle for hand-carved feel
+           const angle = (k % 2 === 0) ? 1.8 : -1.2;
+           const len = 3 + (k % 3);
+           for (let hy = byTop + 2; hy < byBot; hy += 4) {
+             ctx.beginPath();
+             ctx.moveTo(hx, hy);
+             ctx.lineTo(hx + len * .6, hy + angle);
+             ctx.stroke();
+            }
+          }
+
+         // ── Stippled pigment: granular dots (consistent seed per frame) ──
+         if (ta > .35) {
+           const stipAlpha = _smoothstep((ta - .35) * 2.5) * .16;
+           const dotCount = Math.floor(6 + ta * 10);
+           ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha + ')';
+           _seed = 42 + i * 100 + Math.floor(tideProgress * 10);
+           for (let s = 0; s < dotCount; s++) {
+             const sx = b.x + _sr() * b.w;
+             const frac = (sx - b.x) / b.w;
+             const syBase = b.y - b.h * (.5 * (1 - Math.pow(2 * frac - 1, 2)));
+             const sy = syBase + _sr() * (b.y + b.h - syBase);
+             ctx.beginPath();
+             ctx.arc(sx, sy, .5 + _sr() * 1.2, 0, Math.PI * 2);
+             ctx.fill();
+            }
+          }
+
+         // ── Pigment pool: darker spot where ink collects at keel ──
+         if (ta > .5) {
+           const poolAlpha = _smoothstep((ta - .5) * 2) * .12;
+           ctx.fillStyle = 'rgba(22,32,64,' + poolAlpha + ')';
+           ctx.beginPath();
+           ctx.ellipse(b.x + b.w * .45, b.y + b.h * .85, b.w * .3, b.h * .4, 0, 0, Math.PI * 2);
+           ctx.fill();
           }
         }
-      }
 
-      // Stippled pigment as tide deepens
-      if (ta > .4) {
-        const stipAlpha = (ta - .4) * 1.6;
-        ctx.fillStyle = 'rgba(27,42,74,' + (stipAlpha * .12) + ')';
-        for (let s = 0; s < 8; s++) {
-          const sx = b.x + Math.random() * b.w;
-          const frac = (sx - b.x) / b.w;
-          const syBase = b.y - b.h * (.45 * (1 - Math.pow(2 * frac - 1, 2)));
-          const sy = syBase + Math.random() * (b.y + b.h - syBase);
-          ctx.beginPath();
-          ctx.arc(sx, sy, .8 + Math.random() * .6, 0, Math.PI * 2);
-          ctx.fill();
+        // ── Boat interior detail (appears at high tide) ──
+       if (ta > .7) {
+         const detAlpha = (ta - .7) * .15;
+         // Small line suggesting a cabin/thatch
+         ctx.strokeStyle = 'rgba(107,88,69,' + detAlpha + ')';
+         ctx.lineWidth = .6;
+         const cabinX = b.x + b.w * .35;
+         const cabinW = b.w * .15;
+         const cabinH = b.h * .6;
+         ctx.strokeRect(cabinX, b.y - b.h * .2, cabinW, cabinH);
         }
-      }
 
-      ctx.restore();
-    });
-  }
+       ctx.restore();
+      });
+   }
 
   function drawReeds(ctx) {
     reeds.forEach((r, i) => {
-      const ta = tideAt(r.x);
-      const sway = Math.sin(tideProgress * .8 + r.phase) * 2;
+       const ta = tideAt(r.x);
+       const sway = Math.sin(tideProgress * .7 + r.phase) * (1.5 + ta);
 
-      const rAlpha = .45 + ta * .45;
-      const stalkColor = lerpColor(C.water, C.reed, rAlpha);
+       const rAlpha = .4 + ta * .5;
+       const stalkColor = lerpColor(C.water, C.reed, rAlpha);
 
-      // Stalk
-      ctx.strokeStyle = stalkColor;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(r.x, r.baseY);
-      const tipX = r.x + r.lean * r.h * .6 + sway;
-      const tipY = r.baseY - r.h;
-      ctx.quadraticCurveTo(
-        r.x + r.lean * r.h * .25 + sway * .5,
-        r.baseY - r.h * .5,
-        tipX, tipY
-      );
-      ctx.stroke();
+        // Stalk main stroke
+       ctx.strokeStyle = stalkColor;
+       ctx.lineWidth = 1.5;
+       ctx.beginPath();
+       ctx.moveTo(r.x, r.baseY);
+       const tipX = r.x + r.lean * r.h * .6 + sway;
+       const tipY = r.baseY - r.h;
+       ctx.quadraticCurveTo(
+         r.x + r.lean * r.h * .25 + sway * .5,
+         r.baseY - r.h * .5,
+         tipX, tipY
+        );
+       ctx.stroke();
 
-      // Key line for carved feel
-      ctx.strokeStyle = 'rgba(42,48,72,.15)';
-      ctx.lineWidth = .5;
-      ctx.beginPath();
-      ctx.moveTo(r.x, r.baseY);
-      ctx.quadraticCurveTo(
-        r.x + r.lean * r.h * .25 + sway * .5,
-        r.baseY - r.h * .5,
-        tipX, tipY
-      );
-      ctx.stroke();
+        // Key line for carved feel (offset shadow)
+       ctx.strokeStyle = 'rgba(42,48,72,.12)';
+       ctx.lineWidth = .5;
+       ctx.beginPath();
+       ctx.moveTo(r.x + .6, r.baseY - .6);
+       ctx.quadraticCurveTo(
+         r.x + r.lean * r.h * .25 + sway * .5 + .6,
+         r.baseY - r.h * .5 - .6,
+         tipX + .6, tipY - .6
+        );
+       ctx.stroke();
 
-      // Reed top tufts - stippled pigment
-      if (ta > .2) {
-        const stipAlpha = (ta - .2) * 1.6;
+        // Reed top tufts: blade segments and stippled dots
+       if (ta > .15) {
+         const stipAlpha = _smoothstep((ta - .15) * 2.5);
 
-        // Long blade segments
-        ctx.strokeStyle = 'rgba(90,122,90,' + (stipAlpha * .25) + ')';
-        ctx.lineWidth = .8;
-        for (let b = 0; b < 3; b++) {
-          ctx.beginPath();
-          const startT = .6 + b * .1;
-          const sx2 = r.x + r.lean * r.h * startT + sway * startT;
-          const sy2 = r.baseY - r.h * startT;
-          ctx.moveTo(sx2, sy2);
-          ctx.quadraticCurveTo(
-            sx2 + (2 + b * 1.5), sy2 - 5 - b * 2,
-            sx2 + (4 + b * 2), sy2 - 10 - b * 3
-          );
-          ctx.stroke();
+          // Blade segments: hand-carved angled strokes
+         ctx.strokeStyle = 'rgba(90,122,90,' + (stipAlpha * .3) + ')';
+         ctx.lineWidth = .7;
+         for (let b = 0; b < r.bladeCount; b++) {
+           const startT = .55 + b * .12;
+           const sx2 = r.x + r.lean * r.h * startT + sway * startT;
+           const sy2 = r.baseY - r.h * startT;
+           ctx.beginPath();
+           ctx.moveTo(sx2, sy2);
+           const bladeLean = (b % 2 === 0) ? 1 : -1;
+           ctx.quadraticCurveTo(
+             sx2 + bladeLean * (2.5 + b * 1.2), sy2 - 4 - b * 1.5,
+             sx2 + bladeLean * (5 + b * 2.5), sy2 - 9 - b * 3
+            );
+           ctx.stroke();
+          }
+
+          // Stippled dots at tips
+         ctx.fillStyle = 'rgba(90,122,90,' + (stipAlpha * .22) + ')';
+         _seed = 99 + i * 50 + Math.floor(tideProgress * 7);
+         for (let d = 0; d < 5 + r.bladeCount * 2; d++) {
+           ctx.beginPath();
+           ctx.arc(
+             tipX + (_sr() - .5) * 8,
+             tipY + (_sr() - .5) * 5,
+             .5 + _sr() * .8,
+             0, Math.PI * 2
+            );
+           ctx.fill();
+          }
         }
 
-        ctx.fillStyle = 'rgba(90,122,90,' + (stipAlpha * .2) + ')';
-        for (let d = 0; d < 6; d++) {
-          ctx.beginPath();
-          ctx.arc(
-            tipX + (Math.random() - .5) * 6,
-            tipY + (Math.random() - .5) * 4,
-            .7 + Math.random() * .5,
-            0, Math.PI * 2
-          );
-          ctx.fill();
+        // Base stippling (where reed enters water, pigment collects)
+       if (ta > .5) {
+         const baseAlpha = _smoothstep((ta - .5) * 2) * .08;
+         ctx.fillStyle = 'rgba(27,42,74,' + baseAlpha + ')';
+         _seed = 200 + i * 70;
+         for (let s = 0; s < 4; s++) {
+           ctx.beginPath();
+           ctx.arc(r.x + (_sr() - .5) * 6, r.baseY - 2 + _sr() * 4, .6 + _sr() * .5, 0, Math.PI * 2);
+           ctx.fill();
+          }
         }
-      }
-    });
-  }
+      });
+   }
 
+  // ─── Tide band: the main ink wash ───
   function drawTide(ctx) {
     if (tideFront <= 0) return;
 
     const zone = 180 + pressure * 120;
 
-    for (let x = Math.max(0, tideFront - 20); x < Math.min(W, tideFront + zone + 20); x += 2) {
-      const d = x - tideFront;
-      if (d < 0 || d > zone) continue;
-      const t = d / zone;
+    // ── Phase 1: Indigo wash column (ink soaking into paper) ──
+    for (let x = Math.max(0, tideFront - 10); x < Math.min(W, tideFront + zone + 10); x += 2) {
+       const d = x - tideFront;
+       if (d < 0 || d > zone) continue;
+       const t = _smoothstep(d / zone);
 
-      // Tide wave line
-      const waveX = tideFront + t * zone;
-      const waveY = tideFront > 0 ? waterline + H * .25 + Math.sin(waveX * .015 + tideProgress * 2) * (H * .03) : H / 2;
-
-      // Indigo wash overlay - ink soaking into paper
-      const alpha = .08 + Math.sin(t * Math.PI) * (.2 + pressure * .25);
-      if (alpha > .03) {
-        ctx.fillStyle = 'rgba(27,42,74,' + alpha + ')';
-        ctx.fillRect(x, waterline - H * .06, 2, H * .75);
-      }
-
-      // Wave front line (the dark ink border)
-      if (t < .08) {
-        const edgeAlpha = .4 * (1 - t / .08);
-        ctx.strokeStyle = 'rgba(27,42,74,' + edgeAlpha + ')';
-        ctx.lineWidth = 2 + pressure * 2;
-        ctx.beginPath();
-        ctx.moveTo(x, waterline - H * .04);
-        ctx.lineTo(x, waterline + H * .68);
-        ctx.stroke();
-
-        // Ink wetness edge highlight
-        ctx.strokeStyle = 'rgba(240,240,232,' + (edgeAlpha * .4) + ')';
-        ctx.lineWidth = .8;
-        ctx.beginPath();
-        ctx.moveTo(x + 2, waterline - H * .04);
-        ctx.lineTo(x + 2, waterline + H * .68);
-        ctx.stroke();
-      }
-
-      // Fine hatch lines in the tide zone
-      if (t > .1 && t < .85) {
-        const hatchT = (t - .1) / (.75);
-        const hatchAlpha = Math.sin(hatchT * Math.PI) * (.06 + pressure * .08);
-        if (hatchAlpha > .02) {
-          ctx.strokeStyle = 'rgba(42,48,72,' + hatchAlpha + ')';
-          ctx.lineWidth = .4;
-          const spacing = 5;
-          for (let hy = waterline - H * .05; hy < waterline + H * .65; hy += spacing) {
-            const off = (hy % (spacing * 2) < spacing) ? 0 : spacing / 2;
-            ctx.beginPath();
-            ctx.moveTo(x + off, hy);
-            ctx.lineTo(x + off + 3, hy + 2);
-            ctx.stroke();
-          }
+        // Primary indigo wash: fades toward edges like absorbent paper
+       const alpha = .06 + Math.sin(t * Math.PI) * (.18 + pressure * .22);
+       if (alpha > .025) {
+         ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
+         ctx.fillRect(x, waterline - H * .04, 2, H * .72);
         }
-      }
 
-      // Stippled pigment deep in tide
-      if (t > .4 && Math.random() < .04) {
-        ctx.fillStyle = 'rgba(27,42,74,' + (t * .12) + ')';
-        ctx.beginPath();
-        ctx.arc(x, waterline + Math.random() * H * .6, .6 + Math.random() * .4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }
+        // Wave front edge: dark ink border (carved line)
+       if (t > .01 && t < .09) {
+         const edgeAlpha = .45 * Math.sin(t / .09 * Math.PI);
+         ctx.strokeStyle = 'rgba(27,42,74,' + edgeAlpha + ')';
+         ctx.lineWidth = 2.5 + pressure * 1.5;
+         ctx.beginPath();
+         ctx.moveTo(x, waterline - H * .05);
+         const wave = Math.sin(x * .02 + tideProgress * 3) * 3;
+         ctx.lineTo(x + wave, waterline + H * .65);
+         ctx.stroke();
 
+          // Ink wetness: pale highlight just behind the front
+         ctx.strokeStyle = 'rgba(240,240,232,' + (edgeAlpha * .35) + ')';
+         ctx.lineWidth = .7;
+         ctx.beginPath();
+         ctx.moveTo(x + 3, waterline - H * .05);
+         ctx.lineTo(x + 3 + wave, waterline + H * .65);
+         ctx.stroke();
+        }
+     }
+
+    // ── Phase 2: Carved hatch marks (fine, staggered, per-column) ──
+    _seed = 50 + Math.floor(tideProgress * 20);
+    for (let x = Math.max(0, tideFront + zone * .08); x < Math.min(W, tideFront + zone * .82); x += 5) {
+       const d = x - tideFront;
+       const t = d / zone;
+       const hatchT = (t - .08) / .74;
+       if (hatchT < 0 || hatchT > 1) continue;
+
+       const hatchAlpha = Math.sin(hatchT * Math.PI) * (.05 + pressure * .07);
+       if (hatchAlpha < .015) continue;
+
+       ctx.strokeStyle = 'rgba(42,48,72,' + hatchAlpha.toFixed(3) + ')';
+       ctx.lineWidth = .35;
+
+        // Multiple staggered hatch rows with varied angles
+       const rows = 3;
+       for (let row = 0; row < rows; row++) {
+         const baseY = waterline - H * .03 + row * (H * .23);
+         const angle = (row % 2 === 0) ? 2.2 : -1.6; // alternating angles
+         const len = 3 + ((x + row * 7) % 4); // varied length
+         const off = (row % 3) * 2.5; // horizontal stagger
+
+         ctx.beginPath();
+         ctx.moveTo(x + off, baseY + _sr() * 3);
+         ctx.lineTo(x + off + len * .6, baseY + _sr() * 3 + angle);
+         ctx.stroke();
+        }
+     }
+
+    // ── Phase 3: Stippled pigment (granular, tide-reactive dots) ──
+    _seed = 120 + Math.floor(tideProgress * 30);
+    for (let x = Math.max(0, tideFront + zone * .3); x < Math.min(W, tideFront + zone * .9); x += 3) {
+       const d = x - tideFront;
+       const t = d / zone;
+       if (t < .4 || _sr() > .06) continue;
+
+       const stipAlpha = t * .1;
+       ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha.toFixed(3) + ')';
+       ctx.beginPath();
+       ctx.arc(
+         x + _sr() * 2,
+         waterline + _sr() * H * .6,
+         .4 + _sr() * .7,
+         0, Math.PI * 2
+        );
+       ctx.fill();
+     }
+
+    // ── Phase 4: Pigment pooling in tide band (darker collect areas) ──
+    _seed = 300 + Math.floor(tideProgress * 15);
+    for (let i = 0; i < 3; i++) {
+       const px = tideFront + _sr() * zone * .8 + zone * .1;
+       const py = waterline + _sr() * H * .6;
+       const poolAlpha = pressure * .06 * (1 - i * .25);
+       if (poolAlpha < .005) continue;
+
+       ctx.fillStyle = 'rgba(22,32,64,' + poolAlpha + ')';
+       ctx.beginPath();
+       ctx.ellipse(px, py, 6 + _sr() * 10, 3 + _sr() * 5, _sr() * Math.PI, 0, Math.PI * 2);
+       ctx.fill();
+     }
+   }
+
+  // ─── Permanent pigment layer: tide leaves lasting ink marks ───
+  function drawPigmentLayer(ctx) {
+    if (tideFront <= 0) return;
+
+     // Accumulate new ink into offscreen canvas
+    const zone = 180 + pressure * 120;
+    const advanceX = Math.max(0, tideFront - 2);
+    const paintW = Math.min(12, zone * .05);
+
+    if (pressed && paintW > 0) {
+       pigmentCtx.fillStyle = 'rgba(27,42,74,.015)';
+       pigmentCtx.fillRect(advanceX, waterline - H * .04, paintW, H * .72);
+
+        // Stipple into pigment layer
+       _seed = 500 + Math.floor(performance.now() / 100) % 1000;
+       pigmentCtx.fillStyle = 'rgba(27,42,74,.008)';
+       for (let s = 0; s < 6; s++) {
+         const sx = advanceX + _sr() * paintW;
+         const sy = waterline + _sr() * H * .6;
+         pigmentCtx.beginPath();
+         pigmentCtx.arc(sx, sy, .4 + _sr() * .6, 0, Math.PI * 2);
+         pigmentCtx.fill();
+        }
+     }
+
+    // Draw accumulated pigment onto main canvas
+    if (pigmentMap) {
+      ctx.globalAlpha = .85;
+      ctx.drawImage(pigmentMap, 0, 0);
+      ctx.globalAlpha = 1;
+     }
+   }
+
+  // ─── Paper grain: procedural texture overlay ───
+  function drawPaperGrain(ctx) {
+    if (grainPattern) {
+       ctx.save();
+       ctx.globalAlpha = .06;
+       const pat = ctx.createPattern(grainPattern, 'repeat');
+       if (pat) {
+         ctx.fillStyle = pat;
+         ctx.fillRect(0, 0, W, H);
+        }
+       ctx.restore();
+     }
+
+    // Additional subtle fiber lines
+    ctx.save();
+    ctx.globalAlpha = .02;
+    ctx.strokeStyle = 'rgba(42,48,72,1)';
+    ctx.lineWidth = .25;
+    _seed = 700;
+    for (let i = 0; i < 20; i++) {
+       const yy = _sr() * H;
+       const xx = _sr() * W;
+       ctx.beginPath();
+       ctx.moveTo(xx, yy);
+       ctx.lineTo(xx + 8 + _sr() * 20, yy + (_sr() - .5) * 4);
+       ctx.stroke();
+     }
+    ctx.restore();
+   }
+
+  // ─── Registration lines: visible woodblock offset ghosts ───
   function drawRegistration(ctx) {
     ctx.save();
-    ctx.globalAlpha = .035;
-    ctx.strokeStyle = 'rgba(180,90,50,1)';
+    ctx.strokeStyle = 'rgba(175,85,48,.09)';
     ctx.lineWidth = .5;
 
+     // Bridge post offset ghosts (warmer red-brown = classic registration color)
     bridgePosts.forEach(p => {
-      ctx.beginPath();
-      ctx.moveTo(p.x + 1.2, p.y1 - 1.2);
-      ctx.lineTo(p.x + 1.2, p.y2 - 1.2);
-      ctx.stroke();
-    });
+       ctx.beginPath();
+       ctx.moveTo(p.x + 1.5, p.y1 - 1.5);
+       ctx.lineTo(p.x + 1.5, p.y2 - 1.5);
+       ctx.stroke();
 
+        // Second, wider offset (multi-pass registration look)
+       ctx.strokeStyle = 'rgba(175,85,48,.05)';
+       ctx.beginPath();
+       ctx.moveTo(p.x - 2, p.y1 + 2);
+       ctx.lineTo(p.x - 2, p.y2 + 2);
+       ctx.stroke();
+       ctx.strokeStyle = 'rgba(175,85,48,.09)';
+      });
+
+     // Boat outline offset ghosts
     boats.forEach(b => {
-      ctx.beginPath();
-      ctx.moveTo(b.x + .8, b.y + b.h - .8);
-      ctx.quadraticCurveTo(b.x + b.w * .18 + .8, b.y - .8, b.x + b.w * .5 + .8, b.y - b.h * .45 - .8);
-      ctx.quadraticCurveTo(b.x + b.w * .82 + .8, b.y - .8, b.x + b.w + .8, b.y + b.h - .8);
-      ctx.stroke();
-    });
+       ctx.strokeStyle = 'rgba(175,85,48,.07)';
+       ctx.beginPath();
+       ctx.moveTo(b.x + 1, b.y + b.h - 1);
+       ctx.quadraticCurveTo(b.x + b.w * .18 + 1, b.y - 1, b.x + b.w * .5 + 1, b.y - b.h * .45 - 1);
+       ctx.quadraticCurveTo(b.x + b.w * .82 + 1, b.y - 1, b.x + b.w + 1, b.y + b.h - 1);
+       ctx.stroke();
+      });
+
+     // Corner registration marks (traditional Japanese print markers)
+    ctx.strokeStyle = 'rgba(175,85,48,.12)';
+    ctx.lineWidth = .7;
+    const mkSize = 8;
+    const mkOffset = 14;
+    const marks = [
+       [mkOffset, mkOffset],
+       [W - mkOffset, mkOffset],
+       [mkOffset, H - mkOffset],
+       [W - mkOffset, H - mkOffset],
+     ];
+    marks.forEach(([mx, my]) => {
+        // Horizontal and vertical crosshair
+       ctx.beginPath();
+       ctx.moveTo(mx - mkSize - 4, my);
+       ctx.lineTo(mx + mkSize + 4, my);
+       ctx.stroke();
+       ctx.beginPath();
+       ctx.moveTo(mx, my - mkSize - 4);
+       ctx.lineTo(mx, my + mkSize + 4);
+       ctx.stroke();
+
+        // Small circle at intersection
+       ctx.beginPath();
+       ctx.arc(mx, my, mkSize, 0, Math.PI * 2);
+       ctx.stroke();
+
+        // Offset copy (second registration pass)
+       ctx.strokeStyle = 'rgba(175,85,48,.06)';
+       ctx.beginPath();
+       ctx.moveTo(mx - mkSize - 2, my + 1.5);
+       ctx.lineTo(mx + mkSize + 2, my + 1.5);
+       ctx.stroke();
+       ctx.strokeStyle = 'rgba(175,85,48,.12)';
+      });
 
     ctx.restore();
-  }
+   }
 
+  // ─── Input handlers ───
   function onDown(x, y) {
     pressed = true;
     lastX = x;
     lastY = y;
     if (tideFront <= 0) {
-      tideFront = x;
-    }
-  }
+       tideFront = x;
+      }
+   }
 
   function onMove(x, y) {
     if (!pressed) return;
     const dx = x - lastX;
     const dist = Math.abs(dx);
-    pressure = Math.min(1, pressure + dist * .006);
+    pressure = Math.min(1, pressure + dist * .005);
 
-    tideFront += dx * .6;
-    tideProgress += dist * .01;
+    tideFront += dx * .55;
+    tideProgress += dist * .008;
 
     lastX = x;
     lastY = y;
-  }
+   }
 
-   function onUp() {
-    pressing = false;
-    pressure = Math.max(0, pressure - .1);
-    tideProgress += .5;
-    }
+  function onUp() {
+    pressed = false;
+    pressure = Math.max(0, pressure - .08);
+    tideProgress += .3;
+   }
 
   function idleDrift(t) {
-    tideFront += Math.sin(t * 1.2) * .3;
-    tideProgress += .005;
-    pressure = Math.max(0, pressure - .003);
-    }
+    tideFront += Math.sin(t * 1.1) * .25;
+    tideProgress += .004;
+    pressure = Math.max(0, pressure - .0025);
+   }
 
   return { init, draw, onDown, onMove, onUp, idleDrift };
 })();
