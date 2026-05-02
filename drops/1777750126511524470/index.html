@@ -11,8 +11,8 @@ html, body {
   overflow: hidden;
   background: #8a8f96;
   touch-action: none;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
+ -webkit-touch-callout: none;
+ -webkit-user-select: none;
   user-select: none;
 }
 canvas {
@@ -86,7 +86,7 @@ canvas {
   var pressStartTime = 0;
   var pressDuration = 180; // ms - locked hold phase
   var dragStartTime = 0;
-  var dragDuration = 220; // ms - settle phase
+  var dragDuration = 600; // ms - yield triggers at 0.6s drag mark
   var yieldTriggered = false;
   var settleStartTime = 0;
   var settleDuration = 400; // ms - audio decay window
@@ -137,7 +137,6 @@ canvas {
   // ─── Ground Resistance Map ───
   // Slower thumb = heavier grind. Maps velocity to resistance factor [0.3, 1.0]
   function resistanceMap(velocity) {
-    // velocity in px/s, typical range 0-3000
     var normalized = Math.max(0, Math.min(1, velocity / 2000));
     return 1 - normalized * 0.7; // higher resistance when slow
   }
@@ -145,7 +144,6 @@ canvas {
   // ─── Velocity Tracking ───
   function trackVelocity(x, y, now) {
     inputHistory.push({ x: x, y: y, t: now });
-    // Keep last 80ms of history
     var cutoff = now - 80;
     while (inputHistory.length > 1 && inputHistory[0].t < cutoff) {
       inputHistory.shift();
@@ -161,14 +159,27 @@ canvas {
     }
   }
 
-  // ─── Audio Engine (Web Audio API, procedural) ───
+  // ─── Audio Engine (Web Audio API, procedural, persistent nodes) ───
   var audioCtx = null;
   var audioInitialized = false;
-  var lowGrainGain = null;
-  var lowGrainOsc = null;
+
+  // Persistent audio nodes - created once, modulated per frame
+  var grindOsc = null;
+  var grindGain = null;
+  var grindFilter = null;
   var noiseSource = null;
   var noiseGain = null;
-  var thudGain = null;
+  var noiseFilter = null;
+  var halfFrameDelay = null; // ~8.3ms delay for wet settle
+  var masterGain = null;
+  var audioStarted = false;
+
+  // Audio modulation state (lagged half-frame behind visuals)
+  var audioGrindFreq = 100;
+  var audioGrindGainVal = 0;
+  var audioNoiseGainVal = 0;
+  var prevAudioFrame = 0;
+  var audioLagTime = 0.00833; // half frame at 60fps = ~8.3ms
 
   function initAudio() {
     if (audioInitialized) return;
@@ -176,121 +187,122 @@ canvas {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
       audioInitialized = true;
+
+      // ── Half-frame delay for wet settle ──
+      halfFrameDelay = audioCtx.createDelay(0.1);
+      halfFrameDelay.delayTime.setValueAtTime(audioLagTime, audioCtx.currentTime);
+
+      // ── Master chain ──
+      masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(1, audioCtx.currentTime);
+      halfFrameDelay.connect(masterGain);
+      masterGain.connect(audioCtx.destination);
+
+      // ── Low-end grind oscillator (80-150Hz) ──
+      grindOsc = audioCtx.createOscillator();
+      grindGain = audioCtx.createGain();
+      grindFilter = audioCtx.createBiquadFilter();
+
+      grindOsc.type = 'sine';
+      grindOsc.frequency.setValueAtTime(100, audioCtx.currentTime);
+      grindGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+      // Low-pass filter: roll off above 4kHz to prevent mobile thumb fatigue
+      grindFilter.type = 'lowpass';
+      grindFilter.frequency.setValueAtTime(1600, audioCtx.currentTime);
+      grindFilter.Q.setValueAtTime(0.7, audioCtx.currentTime);
+
+      grindOsc.connect(grindFilter);
+      grindFilter.connect(grindGain);
+      grindGain.connect(halfFrameDelay);
+      grindOsc.start();
+
+      // ── Wet noise for mud texture (brown noise through bandpass) ──
+      var bufferSize = audioCtx.sampleRate * 2;
+      var noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      var nd = noiseBuffer.getChannelData(0);
+      var lastOut = 0;
+      for (var i = 0; i < bufferSize; i++) {
+        var white = Math.random() * 2 - 1;
+        lastOut = (lastOut + (0.02 * white)) / 1.02;
+        nd[i] = lastOut * 3.5;
+      }
+
+      noiseSource = audioCtx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      noiseSource.loop = true;
+
+      noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+      noiseFilter = audioCtx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(180, audioCtx.currentTime);
+      noiseFilter.Q.setValueAtTime(0.4, audioCtx.currentTime);
+
+      noiseSource.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(halfFrameDelay);
+      noiseSource.start();
+
     } catch (e) {
-      // Audio not available, continue silently
+      audioInitialized = false;
     }
   }
 
-  // Low-end grind oscillator (80-150Hz)
-  function startLowGrind(resistance) {
-    if (!audioCtx) return;
-    stopLowGrind();
+  // Called per animation frame to modulate existing audio nodes
+  function updateAudio(resistance, progress) {
+    if (!audioInitialized || !audioCtx) return;
 
-    // Sub oscillator for grind
-    lowGrainOsc = audioCtx.createOscillator();
-    lowGrainGain = audioCtx.createGain();
-    var lowpass = audioCtx.createBiquadFilter();
-    lowpass.type = 'lowpass';
-    lowpass.frequency.setValueAtTime(4000, audioCtx.currentTime); // roll off above 4kHz
-    lowpass.frequency.linearRampToValueAtTime(2500, audioCtx.currentTime + 0.5);
+    var now = audioCtx.currentTime;
+    var t = now + 0.001; // schedule slightly ahead for sample-accuracy
 
-    lowGrainOsc.type = 'sine';
-    // Frequency based on resistance: higher resistance = lower freq (heavier)
-    lowGrainOsc.frequency.setValueAtTime(80 + (1 - resistance) * 70, audioCtx.currentTime);
+    // Monotonic swell: audio grows with progress, never shrinks during active phases
+    var swell = monotonicEase(Math.max(0, Math.min(1, progress)));
+    var grindFreq = 80 + (1 - resistance) * 70; // 80-150Hz range
+    var grindVol = 0.1 * resistance * swell;
+    var noiseVol = 0.05 * resistance * swell;
 
-    lowGrainGain.gain.setValueAtTime(0, audioCtx.currentTime);
-    lowGrainGain.gain.linearRampToValueAtTime(0.12 * resistance, audioCtx.currentTime + 0.15);
+    // Smooth parameter updates using setTargetAtTime for natural transitions
+    grindGain.gain.setTargetAtTime(grindVol, t, 0.015);
+    grindOsc.frequency.setTargetAtTime(grindFreq, t, 0.02);
+    noiseGain.gain.setTargetAtTime(noiseVol, t, 0.02);
 
-    lowGrainOsc.connect(lowpass);
-    lowpass.connect(lowGrainGain);
-    lowGrainGain.connect(audioCtx.destination);
-    lowGrainOsc.start();
+    // Frequency filter tracks drag: lower freq at higher resistance
+    var filterFreq = 1200 + resistance * 800;
+    grindFilter.frequency.setTargetAtTime(filterFreq, t, 0.025);
   }
 
-  function stopLowGrind() {
-    if (lowGrainOsc) {
-      try {
-        if (lowGrainGain) lowGrainGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
-        setTimeout(function() { try { lowGrainOsc && lowGrainOsc.stop(); } catch(e){} }, 100);
-      } catch(e) {}
-      lowGrainOsc = null;
-      lowGrainGain = null;
-    }
-  }
-
-  // Wet noise for mud texture
-  function startWetNoise(resistance) {
-    if (!audioCtx) return;
-    stopWetNoise();
-
-    var bufferSize = audioCtx.sampleRate * 0.5;
-    var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    var data = buffer.getChannelData(0);
-    for (var i = 0; i < bufferSize; i++) {
-      // Brown-ish noise: filter random walk
-      data[i] = (Math.random() * 2 - 1);
-    }
-
-    noiseSource = audioCtx.createBufferSource();
-    noiseSource.buffer = buffer;
-    noiseSource.loop = true;
-
-    noiseGain = audioCtx.createGain();
-    var wetFilter = audioCtx.createBiquadFilter();
-    wetFilter.type = 'bandpass';
-    wetFilter.frequency.setValueAtTime(200, audioCtx.currentTime);
-    wetFilter.Q.setValueAtTime(0.5, audioCtx.currentTime);
-
-    noiseGain.gain.setValueAtTime(0, audioCtx.currentTime);
-    noiseGain.gain.linearRampToValueAtTime(0.06 * resistance, audioCtx.currentTime + 0.2);
-
-    noiseSource.connect(wetFilter);
-    wetFilter.connect(noiseGain);
-    noiseGain.connect(audioCtx.destination);
-    noiseSource.start();
-  }
-
-  function stopWetNoise() {
-    if (noiseSource) {
-      try {
-        if (noiseGain) noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
-        setTimeout(function() { try { noiseSource && noiseSource.stop(); } catch(e){} }, 100);
-      } catch(e) {}
-      noiseSource = null;
-      noiseGain = null;
-    }
-  }
-
-  // Heavy wet thud at yield
+  // Heavy wet thud/squelch at yield (0.6s drag mark)
   function triggerYieldThud() {
-    if (!audioCtx) return;
+    if (!audioInitialized || !audioCtx) return;
 
-    // Thud: short burst of low-frequency noise + sine thump
     var now = audioCtx.currentTime;
 
-    // Sine thump
+    // ── Sine thump: mallet-on-wood feel ──
     var thudOsc = audioCtx.createOscillator();
-    thudGain = audioCtx.createGain();
+    var thudGain = audioCtx.createGain();
     var thudFilter = audioCtx.createBiquadFilter();
+
     thudFilter.type = 'lowpass';
-    thudFilter.frequency.setValueAtTime(600, now);
-    thudFilter.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+    thudFilter.frequency.setValueAtTime(700, now);
+    thudFilter.frequency.exponentialRampToValueAtTime(90, now + 0.35);
 
     thudOsc.type = 'sine';
-    thudOsc.frequency.setValueAtTime(120, now);
-    thudOsc.frequency.exponentialRampToValueAtTime(55, now + 0.25);
+    thudOsc.frequency.setValueAtTime(130, now);
+    thudOsc.frequency.exponentialRampToValueAtTime(52, now + 0.3);
 
-    thudGain.gain.setValueAtTime(0.35, now);
-    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    thudGain.gain.setValueAtTime(0.32, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
 
     thudOsc.connect(thudFilter);
     thudFilter.connect(thudGain);
-    thudGain.connect(audioCtx.destination);
+    thudGain.connect(masterGain);
     thudOsc.start(now);
     thudOsc.stop(now + 0.5);
 
-    // Noise squelch
-    var bufLen = audioCtx.sampleRate * 0.3;
+    // ── Noise squelch: saturated clay ──
+    var bufLen = audioCtx.sampleRate * 0.35;
     var squelchBuf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
     var sd = squelchBuf.getChannelData(0);
     for (var i = 0; i < bufLen; i++) {
@@ -302,37 +314,76 @@ canvas {
     var squelchGain = audioCtx.createGain();
     var squelchFilter = audioCtx.createBiquadFilter();
     squelchFilter.type = 'lowpass';
-    squelchFilter.frequency.setValueAtTime(1000, now);
-    squelchFilter.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+    squelchFilter.frequency.setValueAtTime(900, now);
+    squelchFilter.frequency.exponentialRampToValueAtTime(80, now + 0.28);
 
-    squelchGain.gain.setValueAtTime(0.2, now);
-    squelchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    squelchGain.gain.setValueAtTime(0.18, now);
+    squelchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
 
     squelchSrc.connect(squelchFilter);
     squelchFilter.connect(squelchGain);
-    squelchGain.connect(audioCtx.destination);
+    squelchGain.connect(masterGain);
     squelchSrc.start(now);
 
-    // Resonance: 300ms lingering mud thud
+    // ── Resonance layer: 300ms lingering mud thud ──
     var resOsc = audioCtx.createOscillator();
     var resGain = audioCtx.createGain();
+    var resFilter = audioCtx.createBiquadFilter();
+
     resOsc.type = 'triangle';
-    resOsc.frequency.setValueAtTime(85, now);
-    resGain.gain.setValueAtTime(0.08, now);
-    resGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-    resOsc.connect(resGain);
-    resGain.connect(audioCtx.destination);
+    resOsc.frequency.setValueAtTime(82, now);
+    resOsc.frequency.linearRampToValueAtTime(70, now + 0.3);
+
+    resGain.gain.setValueAtTime(0.07, now);
+    resGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    resFilter.type = 'lowpass';
+    resFilter.frequency.setValueAtTime(400, now);
+    resFilter.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+
+    resOsc.connect(resFilter);
+    resFilter.connect(resGain);
+    resGain.connect(masterGain);
     resOsc.start(now);
     resOsc.stop(now + 0.4);
+
+    // ── Immediate high-frequency roll-off post-yield ──
+    grindFilter.frequency.linearRampToValueAtTime(400, now + 0.15);
+    noiseFilter.frequency.linearRampToValueAtTime(120, now + 0.2);
   }
 
+  // Decay all audio to near-silence within settleDuration (400ms) post-yield
   function decayAudio() {
-    if (lowGrainGain && audioCtx) {
-      lowGrainGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    if (!audioInitialized || !audioCtx) return;
+    var now = audioCtx.currentTime;
+    var decayTime = 0.25;
+    if (grindGain) {
+      grindGain.gain.linearRampToValueAtTime(0, now + decayTime);
     }
-    if (noiseGain && audioCtx) {
-      noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    if (noiseGain) {
+      noiseGain.gain.linearRampToValueAtTime(0, now + decayTime);
     }
+  }
+
+  function stopAllAudio() {
+    decayAudio();
+    // Nodes stay alive but silent; will restart fresh on next press
+  }
+
+  function resetAudio() {
+    if (!audioInitialized || !audioCtx) return;
+    var now = audioCtx.currentTime;
+    // Fast silence
+    if (grindGain) grindGain.gain.setValueAtTime(0, now);
+    if (noiseGain) noiseGain.gain.setValueAtTime(0, now);
+    // Reset filters to neutral
+    if (grindFilter) {
+      grindFilter.frequency.setValueAtTime(1600, now);
+    }
+    if (noiseFilter) {
+      noiseFilter.frequency.setValueAtTime(180, now);
+    }
+    grindOsc.frequency.setValueAtTime(100, now);
   }
 
   // ─── Touch/Mouse Handlers ───
@@ -364,7 +415,12 @@ canvas {
     targetY = pos.y;
     state = STATE_PRESS;
     pressProgress = 0;
+    dragProgress = 0;
     inputHistory = [];
+
+    // Reset audio for fresh interaction
+    if (audioInitialized && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    resetAudio();
   }
 
   function onPointerMove(e) {
@@ -373,7 +429,6 @@ canvas {
     var pos = getPos(e);
 
     if (state === STATE_PRESS) {
-      // During press phase, cursor is locked - input tracked but not applied
       inputX = pos.x;
       inputY = pos.y;
       trackVelocity(pos.x, pos.y, performance.now());
@@ -396,10 +451,8 @@ canvas {
     isPointerDown = false;
 
     if (state === STATE_PRESS) {
-      // Released too early - reset
       resetState();
     } else if (state === STATE_DRAG) {
-      // Force transition to yield
       triggerYield();
     } else if (state === STATE_YIELD) {
       // Let yield complete naturally
@@ -433,8 +486,7 @@ canvas {
     rippleRadius = 0;
     mistOpacity = 0;
     objScale = 1;
-    stopLowGrind();
-    stopWetNoise();
+    stopAllAudio();
 
     var copyEl = document.getElementById('copy');
     if (copyEl) copyEl.style.opacity = '';
@@ -502,7 +554,7 @@ canvas {
       ctx.lineWidth = 1.2;
       ctx.stroke();
 
-      // Wet sheen highlight (peaks at 0.6s of drag)
+      // Wet sheen highlight (peaks at 0.6s mark of drag curve)
       if (sheenOpacity > 0.01) {
         ctx.beginPath();
         ctx.arc(objX, objY, objRadius * 1.6, 0, Math.PI * 2);
@@ -565,21 +617,22 @@ canvas {
   // ─── Update Loop ───
   function update(now) {
     var dt = (now - lastFrameTime) / 1000;
-    dt = Math.min(dt, 0.05); // cap to prevent jumps
+    dt = Math.min(dt, 0.05);
     lastFrameTime = now;
 
-    // ── Phase Transitions ──
+    // ── Phase Transitions & Audio Integration ──
     if (state === STATE_PRESS) {
       pressProgress = (now - pressStartTime) / pressDuration;
+      pressProgress = Math.min(1, pressProgress);
 
       // Build-up: compression increases during press
-      compression = monotonicEase(Math.min(1, pressProgress)) * 0.4;
+      compression = monotonicEase(pressProgress) * 0.4;
 
-      // Start audio grind at 0.3s into hold
-      if (pressProgress > 0.3 && isPointerDown) {
-        var resistance = resistanceMap(inputVelocity);
-        startLowGrind(resistance);
-        startWetNoise(resistance);
+      // Low-end grind fades in at 0.3s (30% into hold), swells monotonically
+      var audioProgress = Math.max(0, (pressProgress - 0.3) / 0.7);
+      var resistance = resistanceMap(inputVelocity);
+      if (audioInitialized && audioCtx) {
+        updateAudio(resistance, audioProgress);
       }
 
       // Transition to drag after 180ms hold
@@ -587,7 +640,6 @@ canvas {
         state = STATE_DRAG;
         dragStartTime = now;
         dragProgress = 0;
-        // Position snaps from press point to current input
         objX = inputX;
         objY = inputY;
       }
@@ -605,26 +657,26 @@ canvas {
         blendFactor = 0;
       }
 
-      // Object follows input with resistance
+      // Object follows input with ground resistance
       var resistance = resistanceMap(inputVelocity);
       var followSpeed = (1 - resistance * 0.6);
       objX += (targetX - objX) * followSpeed;
       objY += (targetY - objY) * followSpeed;
 
-      // Sheen peaks at ~0.6s which maps to ~0.6 / (pressDuration/1000 + dragDuration/1000)
-      var totalElapsed = dragProgress;
-      var sheenPeak = 0.6 / (dragDuration / 1000);
-      // Sheen peaks mid-drag and softens at end
-      sheenOpacity = Math.max(0, 1 - Math.abs(totalElapsed - 0.55) * 3);
+      // Wet sheen peaks at 0.6s mark of drag curve (= dragProgress of 1.0)
+      // Sheen: rises as yield approaches, peaks right before yield
+      var sheenPeak = 1.0; // 0.6s mark
+      var sheenDist = Math.abs(dragProgress - sheenPeak);
+      sheenOpacity = Math.max(0, 1 - sheenDist * 4);
       sheenOpacity = Math.min(1, sheenOpacity);
 
-      // Update audio grind based on current velocity
-      if (isPointerDown) {
-        var r = resistanceMap(inputVelocity);
-        startLowGrind(r);
-        startWetNoise(r);
+      // Audio swells continuously with monotonic drag curve
+      // Resistance scales inversely with velocity (slower = heavier grind)
+      if (audioInitialized && audioCtx && isPointerDown) {
+        updateAudio(resistance, dragProgress);
       }
 
+      // Yield at 0.6s drag mark (dragProgress >= 1 at 600ms)
       if (dragProgress >= 1) {
         triggerYield();
       }
@@ -640,6 +692,11 @@ canvas {
       var mistElapsed = (now - settleStartTime) / mistFadeDuration;
       mistOpacity = mistEase(Math.min(1, mistElapsed));
 
+      // Begin audio decay immediately post-yield
+      if (yieldElapsed > 0.05) {
+        decayAudio();
+      }
+
       if (yieldElapsed > 1.5) {
         state = STATE_SETTLE;
       }
@@ -651,11 +708,10 @@ canvas {
       // Ripple final fade
       rippleOpacity *= 0.97;
 
-      // Audio decay: near-silence within 400ms post-yield
+      // Audio decay: near-silence is guaranteed via decayAudio
       var settleElapsed = (now - settleStartTime) / 1000;
-      if (settleElapsed > 0.4) {
-        stopLowGrind();
-        stopWetNoise();
+      if (settleElapsed > (settleDuration / 1000)) {
+        stopAllAudio();
       }
 
       // Scale settles to resting
@@ -664,11 +720,12 @@ canvas {
 
     // When idle with no interaction, slow decay of residual effects
     if (state === STATE_IDLE && compression > 0.001) {
-      // If we reset mid-yield, let residual visuals fade
+      // Let residual visuals fade naturally
     }
   }
 
   var lastFrameTime = performance.now();
+  var objRadius = 30; // for mist gradient
 
   // ─── Main Loop ───
   function loop(now) {
