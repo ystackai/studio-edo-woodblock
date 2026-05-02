@@ -256,6 +256,21 @@ const Audio = (() => {
           }
         }
 
+   // ── Fade all continuous layers to silence over `durationMs` (no setInterval) ──
+  function fadeAllDown(durationMs) {
+    if (!ctx || !initialized) return;
+    const now = ctx.currentTime;
+    const dur = durationMs / 1000;
+    if (paperGain) {
+      paperGain.gain.setValueAtTime(Math.max(.001, paperGain.gain.value), now);
+      paperGain.gain.exponentialRampToValueAtTime(.001, now + dur);
+    }
+    if (waterDrone) {
+      waterDrone.g.gain.setValueAtTime(Math.max(.001, waterDrone.g.gain.value), now);
+      waterDrone.g.gain.exponentialRampToValueAtTime(.001, now + dur);
+    }
+  }
+
    return { init, tap, startPaperRub, setPaperVolume, stopPaperRub,
-             startWaterDrone, setWaterVolume, stopWaterDrone, settle, playReset };
+              startWaterDrone, setWaterVolume, stopWaterDrone, settle, playReset, fadeAllDown };
 })();
