@@ -108,27 +108,70 @@ const Render = (() => {
     pressure = 0;
    }
 
-  // ─── Paper grain: pre-baked procedural noise pattern ───
+   // ─── Paper grain: pre-baked procedural noise with fiber directionality ───
   function _bakeGrainPattern() {
     const sz = 256;
     const gc = document.createElement('canvas');
     gc.width = sz;
     gc.height = sz;
     const gctx = gc.getContext('2d');
+
+    // Layer 1: base noise (washi paper fiber speckle)
     const img = gctx.createImageData(sz, sz);
     for (let i = 0; i < img.data.length; i += 4) {
-      const v = 180 + Math.random() * 60;
+      const x = (i / 4) % sz;
+      const y = Math.floor(i / 4 / sz);
+      // Larger-scale variation + fine speckle
+      const macro = (Math.sin(x * .1) * Math.cos(y * .08) * .3) +
+                    (Math.sin(x * .03 + y * .04) * .2);
+      const speckle = Math.random() * .4;
+      const v = 175 + (macro * 30) + (speckle * 25);
       img.data[i] = v;
-      img.data[i + 1] = v - 5;
-      img.data[i + 2] = v - 12;
-      img.data[i + 3] = 35; // very faint alpha
-     }
+      img.data[i + 1] = v - 6;
+      img.data[i + 2] = v - 14;
+      img.data[i + 3] = 28;
+    }
     gctx.putImageData(img, 0, 0);
+
+    // Layer 2: fiber lines (directional, horizontal-ish like wood grain in washi)
+    gctx.save();
+    gctx.globalAlpha = .12;
+    gctx.strokeStyle = 'rgba(80,70,55,1)';
+    gctx.lineWidth = .3;
+    for (let i = 0; i < 35; i++) {
+      const yy = Math.random() * sz;
+      const xx = Math.random() * sz;
+      const len = 8 + Math.random() * 30;
+      const dy = (Math.random() - .3) * 3; // mostly horizontal, slight tilt
+      gctx.beginPath();
+      gctx.moveTo(xx, yy);
+      gctx.lineTo(xx + len, yy + dy);
+      gctx.stroke();
+    }
+    gctx.restore();
+
+    // Layer 3: subtle cross-hatching (mimics hand-laid paper fibers)
+    gctx.save();
+    gctx.globalAlpha = .06;
+    gctx.strokeStyle = 'rgba(90,80,65,1)';
+    gctx.lineWidth = .2;
+    for (let i = 0; i < 15; i++) {
+      const yy = Math.random() * sz;
+      const xx = Math.random() * sz;
+      const len = 5 + Math.random() * 12;
+      const angle = (-1.2 + Math.random() * .4); // ~-60deg fibers
+      gctx.beginPath();
+      gctx.moveTo(xx, yy);
+      gctx.lineTo(xx + len * .6, yy + len * Math.tan(angle));
+      gctx.stroke();
+    }
+    gctx.restore();
+
     grainPattern = document.createElement('canvas');
     grainPattern.width = sz;
     grainPattern.height = sz;
     grainPattern.getContext('2d').drawImage(gc, 0, 0);
-   }
+    }
 
   function hexToRgb(hex) {
     const v = parseInt(hex.slice(1), 16);
@@ -932,33 +975,38 @@ const Render = (() => {
        }
      }
 
-  // ─── Paper grain: procedural texture overlay ───
+    // ─── Paper grain: procedural texture overlay, intensifies on settle ───
   function drawPaperGrain(ctx) {
+    const grainAlpha = settled ? .085 : (.06 + tideProgress * .015);
+
     if (grainPattern) {
        ctx.save();
-       ctx.globalAlpha = .06;
+       ctx.globalAlpha = grainAlpha;
        const pat = ctx.createPattern(grainPattern, 'repeat');
        if (pat) {
          ctx.fillStyle = pat;
          ctx.fillRect(0, 0, W, H);
-        }
+         }
        ctx.restore();
-     }
+       }
 
-    // Additional subtle fiber lines
+      // Additional fiber lines: density and alpha scale with settle state
     ctx.save();
-    ctx.globalAlpha = .02;
+    ctx.globalAlpha = .02 + (settled ? .015 : tideProgress * .008);
     ctx.strokeStyle = 'rgba(42,48,72,1)';
     ctx.lineWidth = .25;
-    _seed = 700;
-    for (let i = 0; i < 20; i++) {
+     _seed = 700;
+    const fiberCount = settled ? 32 : (20 + Math.floor(tideProgress * 10));
+    for (let i = 0; i < fiberCount; i++) {
        const yy = _sr() * H;
        const xx = _sr() * W;
+       const len = 6 + _sr() * 22;
+       const angle = (_sr() - .5) * .5; // mostly horizontal with variation
        ctx.beginPath();
        ctx.moveTo(xx, yy);
-       ctx.lineTo(xx + 8 + _sr() * 20, yy + (_sr() - .5) * 4);
+       ctx.lineTo(xx + len * Math.cos(angle), yy + len * Math.sin(angle));
        ctx.stroke();
-     }
+       }
     ctx.restore();
   }
 
@@ -1066,76 +1114,180 @@ const Render = (() => {
     ctx.restore();
   }
 
-  // ─── Registration lines: visible woodblock offset ghosts ───
+    // ─── Registration lines: visible woodblock offset ghosts with irregularity ───
   function drawRegistration(ctx) {
     ctx.save();
-    ctx.strokeStyle = 'rgba(175,85,48,.09)';
-    ctx.lineWidth = .5;
 
-     // Bridge post offset ghosts (warmer red-brown = classic registration color)
-    bridgePosts.forEach(p => {
-       ctx.beginPath();
-       ctx.moveTo(p.x + 1.5, p.y1 - 1.5);
-       ctx.lineTo(p.x + 1.5, p.y2 - 1.5);
-       ctx.stroke();
+     // Registration intensity increases as tide progresses — full visibility in final print
+    const regBoost = .6 + Math.min(.4, tideProgress * .4);
+     // In settled state, registration lines become permanently visible (the "print is set" mark)
+    const settledBoost = settled ? 1.3 : 1;
 
-        // Second, wider offset (multi-pass registration look)
-       ctx.strokeStyle = 'rgba(175,85,48,.05)';
-       ctx.beginPath();
-       ctx.moveTo(p.x - 2, p.y1 + 2);
-       ctx.lineTo(p.x - 2, p.y2 + 2);
-       ctx.stroke();
-       ctx.strokeStyle = 'rgba(175,85,48,.09)';
-      });
+     // ── Pass 1: warm red-brown (benimoji key-block registration) ──
+    ctx.strokeStyle = `rgba(175,85,48,${(.11 * regBoost * settledBoost).toFixed(3)})`;
+    ctx.lineWidth = .6;
 
-     // Boat outline offset ghosts
-    boats.forEach(b => {
-       ctx.strokeStyle = 'rgba(175,85,48,.07)';
-       ctx.beginPath();
-       ctx.moveTo(b.x + 1, b.y + b.h - 1);
-       ctx.quadraticCurveTo(b.x + b.w * .18 + 1, b.y - 1, b.x + b.w * .5 + 1, b.y - b.h * .45 - 1);
-       ctx.quadraticCurveTo(b.x + b.w * .82 + 1, b.y - 1, b.x + b.w + 1, b.y + b.h - 1);
-       ctx.stroke();
-      });
+     // Bridge post offset ghosts with slight irregularity
+    bridgePosts.forEach((p, idx) => {
+       // Each post gets a slightly different offset, simulating real block drift
+      const dx = 1.2 + (idx % 3) * .4;
+      const dy = -1.2 - ((idx + 1) % 2) * .3;
+       // Jitter: sub-pixel irregularity along the line
+      ctx.beginPath();
+      ctx.moveTo(p.x + dx, p.y1 + dy);
+      // Mid-point jitter for hand-carved feel
+      const midY = (p.y1 + p.y2) / 2;
+      ctx.lineTo(p.x + dx + .3 * ((idx % 2 === 0) ? 1 : -1), midY + dy);
+      ctx.lineTo(p.x + dx - .2, p.y2 + dy);
+      ctx.stroke();
+     });
 
-     // Corner registration marks (traditional Japanese print markers)
-    ctx.strokeStyle = 'rgba(175,85,48,.12)';
-    ctx.lineWidth = .7;
+     // Hill outline registration ghost
+    {
+      const hillY = (x) => waterline - (.022 + Math.sin(x * .004) * .015 + Math.sin(x * .009) * .007) * H;
+      const rdx = 1.8;
+      const rdy = -1.2;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 6) {
+        const jitter = Math.sin(x * .31) * .4; // irregularity
+        if (x === 0) ctx.moveTo(x + rdx, hillY(x) + rdy + jitter);
+        else ctx.lineTo(x + rdx, hillY(x) + rdy + jitter);
+       }
+      ctx.stroke();
+     }
+
+     // Boat hull registration ghosts — tighter alignment to key lines, 2 passes each
+    boats.forEach((b, idx) => {
+       // Pass 1: warm offset (key block)
+      const dx1 = 1 + idx * .3;
+      const dy1 = -1 - (idx % 2) * .4;
+      ctx.strokeStyle = `rgba(175,85,48,${(.08 * regBoost * settledBoost).toFixed(3)})`;
+      ctx.lineWidth = .5;
+      ctx.beginPath();
+      ctx.moveTo(b.x + dx1, b.y + b.h - 1 + dy1);
+      ctx.quadraticCurveTo(
+        b.x + b.w * .18 + dx1, b.y - 1 + dy1,
+        b.x + b.w * .5 + dx1, b.y - b.h * .5 - 1 + dy1
+       );
+      ctx.quadraticCurveTo(
+        b.x + b.w * .82 + dx1, b.y - 1 + dy1,
+        b.x + b.w + dx1, b.y + b.h - 1 + dy1
+       );
+      ctx.closePath();
+      ctx.stroke();
+
+       // Pass 2: cooler blue offset (indigo block registration)
+      const dx2 = -1.5 - idx * .2;
+      const dy2 = 1 + (idx % 3) * .3;
+      ctx.strokeStyle = `rgba(90,100,140,${(.05 * regBoost * settledBoost).toFixed(3)})`;
+      ctx.lineWidth = .4;
+      ctx.beginPath();
+      ctx.moveTo(b.x + dx2, b.y + b.h + dy2);
+      ctx.quadraticCurveTo(
+        b.x + b.w * .18 + dx2, b.y + dy2,
+        b.x + b.w * .5 + dx2, b.y - b.h * .5 + dy2
+       );
+      ctx.quadraticCurveTo(
+        b.x + b.w * .82 + dx2, b.y + dy2,
+        b.x + b.w + dx2, b.y + b.h + dy2
+       );
+      ctx.closePath();
+      ctx.stroke();
+     });
+
+     // Reed stalk registration ghosts — subtle, each with unique offset
+    reeds.forEach((r, idx) => {
+      const dx = (idx % 3 - 1) * 1.1;
+      const dy = ((idx + 1) % 2 === 0 ? -1 : 1) * .9;
+      ctx.strokeStyle = `rgba(175,85,48,${(.04 * regBoost * settledBoost).toFixed(3)})`;
+      ctx.lineWidth = .35;
+      ctx.beginPath();
+      ctx.moveTo(r.x + dx, r.baseY + dy - .5);
+      const tipX = r.x + r.lean * r.h * .6 + dx;
+      const tipY = r.baseY - r.h + dy;
+      ctx.quadraticCurveTo(
+        r.x + r.lean * r.h * .25 + dx,
+        r.baseY - r.h * .5 + dy,
+        tipX, tipY
+       );
+      ctx.stroke();
+     });
+
+     // Bridge arch registration ghost
+    if (bridgePosts.length >= 2) {
+      const left = bridgePosts[1], right = bridgePosts[2];
+      const bridgeY = waterline - H * .04;
+      ctx.strokeStyle = `rgba(175,85,48,${(.07 * regBoost * settledBoost).toFixed(3)})`;
+      ctx.lineWidth = .5;
+      ctx.beginPath();
+      ctx.moveTo(left.x - .8, bridgeY - 1.2);
+      const midX = (left.x + right.x) / 2;
+      const midY = bridgeY - H * .018 - .8;
+      ctx.quadraticCurveTo(midX, midY, right.x - .8, bridgeY - 1.2);
+      ctx.stroke();
+     }
+
+     // ── Pass 3: second registration pass (cooler, wider drift — simulates 3-block printing) ──
+    ctx.strokeStyle = `rgba(120,100,130,${(.045 * regBoost * settledBoost).toFixed(3)})`;
+    ctx.lineWidth = .4;
+
+     // Wider bridge post ghosts (second block)
+    bridgePosts.forEach((p, idx) => {
+      const dx = -1.8 - (idx % 2) * .5;
+      const dy = 2 + ((idx + 2) % 3) * .4;
+      ctx.beginPath();
+      ctx.moveTo(p.x + dx, p.y1 + dy);
+      const midY = (p.y1 + p.y2) / 2;
+      ctx.lineTo(p.x + dx - .3 * ((idx % 2 === 0) ? 1 : -1), midY + dy);
+      ctx.lineTo(p.x + dx + .2, p.y2 + dy);
+      ctx.stroke();
+     });
+
+     // ── Corner registration marks (hanchōsho: traditional Japanese print markers) ──
+    // Redrawn slightly larger for final print state
     const mkSize = 8;
     const mkOffset = 14;
     const marks = [
-       [mkOffset, mkOffset],
-       [W - mkOffset, mkOffset],
-       [mkOffset, H - mkOffset],
-       [W - mkOffset, H - mkOffset],
+      [mkOffset, mkOffset],
+      [W - mkOffset, mkOffset],
+      [mkOffset, H - mkOffset],
+      [W - mkOffset, H - mkOffset],
      ];
-    marks.forEach(([mx, my]) => {
-        // Horizontal and vertical crosshair
-       ctx.beginPath();
-       ctx.moveTo(mx - mkSize - 4, my);
-       ctx.lineTo(mx + mkSize + 4, my);
-       ctx.stroke();
-       ctx.beginPath();
-       ctx.moveTo(mx, my - mkSize - 4);
-       ctx.lineTo(mx, my + mkSize + 4);
-       ctx.stroke();
+    marks.forEach(([mx, my], idx) => {
+       // Primary mark: crosshair
+      ctx.strokeStyle = `rgba(175,85,48,${(.13 * regBoost).toFixed(3)})`;
+      ctx.lineWidth = .7;
+      ctx.beginPath();
+      ctx.moveTo(mx - mkSize - 3, my);
+      ctx.lineTo(mx + mkSize + 3, my);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(mx, my - mkSize - 3);
+      ctx.lineTo(mx, my + mkSize + 3);
+      ctx.stroke();
 
-        // Small circle at intersection
-       ctx.beginPath();
-       ctx.arc(mx, my, mkSize, 0, Math.PI * 2);
-       ctx.stroke();
+       // Circle at intersection
+      ctx.beginPath();
+      ctx.arc(mx, my, mkSize, 0, Math.PI * 2);
+      ctx.stroke();
 
-        // Offset copy (second registration pass)
-       ctx.strokeStyle = 'rgba(175,85,48,.06)';
-       ctx.beginPath();
-       ctx.moveTo(mx - mkSize - 2, my + 1.5);
-       ctx.lineTo(mx + mkSize + 2, my + 1.5);
-       ctx.stroke();
-       ctx.strokeStyle = 'rgba(175,85,48,.12)';
-      });
+       // Offset copy: second block, different direction
+      ctx.strokeStyle = `rgba(175,85,48,${(.065 * regBoost).toFixed(3)})`;
+      ctx.lineWidth = .5;
+      const offDx = (idx % 2 === 0) ? 1.5 : -1;
+      const offDy = (idx > 1) ? 1.5 : -1;
+      ctx.beginPath();
+      ctx.moveTo(mx - mkSize - 1, my + offDy);
+      ctx.lineTo(mx + mkSize + 1, my + offDy);
+      ctx.stroke();
+       // Circle offset
+      ctx.beginPath();
+      ctx.arc(mx + offDx, my + offDy, mkSize, 0, Math.PI * 2);
+      ctx.stroke();
+     });
 
     ctx.restore();
-   }
+     }
 
     // ─── Input handlers ───
     function onDown(x, y) {
