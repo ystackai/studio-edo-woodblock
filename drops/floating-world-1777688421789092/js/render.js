@@ -67,9 +67,10 @@ const Render = (() => {
   let _staticBg = null;       // offscreen canvas for paper+sky (truly static)
   let _grainCanvas = null;    // pre-filled grain pattern canvas
   let _dirty = true;          // dirty flag: forces redraw when true
-  let _prevTideProgress = 0;  // last frame's tideProgress for change detection
+  let _prevTideProgress = 0;   // last frame's tideProgress for change detection
   let _prevTideFront = -1;
   let _prevPressure = 0;
+  let _prevClock = 0;
 
   function init(canvas) {
     W = canvas.width = window.innerWidth;
@@ -305,44 +306,45 @@ const Render = (() => {
       ctx.drawImage(_staticBg, 0, 0);
      }
 
-     // Water base and hill changes slowly with tideProgress
-     // Hills: tideProgress dependency, redraw when tide changes
-    if (!pressed && !settling && !resetting && !tideChanged) {
+      // Track clock-driven animation changes (moonlight shimmer, reed sway, etc.)
+     const clockChanged = (clock - _prevClock > .01) || _dirty;
+
+     // Only redraw dynamic layers when tide, pressure, clock, or explicit dirty changes
+     if (!tideChanged && !clockChanged && !pressed && !settling && !resetting) {
+       // Nothing changed — skip expensive draw, still blit static BG above.
+     } else {
+       drawHills(ctx);
+       drawWater(ctx);
+       drawMoonlightColumn(ctx);
+       drawPressFeeling(ctx);
+       drawInitialPressFeedback(ctx);
+       drawMoon(ctx);
+       drawMoonReflection(ctx);
+       drawMoonlightShimmer(ctx);
+       drawBridge(ctx);
+       drawLanterns(ctx);
+       drawBoats(ctx);
+       drawLanternReflections(ctx);
+       drawReeds(ctx);
+       drawTide(ctx);
+       drawPigmentLayer(ctx);
+       drawPaperGrain(ctx);
+       drawEdgeStain(ctx);
+       drawSettleFibers(ctx);
+       drawRegistration(ctx);
+       drawTouchGlow(ctx);
+       drawGrainShift(ctx);
+       drawDragTrailStipple(ctx);
+       drawReleaseRipple(ctx);
+       drawVignette(ctx);
+       drawPaperCast(ctx);
      }
 
-     // Full draw for all dynamic layers
-    drawHills(ctx);
-    drawWater(ctx);
-    drawMoonlightColumn(ctx);
-    drawPressFeeling(ctx);
-    drawInitialPressFeedback(ctx);
-    drawMoon(ctx);
-    drawMoonReflection(ctx);
-    drawMoonlightShimmer(ctx);
-    drawBridge(ctx);
-    drawLanterns(ctx);
-    drawBoats(ctx);
-    drawLanternReflections(ctx);
-    drawReeds(ctx);
-    drawTide(ctx);
-    drawPigmentLayer(ctx);
-       drawPaperGrain(ctx);
-    drawEdgeStain(ctx);
-    drawSettleFibers(ctx);
-    drawRegistration(ctx);
-    drawTouchGlow(ctx);
-    drawGrainShift(ctx);
-    drawDragTrailStipple(ctx);
-    drawReleaseRipple(ctx);
-    drawVignette(ctx);
-    drawPaperCast(ctx);
-
-    // Store current state for next frame's dirty check
-    if (!pressed) {
-      _prevTideProgress = tideProgress;
-      _prevTideFront = tideFront;
-      _prevPressure = pressure;
-    }
+     // Always update dirty-track state each frame so we detect changes correctly
+     _prevTideProgress = tideProgress;
+     _prevTideFront = tideFront;
+     _prevPressure = pressure;
+     _prevClock = clock;
   }
 
      // ─── Subtle press-depth color feeling: indigo deepens with pressure ───

@@ -108,20 +108,9 @@ const App = (() => {
       if (!isPressing) return;
       if (e.touches.length !== 1) { onPointerUp(); return; }
       e.preventDefault();
-       // Process all touches[0] from coalesced-style reading
-      if (e.getCoalescedEvents) {
-        const pts = e.getCoalescedEvents();
-        for (const pt of pts) {
-          if (pt.touches && pt.touches.length) {
-            const t = pt.touches[0];
-            onPointerMove(t.clientX, t.clientY);
-           }
-         }
-      } else {
-        const t = e.touches[0];
-        onPointerMove(t.clientX, t.clientY);
-       }
-     }, { passive: false });
+      const t = e.touches[0];
+      onPointerMove(t.clientX, t.clientY);
+      }, { passive: false });
 
     window.addEventListener('touchend', onPointerUp);
     window.addEventListener('touchcancel', onPointerUp);
@@ -284,32 +273,38 @@ const App = (() => {
     const pattern = _hapticQueue.shift();
     _lastHapticTime = performance.now();
     navigator.vibrate(pattern);
+    const totalMs = pattern.reduce((a, b) => a + b, 0) + 20;
     setTimeout(() => {
-      _hapticDraining = false;
-      _drainHapticQueue();
-     }, pattern.length + 20);
-   }
+        _hapticDraining = false;
+        _drainHapticQueue();
+       }, totalMs);
+    }
 
   function renderLoop() {
     let idleT = 0;
+    let rafId = null;
     function frame(now) {
-      requestAnimationFrame(frame);
+       rafId = requestAnimationFrame(frame);
 
-       // Frame-rate-independent idle drift
+        // Audio lookahead: schedule audio events on rAF cadence for sync
+      Audio.scheduleTick();
+
+        // Frame-rate-independent idle drift
       const dt = Math.min(50, now - _lastFrameTime);
-      _lastFrameTime = now;
+       _lastFrameTime = now;
 
       if (ctx && canvas) {
+           // Always draw - the render.js dirty flag handles skipping expensive layers
+        Render.draw(ctx);
+
         if (!isPressing && started) {
           idleT += dt * .008;
           Render.idleDrift(idleT);
-         }
-        // Always draw - the render.js dirty flag handles skipping expensive layers
-        Render.draw(ctx);
-       }
-     }
+          }
+        }
+      }
     requestAnimationFrame(frame);
-   }
+    }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
