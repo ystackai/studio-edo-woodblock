@@ -2109,33 +2109,62 @@ const Render = (() => {
        ctx.stroke();
         }
 
-      // ══ Phase 2: Hatch marks (cross-hatch revealed as tide passes)
-      _seed = 50 + Math.floor(tideProgress * 20);
-     for (let x = Math.max(0, tideFront + zone * .08); x < Math.min(W, tideFront + zone * .82); x += 5) {
-       const d = x - tideFront;
-       const t = d / zone;
-       const hatchT = (t - .08) / .74;
-       if (hatchT < 0 || hatchT > 1) continue;
+        // ══ Phase 2: Hatch marks (cross-hatch revealed as tide passes)
+        // Carved feel: marks are not uniform — varying length, weight, and angle
+        // to simulate hand-carved woodblock hatching.
+        _seed = 50 + Math.floor(tideProgress * 20);
+      for (let x = Math.max(0, tideFront + zone * .05); x < Math.min(W, tideFront + zone * .9); x += 5) {
+        const d = x - tideFront;
+        const t = d / zone;
+        const hatchT = (t - .05) / .85;
+        if (hatchT < 0 || hatchT > 1) continue;
 
-       const hatchAlpha = Math.sin(hatchT * Math.PI) * (.05 + pressure * .07);
-       if (hatchAlpha < .015) continue;
+        const hatchAlpha = Math.sin(hatchT * Math.PI) * (.06 + pressure * .08);
+        if (hatchAlpha < .015) continue;
 
-       ctx.strokeStyle = 'rgba(42,48,72,' + hatchAlpha.toFixed(3) + ')';
-       ctx.lineWidth = .35;
+        ctx.strokeStyle = 'rgba(26,32,64,' + hatchAlpha.toFixed(3) + ')';
+        ctx.lineWidth = .35;
 
-       const rows = 3;
-       for (let row = 0; row < rows; row++) {
-         const baseY = waterline - H * .03 + row * (H * .23);
-         const angle = (row % 2 === 0) ? 2.2 : -1.6;
-         const len = 3 + ((x + row * 7) % 4);
-         const off = (row % 3) * 2.5;
+        const rows = 4;
+        for (let row = 0; row < rows; row++) {
+          const baseY = waterline - H * .03 + row * (H * .18);
+          const angle = (row % 2 === 0) ? 2.2 : -1.6;
+          const len = 3 + ((x + row * 7) % 5);
+          const off = (row % 3) * 2.5;
 
-         ctx.beginPath();
-         ctx.moveTo(x + off, baseY + _sr() * 3);
-         ctx.lineTo(x + off + len * .6, baseY + _sr() * 3 + angle);
-         ctx.stroke();
-        }
-       }
+          ctx.beginPath();
+          ctx.moveTo(x + off, baseY + _sr() * 3);
+          ctx.lineTo(x + off + len * .6, baseY + _sr() * 3 + angle);
+          ctx.stroke();
+          }
+         }
+
+         // ══ Phase 2.5: Fine hatch marks — secondary carving detail
+        // Shorter, denser marks that fill between the primary hatch rows.
+        // These suggest the artist's secondary carving pass, filling negative space.
+        if (tideProgress > .12) {
+          const fineHatchIntensity = Easing.soak((tideProgress - .12) / .6);
+          _seed = 550 + Math.floor(tideProgress * 45);
+          for (let x = Math.max(0, tideFront + zone * .15); x < Math.min(W, tideFront + zone * .88); x += 8) {
+            const d = x - tideFront;
+            const t = d / zone;
+            const fineT = (t - .15) / .73;
+            if (fineT < 0 || fineT > 1) continue;
+
+            const fineAlpha = Math.sin(fineT * Math.PI) * (.03 + fineHatchIntensity * .04);
+            if (fineAlpha < .01) continue;
+
+            ctx.strokeStyle = 'rgba(42,48,72,' + fineAlpha.toFixed(3) + ')';
+            ctx.lineWidth = .25;
+            const fineAngle = _sr() > .5 ? 1.8 : -1.4;
+            const fineY = waterline + _sr() * H * .55;
+            const fineLen = 2 + _sr() * 3;
+            ctx.beginPath();
+            ctx.moveTo(x, fineY);
+            ctx.lineTo(x + fineLen * .5, fineY + fineAngle);
+            ctx.stroke();
+            }
+          }
 
       // ══ Phase 3: Stippled pigment (deeper tide)
       _seed = 120 + Math.floor(tideProgress * 30);
@@ -2171,80 +2200,105 @@ const Render = (() => {
       }
     }
 
-  // ─── Permanent pigment layer ───
-  function drawPigmentLayer(ctx) {
-    if (tideFront <= 0 && !resetting && settleBloom < .01) return;
+    // ─── Permanent pigment layer ───
+   function drawPigmentLayer(ctx) {
+     if (tideFront <= 0 && !resetting && settleBloom < .01) return;
 
-    const zone = 180 + pressure * 120;
-    const advanceX = Math.max(0, tideFront - 2);
-    const paintW = Math.min(12, zone * .05);
+     const zone = 180 + pressure * 120;
+     const advanceX = Math.max(0, tideFront - 2);
+     const paintW = Math.min(12, zone * .05);
 
-    if (pressed && paintW > 0) {
-      pigmentCtx.fillStyle = 'rgba(27,42,74,.015)';
-      pigmentCtx.fillRect(advanceX, waterline - H * .04, paintW, H * .72);
+     if (pressed && paintW > 0) {
+       pigmentCtx.fillStyle = 'rgba(27,42,74,.015)';
+       pigmentCtx.fillRect(advanceX, waterline - H * .04, paintW, H * .72);
 
-      _seed = 500 + Math.floor(performance.now() / 100) % 1000;
-      pigmentCtx.fillStyle = 'rgba(27,42,74,.008)';
-      for (let s = 0; s < 6; s++) {
-        const sx = advanceX + _sr() * paintW;
-        const sy = waterline + _sr() * H * .6;
-        pigmentCtx.beginPath();
-        pigmentCtx.arc(sx, sy, .4 + _sr() * .6, 0, Math.PI * 2);
-        pigmentCtx.fill();
+       _seed = 500 + Math.floor(performance.now() / 100) % 1000;
+       pigmentCtx.fillStyle = 'rgba(27,42,74,.008)';
+       for (let s = 0; s < 6; s++) {
+         const sx = advanceX + _sr() * paintW;
+         const sy = waterline + _sr() * H * .6;
+         pigmentCtx.beginPath();
+         pigmentCtx.arc(sx, sy, .4 + _sr() * .6, 0, Math.PI * 2);
+         pigmentCtx.fill();
+         }
+       }
+
+     if (pigmentMap) {
+       ctx.globalAlpha = .85;
+       ctx.drawImage(pigmentMap, 0, 0);
+       ctx.globalAlpha = 1;
       }
-    }
 
-    if (pigmentMap) {
-      ctx.globalAlpha = .85;
-      ctx.drawImage(pigmentMap, 0, 0);
-      ctx.globalAlpha = 1;
-    }
+         // ── Leading-edge pigment bloom (always visible during/safter tide) ──
+        // A faint, stippled bloom that surrounds the tide front like ink wicking
+        // through paper fibers. Appears as the tide advances and persists in settled state.
+      {
+       const bloomX = tideFront;
+       const bloomWidth = 90 + settleBloom * 130;
+       const bloomAlpha = settleBloom > .005 ? settleBloom * .14 : (.02 + pressure * .06);
 
-    if (settleBloom > .005) {
-      const bloomX = tideFront;
-      const bloomWidth = 80 + settleBloom * 120;
-      const bloomAlpha = settleBloom * .12;
+        // Soft radial bloom: indigo wash halo
+       const grad = ctx.createRadialGradient(
+         bloomX, waterline + H * .3, 0,
+         bloomX, waterline + H * .3, bloomWidth
+        );
+       grad.addColorStop(0, 'rgba(22,32,64,' + (bloomAlpha * 1.5).toFixed(3) + ')');
+       grad.addColorStop(.4, 'rgba(27,42,74,' + (bloomAlpha * .7).toFixed(3) + ')');
+       grad.addColorStop(.8, 'rgba(43,58,103,' + (bloomAlpha * .25).toFixed(3) + ')');
+       grad.addColorStop(1, 'rgba(43,58,103,0)');
+       ctx.fillStyle = grad;
+       ctx.fillRect(bloomX - bloomWidth, waterline - H * .04, bloomWidth * 2, H * .72);
 
-      const grad = ctx.createRadialGradient(
-        bloomX, waterline + H * .3, 0,
-        bloomX, waterline + H * .3, bloomWidth
-      );
-      grad.addColorStop(0, 'rgba(22,32,64,' + (bloomAlpha * 1.5).toFixed(3) + ')');
-      grad.addColorStop(.4, 'rgba(27,42,74,' + (bloomAlpha * .7).toFixed(3) + ')');
-      grad.addColorStop(.8, 'rgba(43,58,103,' + (bloomAlpha * .25).toFixed(3) + ')');
-      grad.addColorStop(1, 'rgba(43,58,103,0)');
+        // Secondary bloom offset: simulates multi-pass printing with slight misregistration
+       const grad2 = ctx.createRadialGradient(
+         bloomX + 30, waterline + H * .35, 0,
+         bloomX + 30, waterline + H * .35, bloomWidth * .7
+        );
+       grad2.addColorStop(0, 'rgba(43,58,103,' + (bloomAlpha * .4).toFixed(3) + ')');
+       grad2.addColorStop(1, 'rgba(43,58,103,0)');
+       ctx.fillStyle = grad2;
+       ctx.fillRect(bloomX - bloomWidth * .5, waterline, bloomWidth * 1.5, H * .5);
 
-      ctx.fillStyle = grad;
-      ctx.fillRect(bloomX - bloomWidth, waterline - H * .04, bloomWidth * 2, H * .72);
-
-      const grad2 = ctx.createRadialGradient(
-        bloomX + 30, waterline + H * .35, 0,
-        bloomX + 30, waterline + H * .35, bloomWidth * .7
-      );
-      grad2.addColorStop(0, 'rgba(43,58,103,' + (bloomAlpha * .4).toFixed(3) + ')');
-      grad2.addColorStop(1, 'rgba(43,58,103,0)');
-
-      ctx.fillStyle = grad2;
-      ctx.fillRect(bloomX - bloomWidth * .5, waterline, bloomWidth * 1.5, H * .5);
-
-      _seed = 800 + Math.floor(settleProgress * 50);
-      const stippleCount = Math.floor(20 + settleBloom * 50);
-      for (let s = 0; s < stippleCount; s++) {
-        const dist = _sr() * bloomWidth * 1.2;
-        const angle = _sr() * Math.PI;
-        const sx = bloomX + dist * Math.cos(angle * .3 - .15);
-        const sy = waterline - H * .02 + Math.sin(angle) * H * .35 + _sr() * H * .2;
-        const dotR = .3 + _sr() * 1.5;
-        const dotA = settleBloom * .08 * (1 - dist / (bloomWidth * 1.2));
-        if (dotA > .003) {
-          ctx.fillStyle = 'rgba(22,32,64,' + dotA.toFixed(3) + ')';
-          ctx.beginPath();
-          ctx.arc(sx, sy, dotR, 0, Math.PI * 2);
-          ctx.fill();
+        // Stippled bloom dots: organic, non-uniform distribution
+        // These are the visible "pigment bloom" — tiny dots suggesting capillary wicking
+        _seed = 800 + Math.floor(settleProgress * 50);
+       const stippleCount = Math.floor(25 + settleBloom * 55);
+       for (let s = 0; s < stippleCount; s++) {
+         const dist = _sr() * bloomWidth * 1.2;
+         const angle = _sr() * Math.PI;
+         const sx = bloomX + dist * Math.cos(angle * .3 - .15);
+         const sy = waterline - H * .02 + Math.sin(angle) * H * .35 + _sr() * H * .2;
+         const dotR = .3 + _sr() * 1.5;
+         const dotA = (settled ? settleBloom : .7) * .09 * (1 - dist / (bloomWidth * 1.2));
+         if (dotA > .003) {
+           ctx.fillStyle = 'rgba(22,32,64,' + dotA.toFixed(3) + ')';
+           ctx.beginPath();
+           ctx.arc(sx, sy, dotR, 0, Math.PI * 2);
+           ctx.fill();
+           }
         }
+
+        // Micro-bloom: even finer stipple near the very leading edge
+        // These tiny dots give the "faint pigment bloom" described in the brief
+        if (settleBloom > .02 || pressure > .1) {
+          _seed = 888 + Math.floor(clock * 73);
+          const microCount = 15 + Math.floor((settleBloom || pressure) * 20);
+          for (let s = 0; s < microCount; s++) {
+            const mx = bloomX + (_sr() - .5) * bloomWidth * .5;
+            const my = waterline + _sr() * H * .65;
+            const mR = .2 + _sr() * .6;
+            const mD = Math.abs(mx - bloomX) / (bloomWidth * .5);
+            const mA = .015 * (1 - mD * .6) * (.5 + _sr() * .5) * (settled ? settleBloom * 1.5 : .6);
+            if (mA > .003) {
+              ctx.fillStyle = 'rgba(35,48,85,' + mA.toFixed(4) + ')';
+               ctx.beginPath();
+               ctx.arc(mx, my, mR, 0, Math.PI * 2);
+               ctx.fill();
+              }
+           }
+         }
       }
     }
-  }
 
   // ─── Paper grain: drawImage-tiled (no createPattern per frame) ───
    function drawPaperGrain(ctx) {
@@ -2276,47 +2330,84 @@ const Render = (() => {
      ctx.restore();
      }
 
-    // ── Edge stain: mimics ink bleed at the borders of a real woodblock print ──
-   // Appears only in settled state, darkening the edges to frame the print.
-   function drawEdgeStain(ctx) {
-     if (!settled) return;
-     const edgeAlpha = .025 + settleBloom * .015;
-     const margin = 18 + settleBloom * 8;
+    // ─── Edge stain: mimics ink bleed at the borders of a real woodblock print ──
+    // Appears only in settled state, darkening the edges to frame the print.
+    // Plus: carved hatch overlay across tide-washed areas for hand-printed feel.
+    function drawEdgeStain(ctx) {
+      if (!settled) return;
+      const edgeAlpha = .025 + settleBloom * .015;
+      const margin = 18 + settleBloom * 8;
 
         // Top and bottom edges
-     {
-       const g = ctx.createLinearGradient(0, 0, 0, margin);
-       g.addColorStop(0, 'rgba(35,30,22,' + edgeAlpha.toFixed(4) + ')');
-       g.addColorStop(1, 'rgba(35,30,22,0)');
-       ctx.fillStyle = g;
-       ctx.fillRect(0, 0, W, margin);
-      }
+      {
+        const g = ctx.createLinearGradient(0, 0, 0, margin);
+        g.addColorStop(0, 'rgba(35,30,22,' + edgeAlpha.toFixed(4) + ')');
+        g.addColorStop(1, 'rgba(35,30,22,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, margin);
+        }
 
-     {
-       const g = ctx.createLinearGradient(0, H - margin, 0, H);
-       g.addColorStop(0, 'rgba(35,30,22,0)');
-       g.addColorStop(1, 'rgba(35,30,22,' + edgeAlpha.toFixed(4) + ')');
-       ctx.fillStyle = g;
-       ctx.fillRect(0, H - margin, W, margin);
-      }
+       {
+        const g = ctx.createLinearGradient(0, H - margin, 0, H);
+        g.addColorStop(0, 'rgba(35,30,22,0)');
+        g.addColorStop(1, 'rgba(35,30,22,' + edgeAlpha.toFixed(4) + ')');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, H - margin, W, margin);
+        }
 
         // Left and right edges (slightly stronger — traditional ban-eri registration bands)
-     {
-       const g = ctx.createLinearGradient(0, 0, margin, 0);
-       g.addColorStop(0, 'rgba(30,26,18,' + (edgeAlpha * 1.2).toFixed(4) + ')');
-       g.addColorStop(1, 'rgba(30,26,18,0)');
-       ctx.fillStyle = g;
-       ctx.fillRect(0, 0, margin, H);
-      }
+      {
+        const g = ctx.createLinearGradient(0, 0, margin, 0);
+        g.addColorStop(0, 'rgba(30,26,18,' + (edgeAlpha * 1.2).toFixed(4) + ')');
+        g.addColorStop(1, 'rgba(30,26,18,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, margin, H);
+        }
 
-     {
-       const g = ctx.createLinearGradient(W - margin, 0, W, 0);
-       g.addColorStop(0, 'rgba(30,26,18,0)');
-       g.addColorStop(1, 'rgba(30,26,18,' + (edgeAlpha * 1.2).toFixed(4) + ')');
-       ctx.fillStyle = g;
-       ctx.fillRect(W - margin, 0, margin, H);
+       {
+        const g = ctx.createLinearGradient(W - margin, 0, W, 0);
+        g.addColorStop(0, 'rgba(30,26,18,0)');
+        g.addColorStop(1, 'rgba(30,26,18,' + (edgeAlpha * 1.2).toFixed(4) + ')');
+        ctx.fillStyle = g;
+        ctx.fillRect(W - margin, 0, margin, H);
+        }
+
+        // ══ Carved hatch overlay: settled-state detail across full tide area ══
+        // Reinforces the completed woodblock print aesthetic with hand-carved stroke texture.
+        // Varying length and angle, placed at irregular intervals.
+      _seed = 90000 + frameCount;
+      const hatchAreaX = Math.min(W, Math.max(0, tideFront + 50));
+      const hatchAreaW = Math.max(0, W - hatchAreaX);
+      if (hatchAreaW > 20) {
+        const carAlpha = (.02 + settleBloom * .025) * Math.min(1, tideProgress * 1.5);
+        ctx.strokeStyle = 'rgba(35,40,68,' + carAlpha.toFixed(4) + ')';
+        ctx.lineWidth = .3;
+
+          // Primary carved hatches: 45° alternating
+        for (let x = hatchAreaX; x < W - 20; x += 6 + _sr() * 5) {
+          const baseY = waterline + _sr() * H * .55;
+          const angle = ((_sr() > .5) ? 1.8 : -1.4) + (_sr() - .5) * .4;
+          const len = 2.5 + _sr() * 4;
+          ctx.beginPath();
+          ctx.moveTo(x, baseY);
+          ctx.lineTo(x + len * .6, baseY + angle);
+          ctx.stroke();
+        }
+
+          // Secondary fine hatches: shorter, perpendicular, for cross-hatch depth
+        ctx.lineWidth = .2;
+        ctx.strokeStyle = 'rgba(42,48,72,' + (carAlpha * .6).toFixed(4) + ')';
+        for (let x = hatchAreaX + 5; x < W - 25; x += 10 + _sr() * 6) {
+          const baseY = waterline - H * .03 + _sr() * H * .65;
+          const angle = (_sr() > .5) ? -2.0 : 2.0;
+          const len = 1.5 + _sr() * 2.5;
+          ctx.beginPath();
+          ctx.moveTo(x, baseY);
+          ctx.lineTo(x + len * .4, baseY + angle * .5);
+          ctx.stroke();
+        }
+            }
       }
-    }
 
   // ─── Touch glow ───
   function drawTouchGlow(ctx) {
@@ -2472,12 +2563,12 @@ const Render = (() => {
     function drawRegistration(ctx) {
       ctx.save();
 
-       // Base visibility: always somewhat visible (woodblock character), grows with tide
-      const regBase = .25 + Math.min(.75, tideProgress * .6);
-      const settledBoost = settled ? 1.6 : 1;
-      const ochreAlpha = (.12 * regBase * settledBoost);
-      const indigoAlpha = (.07 * regBase * settledBoost);
-      const keyAlpha = (.04 * regBase * settledBoost);
+           // Base visibility: always somewhat visible (woodblock character), grows with tide
+       const regBase = .25 + Math.min(.75, tideProgress * .6);
+       const settledBoost = settled ? 2.0 : 1;
+       const ochreAlpha = (.14 * regBase * settledBoost);
+       const indigoAlpha = (.08 * regBase * settledBoost);
+       const keyAlpha = (.05 * regBase * settledBoost);
 
          // ══ PASS 1: Benizuri (warm ochre) — primary registration offset ══
 
