@@ -482,53 +482,122 @@ const Render = (() => {
 
   function drawBridge(ctx) {
     const bridgeY = waterline - H * .04;
+    const postW = 5.5;
 
-    ctx.strokeStyle = lerpColor(C.paper, C.black, .6);
-    ctx.lineWidth = 3;
-    bridgePosts.forEach(p => {
+    // ── Bridge posts: carved key-line silhouettes ──
+    bridgePosts.forEach((p, idx) => {
+      const ta = tideAt(p.x);
+      const postAlpha = .55 + ta * .35;
+
+      // Main key-line body: dark, hand-carved weight
+      ctx.fillStyle = lerpColor(C.paper, C.black, postAlpha);
+      ctx.fillRect(p.x - postW / 2, p.y1, postW, p.y2 - p.y1);
+
+      // Key-line outline (thick, black, slightly offset for woodblock imprint feel)
+      ctx.strokeStyle = 'rgba(42,48,72,' + (.65 + ta * .2) + ')';
+      ctx.lineWidth = 1.8;
+      ctx.strokeRect(p.x - postW / 2 - .6, p.y1 - .6, postW + 1.2, p.y2 - p.y1 + 1.2);
+
+      // Inner shadow: subtle offset line to suggest carved depth
+      ctx.strokeStyle = 'rgba(42,48,72,.18)';
+      ctx.lineWidth = .7;
       ctx.beginPath();
-      ctx.moveTo(p.x, p.y1);
-      ctx.lineTo(p.x, p.y2);
+      ctx.moveTo(p.x + postW / 2 - 1.5, p.y1 + 3);
+      ctx.lineTo(p.x + postW / 2 - 1.5, p.y2 - 3);
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(42,48,72,.12)';
-      ctx.lineWidth = .8;
-      ctx.beginPath();
-      ctx.moveTo(p.x + .8, p.y1 - .8);
-      ctx.lineTo(p.x + .8, p.y2 - .8);
-      ctx.stroke();
+
+      // Wood grain: faint horizontal hatch marks, hand-carved feel
+      ctx.strokeStyle = 'rgba(107,88,69,' + (.08 + ta * .06) + ')';
+      ctx.lineWidth = .35;
+      const grainCount = 3 + ((idx * 3) % 3);
+      for (let g = 0; g < grainCount; g++) {
+        const gy = p.y1 + (p.y2 - p.y1) * (.2 + g * .22) + Math.sin(idx + g * 1.7) * 3;
+        const gxOff = (Math.sin(g * 2.3 + idx) - .5) * 2;
+        const gLen = 3 + Math.sin(g * 1.5 + idx * .7) * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(p.x - postW / 2 + 2 + gxOff, gy);
+        ctx.lineTo(p.x - postW / 2 + 2 + gxOff + gLen, gy + (Math.sin(g + idx) > 0 ? .8 : -.5));
+        ctx.stroke();
+      }
+
+      // Tide-revealed: post cap detail (carved top piece)
+      if (ta > .25) {
+        const capAlpha = Easing.soak((ta - .25) * 2.5) * .25;
+        ctx.fillStyle = 'rgba(42,48,72,' + capAlpha + ')';
+        ctx.fillRect(p.x - postW / 2 - 1, p.y1 - 1.5, postW + 2, 3);
+        ctx.strokeStyle = 'rgba(42,48,72,' + (capAlpha * .5) + ')';
+        ctx.lineWidth = .5;
+        ctx.strokeRect(p.x - postW / 2 - 1, p.y1 - 1.5, postW + 2, 3);
+      }
     });
 
     if (bridgePosts.length >= 2) {
       const left = bridgePosts[1], right = bridgePosts[2];
-      ctx.strokeStyle = lerpColor(C.paper, C.black, .5);
-      ctx.lineWidth = 2.5;
-
-      ctx.beginPath();
-      ctx.moveTo(left.x, bridgeY);
       const midX = (left.x + right.x) / 2;
       const midY = bridgeY - H * .018;
+      const span = right.x - left.x;
+
+      // ── Shadow wash beneath the bridge (indigo pool under deck) ──
+      const washY = bridgeY + 10;
+      const washH = H * .04;
+      const washGrad = ctx.createLinearGradient(left.x - 10, washY, left.x - 10, washY + washH);
+      washGrad.addColorStop(0, 'rgba(22,32,64,.08)');
+      washGrad.addColorStop(.6, 'rgba(22,32,64,.04)');
+      washGrad.addColorStop(1, 'rgba(22,32,64,0)');
+      ctx.fillStyle = washGrad;
+      ctx.fillRect(left.x - 12, washY, span + 24, washH);
+
+      // ── Top curved deck beam (primary key-line) ──
+      ctx.strokeStyle = lerpColor(C.paper, C.black, .62);
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(left.x, bridgeY);
       ctx.quadraticCurveTo(midX, midY, right.x, bridgeY);
       ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(42,48,72,.08)';
-      ctx.lineWidth = .4;
-      const span = right.x - left.x;
-      for (let i = 0; i < span / 5; i++) {
-        const t = i / (span / 5);
-        const bx = left.x + t * span;
-        const by = bridgeY + H * .008;
+      // Secondary beam parallel for carved thickness
+      ctx.strokeStyle = lerpColor(C.paper, C.black, .38);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(left.x, bridgeY + 4);
+      ctx.quadraticCurveTo(midX, midY + 4, right.x, bridgeY + 4);
+      ctx.stroke();
+
+      // ── Deck planks: horizontal hatches between posts ──
+      ctx.strokeStyle = 'rgba(42,48,72,' + (.07 + tideProgress * .03) + ')';
+      ctx.lineWidth = .35;
+      const plankCount = Math.floor(span / 6);
+      for (let i = 0; i < plankCount; i++) {
+        const t = (i + .5) / plankCount;
+        const px = left.x + t * span;
+        // Follow curve for y position
+        const u = t;
+        const curveY = (1 - u) * (1 - u) * bridgeY + 2 * (1 - u) * u * midY + u * u * bridgeY;
+        const plankY = curveY + 7;
+        const skew = Math.sin(u * Math.PI) * -6; // curve follows arc
         ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.lineTo(bx + 4, by + 2.5);
+        ctx.moveTo(px - 2 + skew * .5, plankY);
+        ctx.lineTo(px + 2 + skew * .5, plankY + Math.sin(u * Math.PI) * 2);
         ctx.stroke();
       }
 
-      ctx.strokeStyle = lerpColor(C.paper, C.black, .35);
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.moveTo(left.x, bridgeY + 6);
-      ctx.quadraticCurveTo(midX, midY + 6, right.x, bridgeY + 6);
-      ctx.stroke();
+      // ── Tide-revealed: suspension chains (hanebashi style) ──
+      if (tideProgress > .2) {
+        const chainAlpha = Easing.soak((tideProgress - .2) / .8) * .12;
+        ctx.strokeStyle = 'rgba(42,48,72,' + chainAlpha + ')';
+        ctx.lineWidth = .5;
+        const chains = [left, bridgePosts[0], right];
+        chains.forEach((cp, ci) => {
+          if (ci === 0 || ci === 2) return;
+          // Vertical chain lines from post to deck
+          const chainTop = bridgeY - 2 - Math.sin((ci / (chains.length - 1)) * Math.PI) * (bridgeY - midY) * .8;
+          ctx.beginPath();
+          ctx.moveTo(cp.x, chainTop - 8);
+          ctx.lineTo(cp.x, chainTop);
+          ctx.stroke();
+        });
+      }
     }
   }
 
@@ -617,92 +686,214 @@ const Render = (() => {
       ctx.rotate(b.tilt + Math.sin(tideProgress * 1.2 + i * 1.5) * .006);
       ctx.translate(-cx, -cy);
 
-      const hullColor = lerpColor(C.water, C.darkIndigo, .2 + ta * .6);
+       // ── Hull fill: deeper indigo wash as tide passes ──
+      const hullColor = lerpColor(C.water, C.darkIndigo, .25 + ta * .55);
       ctx.fillStyle = hullColor;
       ctx.beginPath();
       ctx.moveTo(b.x, b.y + b.h);
-      ctx.quadraticCurveTo(b.x + b.w * .18, b.y - b.h * .3, b.x + b.w * .5, b.y - b.h * .5);
-      ctx.quadraticCurveTo(b.x + b.w * .82, b.y - b.h * .3, b.x + b.w, b.y + b.h);
+      ctx.quadraticCurveTo(b.x + b.w * .15, b.y - b.h * .35, b.x + b.w * .45, b.y - b.h * .55);
+      ctx.quadraticCurveTo(b.x + b.w * .85, b.y - b.h * .25, b.x + b.w * .95, b.y + b.h * .4);
+      ctx.lineTo(b.x + b.w, b.y + b.h * .8);
+      ctx.quadraticCurveTo(b.x + b.w * .5, b.y + b.h * 1.1, b.x, b.y + b.h);
       ctx.closePath();
       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(42,48,72,' + (.28 + ta * .42) + ')';
-      ctx.lineWidth = 1.4;
+       // ── Primary key-line: thick, carved, slightly irregular ──
+      ctx.strokeStyle = 'rgba(42,48,72,' + (.45 + ta * .4) + ')';
+      ctx.lineWidth = 1.8 + ta * .6;
       ctx.beginPath();
       ctx.moveTo(b.x, b.y + b.h);
-      ctx.quadraticCurveTo(b.x + b.w * .18, b.y - b.h * .3, b.x + b.w * .5, b.y - b.h * .5);
-      ctx.quadraticCurveTo(b.x + b.w * .82, b.y - b.h * .3, b.x + b.w, b.y + b.h);
+      ctx.quadraticCurveTo(b.x + b.w * .15, b.y - b.h * .35, b.x + b.w * .45, b.y - b.h * .55);
+      ctx.quadraticCurveTo(b.x + b.w * .85, b.y - b.h * .25, b.x + b.w * .95, b.y + b.h * .4);
+      ctx.lineTo(b.x + b.w, b.y + b.h * .8);
+      ctx.quadraticCurveTo(b.x + b.w * .5, b.y + b.h * 1.1, b.x, b.y + b.h);
       ctx.closePath();
       ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(180,90,50,' + (.04 + ta * .04) + ')';
-      ctx.lineWidth = .6;
+       // ── Secondary outline offset: woodblock registration shift ──
+      ctx.strokeStyle = 'rgba(180,90,50,' + (.06 + ta * .05) + ')';
+      ctx.lineWidth = .5;
       ctx.beginPath();
-      ctx.moveTo(b.x + 1.2, b.y + b.h - 1.2);
-      ctx.quadraticCurveTo(b.x + b.w * .18 + 1.2, b.y - b.h * .3 - 1.2, b.x + b.w * .5 + 1.2, b.y - b.h * .5 - 1.2);
-      ctx.quadraticCurveTo(b.x + b.w * .82 + 1.2, b.y - b.h * .3 - 1.2, b.x + b.w + 1.2, b.y + b.h - 1.2);
-      ctx.closePath();
+      ctx.moveTo(b.x + 1.2, b.y + b.h + .5);
+      ctx.quadraticCurveTo(b.x + b.w * .15 + 1.2, b.y - b.h * .35 - .5, b.x + b.w * .45 + 1.2, b.y - b.h * .55 - .8);
+      ctx.quadraticCurveTo(b.x + b.w * .85 + 1.2, b.y - b.h * .25 - .5, b.x + b.w * .95 + 1.2, b.y + b.h * .4 - .3);
       ctx.stroke();
 
+       // ── Prow silhouette: upward curve at the bow, hand-carved detail ──
+      if (ta > .15) {
+        const prowAlpha = Easing.soak((ta - .15) * 2) * (.2 + ta * .15);
+        ctx.strokeStyle = 'rgba(42,48,72,' + prowAlpha + ')';
+        ctx.lineWidth = 1;
+
+         // Prow tip extending upward at stern
+        const sternX = b.x + b.w * .9;
+        const sternBaseY = b.y + b.h * .45;
+        ctx.beginPath();
+        ctx.moveTo(sternX, sternBaseY);
+        ctx.quadraticCurveTo(
+          sternX + b.w * .06, sternBaseY - b.h * .8 - i * 3,
+          sternX + b.w * .08, sternBaseY - b.h * 1.1 - i * 2
+         );
+        ctx.stroke();
+
+          // Prow ornament: small curved bracket
+        if (ta > .4) {
+          const ornAlpha = Easing.soak((ta - .4) * 2) * .15;
+          ctx.strokeStyle = 'rgba(42,48,72,' + ornAlpha + ')';
+          ctx.lineWidth = .6;
+          ctx.beginPath();
+          ctx.moveTo(sternX + b.w * .04, sternBaseY - b.h * .5);
+          ctx.quadraticCurveTo(
+            sternX + b.w * .07, sternBaseY - b.h * .7,
+            sternX + b.w * .085, sternBaseY - b.h * .6
+            );
+          ctx.stroke();
+          }
+        }
+       }
+
+       // ── Waterline on hull: carved horizontal band ──
       if (ta > .1) {
-        const hatchAlpha = Easing.soak((ta - .1) * 2) * .28;
+        const wlAlpha = Easing.soak((ta - .1) * 2) * .22;
+        ctx.strokeStyle = 'rgba(42,48,72,' + wlAlpha + ')';
+        ctx.lineWidth = .7;
+        ctx.beginPath();
+        ctx.moveTo(b.x + b.w * .02, b.y + b.h * .55);
+        ctx.quadraticCurveTo(b.x + b.w * .5, b.y + b.h * .9, b.x + b.w * .98, b.y + b.h * .55);
+        ctx.stroke();
+       }
+
+       // ── Hatch marks: alternating angles, hand-carved rhythm ──
+      if (ta > .15) {
+        const hatchAlpha = Easing.soak((ta - .15) * 2) * .25;
         ctx.strokeStyle = 'rgba(42,48,72,' + hatchAlpha + ')';
-        ctx.lineWidth = .5;
-        const step = 4;
-        const n = Math.floor(b.w / step);
+        ctx.lineWidth = .45;
+        const step = 5;
+        const n = Math.floor(b.w * .75 / step);
         for (let k = 0; k < n; k++) {
           const frac = k / n;
-          const byTop = b.y - b.h * (.5 * (1 - Math.pow(2 * frac - 1, 2)));
-          const byBot = b.y + b.h;
-          const hx = b.x + k * step + 2;
-          const angle = (k % 2 === 0) ? 1.8 : -1.2;
-          const len = 3 + (k % 3);
-          for (let hy = byTop + 2; hy < byBot; hy += 4) {
+           // Position along the hull interior
+          const hx = b.x + b.w * .12 + frac * b.w * .7;
+          const hullTopAtX = b.y - b.h * (.5 * (1 - Math.pow(2 * frac - .3, 2)));
+          const hullBotY = b.y + b.h;
+          const angle = (k % 2 === 0) ? 1.9 : -1.3;
+          const len = 3.5 + ((k + i * 3) % 4) * .8;
+          const rows = Math.max(1, Math.floor((hullBotY - hullTopAtX) / 5));
+          for (let r = 0; r < rows; r++) {
+            const hy = hullTopAtX + 3 + r * 5;
+            if (hy > hullBotY - 1) continue;
             ctx.beginPath();
-            ctx.moveTo(hx, hy);
-            ctx.lineTo(hx + len * .6, hy + angle);
+            ctx.moveTo(hx + Math.sin(k + r) * .5, hy);
+            ctx.lineTo(hx + len * .6 + Math.sin(k * .7 + r * 1.3) * .4, hy + angle);
             ctx.stroke();
-          }
-        }
+           }
+         }
+       }
 
-        if (ta > .35) {
-          const stipAlpha = Easing.smoothstep((ta - .35) * 2.5) * .16;
-          const dotCount = Math.floor(6 + ta * 10);
-          ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha + ')';
-          _seed = 42 + i * 100 + frameCount * 7;
-          for (let s = 0; s < dotCount; s++) {
-            const sx = b.x + _sr() * b.w;
-            const frac2 = (sx - b.x) / b.w;
-            const syBase = b.y - b.h * (.5 * (1 - Math.pow(2 * frac2 - 1, 2)));
-            const sy = syBase + _sr() * (b.y + b.h - syBase);
-            ctx.beginPath();
-            ctx.arc(sx, sy, .5 + _sr() * 1.2, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-
-        if (ta > .5) {
-          const poolAlpha = Easing.soak((ta - .5) * 2) * .12;
-          ctx.fillStyle = 'rgba(22,32,64,' + poolAlpha + ')';
+       // ── Stippled pigment: irregular dots for hand-printed texture ──
+      if (ta > .3) {
+        const stipAlpha = Easing.smoothstep((ta - .3) * 2.5) * .14;
+        const dotCount = Math.floor(8 + ta * 12);
+        ctx.fillStyle = 'rgba(27,42,74,' + stipAlpha + ')';
+         _seed = 42 + i * 100;
+        for (let s = 0; s < dotCount; s++) {
+          const sx = b.x + _sr() * b.w;
+          const frac2 = (sx - b.x) / b.w;
+          const syBase = b.y - b.h * (.5 * (1 - Math.pow(2 * frac2 - 1, 2)));
+          const sy = syBase + _sr() * (b.y + b.h - syBase);
+          const r = .4 + _sr() * 1.3;
           ctx.beginPath();
-          ctx.ellipse(b.x + b.w * .45, b.y + b.h * .85, b.w * .3, b.h * .4, 0, 0, Math.PI * 2);
+          ctx.arc(sx, sy, r, 0, Math.PI * 2);
           ctx.fill();
-        }
-      }
+         }
+       }
 
-      if (ta > .7) {
-        const detAlpha = (ta - .7) * .15;
-        ctx.strokeStyle = 'rgba(107,88,69,' + detAlpha + ')';
-        ctx.lineWidth = .6;
-        const cabinX = b.x + b.w * .35;
-        const cabinW = b.w * .15;
-        const cabinH = b.h * .6;
-        ctx.strokeRect(cabinX, b.y - b.h * .2, cabinW, cabinH);
-      }
+       // ── Pigment pool: darker indigo wash in hull curves ──
+      if (ta > .4) {
+        const poolAlpha = Easing.soak((ta - .4) * 1.8) * .1;
+        ctx.fillStyle = 'rgba(22,32,64,' + poolAlpha + ')';
+        ctx.beginPath();
+        ctx.ellipse(b.x + b.w * .45, b.y + b.h * .7, b.w * .28, b.h * .35, 0, 0, Math.PI * 2);
+        ctx.fill();
+       }
+
+       // ── Cabin silhouette: revealed by deep tide passage ──
+      if (ta > .5) {
+        const detAlpha = Easing.soak((ta - .5) * 2) * .25;
+        ctx.strokeStyle = 'rgba(42,48,72,' + detAlpha + ')';
+        ctx.lineWidth = 1;
+
+        const cabinX = b.x + b.w * (.3 + i * .05);
+        const cabinW = b.w * (.12 + (i % 2) * .04);
+        const cabinH = b.h * (.7 + i * .1);
+        const cabinBaseY = b.y - b.h * .15;
+
+         // Cabin box
+        ctx.strokeRect(cabinX, cabinBaseY - cabinH, cabinW, cabinH);
+
+         // Roof line with slight overhang
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cabinX - 1.5, cabinBaseY - cabinH - .5);
+        ctx.lineTo(cabinX + cabinW + 1.5, cabinBaseY - cabinH - .5);
+        ctx.stroke();
+
+         // Roof support lines
+        ctx.lineWidth = .5;
+        ctx.beginPath();
+        ctx.moveTo(cabinX + cabinW * .5, cabinBaseY - cabinH - .5);
+        ctx.lineTo(cabinX + cabinW * .5, cabinBaseY - cabinH - 4 - i * 2);
+        ctx.stroke();
+       }
+
+       // ── Small figure silhouette (deep tide) ──
+      if (ta > .75) {
+        const figAlpha = Easing.soak((ta - .75) * 4) * .1;
+        ctx.fillStyle = 'rgba(42,48,72,' + figAlpha + ')';
+        const figX = b.x + b.w * (.55 + (i % 2) * .1);
+        const figY = b.y - b.h * .1;
+
+         // Simple figure: dot head + line body
+        ctx.beginPath();
+        ctx.arc(figX, figY - 4 - i * 2, 1.5 + i * .5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(42,48,72,' + (figAlpha * .7) + ')';
+        ctx.lineWidth = .8;
+        ctx.beginPath();
+        ctx.moveTo(figX, figY - 2.5 - i * 2);
+        ctx.lineTo(figX, figY);
+        ctx.stroke();
+       }
+
+       // ── Mast and sail silhouette (deepest tide: full print state) ──
+      if (ta > .85 && i === 0) {
+        const mastAlpha = Easing.soak((ta - .85) * 6) * .12;
+
+         // Mast line
+        ctx.strokeStyle = 'rgba(42,48,72,' + mastAlpha + ')';
+        ctx.lineWidth = .8;
+        const mastX = b.x + b.w * .55;
+        ctx.beginPath();
+        ctx.moveTo(mastX, b.y - b.h * .3);
+        ctx.lineTo(mastX, b.y - b.h * 1.8);
+        ctx.stroke();
+
+         // Furlled sail shape
+        ctx.fillStyle = 'rgba(107,88,69,' + (mastAlpha * .3) + ')';
+        ctx.beginPath();
+        ctx.moveTo(mastX, b.y - b.h * 1.7);
+        ctx.lineTo(mastX - b.w * .08, b.y - b.h * 1.6);
+        ctx.lineTo(mastX - b.w * .07, b.y - b.h * .4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(42,48,72,' + (mastAlpha * .5) + ')';
+        ctx.lineWidth = .5;
+        ctx.stroke();
+       }
 
       ctx.restore();
-    });
-  }
+     });
+   }
 
   function drawReeds(ctx) {
     reeds.forEach((r, i) => {
