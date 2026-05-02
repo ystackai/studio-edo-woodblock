@@ -7,13 +7,17 @@ const App = (() => {
   let lastDragTime = 0;
   let lastDragX = 0, lastDragY = 0;
   let isTouchDevice = false;
+  let activePointerId = null;
 
-   // Double-tap tracking
+    // Double-tap tracking
   let lastTapTime = 0;
   let lastTapX = 0, lastTapY = 0;
 
-   // Reset in-progress guard
+    // Reset in-progress guard
   let isResetting = false;
+
+    // Settle guard: prevents double call from pointerup/pointercancel race
+  let isSettling = false;
 
    // Haptic feedback: batch tracking for smooth patterns
   let _lastHapticTime = 0;
@@ -56,28 +60,36 @@ const App = (() => {
     if (window.PointerEvent) {
       // ── Unified PointerEvent path: lowest-latency input path ──
       // Uses getCoalescedEvents() for batched touch samples
-      el.addEventListener('pointerdown', e => {
-        e.preventDefault();
-        onPointerDown(e.clientX, e.clientY);
+      // Tracks active pointerId to reject overlapping touches
+     el.addEventListener('pointerdown', e => {
+       e.preventDefault();
+       activePointerId = e.pointerId;
+       onPointerDown(e.clientX, e.clientY, e.pointerId);
        }, { passive: false });
 
-      window.addEventListener('pointermove', e => {
-        if (!isPressing) return;
-        e.preventDefault();
+     window.addEventListener('pointermove', e => {
+       if (!isPressing || e.pointerId !== activePointerId) return;
+       e.preventDefault();
          // Process all coalesced events to minimize input lag
-        if (e.getCoalescedEvents) {
-          const pts = e.getCoalescedEvents();
-          for (const pt of pts) {
-            onPointerMove(pt.clientX, pt.clientY);
+       if (e.getCoalescedEvents) {
+         const pts = e.getCoalescedEvents();
+         for (const pt of pts) {
+           if (pt.pointerId === activePointerId) onPointerMove(pt.clientX, pt.clientY);
            }
          } else {
-          onPointerMove(e.clientX, e.clientY);
+         onPointerMove(e.clientX, e.clientY);
          }
        }, { passive: false });
 
-      window.addEventListener('pointerup', onPointerUp, { passive: true });
-      window.addEventListener('pointercancel', onPointerUp, { passive: true });
-      return;
+     window.addEventListener('pointerup', e => {
+       if (e.pointerId !== activePointerId) return;
+       onPointerUp();
+       }, { passive: true });
+     window.addEventListener('pointercancel', e => {
+       if (e.pointerId !== activePointerId) return;
+       onPointerUp();
+       }, { passive: true });
+     return;
      }
 
      // Fallback: separate mouse + touch listeners for older browsers
@@ -132,11 +144,13 @@ const App = (() => {
     return false;
    }
 
-  function onPointerDown(x, y) {
+  function onPointerDown(x, y, pointerId) {
+    if (isResetting) return;
+
     if (checkDoubleTap(x, y)) {
       triggerReset();
       return;
-     }
+      }
 
     isPressing = true;
     dragSpeed = 0;
@@ -183,20 +197,26 @@ const App = (() => {
    }
 
   function onPointerUp() {
+    if (!isPressing) return;
     isPressing = false;
+    activePointerId = null;
 
     if (isTouchDevice) {
       queueHaptic('release');
-     }
+      }
 
-     // ── SetInterval replaced with Web Audio native exponentialRampToValueAtTime ──
-     // No more setInterval for audio fade. Audio.settle() now handles all fade-out
-     // using Web Audio scheduled ramps.
-    if (!isResetting) {
+       // ── SetInterval replaced with Web Audio native exponentialRampToValueAtTime ──
+       // No more setInterval for audio fade. Audio.settle() now handles all fade-out
+       // using Web Audio scheduled ramps.
+       // Double-call guard: isSettling prevents pointerup/pointercancel race
+    if (!isResetting && !isSettling) {
+      isSettling = true;
       Render.onUp();
       Audio.settle();
-     }
-   }
+       // Unlock after fade completes (1.6s matches Web Audio ramp)
+      setTimeout(() => { isSettling = false; }, 1700);
+      }
+    }
 
    // ── Reset handler ──
   function triggerReset() {
