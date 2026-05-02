@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>The earth decides when to hold.</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #8a8f96;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+canvas {
+  display: block;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+.copy-line {
+  position: fixed;
+  bottom: calc(6vh + 12px);
+  left: 0; right: 0;
+  text-align: center;
+  font-family: 'Georgia', serif;
+  font-size: clamp(0.85rem, 2.4vw, 1.15rem);
+  letter-spacing: 0.06em;
+  color: rgba(40, 38, 35, 0.65);
+  pointer-events: none;
+  z-index: 10;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.08);
+  transition: opacity 0.6s ease-in;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="copy-line" id="copy">The earth decides when to hold.</div>
+<script>
+(function() {
+  'use strict';
+
+  // ─── Canvas Setup ───
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+  var W, H, dpr;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    generateGrain();
+  }
+  window.addEventListener('resize', resize);
+
+  // ─── Paper Grain Texture ───
+  var grainCanvas, grainCtx, grainData;
+  function generateGrain() {
+    grainCanvas = document.createElement('canvas');
+    grainCanvas.width = W;
+    grainCanvas.height = H;
+    grainCtx = grainCanvas.getContext('2d');
+    grainData = grainCtx.createImageData(W, H);
+    var d = grainData.data;
+    for (var i = 0; i < d.length; i += 4) {
+      var v = Math.random() * 30 + 80;
+      d[i] = v;
+      d[i + 1] = v - 3;
+      d[i + 2] = v + 2;
+      d[i + 3] = 18;
+    }
+    grainCtx.putImageData(grainData, 0, 0);
+  }
+
+  // ─── State Machine ───
+  // Phases: IDLE -> PRESS -> DRAG -> YIELD -> SETTLE -> IDLE
+  var STATE_IDLE = 0, STATE_PRESS = 1, STATE_DRAG = 2, STATE_YIELD = 3, STATE_SETTLE = 4;
+  var state = STATE_IDLE;
+  var pressStartTime = 0;
+  var pressDuration = 180; // ms - locked hold phase
+  var dragStartTime = 0;
+  var dragDuration = 220; // ms - settle phase
+  var yieldTriggered = false;
+  var settleStartTime = 0;
+  var settleDuration = 400; // ms - audio decay window
+  var mistFadeDuration = 1200; // ms
+
+  // Input tracking
+  var inputX = 0, inputY = 0;
+  var prevInputX = 0, prevInputY = 0;
+  var inputVelocity = 0;
+  var inputHistory = []; // for velocity smoothing
+
+  // Object position (the heavy thing being pressed into earth)
+  var objX = 0, objY = 0;
+  var targetX = 0, targetY = 0;
+  var dragProgress = 0; // 0..1 over the drag phase
+  var pressProgress = 0; // 0..1 over the press phase
+
+  // Visual state
+  var compression = 0; // 0..1, how much the earth has compressed
+  var blendFactor = 0; // 0 = cool grey, 1 = deep ochre
+  var sheenOpacity = 0;
+  var rippleOpacity = 0;
+  var rippleRadius = 0;
+  var mistOpacity = 0;
+  var objScale = 1;
+
+  // ─── Easing: Strictly Monotonic ───
+  // Custom non-linear easing: no bounce, no overshoot.
+  // t in [0,1], returns value in [0,1]
+  function monotonicEase(t) {
+    t = Math.max(0, Math.min(1, t));
+    return t * t * (3 - 2 * t);
+  }
+
+  // Heavier variant for drag - bows but never snaps back
+  function dragEase(t) {
+    t = Math.max(0, Math.min(1, t));
+    // Quadratic ease-in with slight plateau at end
+    return 1 - Math.pow(1 - t, 1.8);
+  }
+
+  // Mist fade: slow exhale, ease-in
+  function mistEase(t) {
+    t = Math.max(0, Math.min(1, t));
+    return t * t; // pure ease-in
+  }
+
+  // ─── Ground Resistance Map ───
+  // Slower thumb = heavier grind. Maps velocity to resistance factor [0.3, 1.0]
+  function resistanceMap(velocity) {
+    // velocity in px/s, typical range 0-3000
+    var normalized = Math.max(0, Math.min(1, velocity / 2000));
+    return 1 - normalized * 0.7; // higher resistance when slow
+  }
+
+  // ─── Velocity Tracking ───
+  function trackVelocity(x, y, now) {
+    inputHistory.push({ x: x, y: y, t: now });
+    // Keep last 80ms of history
+    var cutoff = now - 80;
+    while (inputHistory.length > 1 && inputHistory[0].t < cutoff) {
+      inputHistory.shift();
+    }
+    if (inputHistory.length >= 2) {
+      var first = inputHistory[0];
+      var dt = (now - first.t) / 1000;
+      if (dt > 0.001) {
+        var dx = x - first.x;
+        var dy = y - first.y;
+        inputVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
+      }
+    }
+  }
+
+  // ─── Audio Engine (Web Audio API, procedural) ───
+  var audioCtx = null;
+  var audioInitialized = false;
+  var lowGrainGain = null;
+  var lowGrainOsc = null;
+  var noiseSource = null;
+  var noiseGain = null;
+  var thudGain = null;
+
+  function initAudio() {
+    if (audioInitialized) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      audioInitialized = true;
+    } catch (e) {
+      // Audio not available, continue silently
+    }
+  }
+
+  // Low-end grind oscillator (80-150Hz)
+  function startLowGrind(resistance) {
+    if (!audioCtx) return;
+    stopLowGrind();
+
+    // Sub oscillator for grind
+    lowGrainOsc = audioCtx.createOscillator();
+    lowGrainGain = audioCtx.createGain();
+    var lowpass = audioCtx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.setValueAtTime(4000, audioCtx.currentTime); // roll off above 4kHz
+    lowpass.frequency.linearRampToValueAtTime(2500, audioCtx.currentTime + 0.5);
+
+    lowGrainOsc.type = 'sine';
+    // Frequency based on resistance: higher resistance = lower freq (heavier)
+    lowGrainOsc.frequency.setValueAtTime(80 + (1 - resistance) * 70, audioCtx.currentTime);
+
+    lowGrainGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    lowGrainGain.gain.linearRampToValueAtTime(0.12 * resistance, audioCtx.currentTime + 0.15);
+
+    lowGrainOsc.connect(lowpass);
+    lowpass.connect(lowGrainGain);
+    lowGrainGain.connect(audioCtx.destination);
+    lowGrainOsc.start();
+  }
+
+  function stopLowGrind() {
+    if (lowGrainOsc) {
+      try {
+        if (lowGrainGain) lowGrainGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+        setTimeout(function() { try { lowGrainOsc && lowGrainOsc.stop(); } catch(e){} }, 100);
+      } catch(e) {}
+      lowGrainOsc = null;
+      lowGrainGain = null;
+    }
+  }
+
+  // Wet noise for mud texture
+  function startWetNoise(resistance) {
+    if (!audioCtx) return;
+    stopWetNoise();
+
+    var bufferSize = audioCtx.sampleRate * 0.5;
+    var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) {
+      // Brown-ish noise: filter random walk
+      data[i] = (Math.random() * 2 - 1);
+    }
+
+    noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = buffer;
+    noiseSource.loop = true;
+
+    noiseGain = audioCtx.createGain();
+    var wetFilter = audioCtx.createBiquadFilter();
+    wetFilter.type = 'bandpass';
+    wetFilter.frequency.setValueAtTime(200, audioCtx.currentTime);
+    wetFilter.Q.setValueAtTime(0.5, audioCtx.currentTime);
+
+    noiseGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    noiseGain.gain.linearRampToValueAtTime(0.06 * resistance, audioCtx.currentTime + 0.2);
+
+    noiseSource.connect(wetFilter);
+    wetFilter.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    noiseSource.start();
+  }
+
+  function stopWetNoise() {
+    if (noiseSource) {
+      try {
+        if (noiseGain) noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+        setTimeout(function() { try { noiseSource && noiseSource.stop(); } catch(e){} }, 100);
+      } catch(e) {}
+      noiseSource = null;
+      noiseGain = null;
+    }
+  }
+
+  // Heavy wet thud at yield
+  function triggerYieldThud() {
+    if (!audioCtx) return;
+
+    // Thud: short burst of low-frequency noise + sine thump
+    var now = audioCtx.currentTime;
+
+    // Sine thump
+    var thudOsc = audioCtx.createOscillator();
+    thudGain = audioCtx.createGain();
+    var thudFilter = audioCtx.createBiquadFilter();
+    thudFilter.type = 'lowpass';
+    thudFilter.frequency.setValueAtTime(600, now);
+    thudFilter.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+
+    thudOsc.type = 'sine';
+    thudOsc.frequency.setValueAtTime(120, now);
+    thudOsc.frequency.exponentialRampToValueAtTime(55, now + 0.25);
+
+    thudGain.gain.setValueAtTime(0.35, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+    thudOsc.connect(thudFilter);
+    thudFilter.connect(thudGain);
+    thudGain.connect(audioCtx.destination);
+    thudOsc.start(now);
+    thudOsc.stop(now + 0.5);
+
+    // Noise squelch
+    var bufLen = audioCtx.sampleRate * 0.3;
+    var squelchBuf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+    var sd = squelchBuf.getChannelData(0);
+    for (var i = 0; i < bufLen; i++) {
+      sd[i] = (Math.random() * 2 - 1);
+    }
+    var squelchSrc = audioCtx.createBufferSource();
+    squelchSrc.buffer = squelchBuf;
+
+    var squelchGain = audioCtx.createGain();
+    var squelchFilter = audioCtx.createBiquadFilter();
+    squelchFilter.type = 'lowpass';
+    squelchFilter.frequency.setValueAtTime(1000, now);
+    squelchFilter.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+
+    squelchGain.gain.setValueAtTime(0.2, now);
+    squelchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    squelchSrc.connect(squelchFilter);
+    squelchFilter.connect(squelchGain);
+    squelchGain.connect(audioCtx.destination);
+    squelchSrc.start(now);
+
+    // Resonance: 300ms lingering mud thud
+    var resOsc = audioCtx.createOscillator();
+    var resGain = audioCtx.createGain();
+    resOsc.type = 'triangle';
+    resOsc.frequency.setValueAtTime(85, now);
+    resGain.gain.setValueAtTime(0.08, now);
+    resGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    resOsc.connect(resGain);
+    resGain.connect(audioCtx.destination);
+    resOsc.start(now);
+    resOsc.stop(now + 0.4);
+  }
+
+  function decayAudio() {
+    if (lowGrainGain && audioCtx) {
+      lowGrainGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    }
+    if (noiseGain && audioCtx) {
+      noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    }
+  }
+
+  // ─── Touch/Mouse Handlers ───
+  // Zero hover states: only press and move matter
+  var isPointerDown = false;
+
+  function getPos(e) {
+    if (e.touches && e.touches.length > 0) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function onPointerDown(e) {
+    e.preventDefault();
+    initAudio();
+    var pos = getPos(e);
+    isPointerDown = true;
+    inputX = pos.x;
+    inputY = pos.y;
+    prevInputX = pos.x;
+    prevInputY = pos.y;
+    pressStartTime = performance.now();
+    objX = pos.x;
+    objY = pos.y;
+    targetX = pos.x;
+    targetY = pos.y;
+    state = STATE_PRESS;
+    pressProgress = 0;
+    inputHistory = [];
+  }
+
+  function onPointerMove(e) {
+    e.preventDefault();
+    if (!isPointerDown) return;
+    var pos = getPos(e);
+
+    if (state === STATE_PRESS) {
+      // During press phase, cursor is locked - input tracked but not applied
+      inputX = pos.x;
+      inputY = pos.y;
+      trackVelocity(pos.x, pos.y, performance.now());
+    } else if (state === STATE_DRAG) {
+      inputX = pos.x;
+      inputY = pos.y;
+      trackVelocity(pos.x, pos.y, performance.now());
+      targetX = pos.x;
+      targetY = pos.y;
+    } else if (state === STATE_YIELD || state === STATE_SETTLE) {
+      inputX = pos.x;
+      inputY = pos.y;
+      trackVelocity(pos.x, pos.y, performance.now());
+    }
+  }
+
+  function onPointerUp(e) {
+    e.preventDefault();
+    if (!isPointerDown) return;
+    isPointerDown = false;
+
+    if (state === STATE_PRESS) {
+      // Released too early - reset
+      resetState();
+    } else if (state === STATE_DRAG) {
+      // Force transition to yield
+      triggerYield();
+    } else if (state === STATE_YIELD) {
+      // Let yield complete naturally
+    } else if (state === STATE_SETTLE) {
+      resetState();
+    }
+  }
+
+  function triggerYield() {
+    state = STATE_YIELD;
+    yieldTriggered = true;
+    rippleOpacity = 0.15;
+    rippleRadius = 0;
+    triggerYieldThud();
+    settleStartTime = performance.now();
+
+    // Hide copy during yield
+    var copyEl = document.getElementById('copy');
+    if (copyEl) copyEl.style.opacity = '0';
+  }
+
+  function resetState() {
+    state = STATE_IDLE;
+    yieldTriggered = false;
+    pressProgress = 0;
+    dragProgress = 0;
+    compression = 0;
+    blendFactor = 0;
+    sheenOpacity = 0;
+    rippleOpacity = 0;
+    rippleRadius = 0;
+    mistOpacity = 0;
+    objScale = 1;
+    stopLowGrind();
+    stopWetNoise();
+
+    var copyEl = document.getElementById('copy');
+    if (copyEl) copyEl.style.opacity = '';
+  }
+
+  // Register handlers (touch + mouse, no hover)
+  canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+  canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+  canvas.addEventListener('touchend', onPointerUp, { passive: false });
+  canvas.addEventListener('touchcancel', onPointerUp, { passive: false });
+  canvas.addEventListener('mousedown', onPointerDown);
+  window.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+
+  // ─── Color Palette ───
+  // Cool grey silt: RGB(138,143,150)
+  // Deep ochre: RGB(180,130,40)
+  var coolGrey = { r: 138, g: 143, b: 150 };
+  var deepOchre = { r: 180, g: 130, b: 40 };
+
+  function lerpColor(c1, c2, t) {
+    return {
+      r: c1.r + (c2.r - c1.r) * t,
+      g: c1.g + (c2.g - c1.g) * t,
+      b: c1.b + (c2.b - c1.b) * t
+    };
+  }
+
+  function colorStr(c, a) {
+    return 'rgba(' + (c.r|0) + ',' + (c.g|0) + ',' + (c.b|0) + ',' + (a != null ? a : 1) + ')';
+  }
+
+  // ─── Rendering ───
+  function draw() {
+    var now = performance.now();
+    var bgColor = lerpColor(coolGrey, deepOchre, blendFactor);
+
+    // Clear with blended background
+    ctx.fillStyle = colorStr(bgColor);
+    ctx.fillRect(0, 0, W, H);
+
+    // Pressure gradient around object
+    if (state !== STATE_IDLE) {
+      var gradientRadius = 120 + compression * 80;
+      var grd = ctx.createRadialGradient(objX, objY, 0, objX, objY, gradientRadius);
+      var darkened = lerpColor(bgColor, { r: 40, g: 38, b: 35 }, 0.5 * compression);
+      grd.addColorStop(0, colorStr(darkened, 0.7 * compression));
+      grd.addColorStop(0.5, colorStr(darkened, 0.25 * compression));
+      grd.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, W, H);
+
+      // The heavy object - subtle circle at press/drag point
+      var objRadius = 22 + compression * 6;
+      ctx.beginPath();
+      ctx.arc(objX, objY, objRadius, 0, Math.PI * 2);
+      var objColor = lerpColor({ r: 60, g: 58, b: 55 }, { r: 110, g: 85, b: 30 }, blendFactor);
+      ctx.fillStyle = colorStr(objColor, 0.85);
+      ctx.fill();
+
+      // Object edge ring
+      ctx.beginPath();
+      ctx.arc(objX, objY, objRadius + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = colorStr(lerpColor({ r: 80, g: 78, b: 75 }, { r: 140, g: 110, b: 50 }, blendFactor), 0.3 + compression * 0.2);
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // Wet sheen highlight (peaks at 0.6s of drag)
+      if (sheenOpacity > 0.01) {
+        ctx.beginPath();
+        ctx.arc(objX, objY, objRadius * 1.6, 0, Math.PI * 2);
+        var sheenGrd = ctx.createRadialGradient(objX, objY, 0, objX, objY, objRadius * 1.6);
+        sheenGrd.addColorStop(0, 'rgba(210,195,170,' + (sheenOpacity * 0.5) + ')');
+        sheenGrd.addColorStop(0.6, 'rgba(210,195,170,' + (sheenOpacity * 0.15) + ')');
+        sheenGrd.addColorStop(1, 'rgba(210,195,170,0)');
+        ctx.fillStyle = sheenGrd;
+        ctx.fill();
+      }
+    }
+
+    // Post-yield ripple
+    if (rippleOpacity > 0.005) {
+      ctx.beginPath();
+      ctx.arc(objX, objY, rippleRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = colorStr({ r: 200, g: 160, b: 80 }, rippleOpacity);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Secondary ripple ring
+      if (rippleRadius > 30) {
+        ctx.beginPath();
+        ctx.arc(objX, objY, rippleRadius * 0.65, 0, Math.PI * 2);
+        ctx.strokeStyle = colorStr({ r: 190, g: 150, b: 70 }, rippleOpacity * 0.5);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    // Mist fade (post-yield, 1.2s ease-in slow exhale)
+    if (mistOpacity > 0.005) {
+      var mistGrd = ctx.createRadialGradient(objX, objY, objRadius || 30, objX, objY, W * 0.5);
+      mistGrd.addColorStop(0, 'rgba(160,145,120,' + mistOpacity + ')');
+      mistGrd.addColorStop(0.4, 'rgba(160,145,120,' + (mistOpacity * 0.5) + ')');
+      mistGrd.addColorStop(1, 'rgba(160,145,120,0)');
+      ctx.fillStyle = mistGrd;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // Paper grain overlay (always present)
+    if (grainCanvas) {
+      ctx.globalAlpha = 0.4;
+      ctx.drawImage(grainCanvas, 0, 0, grainCanvas.width, grainCanvas.height, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+
+    // Damp woodblock texture lines (subtle)
+    ctx.strokeStyle = 'rgba(0,0,0,0.03)';
+    ctx.lineWidth = 0.5;
+    for (var i = 0; i < 12; i++) {
+      var yOff = (H / 12) * i + Math.sin(i * 1.7) * 15;
+      ctx.beginPath();
+      ctx.moveTo(0, yOff);
+      ctx.lineTo(W, yOff + Math.sin(i * 2.3) * 8);
+      ctx.stroke();
+    }
+  }
+
+  // ─── Update Loop ───
+  function update(now) {
+    var dt = (now - lastFrameTime) / 1000;
+    dt = Math.min(dt, 0.05); // cap to prevent jumps
+    lastFrameTime = now;
+
+    // ── Phase Transitions ──
+    if (state === STATE_PRESS) {
+      pressProgress = (now - pressStartTime) / pressDuration;
+
+      // Build-up: compression increases during press
+      compression = monotonicEase(Math.min(1, pressProgress)) * 0.4;
+
+      // Start audio grind at 0.3s into hold
+      if (pressProgress > 0.3 && isPointerDown) {
+        var resistance = resistanceMap(inputVelocity);
+        startLowGrind(resistance);
+        startWetNoise(resistance);
+      }
+
+      // Transition to drag after 180ms hold
+      if (pressProgress >= 1 && isPointerDown) {
+        state = STATE_DRAG;
+        dragStartTime = now;
+        dragProgress = 0;
+        // Position snaps from press point to current input
+        objX = inputX;
+        objY = inputY;
+      }
+    } else if (state === STATE_DRAG) {
+      dragProgress = (now - dragStartTime) / dragDuration;
+      dragProgress = Math.min(1, dragProgress);
+
+      var eased = dragEase(dragProgress);
+      compression = 0.4 + eased * 0.6;
+
+      // Blend shift: cross 40% drag progress -> cool grey to deep ochre
+      if (dragProgress > 0.4) {
+        blendFactor = monotonicEase((dragProgress - 0.4) / 0.6);
+      } else {
+        blendFactor = 0;
+      }
+
+      // Object follows input with resistance
+      var resistance = resistanceMap(inputVelocity);
+      var followSpeed = (1 - resistance * 0.6);
+      objX += (targetX - objX) * followSpeed;
+      objY += (targetY - objY) * followSpeed;
+
+      // Sheen peaks at ~0.6s which maps to ~0.6 / (pressDuration/1000 + dragDuration/1000)
+      var totalElapsed = dragProgress;
+      var sheenPeak = 0.6 / (dragDuration / 1000);
+      // Sheen peaks mid-drag and softens at end
+      sheenOpacity = Math.max(0, 1 - Math.abs(totalElapsed - 0.55) * 3);
+      sheenOpacity = Math.min(1, sheenOpacity);
+
+      // Update audio grind based on current velocity
+      if (isPointerDown) {
+        var r = resistanceMap(inputVelocity);
+        startLowGrind(r);
+        startWetNoise(r);
+      }
+
+      if (dragProgress >= 1) {
+        triggerYield();
+      }
+    } else if (state === STATE_YIELD) {
+      var yieldElapsed = (now - settleStartTime) / 1000;
+
+      // Ripple expands over 1.5s
+      rippleRadius = yieldElapsed * 180;
+      rippleOpacity = 0.15 * (1 - yieldElapsed / 1.5);
+      rippleOpacity = Math.max(0, rippleOpacity);
+
+      // Mist fade begins and completes at 1.2s ease-in
+      var mistElapsed = (now - settleStartTime) / mistFadeDuration;
+      mistOpacity = mistEase(Math.min(1, mistElapsed));
+
+      if (yieldElapsed > 1.5) {
+        state = STATE_SETTLE;
+      }
+    } else if (state === STATE_SETTLE) {
+      // Mist continues fading
+      var mistElapsed = (now - settleStartTime) / mistFadeDuration;
+      mistOpacity = mistEase(Math.min(1, mistElapsed));
+
+      // Ripple final fade
+      rippleOpacity *= 0.97;
+
+      // Audio decay: near-silence within 400ms post-yield
+      var settleElapsed = (now - settleStartTime) / 1000;
+      if (settleElapsed > 0.4) {
+        stopLowGrind();
+        stopWetNoise();
+      }
+
+      // Scale settles to resting
+      objScale = 1 + compression * 0.08;
+    }
+
+    // When idle with no interaction, slow decay of residual effects
+    if (state === STATE_IDLE && compression > 0.001) {
+      // If we reset mid-yield, let residual visuals fade
+    }
+  }
+
+  var lastFrameTime = performance.now();
+
+  // ─── Main Loop ───
+  function loop(now) {
+    update(now);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ─── Init ───
+  resize();
+  requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
