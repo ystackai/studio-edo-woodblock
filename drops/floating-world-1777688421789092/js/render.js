@@ -134,42 +134,73 @@ const Render = (() => {
 
   // ─── Bake truly static layers (paper + sky) to offscreen canvas ───
  // Moonlit, muted, atmospheric — reads as ukiyo-e immediately
-  function _bakeStaticBg() {
-     _staticBg = document.createElement('canvas');
-     _staticBg.width = W;
-     _staticBg.height = H;
-    const c = _staticBg.getContext('2d');
+   function _bakeStaticBg() {
+       _staticBg = document.createElement('canvas');
+       _staticBg.width = W;
+       _staticBg.height = H;
+     const c = _staticBg.getContext('2d');
 
-     // Paper base: subtle warm tone, not white
-    c.fillStyle = C.paper;
-    c.fillRect(0, 0, W, H);
-     {
-      const warm = c.createRadialGradient(W * .75, H * .12, 0, W * .5, H * .5, W * .8);
-      warm.addColorStop(0, 'rgba(240,240,228,.18)');
-      warm.addColorStop(.6, 'rgba(240,240,228,.06)');
-      warm.addColorStop(1, 'rgba(230,224,210,0)');
-      c.fillStyle = warm;
-      c.fillRect(0, 0, W, H);
-     }
+       // Paper base: subtle warm tone, not white
+     c.fillStyle = C.paper;
+     c.fillRect(0, 0, W, H);
 
-     // Sky: muted moonlit gradient, deep at top, softer near waterline
-    {
-      const skyGrad = c.createLinearGradient(0, 0, 0, waterline);
-      skyGrad.addColorStop(0, 'rgba(90,100,125,.85)');
-      skyGrad.addColorStop(.3, 'rgba(110,120,142,.75)');
-      skyGrad.addColorStop(.7, 'rgba(140,152,172,.6)');
-      skyGrad.addColorStop(1, 'rgba(170,180,198,.45)');
-      c.fillStyle = skyGrad;
-      c.fillRect(0, 0, W, waterline);
-     }
+       // Moonlight wash: soft radial warmth from moon position
+      {
+       const warm = c.createRadialGradient(W * .8, H * .12, 0, W * .5, H * .4, W * .8);
+       warm.addColorStop(0, 'rgba(240,240,228,.2)');
+       warm.addColorStop(.4, 'rgba(240,240,228,.08)');
+       warm.addColorStop(.7, 'rgba(235,230,218,.04)');
+       warm.addColorStop(1, 'rgba(230,224,210,0)');
+       c.fillStyle = warm;
+       c.fillRect(0, 0, W, H);
+       }
 
-     // Subtle horizon band: warmth where sky meets water
-    c.fillStyle = 'rgba(195,190,178,.22)';
-    c.fillRect(0, waterline - H * .05, W, H * .05);
-  }
+       // Sky: deep muted indigo-grey at top fading to softer grey near horizon
+       // This creates the immediate ukiyo-e moonlit night atmosphere
+      {
+       const skyGrad = c.createLinearGradient(0, 0, 0, waterline);
+       skyGrad.addColorStop(0, 'rgba(65,72,95,.88)');
+       skyGrad.addColorStop(.2, 'rgba(85,95,118,.8)');
+       skyGrad.addColorStop(.45, 'rgba(105,115,135,.68)');
+       skyGrad.addColorStop(.7, 'rgba(130,142,162,.55)');
+       skyGrad.addColorStop(.9, 'rgba(158,168,185,.42)');
+       skyGrad.addColorStop(1, 'rgba(175,185,202,.35)');
+       c.fillStyle = skyGrad;
+       c.fillRect(0, 0, W, waterline);
+       }
 
-  // ─── Bake paper grain as pre-filled canvas (avoids createPattern per frame) ───
-  function _bakeGrainPattern() {
+       // Horizon glow: warm amber reflection where sky meets water
+       // Suggests distant lanterns and moonlight on the harbor surface
+      {
+        const horizGrad = c.createLinearGradient(0, waterline - H * .03, 0, waterline + H * .04);
+        horizGrad.addColorStop(0, 'rgba(210,195,170,0)');
+        horizGrad.addColorStop(.5, 'rgba(210,195,170,.15)');
+        horizGrad.addColorStop(1, 'rgba(210,195,170,0)');
+        c.fillStyle = horizGrad;
+        c.fillRect(0, waterline - H * .03, W, H * .07);
+       }
+
+       // Distant land silhouette at low horizon
+      {
+        const landY = (x) => waterline - (.06 + Math.sin(x * .0018 + .5) * .025 + Math.sin(x * .004 + 1.2) * .012 + Math.sin(x * .009) * .006) * H;
+        c.fillStyle = 'rgba(55,62,78,.3)';
+        c.beginPath();
+        c.moveTo(0, waterline);
+        for (let x = 0; x <= W; x += 4) c.lineTo(x, landY(x));
+        c.lineTo(W, waterline);
+        c.fill();
+        c.strokeStyle = 'rgba(42,48,62,.15)';
+        c.lineWidth = .5;
+        c.beginPath();
+        for (let x = 0; x <= W; x += 4) {
+          if (x === 0) c.moveTo(x, landY(x)); else c.lineTo(x, landY(x));
+        }
+         c.stroke();
+        }
+       }
+
+    // ─── Bake paper grain as pre-filled canvas (avoids createPattern per frame) ───
+   function _bakeGrainPattern() {
     const sz = 256;
     const gc = document.createElement('canvas');
     gc.width = sz;
@@ -470,114 +501,141 @@ const Render = (() => {
             }
           }
 
-     // ── Paper grain compression: localized fiber displacement ───
-    // Fibers are pulled toward the press point, with varying strength
-    // and length to simulate real paper surface responding to touch.
-    // Three zones of compression, each with different fiber density.
-     if (ga > .003) {
-       const compR = 30 + pressGrain.t * 25;
-       _seed = 9500 + Math.floor(frameCount * 3);
-       ctx.save();
+      // ── Paper grain compression: deterministic, position-seeded fiber displacement ───
+      // Seed is derived from press position so the same spot always produces the same fiber pattern.
+      // Three zones of compression, each with different fiber density and pull direction.
+    if (ga > .003) {
+      const compR = 28 + pressGrain.t * 22;
+      // Position-seeded PRNG for deterministic fiber pattern
+      let _sf = (Math.floor(pressGrain.x * 23) + Math.floor(pressGrain.y * 31) + 9500) % 2147483647;
+      function _sfr() { _sf = (_sf * 16807) % 2147483647; return _sf / 2147483647; }
 
-          // Inner zone: tight fibers directly under press — strongest compression
-       {
-         const innerR = compR * .4;
-         const lineN = 6 + Math.floor(ga * 10);
-         ctx.strokeStyle = 'rgba(90,85,70,' + (ga * .35).toFixed(4) + ')';
-         ctx.lineWidth = .3;
-         for (let i = 0; i < lineN; i++) {
-           const angle = _sr() * Math.PI * 2;
-           const dist = _sr() * innerR;
-           const sx = pressGrain.x + Math.cos(angle) * dist;
-           const sy = pressGrain.y + Math.sin(angle) * dist;
-             // Strong inward pull: fibers visibly compressed
-           const pullStrength = ga * .15;
-           const pullX = (pressGrain.x - sx) * pullStrength;
-           const pullY = (pressGrain.y - sy) * pullStrength;
-           const len = 3 + _sr() * 7;
-            // Fibers align toward the press point
-           const fiberAngle = Math.atan2(pullY, pullX) + (_sr() - .5) * .6;
-           ctx.beginPath();
-           ctx.moveTo(sx, sy);
-           const endX = sx + len * Math.cos(fiberAngle) * .5 + pullX;
-           const endY = sy + len * Math.sin(fiberAngle) * .5 + pullY;
-           ctx.quadraticCurveTo(
-             (sx + endX) / 2 + (_sr() - .5) * 3,
-             (sy + endY) / 2 + (_sr() - .5) * 2,
-             endX, endY
-             );
-           ctx.stroke();
-            }
+      ctx.save();
+
+        // Inner zone: tight radial fibers directly under press — strongest compression
+        {
+          const innerR = compR * .38;
+          const lineN = 6 + Math.floor(ga * 10);
+          ctx.strokeStyle = 'rgba(90,85,70,' + (ga * .38).toFixed(4) + ')';
+          ctx.lineWidth = .35;
+          for (let i = 0; i < lineN; i++) {
+            const angle = _sfr() * Math.PI * 2;
+            const dist = _sfr() * innerR;
+            const sx = pressGrain.x + Math.cos(angle) * dist;
+            const sy = pressGrain.y + Math.sin(angle) * dist;
+            // Strong inward pull: fibers visibly compressed toward press point
+            const pullStrength = ga * .18 * (1 - dist / innerR);
+            const pullX = (pressGrain.x - sx) * pullStrength;
+            const pullY = (pressGrain.y - sy) * pullStrength;
+            const len = 3 + _sfr() * 6;
+            // Fibers align radially toward the press point with slight variation
+            const fiberAngle = Math.atan2(pullY, pullX) + (_sfr() - .5) * .5;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            const endX = sx + len * Math.cos(fiberAngle) * .5 + pullX;
+            const endY = sy + len * Math.sin(fiberAngle) * .5 + pullY;
+            ctx.quadraticCurveTo(
+              (sx + endX) / 2 + (_sfr() - .5) * 2.5,
+              (sy + endY) / 2 + (_sfr() - .5) * 1.8,
+              endX, endY
+              );
+            ctx.stroke();
           }
-
-          // Mid zone: moderate compression, fibers beginning to respond
-       {
-         const midR = compR * .7;
-         const innerR2 = compR * .4;
-         const lineN = 6 + Math.floor(ga * 8);
-         ctx.strokeStyle = 'rgba(100,95,80,' + (ga * .2).toFixed(4) + ')';
-         ctx.lineWidth = .25;
-         for (let i = 0; i < lineN; i++) {
-           const angle = _sr() * Math.PI * 2;
-           const rawDist = innerR2 + _sr() * (midR - innerR2);
-           const sx = pressGrain.x + Math.cos(angle) * rawDist;
-           const sy = pressGrain.y + Math.sin(angle) * rawDist;
-           const pullStrength = ga * .06;
-           const pullX = (pressGrain.x - sx) * pullStrength;
-           const pullY = (pressGrain.y - sy) * pullStrength;
-           const len = 4 + _sr() * 10;
-           const fiberAngle = (_sr() - .5) * .5 + Math.atan2(pullY, pullX) * .2;
-           ctx.beginPath();
-           ctx.moveTo(sx, sy);
-           ctx.lineTo(sx + len * Math.cos(fiberAngle) + pullX, sy + len * Math.sin(fiberAngle) + pullY);
-           ctx.stroke();
-            }
-          }
-
-          // Outer zone: faintest response, mostly ambient grain shift
-       {
-         const outerR = compR;
-         const midR2 = compR * .7;
-         const lineN = 4 + Math.floor(ga * 5);
-         ctx.strokeStyle = 'rgba(110,100,85,' + (ga * .1).toFixed(4) + ')';
-         ctx.lineWidth = .2;
-         const dotN = 3 + Math.floor(ga * 4);
-         for (let i = 0; i < lineN; i++) {
-           const angle = _sr() * Math.PI * 2;
-           const rawDist = midR2 + _sr() * (outerR - midR2);
-           const sx = pressGrain.x + Math.cos(angle) * rawDist;
-           const sy = pressGrain.y + Math.sin(angle) * rawDist;
-           const len = 3 + _sr() * 6;
-           const fiberAngle = (_sr() - .5) * .4;
-           ctx.beginPath();
-           ctx.moveTo(sx, sy);
-           ctx.lineTo(sx + len * Math.cos(fiberAngle), sy + len * Math.sin(fiberAngle));
-           ctx.stroke();
-            }
-          }
-
-          // Micro-compression stipple: tiny dots where fibers are most compressed
-          // These appear as the paper surface "dimples" under pressure
-        _seed = 9600 + Math.floor(ga * 100);
-       const stipN = 4 + Math.floor(ga * 12);
-       for (let i = 0; i < stipN; i++) {
-         const angle = _sr() * Math.PI * 2;
-         const dist = _sr() * compR * .6;
-         const sx = pressGrain.x + Math.cos(angle) * dist;
-         const sy = pressGrain.y + Math.sin(angle) * dist;
-         const distFactor = 1 - dist / (compR * .6);
-         const dA = ga * .08 * distFactor;
-         if (dA > .005) {
-           ctx.fillStyle = 'rgba(80,75,60,' + dA.toFixed(4) + ')';
-           ctx.beginPath();
-           ctx.arc(sx, sy, .3 + _sr() * .5, 0, Math.PI * 2);
-           ctx.fill();
-            }
-          }
-
-         ctx.restore();
         }
-     }
+
+        // Mid zone: moderate compression, fibers at cross-grain angles
+        {
+          const midR = compR * .65;
+          const innerR2 = compR * .38;
+          const lineN = 5 + Math.floor(ga * 7);
+          ctx.strokeStyle = 'rgba(100,95,80,' + (ga * .22).toFixed(4) + ')';
+          ctx.lineWidth = .25;
+          for (let i = 0; i < lineN; i++) {
+            const angle = _sfr() * Math.PI * 2;
+            const rawDist = innerR2 + _sfr() * (midR - innerR2);
+            const sx = pressGrain.x + Math.cos(angle) * rawDist;
+            const sy = pressGrain.y + Math.sin(angle) * rawDist;
+            const pullStrength = ga * .07 * (1 - (rawDist - innerR2) / (midR - innerR2));
+            const pullX = (pressGrain.x - sx) * pullStrength;
+            const pullY = (pressGrain.y - sy) * pullStrength;
+            const len = 4 + _sfr() * 9;
+            // Cross-grain: perpendicular to radial direction
+            const radialAngle = Math.atan2(sy - pressGrain.y, sx - pressGrain.x);
+            const fiberAngle = radialAngle + Math.PI * .5 + (_sfr() - .5) * .8;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + len * Math.cos(fiberAngle) + pullX, sy + len * Math.sin(fiberAngle) + pullY);
+            ctx.stroke();
+          }
+        }
+
+        // Outer zone: faint grain shift, tangential alignment
+        {
+          const outerR = compR;
+          const midR2 = compR * .65;
+          const lineN = 3 + Math.floor(ga * 4);
+          ctx.strokeStyle = 'rgba(110,100,85,' + (ga * .12).toFixed(4) + ')';
+          ctx.lineWidth = .2;
+          for (let i = 0; i < lineN; i++) {
+            const angle = _sfr() * Math.PI * 2;
+            const rawDist = midR2 + _sfr() * (outerR - midR2);
+            const sx = pressGrain.x + Math.cos(angle) * rawDist;
+            const sy = pressGrain.y + Math.sin(angle) * rawDist;
+            const len = 3 + _sfr() * 5;
+            const radialAngle = Math.atan2(sy - pressGrain.y, sx - pressGrain.x);
+            const fiberAngle = radialAngle + Math.PI * .5 + (_sfr() - .5) * .6;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + len * Math.cos(fiberAngle), sy + len * Math.sin(fiberAngle));
+            ctx.stroke();
+          }
+        }
+
+        // Compression ring: subtle annular deformation at press boundary
+        // Simulates the paper dimpling in a circle around the press point
+        {
+          const ringCount = 2 + Math.floor(ga * 2);
+          for (let rc = 0; rc < ringCount; rc++) {
+            const ringR = (10 + rc * 8 + _sfr() * 4) * (1 + pressGrain.t * .15);
+            const ringA = ga * (.04 - rc * .01);
+            if (ringA < .005) continue;
+            ctx.strokeStyle = 'rgba(95,88,72,' + ringA.toFixed(4) + ')';
+            ctx.lineWidth = .25;
+            ctx.beginPath();
+            for (let a = 0; a < Math.PI * 2; a += .3) {
+              const wobble = Math.sin(a * 5 + _sfr() * 3) * 1.2;
+              const rr = ringR + wobble;
+              const rx = pressGrain.x + Math.cos(a) * rr;
+              const ry = pressGrain.y + Math.sin(a) * rr;
+              if (a === 0) ctx.moveTo(rx, ry);
+              else ctx.lineTo(rx, ry);
+            }
+            ctx.closePath();
+            ctx.stroke();
+          }
+        }
+
+        // Micro-compression stipple: tiny dots where fibers dimple
+        _sf = (Math.floor(pressGrain.x * 17) + Math.floor(pressGrain.y * 29) + 9600) % 2147483647;
+        const stipN = 4 + Math.floor(ga * 10);
+        for (let i = 0; i < stipN; i++) {
+          const angle = _sfr() * Math.PI * 2;
+          const dist = _sfr() * compR * .55;
+          const sx = pressGrain.x + Math.cos(angle) * dist;
+          const sy = pressGrain.y + Math.sin(angle) * dist;
+          const distFactor = 1 - dist / (compR * .55);
+          const dA = ga * .1 * distFactor * (1 + pressGrain.t * .2);
+          if (dA > .005) {
+            ctx.fillStyle = 'rgba(80,75,60,' + dA.toFixed(4) + ')';
+            ctx.beginPath();
+            ctx.arc(sx, sy, .25 + _sfr() * .4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+      ctx.restore();
+    }
+  }
 
     // ─── Hills: layered silhouettes, immediate ukiyo-e read ───
   function drawHills(ctx) {
@@ -640,31 +698,48 @@ const Render = (() => {
 
     // ─── Water: moonlit harbor, deep and calm ───
   function drawWater(ctx) {
-      // Base: muted indigo-grey
-    ctx.fillStyle = C.water;
-    ctx.fillRect(0, waterline, W, H - waterline);
+        // Base water: muted indigo-grey wash, flat like a printed block
+     ctx.fillStyle = C.water;
+     ctx.fillRect(0, waterline, W, H - waterline);
 
-     // Deep indigo wash at bottom
-    ctx.fillStyle = C.waterDeep;
-    ctx.fillRect(0, waterline + H * .5, W, H * .35);
+         // Deep indigo pool: the harbor bottom, darker as it deepens
+      {
+       const deepGrad = ctx.createLinearGradient(0, waterline + H * .3, 0, H);
+       deepGrad.addColorStop(0, 'rgba(58,75,92,0)');
+       deepGrad.addColorStop(.4, 'rgba(58,75,92,.45)');
+       deepGrad.addColorStop(1, 'rgba(45,60,78,.6)');
+       ctx.fillStyle = deepGrad;
+       ctx.fillRect(0, waterline + H * .3, W, H * .7);
+      }
 
-     // Shadow band near waterline reflecting sky
-    ctx.fillStyle = 'rgba(100,115,140,.2)';
-    ctx.fillRect(0, waterline + H * .02, W, H * .08);
+         // Moonlit reflection band: horizontal shimmer strip at waterline
+         // Suggests the harbor is flat and moonlit, key to the ukiyo-e mood
+      {
+       const reflGrad = ctx.createLinearGradient(0, waterline, 0, waterline + H * .12);
+       reflGrad.addColorStop(0, 'rgba(200,205,215,.12)');
+       reflGrad.addColorStop(.5, 'rgba(190,195,210,.06)');
+       reflGrad.addColorStop(1, 'rgba(180,185,200,0)');
+       ctx.fillStyle = reflGrad;
+       ctx.fillRect(0, waterline, W, H * .12);
+      }
 
-     // Subtle horizontal wave lines: very faint, suggest calm water
-    ctx.strokeStyle = 'rgba(160,175,195,.12)';
-    ctx.lineWidth = .4;
-    for (let y = waterline + 6; y < H * .85; y += 11) {
-      ctx.beginPath();
-      for (let x = 0; x < W; x += 6) {
-        const wave = Math.sin(x * .004 + y * .015 + tideProgress * 2.5) * 1;
-        if (x === 0) ctx.moveTo(x, y + wave);
-        else ctx.lineTo(x, y + wave);
-        }
-      ctx.stroke();
+        // Subtle horizontal wave lines: very faint, suggest calm water
+        // Variable spacing and length for hand-printed feel
+     ctx.strokeStyle = 'rgba(160,175,195,.1)';
+     ctx.lineWidth = .35;
+     _seed = 4000;
+     for (let y = waterline + 5; y < H * .82; y += 10 + _sr() * 6) {
+       ctx.beginPath();
+       const rowLen = W * (.3 + _sr() * .5);
+       const rowStart = _sr() * (W - rowLen);
+       for (let x = rowStart; x < rowStart + rowLen; x += 6) {
+         const wave = Math.sin(x * .004 + y * .015 + tideProgress * 2.5) * 1.2;
+         if (x === rowStart) ctx.moveTo(x, y + wave);
+         else ctx.lineTo(x, y + wave);
+          }
+       ctx.stroke();
+       }
      }
-   }
 
     // ─── Moonlight shimmer: restrained, near the column ───
   function drawMoonlightShimmer(ctx) {
@@ -1802,44 +1877,79 @@ const Render = (() => {
       // ══ Phase 1: Leading edge — soft stippled fade-in (no hard cutoff)
      // Density follows a sin-curve: sparse at far edge, peak at tideFront,
      // then fades into the wash. Multi-sampled to avoid banding.
-     const leadingEdgeW = 65 + pressure * 35;
-     const washStart = Math.max(0, tideFront - leadingEdgeW);
-     const washEnd = Math.min(W, tideFront + zone + 10);
-      _seed = 8000 + Math.floor(tideProgress * 50);
-     for (let x = washStart; x < washEnd; x += 2) {
-       const d = x - tideFront;
+      const leadingEdgeW = 65 + pressure * 35;
+      const washStart = Math.max(0, tideFront - leadingEdgeW);
+      const washEnd = Math.min(W, tideFront + zone + 10);
 
-        // Far ahead of front → whisper zone (handled above, skip here)
-        // At front region: dense stipple with sin density envelope
-       if (d >= -leadingEdgeW && d <= zone * .15) {
-         const edgeT = (d + leadingEdgeW) / (leadingEdgeW + zone * .15);
-         const densityEnv = Math.sin(edgeT * Math.PI) * (.5 + pressure * .5);
-         const colCount = 1 + Math.floor(densityEnv * 5);
-         for (let c = 0; c < colCount; c++) {
-           const jx = x + _sr() * 3;
-           const jy = waterline - H * .04 + _sr() * rowH;
-           const jR = .3 + _sr() * 1.8;
-           const baseAlpha = (.04 + pressure * .1);
-           const jA = Math.sin(edgeT * Math.PI) * baseAlpha * (.3 + _sr() * .7);
-           if (jA > .01) {
-             ctx.fillStyle = 'rgba(14,26,58,' + jA.toFixed(3) + ')';
-             ctx.beginPath();
-             ctx.arc(jx, jy, jR, 0, Math.PI * 2);
-             ctx.fill();
+        // ══ Leading wave line: carved dark edge that advances like a block print coming alive
+        // A visible wavy ink line at the tide front, suggesting the carved block edge
+        // sweeping across the paper. Three parallel lines with slight offsets create
+        // the hand-printed registration feel.
+       {
+        const waveYBase = waterline;
+        const waveAmp = 2 + pressure * 3;
+        const waveFreq = .025 + pressure * .01;
+        const lineCount = 3;
+
+        for (let li = 0; li < lineCount; li++) {
+          const offset = (li - 1) * (1.5 + pressure * .8);
+          const lineAlpha = (.08 + pressure * .06) * (1 - li * .2);
+          ctx.strokeStyle = 'rgba(14,26,58,' + lineAlpha.toFixed(3) + ')';
+          ctx.lineWidth = .5 + (li === 0 ? .5 : 0);
+          ctx.beginPath();
+          for (let x = washStart; x <= washEnd; x += 4) {
+            const waveOffset = Math.sin(x * waveFreq + tideProgress * 3 + li * 1.2) * waveAmp;
+            const vertY = waveYBase + waveOffset + offset + Math.sin(x * .01 + tideProgress) * 8;
+            // Only draw within the leading edge zone
+            if (x >= tideFront - leadingEdgeW * .5 && x <= tideFront + zone * .12) {
+              const edgeNorm = (x - (tideFront - leadingEdgeW * .5)) / (leadingEdgeW * .5 + zone * .12);
+              const env = Math.sin(edgeNorm * Math.PI);
+              if (env < .1) continue;
+              if (x === washStart || Math.abs(x - tideFront) < leadingEdgeW * .5) {
+                if (!ctx.isPointInPath) ctx.moveTo(x, vertY);
+                else ctx.lineTo(x, vertY);
+               }
+             }
+           }
+          ctx.stroke();
+         }
+       }
+
+        _seed = 8000 + Math.floor(tideProgress * 50);
+      for (let x = washStart; x < washEnd; x += 2) {
+        const d = x - tideFront;
+
+          // Far ahead of front → whisper zone (handled above, skip here)
+          // At front region: dense stipple with sin density envelope
+        if (d >= -leadingEdgeW && d <= zone * .15) {
+          const edgeT = (d + leadingEdgeW) / (leadingEdgeW + zone * .15);
+          const densityEnv = Math.sin(edgeT * Math.PI) * (.5 + pressure * .5);
+          const colCount = 1 + Math.floor(densityEnv * 5);
+          for (let c = 0; c < colCount; c++) {
+            const jx = x + _sr() * 3;
+            const jy = waterline - H * .04 + _sr() * rowH;
+            const jR = .3 + _sr() * 1.8;
+            const baseAlpha = (.04 + pressure * .1);
+            const jA = Math.sin(edgeT * Math.PI) * baseAlpha * (.3 + _sr() * .7);
+            if (jA > .01) {
+              ctx.fillStyle = 'rgba(14,26,58,' + jA.toFixed(3) + ')';
+              ctx.beginPath();
+              ctx.arc(jx, jy, jR, 0, Math.PI * 2);
+              ctx.fill();
+                }
               }
             }
-          }
 
-        // Ahead of front: indigo wash bars with soft falloff
-       if (d > 0) {
-         const t = Easing.soak(d / zone);
-         // Soft sinusoidal fade: no sharp step into the wash
-         const alpha = .025 + Math.sin(t * Math.PI) * (.12 + pressure * .16);
-         if (alpha > .015) {
-           ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
-           ctx.fillRect(x, waterline - H * .04, 2, H * .72);
+          // Ahead of front: indigo wash bars with soft falloff
+        if (d > 0) {
+          const t = Easing.soak(d / zone);
+           // Soft sinusoidal fade: no sharp step into the wash
+          const alpha = .025 + Math.sin(t * Math.PI) * (.12 + pressure * .16);
+          if (alpha > .015) {
+            ctx.fillStyle = 'rgba(27,42,74,' + alpha.toFixed(3) + ')';
+            ctx.fillRect(x, waterline - H * .04, 2, H * .72);
+              }
             }
-          }
         }
 
       // ══ Phase 1.5: Lateral ink-bleed strokes
