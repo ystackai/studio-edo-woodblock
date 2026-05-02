@@ -25,6 +25,12 @@ const Render = (() => {
   let boats = [], reeds = [], bridgePosts = [], lanternXs = [];
   let clock = 0;
 
+  // ── Touch micro-interaction state ──
+  let touchX = 0, touchY = 0;       // current pointer position
+  let touchAlpha = 0;                 // 0→1 press glow intensity
+  let dragTrail = [];                 // recent positions for trailing stipple
+  let releaseRipple = null;          // { x, y, t, alpha } on release
+
    // Settle state
     let settling = false;
   let settleProgress = 0;        // 0→1 during settle animation
@@ -180,6 +186,11 @@ const Render = (() => {
     drawPaperGrain(ctx);
     // Registration lines (offset ghost lines)
     drawRegistration(ctx);
+    // Touch micro-interactions drawn on top
+    drawTouchGlow(ctx);
+    drawGrainShift(ctx);
+    drawDragTrailStipple(ctx);
+    drawReleaseRipple(ctx);
    }
 
   function drawPaper(ctx) {
@@ -936,7 +947,111 @@ const Render = (() => {
        ctx.stroke();
      }
     ctx.restore();
-   }
+  }
+
+ // ── Touch glow: soft indigo pool under finger on press ──
+ function drawTouchGlow(ctx) {
+    if (touchAlpha < .01) return;
+
+    const glowR = 40 + pressure * 25;
+    const grad = ctx.createRadialGradient(touchX, touchY, 0, touchX, touchY, glowR);
+    grad.addColorStop(0, 'rgba(27,42,74,' + (touchAlpha * .15).toFixed(3) + ')');
+    grad.addColorStop(.5, 'rgba(27,42,74,' + (touchAlpha * .06).toFixed(3) + ')');
+    grad.addColorStop(1, 'rgba(27,42,74,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(touchX, touchY, glowR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Subtle amber highlight ring (lantern warmth reflected through wet paper)
+    if (touchAlpha > .3) {
+      const ringAlpha = (touchAlpha - .3) * .08;
+      ctx.strokeStyle = 'rgba(212,160,74,' + ringAlpha.toFixed(3) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(touchX, touchY, glowR * .6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  // ── Grain shift: concentrated paper grain disturbance under finger ──
+  function drawGrainShift(ctx) {
+    if (touchAlpha < .02) return;
+
+    const shiftR = 50 + pressure * 30;
+    _seed = 1000 + Math.floor(clock * 100) % 1000;
+    ctx.save();
+    ctx.globalAlpha = touchAlpha * .04;
+    ctx.strokeStyle = 'rgba(42,48,72,1)';
+    ctx.lineWidth = .3;
+
+    for (let i = 0; i < 12; i++) {
+      const angle = _sr() * Math.PI * 2;
+      const dist = _sr() * shiftR;
+      const sx = touchX + Math.cos(angle) * dist;
+      const sy = touchY + Math.sin(angle) * dist;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + 3 + _sr() * 6, sy + (_sr() - .5) * 3);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ── Drag trail stipple: tiny ink dots trailing behind finger movement ──
+  function drawDragTrailStipple(ctx) {
+    if (dragTrail.length < 2 || !pressed) return;
+
+    _seed = 2000 + Math.floor(clock * 200);
+    ctx.fillStyle = 'rgba(27,42,74,' + (.02 + pressure * .04) + ')';
+
+    for (let i = 0; i < dragTrail.length; i++) {
+      const p = dragTrail[i];
+      const age = (dragTrail.length - 1 - i) / dragTrail.length;
+      const alpha = (1 - age) * (.015 + pressure * .02);
+      if (alpha < .005) continue;
+
+      _seed = 2000 + i * 37;
+      const dotR = .3 + _sr() * .6;
+      ctx.fillStyle = 'rgba(27,42,74,' + alpha + ')';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ── Release ripple: expanding circle on touch release ──
+  function drawReleaseRipple(ctx) {
+    if (!releaseRipple) return;
+
+    const r = releaseRipple;
+    const radius = 15 + r.t * 60;
+    const alpha = r.alpha * (1 - r.t);
+    if (alpha < .005) {
+      releaseRipple = null;
+      return;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = 'rgba(27,42,74,.25)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Second inner ripple (delayed start, carved feel)
+    if (r.t > .2) {
+      const r2 = (r.t - .2) * 50;
+      const a2 = alpha * .6;
+      ctx.globalAlpha = a2;
+      ctx.lineWidth = .8;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 
   // ─── Registration lines: visible woodblock offset ghosts ───
   function drawRegistration(ctx) {
@@ -1016,6 +1131,11 @@ const Render = (() => {
     resetting = false;
     lastX = x;
     lastY = y;
+    touchX = x;
+    touchY = y;
+    touchAlpha = 1;
+    dragTrail = [{ x, y }];
+    releaseRipple = null;
     if (tideFront <= 0) {
         tideFront = x;
         initialTideFront = x;
@@ -1031,6 +1151,13 @@ const Render = (() => {
     tideFront = Math.max(0, Math.min(W, tideFront + dx * .5));
     tideProgress += dist * .007;
 
+     // Track touch for visual feedback
+    touchX = x;
+    touchY = y;
+    dragTrail.push({ x, y });
+     // Keep trail to last 20 points
+    if (dragTrail.length > 20) dragTrail.shift();
+
     lastX = x;
     lastY = y;
    }
@@ -1040,15 +1167,26 @@ const Render = (() => {
     pressure = Math.max(0, pressure - .08);
     tideProgress += .3;
 
-      // Begin settle: slow, intentional advance + pigment bloom
+      // Trigger release ripple visual
+    releaseRipple = { x: touchX, y: touchY, t: 0, alpha: .6 };
+
+       // Begin settle: slow, intentional advance + pigment bloom
     if (!resetting) {
       settling = true;
       settleProgress = 0;
       settleBloom = Math.max(.15, pressure * .6 + tideProgress * .02);
       tideSettleExtra = 0;
       initialTideFront = tideFront;
-      }
-    }
+       }
+     }
+
+  function resetTouchState() {
+    touchX = 0;
+    touchY = 0;
+    touchAlpha = 0;
+    dragTrail = [];
+    releaseRipple = null;
+  }
 
   function resetScene() {
     resetting = true;
@@ -1058,18 +1196,29 @@ const Render = (() => {
     tideSettleExtra = 0;
     resetStartTideFront = tideFront;
     resetStartTideProgress = tideProgress;
-       }
+    resetTouchState();
+         }
 
   function idleDrift(t) {
-     clock += .016;
-     if (tideFront > 0) {
-      tideFront += Math.sin(t * 1.1) * .25;
-      } else {
-        // Subtle idle shimmer at origin
-      tideFront = Math.sin(t * 0.7) * 2;
-      }
-     tideProgress += .004;
-     pressure = Math.max(0, pressure - .0025);
+   clock += .016;
+   if (tideFront > 0) {
+    tideFront += Math.sin(t * 1.1) * .25;
+     } else {
+       // Subtle idle shimmer at origin
+    tideFront = Math.sin(t * 0.7) * 2;
+     }
+   tideProgress += .004;
+   pressure = Math.max(0, pressure - .0025);
+
+    // Touch feedback decay
+   touchAlpha = Math.max(0, touchAlpha - .03);
+    if (touchAlpha < .01) dragTrail = [];
+
+    // Advance release ripple
+   if (releaseRipple) {
+     releaseRipple.t += .012;
+     if (releaseRipple.t >= 1) releaseRipple = null;
+    }
 
          // ── Settle animation ──
     if (settling) {
@@ -1135,5 +1284,5 @@ const Render = (() => {
           }
        }
 
-  return { init, draw, onDown, onMove, onUp, idleDrift, resetScene };
+  return { init, draw, onDown, onMove, onUp, idleDrift, resetScene, resetTouchState };
 })();
