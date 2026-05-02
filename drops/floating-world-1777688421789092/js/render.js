@@ -199,59 +199,93 @@ const Render = (() => {
         }
        }
 
-    // ─── Bake paper grain as pre-filled canvas (avoids createPattern per frame) ───
+   // ─── Bake paper grain — large tile, multi-scale noise, fiber directionality ───
+   // Tile is 512×512 to reduce repeat visibility.  Random phase offsets per tile
+   // instance further break the looping pattern.  The grain has three layers:
+   //   1. Macro mottling: gentle regional brightness shifts (wet paper patches)
+   //   2. Micro speckle: random fiber dust and pigment granules
+   //   3. Directional fibers: elongated strokes with horizontal bias (paper grain)
+   //      plus a smaller set of cross-grain fibers for visual interest.
    function _bakeGrainPattern() {
-    const sz = 256;
+    const sz = 512;
     const gc = document.createElement('canvas');
     gc.width = sz;
     gc.height = sz;
     const gctx = gc.getContext('2d');
 
+    // Layer 1+2: macro mottling + micro speckle via pixel buffer
     const img = gctx.createImageData(sz, sz);
+    let _grainSeed = 7919;
+    function _grainSr() { _grainSeed = (_grainSeed * 16807) % 2147483647; return _grainSeed / 2147483647; }
     for (let i = 0; i < img.data.length; i += 4) {
       const x = (i / 4) % sz;
       const y = Math.floor(i / 4 / sz);
-      const macro = (Math.sin(x * .1) * Math.cos(y * .08) * .3) +
-                      (Math.sin(x * .03 + y * .04) * .2);
-      const speckle = Math.random() * .4;
-      const v = 175 + (macro * 30) + (speckle * 25);
-      img.data[i] = v;
-      img.data[i + 1] = v - 6;
-      img.data[i + 2] = v - 14;
-      img.data[i + 3] = 28;
-    }
+      // Macro mottling: two overlapping low-freq waves produce organic patches
+      const macro = (Math.sin(x * .031 + y * .023) * .28) +
+                    (Math.sin(x * .009 - y * .017 + 1.2) * .18) +
+                    (Math.cos(x * .013 + y * .027) * .12);
+      // Micro speckle: per-pixel random variation
+      const speckle = _grainSr() * .35;
+      // Combine into base value with warm paper bias
+      const v = 178 + (macro * 24) + (speckle * 20);
+      img.data[i]     = Math.min(255, v);
+      img.data[i + 1] = Math.min(255, v - 8);
+      img.data[i + 2] = Math.min(255, v - 16);
+      img.data[i + 3] = 32;
+     }
     gctx.putImageData(img, 0, 0);
 
+    // Layer 3A: Directional fibers — horizontal bias (12°–135°), varying length
     gctx.save();
-    gctx.globalAlpha = .12;
-    gctx.strokeStyle = 'rgba(80,70,55,1)';
-    gctx.lineWidth = .3;
-    for (let i = 0; i < 35; i++) {
-      const yy = Math.random() * sz;
-      const xx = Math.random() * sz;
-      const len = 8 + Math.random() * 30;
-      const dy = (Math.random() - .3) * 3;
+    for (let i = 0; i < 80; i++) {
+      const yy = _grainSr() * sz;
+      const xx = _grainSr() * sz;
+      // Horizontal-biased angle: predominantly left-right with slight variation
+      const angle = (_grainSr() - .5) * .35;
+      const len = 10 + _grainSr() * 38;
+      const thickness = .15 + _grainSr() * .35;
+      const alpha = .06 + _grainSr() * .14;
+      gctx.strokeStyle = 'rgba(75,68,52,' + alpha + ')';
+      gctx.lineWidth = thickness;
       gctx.beginPath();
       gctx.moveTo(xx, yy);
-      gctx.lineTo(xx + len, yy + dy);
+      // Slight bezier for organic feel — fibers aren't perfectly straight
+      const cpx = xx + len * .5 + (_grainSr() - .5) * 4;
+      const cpy = yy + (_grainSr() - .5) * 2.5;
+      gctx.quadraticCurveTo(cpx, cpy, xx + len * Math.cos(angle), yy + len * Math.sin(angle));
       gctx.stroke();
-    }
+     }
     gctx.restore();
 
+    // Layer 3B: Cross-grain fibers — perpendicular, shorter, fewer
     gctx.save();
-    gctx.globalAlpha = .06;
-    gctx.strokeStyle = 'rgba(90,80,65,1)';
-    gctx.lineWidth = .2;
-    for (let i = 0; i < 15; i++) {
-      const yy = Math.random() * sz;
-      const xx = Math.random() * sz;
-      const len = 5 + Math.random() * 12;
-      const angle = (-1.2 + Math.random() * .4);
+    for (let i = 0; i < 25; i++) {
+      const yy = _grainSr() * sz;
+      const xx = _grainSr() * sz;
+      const angle = Math.PI * .5 + (_grainSr() - .5) * .6;
+      const len = 5 + _grainSr() * 16;
+      const alpha = .03 + _grainSr() * .08;
+      gctx.strokeStyle = 'rgba(95,88,72,' + alpha + ')';
+      gctx.lineWidth = .12 + _grainSr() * .2;
       gctx.beginPath();
       gctx.moveTo(xx, yy);
-      gctx.lineTo(xx + len * .6, yy + len * Math.tan(angle));
+      gctx.lineTo(xx + len * Math.cos(angle), yy + len * Math.sin(angle));
       gctx.stroke();
-    }
+     }
+    gctx.restore();
+
+    // Layer 3C: Tiny pigment granules — scattered dots
+    gctx.save();
+    for (let i = 0; i < 40; i++) {
+      const xx = _grainSr() * sz;
+      const yy = _grainSr() * sz;
+      const r = .3 + _grainSr() * .8;
+      const alpha = .04 + _grainSr() * .06;
+      gctx.fillStyle = 'rgba(70,62,48,' + alpha + ')';
+      gctx.beginPath();
+      gctx.arc(xx, yy, r, 0, Math.PI * 2);
+      gctx.fill();
+     }
     gctx.restore();
 
     grainPattern = document.createElement('canvas');
@@ -259,26 +293,36 @@ const Render = (() => {
     grainPattern.height = sz;
     grainPattern.getContext('2d').drawImage(gc, 0, 0);
 
-    // Pre-fill grain canvas for fast blit instead of createPattern each frame
-    _grainCanvas = _createGrainCanvas();
-  }
+     // Pre-fill grain canvas for fast blit instead of createPattern each frame
+     _grainCanvas = _createGrainCanvas();
+   }
 
-  // Create a full-size canvas filled with the grain pattern (once per resize)
+  // Create a full-size canvas filled with grain tiles with random phase offsets
+  // to break the repeating pattern. Each tile is drawn at a slightly shifted
+  // position so seam edges don't line up.
   function _createGrainCanvas() {
     const c = document.createElement('canvas');
     c.width = W;
     c.height = H;
     const ctx = c.getContext('2d');
-    const sz = 256;
-    const repsX = Math.ceil(W / sz) + 1;
-    const repsY = Math.ceil(H / sz) + 1;
+    const sz = 512;
+    const repsX = Math.ceil(W / sz) + 2;
+    const repsY = Math.ceil(H / sz) + 2;
+    // Seeded random for consistent offsets across frames
+    let tileSeed = 12347;
+    function tileSr() { tileSeed = (tileSeed * 16807) % 2147483647; return tileSeed / 2147483647; }
     for (let ry = 0; ry < repsY; ry++) {
       for (let rx = 0; rx < repsX; rx++) {
-        ctx.drawImage(grainPattern, rx * sz, ry * sz);
+        const offX = (tileSr() - .5) * 30;
+        const offY = (tileSr() - .5) * 30;
+        ctx.save();
+        ctx.globalAlpha = .75 + tileSr() * .35;
+        ctx.drawImage(grainPattern, rx * sz + offX, ry * sz + offY);
+        ctx.restore();
+       }
       }
-    }
     return c;
-  }
+    }
 
   function hexToRgb(hex) {
     const v = parseInt(hex.slice(1), 16);
@@ -2288,321 +2332,515 @@ const Render = (() => {
     ctx.restore();
   }
 
-    // ─── Registration lines: authentic ukiyo-e multi-pass registration marks ───
-    // Three distinct ink passes are simulated, each with its own offset direction:
-    //   1. Key block (black) baseline — always fully visible
-    //   2. Benizuri (warm ochre) — offset +2/+1.5 from key block
-    //   3. Aozuri (cool indigo) — offset -1.5/-1 from key block
-    // The visibility of passes 2 and 3 increases with tide progress and is strongest in settled state.
-   function drawRegistration(ctx) {
-     ctx.save();
+      // ─── Registration lines: hand-carved, irregular, variable-weight ───
+      // Simulates multi-pass woodblock printing where each color block
+      // was carved, inked, and pressed by hand with slight misalignment.
+      // Lines are deliberately non-uniform: gaps, weight shifts, and
+      // organic wobble to feel carved, not computed.
+     // Helper: draws a wobbly line segment with hand-carved feel.
+      // Varying weight along the path and random micro-deviations.
+    function _drawWobblyLine(ctx, x1, y1, x2, y2, segments, seed) {
+      let s = seed;
+      function sr() { s = (s * 16807) % 2147483647; return s / 2147483647; }
+      const steps = segments || 8;
+      const dx = (x2 - x1) / steps;
+      const dy = (y2 - y1) / steps;
+      let px = x1, py = y1;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      for (let i = 1; i <= steps; i++) {
+        const jx = x1 + dx * i + (sr() - .5) * 1.4;
+        const jy = y1 + dy * i + (sr() - .5) * 1.4;
+        const cpx = (px + jx) / 2 + (sr() - .5) * 2;
+        const cpy = (py + jy) / 2 + (sr() - .5) * 2;
+        ctx.quadraticCurveTo(cpx, cpy, jx, jy);
+        px = jx; py = jy;
+       }
+      ctx.stroke();
+      }
 
-     // Base visibility: always somewhat visible (woodblock character), grows with tide
-     const regBase = .25 + Math.min(.75, tideProgress * .6);
-     const settledBoost = settled ? 1.6 : 1;
-     const ochreAlpha = (.12 * regBase * settledBoost);
-     const indigoAlpha = (.07 * regBase * settledBoost);
-
-       // ══ PASS 1: Benizuri (warm ochre) — primary registration offset ══
-     ctx.strokeStyle = 'rgba(175,85,48,' + ochreAlpha.toFixed(3) + ')';
-     ctx.lineWidth = .6;
-
-       // Bridge post registration: each post has a unique offset simulating block misalignment
-     bridgePosts.forEach((p, idx) => {
-       const dx = 1.8 + (idx % 3) * .4;
-       const dy = -1.4 - ((idx + 1) % 2) * .3;
-       const wobble = Math.sin(p.x * .05 + idx * 1.3) * .5;
-       ctx.beginPath();
-       ctx.moveTo(p.x + dx, p.y1 + dy);
-       const midY = (p.y1 + p.y2) / 2;
-       ctx.lineTo(p.x + dx + .4 * ((idx % 2 === 0) ? 1 : -1) + wobble, midY + dy);
-       ctx.lineTo(p.x + dx - .3 + wobble * .5, p.y2 + dy);
-       ctx.stroke();
-        });
-
-       // Bridge deck curve: ochre offset of the arched beam
-     if (bridgePosts.length >= 2) {
-       const leftPost = bridgePosts[1], rightPost = bridgePosts[2];
-       const bY = waterline - H * .04;
-       const midX_b = (leftPost.x + rightPost.x) / 2;
-       const midY_b = bY - H * .018;
-       ctx.beginPath();
-       ctx.moveTo(leftPost.x + 1.5, bY - 1.5);
-       ctx.quadraticCurveTo(midX_b + 1.5, midY_b - 1.2, rightPost.x + 1.5, bY - 1.5);
-       ctx.stroke();
-       // Secondary deck curve offset
-       ctx.lineWidth = .35;
-       ctx.beginPath();
-       ctx.moveTo(leftPost.x + 2.2, bY + 3);
-       ctx.quadraticCurveTo(midX_b + 2, midY_b + 3.2, rightPost.x + 2.3, bY + 3);
-       ctx.stroke();
-        }
-
-       // Moon registration: three concentric offset circles suggest multi-block printing
-       // Each color block was printed with slight misalignment on the original block
-     {
-       const moonRegR = moonR + 3;
-           // Ochre offset ring
-       ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .7).toFixed(3) + ')';
-       ctx.lineWidth = .4;
-        _drawMoonKeyline(ctx, moonX + 2, moonY + 1.5, moonRegR, .8);
-           // Third pass: deeper offset
-       ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .3).toFixed(3) + ')';
-       ctx.lineWidth = .3;
-        _drawMoonKeyline(ctx, moonX + 3.5, moonY + 2.5, moonRegR + .5, 1.5);
-     }
-
-       // Lantern registration: offset outlines
-     lanternXs.forEach((lx, idx) => {
-       const bY2 = waterline - H * .04;
-       const ly = bY2 + 14;
-       const lw = 8, lh = 16;
-       const bump = Math.sin(idx * 3.7 + lx * .01) * .4;
-       ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .5).toFixed(3) + ')';
-       ctx.lineWidth = .4;
-       ctx.beginPath();
-       ctx.moveTo(lx - lw / 2 + 1.6, ly + 1.2);
-       ctx.lineTo(lx - lw / 2 + bump + 1.4, ly + lh + 1);
-       ctx.lineTo(lx + lw / 2 - bump + 1.8, ly + lh + 1.5);
-       ctx.lineTo(lx + lw / 2 + 1.2, ly + 1.3);
-       ctx.closePath();
-       ctx.stroke();
-        });
-
-       // Far hill edge: ochre offset registration
-     {
-       const hillY_far = (x) => waterline - (.032 + Math.sin(x * .003 + 1.4) * .022 + Math.sin(x * .007 + .3) * .01) * H;
-       ctx.beginPath();
-       for (let x = 0; x <= W; x += 6) {
-         const jitter = Math.sin(x * .27) * .4;
-         if (x === 0) ctx.moveTo(x + 1.8, hillY_far(x) - 1.4 + jitter);
-         else ctx.lineTo(x + 1.8, hillY_far(x) - 1.4 + jitter);
+     // Helper: draws a wobbly curve (quadratic) with hand-carved feel
+    function _drawWobblyQuadratic(ctx, x1, y1, cx, cy, x3, y3, segments, seed) {
+      let s = seed;
+      function sr() { s = (s * 16807) % 2147483647; return s / 2147483647; }
+      const steps = segments || 10;
+      let prevX = null, prevY = null;
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+         // Bezier formula: (1-t)^2*P0 + 2(1-t)t*P1 + t^2*P2
+        const ut = 1 - t;
+        let bx = ut * ut * x1 + 2 * ut * t * cx + t * t * x3 + (sr() - .5) * 1.2;
+        let by = ut * ut * y1 + 2 * ut * t * cy + t * t * y3 + (sr() - .5) * 1.2;
+        if (i === 0) { ctx.moveTo(bx, by); }
+        else if (prevX !== null) {
+          const cpx = (prevX + bx) / 2 + (sr() - .5) * 1.8;
+          const cpy = (prevY + by) / 2 + (sr() - .5) * 1.8;
+          ctx.quadraticCurveTo(cpx, cpy, bx, by);
           }
-       ctx.stroke();
-        }
+        prevX = bx; prevY = by;
+       }
+      ctx.stroke();
+      }
 
-       // ══ PASS 2: Aozuri (cool indigo) — secondary registration offset ══
-     ctx.strokeStyle = 'rgba(80,90,130,' + indigoAlpha.toFixed(3) + ')';
-     ctx.lineWidth = .45;
+    function drawRegistration(ctx) {
+      ctx.save();
 
-       // Mid hill edge: indigo offset, opposite direction from ochre
-     {
-       const hillY_mid = (x) => waterline - (.025 + Math.sin(x * .004) * .018 + Math.sin(x * .009 + .6) * .008) * H;
-       ctx.beginPath();
-       for (let x = 0; x <= W; x += 6) {
-         const jitter = Math.cos(x * .33) * .3;
-         if (x === 0) ctx.moveTo(x - 1.4, hillY_mid(x) + 1.1 + jitter);
-         else ctx.lineTo(x - 1.4, hillY_mid(x) + 1.1 + jitter);
+       // Base visibility: always somewhat visible (woodblock character), grows with tide
+      const regBase = .25 + Math.min(.75, tideProgress * .6);
+      const settledBoost = settled ? 1.6 : 1;
+      const ochreAlpha = (.12 * regBase * settledBoost);
+      const indigoAlpha = (.07 * regBase * settledBoost);
+      const keyAlpha = (.04 * regBase * settledBoost);
+
+         // ══ PASS 1: Benizuri (warm ochre) — primary registration offset ══
+
+         // Bridge post registration: each post has a unique offset with organic wobble
+         // Multiple segments per post with gaps to simulate carved imperfection
+      bridgePosts.forEach((p, idx) => {
+        const dx = 1.8 + (idx % 3) * .5;
+        const dy = -1.4 - ((idx + 1) % 2) * .4;
+        const postH = p.y2 - p.y1;
+        const segH = postH / 3;
+        // Three segments along the post, each with slightly different wobble
+        for (let si = 0; si < 3; si++) {
+          const sy1 = p.y1 + si * segH + (Math.sin(idx * 3.1 + si) > .3 ? 0 : 2);
+          const sy2 = p.y1 + (si + 1) * segH - (Math.cos(idx * 2.7 + si) > .2 ? 0 : 1.5);
+          const seed = 10000 + idx * 1000 + si * 100;
+          _drawWobblyLine(ctx, p.x + dx, sy1 + dy,
+                            p.x + dx + Math.sin(idx * 1.7 + si * 2.3) * 1.2, sy2 + dy,
+                            5, seed);
           }
-       ctx.stroke();
-        }
+          });
 
-       // Boat registration: two offset passes per boat (ochre + indigo)
-     boats.forEach((b, idx) => {
-         // Indigo offset: shifted left and down
-       const dx2 = -1.5 - idx * .25;
-       const dy2 = .9 + (idx % 3) * .3;
-       ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .7).toFixed(3) + ')';
-       ctx.lineWidth = .4;
-       ctx.beginPath();
-       ctx.moveTo(b.x + dx2, b.y + b.h + dy2);
-       ctx.quadraticCurveTo(
-         b.x + b.w * .18 + dx2, b.y + dy2,
-          b.x + b.w * .5 + dx2, b.y - b.h * .5 + dy2
-           );
-        ctx.quadraticCurveTo(
-         b.x + b.w * .82 + dx2, b.y + dy2,
-         b.x + b.w * .95 + dx2, b.y + b.h * .5 + dy2
-           );
-       ctx.closePath();
-       ctx.stroke();
-     });
-
-       // Bridge posts: indigo offset (opposite direction from ochre)
-     bridgePosts.forEach((p, idx) => {
-       const dx = -1.8 - (idx % 2) * .5;
-       const dy = 1.6 + ((idx + 2) % 3) * .35;
-       const wobble = Math.cos(p.x * .07 + idx * .9) * .6;
-       ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .6).toFixed(3) + ')';
-       ctx.lineWidth = .4;
-       ctx.beginPath();
-       ctx.moveTo(p.x + dx, p.y1 + dy);
-       const midY = (p.y1 + p.y2) / 2;
-       ctx.lineTo(p.x + dx - .3 * ((idx % 2 === 0) ? 1 : -1) + wobble, midY + dy);
-       ctx.lineTo(p.x + dx + .2 - wobble * .5, p.y2 + dy);
-       ctx.stroke();
-        });
-
-       // Reed registration: sparse, only on primary reeds (not all)
-     for (let i = 0; i < reeds.length; i += 2) {
-       const r = reeds[i];
-       const dx = -1 + (i % 3) * .5;
-       const dy = ((i + 2) % 3) * .7;
-       ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .35).toFixed(3) + ')';
-       ctx.lineWidth = .25;
-       ctx.beginPath();
-       ctx.moveTo(r.x + dx, r.baseY + dy);
-       const tipX_r = r.x + r.lean * r.h * .6 + dx;
-       const tipY_r = r.baseY - r.h + dy;
-       ctx.quadraticCurveTo(
-         r.x + r.lean * r.h * .25 + dx,
-         r.baseY - r.h * .5 + dy,
-         tipX_r, tipY_r
-          );
-       ctx.stroke();
-        }
-
-       // ══ PASS 3: Key block reinforcement (dark, always visible) ══
-       // A very faint third pass of key block registration — the "karane" (key block)
-       // printed heaviest, showing through all other layers with hand-carved irregularity.
-     ctx.strokeStyle = 'rgba(26,32,64,' + (.04 * regBase * settledBoost).toFixed(3) + ')';
-     ctx.lineWidth = .3;
-
-       // Key block registration for moon (third pass, smallest offset)
-     _drawMoonKeyline(ctx, moonX - .5, moonY + .3, moonR + 2, -.3);
-
-       // Key block registration for bridge deck (third pass)
-     if (bridgePosts.length >= 2) {
-       const leftPost = bridgePosts[1], rightPost = bridgePosts[2];
-       const bY3 = waterline - H * .04;
-       const midX_k = (leftPost.x + rightPost.x) / 2;
-       const midY_k = bY3 - H * .018;
-       ctx.beginPath();
-       ctx.moveTo(leftPost.x - .8, bY3 - .5);
-       ctx.quadraticCurveTo(midX_k - .8, midY_k - .6, rightPost.x - .8, bY3 - .5);
-       ctx.stroke();
-        }
-
-       // ══ Corner registration marks (kumiko/chokokō) ══
-       // Authentic ukiyo-e corner marks: crosshairs with circles, showing
-       // the registration holes through each color block layer.
-     const mkSize = 8;
-     const mkOffset = 14;
-     const corners = [
-        [mkOffset, mkOffset],
-        [W - mkOffset, mkOffset],
-        [mkOffset, H - mkOffset],
-        [W - mkOffset, H - mkOffset],
-        ];
-
-     corners.forEach(([mx, my], idx) => {
-         // Ochre pass: largest, defines the primary registration
-       ctx.strokeStyle = 'rgba(175,85,48,' + (.15 * regBase).toFixed(3) + ')';
-       ctx.lineWidth = .7;
-           // Horizontal and vertical crosshair
-       ctx.beginPath();
-       ctx.moveTo(mx - mkSize - 3, my);
-       ctx.lineTo(mx + mkSize + 3, my);
-       ctx.stroke();
-       ctx.beginPath();
-       ctx.moveTo(mx, my - mkSize - 3);
-       ctx.lineTo(mx, my + mkSize + 3);
-       ctx.stroke();
-           // Circle enclosing crosshair
-       ctx.beginPath();
-       ctx.arc(mx, my, mkSize, 0, Math.PI * 2);
-       ctx.stroke();
-
-         // Indigo pass: offset crosshair + circle
-       ctx.strokeStyle = 'rgba(80,90,130,' + (.08 * regBase).toFixed(3) + ')';
-       ctx.lineWidth = .45;
-       const offDx = (idx % 2 === 0) ? 1.5 : -1;
-       const offDy = (idx > 1) ? 1.5 : -1;
-       ctx.beginPath();
-       ctx.moveTo(mx - mkSize + offDx, my + offDy);
-       ctx.lineTo(mx + mkSize + offDx, my + offDy);
-       ctx.stroke();
-       ctx.beginPath();
-       ctx.moveTo(mx + offDx, my - mkSize + offDy);
-       ctx.lineTo(mx + offDx, my + mkSize + offDy);
-       ctx.stroke();
-       ctx.beginPath();
-       ctx.arc(mx + offDx, my + offDy, mkSize, 0, Math.PI * 2);
-       ctx.stroke();
-
-         // Key block: smallest and darkest, centered on crosshair intersection
-       ctx.strokeStyle = 'rgba(26,32,64,' + (.06 * regBase).toFixed(3) + ')';
-       ctx.lineWidth = .3;
-       ctx.beginPath();
-       ctx.moveTo(mx - 3, my);
-       ctx.lineTo(mx + 3, my);
-       ctx.stroke();
-       ctx.beginPath();
-       ctx.moveTo(mx, my - 3);
-       ctx.lineTo(mx, my + 3);
-       ctx.stroke();
-        });
-
-       // ══ Edge registration bands (ban-eri) ══
-       // Thin lines along all four edges simulating the paper's registration border
-       // where the block edges were registered against a wooden frame (ken).
-     {
-       const bandAlpha = (.035 * regBase * settledBoost).toFixed(3);
-       const margin = 5;
-       ctx.strokeStyle = 'rgba(26,32,64,' + bandAlpha + ')';
-       ctx.lineWidth = .3;
-       ctx.setLineDash([3, 5]);
-           // Top edge
-       ctx.beginPath();
-       ctx.moveTo(margin, margin);
-       ctx.lineTo(W - margin, margin);
-       ctx.stroke();
-           // Bottom edge
-       ctx.beginPath();
-       ctx.moveTo(margin, H - margin);
-       ctx.lineTo(W - margin, H - margin);
-       ctx.stroke();
-           // Left edge
-       ctx.beginPath();
-       ctx.moveTo(margin, margin);
-       ctx.lineTo(margin, H - margin);
-       ctx.stroke();
-           // Right edge
-       ctx.beginPath();
-       ctx.moveTo(W - margin, margin);
-       ctx.lineTo(W - margin, H - margin);
-       ctx.stroke();
-       ctx.setLineDash([]);
-        }
-
-       // ══ Tide-revealed: additional registration details emerge at high tide ══
-     if (tideProgress > .4) {
-       const reveal = Easing.soak((tideProgress - .4) / .6);
-       const revealAlpha = (reveal * .04 * settledBoost).toFixed(4);
-
-           // Moon surface registration scars: tiny carved marks visible only at full tide
-        _seed = 7777;
-       const scarCount = Math.floor(5 + reveal * 8);
-       ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .03 * settledBoost).toFixed(3) + ')';
-       ctx.lineWidth = .2;
-       for (let s = 0; s < scarCount; s++) {
-         const sa = _sr() * Math.PI * 2;
-         const sr2 = _sr() * moonR * .6;
-         const sx = moonX + Math.cos(sa) * sr2;
-         const sy = moonY + Math.sin(sa) * sr2;
-         ctx.beginPath();
-         ctx.moveTo(sx, sy);
-         ctx.lineTo(sx + Math.cos(sa + .8) * (2 + _sr() * 3), sy + Math.sin(sa + .8) * (2 + _sr() * 3));
-         ctx.stroke();
+         // Bridge deck curve: ochre offset with wobble
+      if (bridgePosts.length >= 2) {
+        const leftPost = bridgePosts[1], rightPost = bridgePosts[2];
+        const bY = waterline - H * .04;
+        const midX_b = (leftPost.x + rightPost.x) / 2;
+        const midY_b = bY - H * .018;
+        ctx.strokeStyle = 'rgba(175,85,48,' + ochreAlpha.toFixed(3) + ')';
+        ctx.lineWidth = .6;
+        _drawWobblyQuadratic(ctx, leftPost.x + 1.5, bY - 1.5,
+                              midX_b + 1.5, midY_b - 1.2,
+                              rightPost.x + 1.5, bY - 1.5,
+                              12, 20000);
+         // Secondary deck curve offset — thinner, deeper misalignment
+        ctx.lineWidth = .35;
+        _drawWobblyQuadratic(ctx, leftPost.x + 2.2, bY + 3,
+                              midX_b + 2.0, midY_b + 3.2,
+                              rightPost.x + 2.3, bY + 3,
+                              10, 20100);
           }
 
-           // Bridge post registration: third-pass key block detail on each post
+         // Moon registration: irregular concentric offset rings
+      {
+        const moonRegR = moonR + 3;
+        const segments = 64;
+         // Ochre offset ring with wobbly radius per segment
+        ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .7).toFixed(3) + ')';
+        ctx.lineWidth = .4;
+        ctx.beginPath();
+        let _mSeed = 30000;
+        function _msr() { _mSeed = (_mSeed * 16807) % 2147483647; return _mSeed / 2147483647; }
+        for (let i = 0; i <= segments; i++) {
+          const a = (i / segments) * Math.PI * 2;
+           // Multi-frequency wobble in radius
+          const irreg = Math.sin(a * 7) * .9
+                      + Math.sin(a * 13 + 1.7) * .5
+                      + Math.sin(a * 3.7 - .5) * .7
+                      + (_msr() - .5) * .8;
+          const rr = moonRegR + irreg * .35;
+          const px = moonX + 2 + Math.cos(a) * rr;
+          const py = moonY + 1.5 + Math.sin(a) * rr;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+          }
+        ctx.closePath();
+        ctx.stroke();
+
+         // Third pass: deeper offset, more irregular
+        const segments2 = 48;
+        let _mSeed2 = 30500;
+        function _msr2() { _mSeed2 = (_mSeed2 * 16807) % 2147483647; return _mSeed2 / 2147483647; }
+        ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .3).toFixed(3) + ')';
+        ctx.lineWidth = .25;
+        ctx.beginPath();
+        for (let i = 0; i <= segments2; i++) {
+          const a = (i / segments2) * Math.PI * 2;
+          const irreg = Math.sin(a * 5 + 2) * 1.2
+                      + Math.sin(a * 11 + .7) * .6
+                      + (_msr2() - .5) * 1.0;
+          const rr = moonRegR + .5 + irreg * .4;
+          const px = moonX + 3.5 + Math.cos(a) * rr;
+          const py = moonY + 2.5 + Math.sin(a) * rr;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+          }
+        ctx.closePath();
+        ctx.stroke();
+       }
+
+         // Lantern registration: irregular offset outlines per lantern
+      lanternXs.forEach((lx, idx) => {
+        const bY2 = waterline - H * .04;
+        const ly = bY2 + 14;
+        const lw = 8, lh = 16;
+        const bump = Math.sin(idx * 3.7 + lx * .01) * .5;
+        ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .5).toFixed(3) + ')';
+        ctx.lineWidth = .35;
+         // Draw as 4 wobbly segments (each side of the lantern body)
+        const seed = 40000 + idx * 1000;
+        // Top edge
+        _drawWobblyLine(ctx, lx - lw/2 + 1.6, ly + 1.2,
+                         lx + lw/2 + 1.2, ly + 1.3 + bump, 4, seed + 1);
+        // Right edge
+        _drawWobblyLine(ctx, lx + lw/2 + 1.2, ly + 1.3 + bump,
+                         lx + lw/2 - bump + 1.8, ly + lh + 1.5, 4, seed + 2);
+        // Bottom edge
+        _drawWobblyLine(ctx, lx + lw/2 - bump + 1.8, ly + lh + 1.5,
+                         lx - lw/2 + bump + 1.4, ly + lh + 1, 4, seed + 3);
+        // Left edge
+        _drawWobblyLine(ctx, lx - lw/2 + bump + 1.4, ly + lh + 1,
+                         lx - lw/2 + 1.6, ly + 1.2, 4, seed + 4);
+          });
+
+         // Far hill edge: ochre offset with variable gaps
+       {
+        const hillY_far = (x) => waterline - (.032 + Math.sin(x * .003 + 1.4) * .022 + Math.sin(x * .007 + .3) * .01) * H;
+        ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .6).toFixed(3) + ')';
+        ctx.lineWidth = .4;
+        let segSeed = 50000;
+        function segSr() { segSeed = (segSeed * 16807) % 2147483647; return segSeed / 2147483647; }
+        ctx.beginPath();
+        let inLine = true;
+        for (let x = 0; x <= W; x += 4) {
+          const jitter = Math.sin(x * .27 + 2.1) * .6 + (segSr() - .5) * .8;
+           // Occasional gap: skip 8-20px segments to simulate carved imperfection
+          if (Math.sin(x * .023) > .75) { inLine = true; }
+          if (inLine) {
+            const px = x + 1.8;
+            const py = hillY_far(x) - 1.4 + jitter;
+            if (inLine && (x === 0 || Math.sin((x - 4) * .023) <= .75)) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+            } else {
+            ctx.moveTo(x + 1.8, 0); // off-screen skip
+            }
+          }
+        ctx.stroke();
+          }
+
+         // ══ PASS 2: Aozuri (cool indigo) — secondary registration offset ══
+
+         // Mid hill edge: indigo offset, opposite direction, with gaps
+       {
+        const hillY_mid = (x) => waterline - (.025 + Math.sin(x * .004) * .018 + Math.sin(x * .009 + .6) * .008) * H;
+        ctx.strokeStyle = 'rgba(80,90,130,' + indigoAlpha.toFixed(3) + ')';
+        ctx.lineWidth = .35;
+        let aSeed = 60000;
+        function aSr() { aSeed = (aSeed * 16807) % 2147483647; return aSeed / 2147483647; }
+        ctx.beginPath();
+        let inLine2 = true;
+        for (let x = 0; x <= W; x += 4) {
+          const jitter = Math.cos(x * .33 + 1.5) * .5 + (aSr() - .5) * .6;
+          if (Math.cos(x * .019) > .7) { inLine2 = true; }
+          if (inLine2) {
+            const px = x - 1.4;
+            const py = hillY_mid(x) + 1.1 + jitter;
+            if (inLine2 && (x === 0 || Math.cos((x - 4) * .019) <= .7)) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+            } else {
+            ctx.moveTo(x - 1.4, 0);
+            }
+          }
+        ctx.stroke();
+          }
+
+         // Boat registration: irregular offset per boat, variable weight
+      boats.forEach((b, idx) => {
+        const dx2 = -1.5 - idx * .3;
+        const dy2 = .9 + (idx % 3) * .35;
+        ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .65).toFixed(3) + ')';
+        ctx.lineWidth = .3 + (idx % 2) * .15;
+         // Draw hull outline as multiple wobbly curve segments
+        const seed = 70000 + idx * 1000;
+        // Top hull curve (split into two quadratics for more wobble)
+        _drawWobblyQuadratic(ctx,
+          b.x + dx2, b.y + b.h + dy2,
+          b.x + b.w * .18 + dx2, b.y + dy2 - .5,
+          b.x + b.w * .45 + dx2, b.y - b.h * .5 + dy2,
+          8, seed + 1);
+        _drawWobblyQuadratic(ctx,
+          b.x + b.w * .45 + dx2, b.y - b.h * .5 + dy2,
+          b.x + b.w * .82 + dx2, b.y + dy2 + .3,
+          b.x + b.w * .95 + dx2, b.y + b.h * .5 + dy2,
+          8, seed + 2);
+        // Bottom hull return
+        _drawWobblyQuadratic(ctx,
+          b.x + b.w * .95 + dx2, b.y + b.h * .5 + dy2,
+          b.x + b.w * .5 + dx2, b.y + b.h * 1.1 + dy2,
+          b.x + dx2, b.y + b.h + dy2,
+          6, seed + 3);
+       });
+
+         // Bridge posts: indigo offset with variable wobble per post
+      bridgePosts.forEach((p, idx) => {
+        const dx = -1.8 - (idx % 2) * .6;
+        const dy = 1.6 + ((idx + 2) % 3) * .4;
+        const postH = p.y2 - p.y1;
+        const segH = postH / 3;
+        ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .55).toFixed(3) + ')';
+        ctx.lineWidth = .3 + (idx % 3) * .08;
+        for (let si = 0; si < 3; si++) {
+          const sy1 = p.y1 + si * segH + (Math.cos(idx * 3.1 + si) > .3 ? 0 : 2);
+          const sy2 = p.y1 + (si + 1) * segH - (Math.sin(idx * 2.7 + si) > .2 ? 0 : 1.5);
+          const seed = 75000 + idx * 1000 + si * 100;
+          _drawWobblyLine(ctx, p.x + dx, sy1 + dy,
+                            p.x + dx + Math.cos(idx * 1.7 + si * 2.3) * 1.0, sy2 + dy,
+                            5, seed);
+          }
+          });
+
+         // Reed registration: sparse, on selected reeds with irregular offsets
+      for (let i = 0; i < reeds.length; i += 2) {
+        const r = reeds[i];
+        const dx = -1.2 + (i % 3) * .6;
+        const dy = ((i + 2) % 3) * .8;
+        ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .3).toFixed(3) + ')';
+        ctx.lineWidth = .2;
+        const seed = 80000 + i * 700;
+        const tipX_r = r.x + r.lean * r.h * .6 + dx + (Math.sin(i * 1.3) * .8);
+        const tipY_r = r.baseY - r.h + dy + (Math.cos(i * 1.7) * .8);
+        _drawWobblyQuadratic(ctx,
+          r.x + dx, r.baseY + dy,
+          r.x + r.lean * r.h * .25 + dx + Math.sin(i * 2.1) * .5,
+          r.baseY - r.h * .5 + dy,
+          tipX_r, tipY_r,
+          6, seed);
+          }
+
+         // ══ PASS 3: Key block reinforcement — hand-carved dark registration ══
+      ctx.strokeStyle = 'rgba(26,32,64,' + keyAlpha.toFixed(3) + ')';
+      ctx.lineWidth = .25;
+
+         // Key block: moon registration with tighter offset
+        {
+        const segments = 56;
+        let kSeed = 85000;
+        function ksR() { kSeed = (kSeed * 16807) % 2147483647; return kSeed / 2147483647; }
+        ctx.beginPath();
+        for (let i = 0; i <= segments; i++) {
+          const a = (i / segments) * Math.PI * 2;
+          const irreg = Math.sin(a * 9) * .7
+                      + Math.sin(a * 5 - 1) * .5
+                      + (ksR() - .5) * .6;
+          const rr = moonR + 2 + irreg * .25;
+          const px = moonX - .5 + Math.cos(a) * rr;
+          const py = moonY + .3 + Math.sin(a) * rr;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+          }
+        ctx.closePath();
+        ctx.stroke();
+       }
+
+         // Key block: bridge deck with tight wobble
+      if (bridgePosts.length >= 2) {
+        const leftPost = bridgePosts[1], rightPost = bridgePosts[2];
+        const bY3 = waterline - H * .04;
+        const midX_k = (leftPost.x + rightPost.x) / 2;
+        const midY_k = bY3 - H * .018;
+        _drawWobblyQuadratic(ctx, leftPost.x - .8, bY3 - .5,
+                              midX_k - .8, midY_k - .6,
+                              rightPost.x - .8, bY3 - .5,
+                              10, 90000);
+          }
+
+         // ══ Corner registration marks (kumiko/chokokō) ══
+         // Irregular crosshairs with circles — each corner has unique offset per pass
+      const mkSize = 8;
+      const mkOffset = 14;
+      const corners = [
+          [mkOffset, mkOffset],
+          [W - mkOffset, mkOffset],
+          [mkOffset, H - mkOffset],
+          [W - mkOffset, H - mkOffset],
+          ];
+
+      corners.forEach(([mx, my], idx) => {
+        const uniq = idx * 1111;
+         // Ochre pass: crosshair + circle, slightly wobbly
+        ctx.strokeStyle = 'rgba(175,85,48,' + (.14 * regBase).toFixed(3) + ')';
+        ctx.lineWidth = .6;
+        _drawWobblyLine(ctx, mx - mkSize - 3 + Math.sin(uniq) * .5, my + Math.cos(uniq) * .4,
+                         mx + mkSize + 3 + Math.sin(uniq + 1) * .5, my + Math.cos(uniq + 1) * .4,
+                         4, 100000 + idx * 100 + 1);
+        _drawWobblyLine(ctx, mx + Math.sin(uniq + 2) * .4, my - mkSize - 3 + Math.cos(uniq + 2) * .5,
+                         mx + Math.sin(uniq + 3) * .4, my + mkSize + 3 + Math.cos(uniq + 3) * .5,
+                         4, 100000 + idx * 100 + 2);
+         // Circle with irregular radius
+        ctx.beginPath();
+        let cSeed = 100000 + idx * 100 + 3;
+        function cSr() { cSeed = (cSeed * 16807) % 2147483647; return cSeed / 2147483647; }
+        for (let ci = 0; ci <= 32; ci++) {
+          const ca = (ci / 32) * Math.PI * 2;
+          const cr = mkSize + Math.sin(ca * 5) * .8 + (cSr() - .5) * .6;
+          const cpx = mx + Math.cos(ca) * cr;
+          const cpy = my + Math.sin(ca) * cr;
+          if (ci === 0) ctx.moveTo(cpx, cpy);
+          else ctx.lineTo(cpx, cpy);
+          }
+        ctx.closePath();
+        ctx.stroke();
+
+         // Indigo pass: offset, tighter, more irregular
+        ctx.strokeStyle = 'rgba(80,90,130,' + (.07 * regBase).toFixed(3) + ')';
+        ctx.lineWidth = .35;
+        const offDx = (idx % 2 === 0) ? 1.6 : -1.2;
+        const offDy = (idx > 1) ? 1.4 : -1.1;
+        _drawWobblyLine(ctx, mx - mkSize + offDx, my + offDy,
+                         mx + mkSize + offDx, my + offDy, 4, 110000 + idx * 100 + 1);
+        _drawWobblyLine(ctx, mx + offDx, my - mkSize + offDy,
+                         mx + offDx, my + mkSize + offDy, 4, 110000 + idx * 100 + 2);
+        // Irregular circle
+        ctx.beginPath();
+        let c2Seed = 110000 + idx * 100 + 3;
+        function c2Sr() { c2Seed = (c2Seed * 16807) % 2147483647; return c2Seed / 2147483647; }
+        for (let ci = 0; ci <= 28; ci++) {
+          const ca = (ci / 28) * Math.PI * 2;
+          const cr = mkSize + Math.sin(ca * 6 + 1) * .6 + (c2Sr() - .5) * .5;
+          if (ci === 0) ctx.moveTo(mx + offDx + Math.cos(ca) * cr, my + offDy + Math.sin(ca) * cr);
+          else ctx.lineTo(mx + offDx + Math.cos(ca) * cr, my + offDy + Math.sin(ca) * cr);
+          }
+        ctx.closePath();
+        ctx.stroke();
+
+         // Key block: smallest, centered
+        ctx.strokeStyle = 'rgba(26,32,64,' + (.05 * regBase).toFixed(3) + ')';
+        ctx.lineWidth = .2;
+        ctx.beginPath();
+        ctx.moveTo(mx - 3, my + Math.sin(uniq * .3) * .3);
+        ctx.lineTo(mx + 3, my + Math.cos(uniq * .3) * .3);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(mx + Math.sin(uniq * .5) * .3, my - 3);
+        ctx.lineTo(mx + Math.cos(uniq * .5) * .3, my + 3);
+        ctx.stroke();
+          });
+
+         // ══ Edge registration bands (ban-eri) — irregular gaps ══
+         // Variable-length dashed line to simulate the worn woodblock edge
+       {
+        const bandAlpha = (.03 * regBase * settledBoost).toFixed(3);
+        const margin = 5;
+        ctx.strokeStyle = 'rgba(26,32,64,' + bandAlpha + ')';
+        ctx.lineWidth = .25;
+        let eSeed = 120000;
+        function eSr() { eSeed = (eSeed * 16807) % 2147483647; return eSeed / 2147483647; }
+
+         // Top edge: variable dash lengths
+        ctx.beginPath();
+        let x = margin;
+        while (x < W - margin) {
+          const dashLen = 3 + eSr() * 8;
+          const gapLen = 3 + eSr() * 7;
+          const yOff = (eSr() - .5) * .8;
+          ctx.moveTo(x, margin + yOff);
+          ctx.lineTo(Math.min(x + dashLen, W - margin), margin + (eSr() - .5) * .8);
+          x += dashLen + gapLen;
+          }
+        ctx.stroke();
+
+         // Bottom edge
+        ctx.beginPath();
+        x = margin;
+        while (x < W - margin) {
+          const dashLen = 3 + eSr() * 8;
+          const gapLen = 3 + eSr() * 7;
+          const yOff = (eSr() - .5) * .8;
+          ctx.moveTo(x, H - margin + yOff);
+          ctx.lineTo(Math.min(x + dashLen, W - margin), H - margin + (eSr() - .5) * .8);
+          x += dashLen + gapLen;
+          }
+        ctx.stroke();
+
+         // Left edge
+        ctx.beginPath();
+        let y = margin;
+        while (y < H - margin) {
+          const dashLen = 3 + eSr() * 8;
+          const gapLen = 3 + eSr() * 7;
+          const xOff = (eSr() - .5) * .8;
+          ctx.moveTo(margin + xOff, y);
+          ctx.lineTo(margin + (eSr() - .5) * .8, Math.min(y + dashLen, H - margin));
+          y += dashLen + gapLen;
+          }
+        ctx.stroke();
+
+         // Right edge
+        ctx.beginPath();
+        y = margin;
+        while (y < H - margin) {
+          const dashLen = 3 + eSr() * 8;
+          const gapLen = 3 + eSr() * 7;
+          const xOff = (eSr() - .5) * .8;
+          ctx.moveTo(W - margin + xOff, y);
+          ctx.lineTo(W - margin + (eSr() - .5) * .8, Math.min(y + dashLen, H - margin));
+          y += dashLen + gapLen;
+          }
+        ctx.stroke();
+          }
+
+         // ══ Tide-revealed: deep registration scars ══
+      if (tideProgress > .4) {
+        const reveal = Easing.soak((tideProgress - .4) / .6);
+        const revealAlpha = reveal * .03 * settledBoost;
+
+         // Moon surface: carved marks with variable angle and length
+        let mScarSeed = 130000;
+        function mScSr() { mScarSeed = (mScarSeed * 16807) % 2147483647; return mScarSeed / 2147483647; }
+        const scarCount = Math.floor(5 + reveal * 10);
+        ctx.strokeStyle = 'rgba(26,32,64,' + revealAlpha.toFixed(3) + ')';
+        ctx.lineWidth = .15 + mScSr() * .15;
+        for (let s = 0; s < scarCount; s++) {
+          const sa = mScSr() * Math.PI * 2;
+          const sr2 = mScSr() * moonR * .65;
+          const sx = moonX + Math.cos(sa) * sr2;
+          const sy = moonY + Math.sin(sa) * sr2;
+          const angle = sa + (mScSr() - .5) * 1.2;
+          const len = 1.5 + mScSr() * 3.5;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx + Math.cos(angle) * len, sy + Math.sin(angle) * len);
+          ctx.stroke();
+          }
+
+         // Bridge posts: third-pass detail with wobble
+        ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .025).toFixed(3) + ')';
+        ctx.lineWidth = .2 + (mScSr() - .5) * .1;
         bridgePosts.forEach((p, idx) => {
-          const dx3 = .8 * ((idx % 2) ? -1 : 1);
-          const dy3 = .5 * ((idx % 2) ? 1 : -1);
-          ctx.strokeStyle = 'rgba(26,32,64,' + (reveal * .03).toFixed(3) + ')';
-          ctx.lineWidth = .25;
+          const dx3 = .8 * ((idx % 2) ? -1 : 1) + (mScSr() - .5) * .4;
+          const dy3 = .5 * ((idx % 2) ? 1 : -1) + (mScSr() - .5) * .3;
+          const postH = p.y2 - p.y1;
+          const midY = (p.y1 + p.y2) / 2;
+           // Draw with a break in the middle for carved feel
+          const breakPoint = .3 + mScSr() * .4;
+          const breakY = p.y1 + postH * breakPoint + dy3;
           ctx.beginPath();
           ctx.moveTo(p.x + dx3, p.y1 + dy3);
-          ctx.lineTo(p.x + dx3, p.y2 + dy3);
+          ctx.lineTo(p.x + dx3 + (mScSr() - .5) * .6, breakY - 3);
           ctx.stroke();
-            });
-          }
+          ctx.beginPath();
+          ctx.moveTo(p.x + dx3 + (mScSr() - .5) * .6, breakY + 3);
+          ctx.lineTo(p.x + dx3 + (mScSr() - .5) * .8, p.y2 + dy3);
+          ctx.stroke();
+          });
+            }
 
-     ctx.restore();
-    }
+      ctx.restore();
+      }
 
-   // ─── Settle fiber texture generation ───
+    // ─── Settle fiber texture generation ───
    // Each settle creates a unique, non-repeating pattern of fiber lines
    // that reinforce the tactile ukiyo-e aesthetic.
    function _generateSettleFibers() {
