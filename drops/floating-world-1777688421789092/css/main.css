@@ -52,17 +52,11 @@ html, body {
   z-index: 3;
 }
 
-/* ── Paper grain overlay: layered, non-repeating feel ── */
-#scene-container::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: .055;
-  pointer-events: none;
-  z-index: 4;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Cfilter id='n' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='4' seed='7' stitchTiles='Stitch' result='coarse'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' seed='13' stitchTiles='Stitch' result='fine'/%3E%3CfeBlend mode='multiply' in='coarse' in2='fine' result='merged'/%3E%3CfeColorMatrix type='saturate' values='0' in='merged'/%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
-  background-size: 512px 512px;
-  mix-blend-mode: multiply;
+/* ── Removed redundant CSS grain overlay: grain rendered on canvas ── */
+/* ── GPU compositing hints for canvas ── */
+#main-canvas {
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* ── Prompt overlay: unobtrusive, mobile-safe ── */
