@@ -486,13 +486,22 @@
     }
 
     if (state === 'yielding') {
-      // Stop grind immediately
-      stopGrind();
-      // Yield and settle overlap: ripple blooms, mist fades in
+       // Don't call stopGrind() here: triggerThud already set a 400ms decay ramp on lowGrainGain.
+       // stopGrind would override with a 100ms ramp, violating the 400ms audio decay spec.
+       // Sheen decay continues into settling phase
       state = 'settling';
-    }
+     }
 
     if (state === 'settling') {
+        // Sheen continues to decay in settling
+      if (sheenActive) {
+        sheenIntensity *= 0.92;
+        if (sheenIntensity < 0.005) {
+          sheenActive = false;
+          sheenIntensity = 0;
+         }
+       }
+
        // Mist opacity grows with ease-in over 1.2s
        var settleElapsed = ts - settleStartTime;
        var mistT = Math.min(settleElapsed / 1200, 1);
