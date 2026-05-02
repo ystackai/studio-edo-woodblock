@@ -18,7 +18,8 @@ const Render = (() => {
     };
 
   let W = 0, H = 0;
-  let tideFront = -1;
+   let zoneW = 180;
+   function zoneWidth(p) { return 180 + (p || pressure) * 120; }
   let tideProgress = 0;
   let pressed = false;
   let pressure = 0;
@@ -1065,40 +1066,85 @@ const Render = (() => {
      });
    }
 
-  function drawReeds(ctx) {
+   function drawReeds(ctx) {
     reeds.forEach((r, i) => {
       const ta = tideAt(r.x);
-      const base = Math.sin(clock * .55 + r.phase) * 1.8;
-      const rip = Math.sin(clock * 1.1 + r.phase * 2.3 + i * .7) * .6;
-      const breath = Math.sin(clock * .18 + i * 1.1) * .4;
-      const sway = base + rip + breath + ta * Math.sin(tideProgress * .7 + r.phase);
+
+        // ── Reed sway: compound, tide-responsive motion ──
+        // Three phases modulate the sway:
+        //   1. Ambient: gentle breeze, always present
+        //   2. Tide approach: growing displacement as water draws near
+        //   3. Tide passage: pronounced bowing as the tide band washes through
+        //   4. Settling: slow oscillation decay after release
+
+        // Ambient: multi-frequency slow oscillation
+      const ambient1 = Math.sin(clock * .55 + r.phase) * 1.8;
+      const ambient2 = Math.sin(clock * 1.1 + r.phase * 2.3 + i * .7) * .6;
+      const ambient3 = Math.sin(clock * .18 + i * 1.1) * .4;
+      const ambientSway = ambient1 + ambient2 + ambient3;
+
+        // Tide-approach force: sine envelope keyed to distance from tide front
+      let tideForce = 0;
+      if (tideFront > 0) {
+        const distToTide = r.x - tideFront;
+        const approachZone = 250 + pressure * 180;
+        if (distToTide > -zoneWidth() * .5 && distToTide < approachZone) {
+          const approachT = Easing.smoothstep(Math.max(0, Math.min(1, (-distToTide + approachZone) / (approachZone + zoneWidth()))));
+          const passageT = ta;
+          combinedTide = Easing.inOut(approachT) * (1 - passageT) + passageT;
+          tideForce = combinedTide * (8 + pressure * 12) *
+            Math.sin(tideProgress * 1.3 + r.phase * .8 + i * .35);
+          }
+        }
+
+        // Settling oscillation: decaying wave after release
+      let settleForce = 0;
+      if (settling) {
+        const decay = Math.pow(1 - settleProgress, 1.8);
+        settleForce = Math.sin(clock * 2.2 + r.phase * 3.1 + i * 1.7) *
+          (5 + r.h * .01) * decay;
+        }
+
+      const sway = ambientSway + tideForce + settleForce;
+
+        // Moonlit tint on reed tips during tide passage
+      const moonlitTint = ta * .08;
 
       const rAlpha = .55 + ta * .45;
       const stalkColor = lerpColor(C.water, C.reed, rAlpha);
 
+        // ── Primary stalk ──
       ctx.strokeStyle = stalkColor;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(r.x, r.baseY);
       const tipX = r.x + r.lean * r.h * .6 + sway;
       const tipY = r.baseY - r.h;
-      ctx.quadraticCurveTo(
-        r.x + r.lean * r.h * .25 + sway * .5,
-        r.baseY - r.h * .5,
-        tipX, tipY
-      );
+      const midSwayX = r.x + r.lean * r.h * .25 + sway * .5;
+      const midSwayY = r.baseY - r.h * .5;
+      ctx.quadraticCurveTo(midSwayX, midSwayY, tipX, tipY);
       ctx.stroke();
 
+        // ── Carved offset line (registration shadow) ──
       ctx.strokeStyle = 'rgba(42,48,72,.12)';
       ctx.lineWidth = .5;
       ctx.beginPath();
       ctx.moveTo(r.x + .6, r.baseY - .6);
       ctx.quadraticCurveTo(
-        r.x + r.lean * r.h * .25 + sway * .5 + .6,
-        r.baseY - r.h * .5 - .6,
+        midSwayX + .6, midSwayY - .6,
         tipX + .6, tipY - .6
-      );
+       );
       ctx.stroke();
+
+        // ── Moonlit highlight on stalk (very faint, only during tide) ──
+      if (moonlitTint > .005) {
+        ctx.strokeStyle = `rgba(240,240,232,${moonlitTint.toFixed(3)})`;
+        ctx.lineWidth = .4;
+        ctx.beginPath();
+        ctx.moveTo(r.x - .3, r.baseY - 2);
+        ctx.quadraticCurveTo(midSwayX - .3, midSwayY, tipX - .3, tipY + 2);
+        ctx.stroke();
+       }
 
       if (ta > .15) {
         const stipAlpha = Easing.soak((ta - .15) * 2.5);
@@ -1107,44 +1153,51 @@ const Render = (() => {
         ctx.lineWidth = .7;
         for (let b = 0; b < r.bladeCount; b++) {
           const startT = .55 + b * .12;
-          const sx2 = r.x + r.lean * r.h * startT + sway * startT;
+          const bSway = sway * startT;
+          const sx2 = r.x + r.lean * r.h * startT + bSway;
           const sy2 = r.baseY - r.h * startT;
           ctx.beginPath();
           ctx.moveTo(sx2, sy2);
           const bladeLean = (b % 2 === 0) ? 1 : -1;
+            // Blade tip follows sway: deeper bend as tide passes
+          const bladeSwayTip = sway * (.3 + ta * .4) * bladeLean;
           ctx.quadraticCurveTo(
-            sx2 + bladeLean * (2.5 + b * 1.2), sy2 - 4 - b * 1.5,
-            sx2 + bladeLean * (5 + b * 2.5), sy2 - 9 - b * 3
-          );
+            sx2 + bladeLean * (2.5 + b * 1.2) + bladeSwayTip * .5,
+            sy2 - 4 - b * 1.5,
+            sx2 + bladeLean * (5 + b * 2.5) + bladeSwayTip,
+            sy2 - 9 - b * 3
+           );
           ctx.stroke();
-        }
+         }
 
         ctx.fillStyle = 'rgba(90,122,90,' + (stipAlpha * .22) + ')';
-        _seed = 99 + i * 50 + Math.floor(tideProgress * 7);
+         _seed = 99 + i * 50 + Math.floor(tideProgress * 7);
         for (let d = 0; d < 5 + r.bladeCount * 2; d++) {
           ctx.beginPath();
           ctx.arc(
             tipX + (_sr() - .5) * 8,
             tipY + (_sr() - .5) * 5,
-            .5 + _sr() * .8,
-            0, Math.PI * 2
-          );
+             .5 + _sr() * .8,
+             0, Math.PI * 2
+            );
           ctx.fill();
-        }
-      }
+         }
+       }
 
       if (ta > .5) {
         const baseAlpha = Easing.soak((ta - .5) * 2) * .08;
         ctx.fillStyle = 'rgba(27,42,74,' + baseAlpha + ')';
-        _seed = 200 + i * 70;
+         _seed = 200 + i * 70;
         for (let s = 0; s < 4; s++) {
           ctx.beginPath();
           ctx.arc(r.x + (_sr() - .5) * 6, r.baseY - 2 + _sr() * 4, .6 + _sr() * .5, 0, Math.PI * 2);
           ctx.fill();
-        }
-      }
-    });
-  }
+         }
+       }
+     });
+    }
+
+   let combinedTide = 0; // module-scoped to carry across reed iteration
 
   // ─── Tide band ───
   function drawTide(ctx) {
