@@ -1213,60 +1213,102 @@ let _fiberTextureAlpha = 0;
   function drawBridge(ctx) {
     const bridgeY = waterline - H * .04;
 
-       // ══ Bridge posts: hand-carved silhouettes anchoring the composition ══
-       // Each post has: bold key-line body, registration offsets, wood grain, and carved caps.
-       // Posts anchor the center without cluttering — bold enough to read, restrained enough to breathe.
-     const postW = 6;
-      bridgePosts.forEach((p, idx) => {
-        const postMidY = p.y1 + (p.y2 - p.y1) * .5;
-        const ta = tideAt(p.x, postMidY);
-        const postAlpha = .65 + ta * .35;
+        // ══ Bridge posts: hand-carved silhouettes anchoring the composition ══
+         // Each post has bold black key-line body, visible registration offsets,
+         // hand-carved wood grain, and carved caps. The key line is the primary
+         // visual anchor — it must read as carved ink, not a digital stroke.
+      const postW = 7;
+       bridgePosts.forEach((p, idx) => {
+         const postMidY = p.y1 + (p.y2 - p.y1) * .5;
+         const ta = tideAt(p.x, postMidY);
+         const postAlpha = .72 + ta * .28;
 
-          // ── Post body: solid dark fill, hand-printed weight ──
-       ctx.fillStyle = lerpColor(C.paper, C.black, postAlpha);
-       const postH = p.y2 - p.y1;
-          // Slight hand-carved irregularity: top and bottom edges not perfectly flat
-       const topBump = Math.sin(idx * 2.3) * .5;
-       const botBump = Math.sin(idx * 3.1 + 1) * .4;
-       ctx.fillRect(p.x - postW / 2, p.y1 - topBump, postW, postH + topBump + botBump);
+            // ── Post body: solid dark fill, hand-printed weight ──
+            // Slightly warmer dark to read as carved ink block on paper
+        ctx.fillStyle = lerpColor(C.paper, C.black, postAlpha);
+        const postH = p.y2 - p.y1;
+            // Slight hand-carved irregularity: each post top/bottom has unique micro-offset
+        const topBump = Math.sin(idx * 2.3) * .7;
+        const botBump = Math.sin(idx * 3.1 + 1) * .5;
+            // Side irregularity: posts are not perfect rectangles
+        const leftWiggle = Math.sin(idx * 1.7) * .4;
+        const rightWiggle = Math.cos(idx * 2.9) * .3;
+            // Carved body as path (not rect) for organic edges
+        ctx.beginPath();
+        ctx.moveTo(p.x - postW / 2 + leftWiggle, p.y1 - topBump);
+        ctx.lineTo(p.x - postW / 2 + leftWiggle + Math.sin(idx * .8) * .3, p.y2 + botBump);
+        ctx.lineTo(p.x + postW / 2 + rightWiggle + Math.cos(idx * 1.3) * .3, p.y2 + botBump);
+        ctx.lineTo(p.x + postW / 2 + rightWiggle, p.y1 - topBump);
+        ctx.closePath();
+        ctx.fill();
 
-          // ── Primary key-line: bold black border (karane block) ──
-       ctx.strokeStyle = 'rgba(26,32,64,' + (.68 + ta * .2) + ')';
-       ctx.lineWidth = 1.6;
-       ctx.strokeRect(
-         p.x - postW / 2 - .8, p.y1 - topBump - .8,
-         postW + 1.6, postH + topBump + botBump + 1.6
-         );
+            // ── Primary key-line: bold black border (karane block) ──
+            // This is the essential carved line: thick, dark, slightly irregular.
+            // Must dominate visually against both paper grain and indigo tide.
+        ctx.strokeStyle = 'rgba(26,32,64,' + (.82 + ta * .12) + ')';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'square';
+        ctx.beginPath();
+        ctx.moveTo(p.x - postW / 2 + leftWiggle, p.y1 - topBump);
+        ctx.lineTo(p.x - postW / 2 + leftWiggle + Math.sin(idx * .8) * .3, p.y2 + botBump);
+        ctx.lineTo(p.x + postW / 2 + rightWiggle + Math.cos(idx * 1.3) * .3, p.y2 + botBump);
+        ctx.lineTo(p.x + postW / 2 + rightWiggle, p.y1 - topBump);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.lineCap = 'butt';
 
-          // ── Registration offset: ochre (benizuri) — shifted right-down ──
-       ctx.strokeStyle = 'rgba(175,85,48,' + (.08 + ta * .06) + ')';
-       ctx.lineWidth = .5;
-       ctx.strokeRect(
-         p.x - postW / 2 + 1.6, p.y1 - topBump + 1.3,
-         postW + 1.2, postH + topBump + botBump + 1.2
-         );
+            // ── Secondary key-line echo: inner carved edge, slightly offset ──
+            // Creates depth: the carved block edge visible just inside the primary line
+        ctx.strokeStyle = 'rgba(26,32,64,.22)';
+        ctx.lineWidth = .6;
+        ctx.beginPath();
+        ctx.moveTo(p.x - postW / 2 + 1.8 + leftWiggle * .5, p.y1 - topBump + 2);
+        ctx.lineTo(p.x - postW / 2 + 1.8 + leftWiggle * .5, p.y2 + botBump - 2);
+        ctx.moveTo(p.x + postW / 2 - 1.8 + rightWiggle * .5, p.y1 - topBump + 2);
+        ctx.lineTo(p.x + postW / 2 - 1.8 + rightWiggle * .5, p.y2 + botBump - 2);
+        ctx.stroke();
 
-          // ── Registration offset: indigo (aozuri) — shifted left-up ──
-       ctx.strokeStyle = 'rgba(80,90,130,' + (.05 + ta * .04) + ')';
-       ctx.lineWidth = .4;
-       ctx.strokeRect(
-         p.x - postW / 2 - 1.4, p.y1 - topBump - 1.1,
-         postW + .8, postH + topBump + botBump + .8
-         );
+            // ── Registration offset: ochre (benizuri) — shifted right-down ──
+            // More visible: this is a hallmark of hand-printed woodblock
+        ctx.strokeStyle = 'rgba(175,85,48,' + (.16 + ta * .1) + ')';
+        ctx.lineWidth = .8;
+        ctx.beginPath();
+        ctx.moveTo(p.x - postW / 2 + 2.2 + leftWiggle * .4, p.y1 - topBump + 1.8);
+        ctx.lineTo(p.x - postW / 2 + 2.2 + leftWiggle * .4 + Math.sin(idx * .8) * .3, p.y2 + botBump + 1.8);
+        ctx.lineTo(p.x + postW / 2 + 2.2 + rightWiggle * .4, p.y2 + botBump + 1.8);
+        ctx.lineTo(p.x + postW / 2 + 2.2 + rightWiggle * .4, p.y1 - topBump + 1.8);
+        ctx.closePath();
+        ctx.stroke();
 
-          // ── Inner carved depth: subtle right-edge shadow ──
-          // Simulates the carved wood depth visible in a real print
-       ctx.strokeStyle = 'rgba(26,32,64,.18)';
-       ctx.lineWidth = .5;
-       ctx.beginPath();
-       ctx.moveTo(p.x + postW / 2 - 1.2, p.y1 + 2);
-       ctx.lineTo(p.x + postW / 2 - 1.2, p.y2 - 2 + botBump);
-       ctx.stroke();
+            // ── Registration offset: indigo (aozuri) — shifted left-up ──
+        ctx.strokeStyle = 'rgba(80,90,130,' + (.12 + ta * .08) + ')';
+        ctx.lineWidth = .6;
+        ctx.beginPath();
+        ctx.moveTo(p.x - postW / 2 - 1.8 + leftWiggle * .4, p.y1 - topBump - 1.4);
+        ctx.lineTo(p.x - postW / 2 - 1.8 + leftWiggle * .4, p.y2 + botBump - 1.4);
+        ctx.lineTo(p.x + postW / 2 - 1.8 + rightWiggle * .4, p.y2 + botBump - 1.4);
+        ctx.lineTo(p.x + postW / 2 - 1.8 + rightWiggle * .4, p.y1 - topBump - 1.4);
+        ctx.closePath();
+        ctx.stroke();
 
-          // ── Wood grain: vertical and horizontal fiber marks ──
-          // Vertical grain: follows the post length
-       ctx.strokeStyle = 'rgba(107,88,69,' + (.1 + ta * .06) + ')';
-       ctx.lineWidth = .3;
+            // ── Inner carved depth: right and left edge shadows ──
+            // Two shadows — one each side — to give the post 3D carved presence
+        ctx.strokeStyle = 'rgba(26,32,64,.14)';
+        ctx.lineWidth = .4;
+        ctx.beginPath();
+        ctx.moveTo(p.x + postW / 2 - 1.6, p.y1 + 3);
+        ctx.lineTo(p.x + postW / 2 - 1.6, p.y2 - 2 + botBump);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(26,32,64,.08)';
+        ctx.beginPath();
+        ctx.moveTo(p.x - postW / 2 + 1.2, p.y1 + 3);
+        ctx.lineTo(p.x - postW / 2 + 1.2, p.y2 - 2 + botBump);
+        ctx.stroke();
+
+            // ── Wood grain: vertical and horizontal fiber marks ──
+            // Vertical grain: follows the post length, slightly irregular spacing
+        ctx.strokeStyle = 'rgba(107,88,69,' + (.14 + ta * .08) + ')';
+        ctx.lineWidth = .35;
           // Vertical fibers
        const vFiberCount = 2 + (idx % 2);
        for (let vf = 0; vf < vFiberCount; vf++) {
@@ -1690,8 +1732,9 @@ let _fiberTextureAlpha = 0;
       ctx.rotate(b.tilt + Math.sin(tideProgress * 1.2 + i * 1.5) * .006);
       ctx.translate(-cx, -cy);
 
-         // ── Hull fill: moonlit silhouette, always visible ──
-      const hullBase = .35 + ta * .45;
+          // ── Hull fill: moonlit silhouette, always visible, slightly darker base ──
+          // The fill is deeper to create stronger contrast with the paper
+      const hullBase = .48 + ta * .42;
       const hullColor = lerpColor(C.water, C.darkIndigo, hullBase);
       ctx.fillStyle = hullColor;
       ctx.beginPath();
@@ -1703,9 +1746,15 @@ let _fiberTextureAlpha = 0;
       ctx.closePath();
       ctx.fill();
 
-        // ── Primary key-line: always strong, carved woodblock feel ──
-      ctx.strokeStyle = 'rgba(26,32,64,' + (.55 + ta * .35) + ')';
-      ctx.lineWidth = 2 + ta * .5;
+          // ── Primary key-line: bold black carved border (karane block) ──
+          // This is the essential woodblock line: thick, dark, organic.
+          // The irregularity comes from the hull curve itself being slightly non-symmetrical,
+          // giving each boat a unique carved character.
+      const keyAlpha = .78 + ta * .18;
+      ctx.strokeStyle = 'rgba(26,32,64,' + keyAlpha + ')';
+      ctx.lineWidth = 2.8 + ta * .6;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(b.x, b.y + b.h);
       ctx.quadraticCurveTo(b.x + b.w * .15, b.y - b.h * .35, b.x + b.w * .45, b.y - b.h * .55);
@@ -1714,14 +1763,36 @@ let _fiberTextureAlpha = 0;
       ctx.quadraticCurveTo(b.x + b.w * .5, b.y + b.h * 1.1, b.x, b.y + b.h);
       ctx.closePath();
       ctx.stroke();
+      ctx.lineJoin = 'miter';
+      ctx.lineCap = 'butt';
 
-       // ── Secondary outline offset: woodblock registration shift ──
-      ctx.strokeStyle = 'rgba(180,90,50,' + (.06 + ta * .05) + ')';
-      ctx.lineWidth = .5;
+          // ── Secondary key-line: inner carved edge, slightly offset ──
+          // Creates depth: visible carved block edge just inside the primary outline
+      ctx.strokeStyle = 'rgba(26,32,64,.18)';
+      ctx.lineWidth = .8;
       ctx.beginPath();
-      ctx.moveTo(b.x + 1.2, b.y + b.h + .5);
-      ctx.quadraticCurveTo(b.x + b.w * .15 + 1.2, b.y - b.h * .35 - .5, b.x + b.w * .45 + 1.2, b.y - b.h * .55 - .8);
-      ctx.quadraticCurveTo(b.x + b.w * .85 + 1.2, b.y - b.h * .25 - .5, b.x + b.w * .95 + 1.2, b.y + b.h * .4 - .3);
+      ctx.moveTo(b.x + 2.2, b.y + b.h - .5);
+      ctx.quadraticCurveTo(b.x + b.w * .15 + 1.8, b.y - b.h * .35 + .8, b.x + b.w * .45 + 1.5, b.y - b.h * .55 + 1.2);
+      ctx.quadraticCurveTo(b.x + b.w * .85 + 1.2, b.y - b.h * .25 + .6, b.x + b.w * .92 + 1.5, b.y + b.h * .3 + .8);
+      ctx.quadraticCurveTo(b.x + b.w * .5 + 1.5, b.y + b.h * .95, b.x + 2.5, b.y + b.h - .8);
+      ctx.stroke();
+
+          // ── Registration offset: ochre (benizuri) — shifted right-down ──
+      ctx.strokeStyle = 'rgba(175,85,48,' + (.14 + ta * .1) + ')';
+      ctx.lineWidth = .9;
+      ctx.beginPath();
+      ctx.moveTo(b.x + 2, b.y + b.h + .8);
+      ctx.quadraticCurveTo(b.x + b.w * .15 + 2, b.y - b.h * .35 - .6, b.x + b.w * .45 + 2, b.y - b.h * .55 - .9);
+      ctx.quadraticCurveTo(b.x + b.w * .85 + 2, b.y - b.h * .25 - .6, b.x + b.w * .95 + 2, b.y + b.h * .4 - .4);
+      ctx.stroke();
+
+          // ── Registration offset: indigo (aozuri) — shifted left-up ──
+      ctx.strokeStyle = 'rgba(80,90,130,' + (.1 + ta * .07) + ')';
+      ctx.lineWidth = .6;
+      ctx.beginPath();
+      ctx.moveTo(b.x - 1.6, b.y + b.h - 1.2);
+      ctx.quadraticCurveTo(b.x + b.w * .15 - 1.6, b.y - b.h * .35 + .8, b.x + b.w * .45 - 1.6, b.y - b.h * .55 + 1.2);
+      ctx.quadraticCurveTo(b.x + b.w * .85 - 1.6, b.y - b.h * .25 + .8, b.x + b.w * .95 - 1.6, b.y + b.h * .4 + .6);
       ctx.stroke();
 
        // ── Prow silhouette: upward curve at the bow, hand-carved detail ──
@@ -2828,22 +2899,32 @@ let _fiberTextureAlpha = 0;
 
          // ══ PASS 1: Benizuri (warm ochre) — primary registration offset ══
 
-         // Bridge post registration: each post has a unique offset with organic wobble
-         // Multiple segments per post with gaps to simulate carved imperfection
+          // Bridge post registration: each post has a unique offset with organic wobble
+          // Multiple segments per post with gaps to simulate carved imperfection.
+          // These marks should be clearly visible against the paper grain.
       bridgePosts.forEach((p, idx) => {
-        const dx = 1.8 + (idx % 3) * .5;
-        const dy = -1.4 - ((idx + 1) % 2) * .4;
+        const dx = 2.2 + (idx % 3) * .5;
+        const dy = -1.6 - ((idx + 1) % 2) * .5;
         const postH = p.y2 - p.y1;
         const segH = postH / 3;
-        // Three segments along the post, each with slightly different wobble
+         // Three segments along the post, each with slightly different wobble
         for (let si = 0; si < 3; si++) {
           const sy1 = p.y1 + si * segH + (Math.sin(idx * 3.1 + si) > .3 ? 0 : 2);
           const sy2 = p.y1 + (si + 1) * segH - (Math.cos(idx * 2.7 + si) > .2 ? 0 : 1.5);
           const seed = 10000 + idx * 1000 + si * 100;
-          _drawWobblyLine(ctx, p.x + dx, sy1 + dy,
-                            p.x + dx + Math.sin(idx * 1.7 + si * 2.3) * 1.2, sy2 + dy,
-                            5, seed);
+          ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * 1.1).toFixed(3) + ')';
+          ctx.lineWidth = .8;
+           _drawWobblyLine(ctx, p.x + dx, sy1 + dy,
+                             p.x + dx + Math.sin(idx * 1.7 + si * 2.3) * 1.2, sy2 + dy,
+                             6, seed);
           }
+           // Post base waterline registration mark
+          ctx.strokeStyle = 'rgba(175,85,48,' + (ochreAlpha * .7).toFixed(3) + ')';
+          ctx.lineWidth = .5;
+          const baseSeed = 10500 + idx * 200;
+           _drawWobblyLine(ctx, p.x - 8 + dx * .5, p.y2 + dy + 2,
+                            p.x + 8 + dx * .5, p.y2 + dy + 2,
+                            4, baseSeed);
           });
 
          // Bridge deck curve: ochre offset with wobble
@@ -2990,31 +3071,34 @@ let _fiberTextureAlpha = 0;
           }
 
          // Boat registration: irregular offset per boat, variable weight
+         // Each pass (ochre above, indigo here) creates visible misregistration
+         // that reads as hand-printed. Lines are bold enough to be seen but
+         // irregular enough to feel carved, not computed.
       boats.forEach((b, idx) => {
-        const dx2 = -1.5 - idx * .3;
-        const dy2 = .9 + (idx % 3) * .35;
-        ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .65).toFixed(3) + ')';
-        ctx.lineWidth = .3 + (idx % 2) * .15;
-         // Draw hull outline as multiple wobbly curve segments
+        const dx2 = -1.8 - idx * .3;
+        const dy2 = 1.1 + (idx % 3) * .35;
+        ctx.strokeStyle = 'rgba(80,90,130,' + (indigoAlpha * .85).toFixed(3) + ')';
+        ctx.lineWidth = .5 + (idx % 2) * .2;
+          // Draw hull outline as multiple wobbly curve segments
         const seed = 70000 + idx * 1000;
-        // Top hull curve (split into two quadratics for more wobble)
-        _drawWobblyQuadratic(ctx,
-          b.x + dx2, b.y + b.h + dy2,
-          b.x + b.w * .18 + dx2, b.y + dy2 - .5,
-          b.x + b.w * .45 + dx2, b.y - b.h * .5 + dy2,
-          8, seed + 1);
-        _drawWobblyQuadratic(ctx,
-          b.x + b.w * .45 + dx2, b.y - b.h * .5 + dy2,
-          b.x + b.w * .82 + dx2, b.y + dy2 + .3,
-          b.x + b.w * .95 + dx2, b.y + b.h * .5 + dy2,
-          8, seed + 2);
-        // Bottom hull return
-        _drawWobblyQuadratic(ctx,
-          b.x + b.w * .95 + dx2, b.y + b.h * .5 + dy2,
-          b.x + b.w * .5 + dx2, b.y + b.h * 1.1 + dy2,
-          b.x + dx2, b.y + b.h + dy2,
-          6, seed + 3);
-       });
+          // Top hull curve (split into two quadratics for more wobble)
+          _drawWobblyQuadratic(ctx,
+           b.x + dx2, b.y + b.h + dy2,
+           b.x + b.w * .18 + dx2, b.y + dy2 - .5,
+           b.x + b.w * .45 + dx2, b.y - b.h * .5 + dy2,
+           10, seed + 1);
+          _drawWobblyQuadratic(ctx,
+           b.x + b.w * .45 + dx2, b.y - b.h * .5 + dy2,
+           b.x + b.w * .82 + dx2, b.y + dy2 + .3,
+           b.x + b.w * .95 + dx2, b.y + b.h * .5 + dy2,
+           10, seed + 2);
+          // Bottom hull return
+          _drawWobblyQuadratic(ctx,
+           b.x + b.w * .95 + dx2, b.y + b.h * .5 + dy2,
+           b.x + b.w * .5 + dx2, b.y + b.h * 1.1 + dy2,
+           b.x + dx2, b.y + b.h + dy2,
+           8, seed + 3);
+        });
 
          // Bridge posts: indigo offset with variable wobble per post
       bridgePosts.forEach((p, idx) => {
