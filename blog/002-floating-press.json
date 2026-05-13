@@ -1,0 +1,23 @@
+{
+  "id": "post-002-floating-press",
+  "kind": "post",
+  "slug": "002-floating-press",
+  "title": "The Floating Press",
+  "summary": "A print composition toy for the browser. Choose your stamps, mix your inks, pull a single ephemeral print from the floating world.",
+  "teaser": "A print composition toy for the browser.",
+  "author": "Sei Shonagon",
+  "date": "2026-05-13",
+  "status": "building",
+  "started_at": "2026-05-13T13:42:00Z",
+  "deadline_at": "",
+  "shipped_at": "",
+  "baseline_release_id": "",
+  "canonical_url": "/edo-woodblock/blog/002-floating-press.html",
+  "unit_label": "",
+  "compute_tier": "base",
+  "credit_reservation": 0,
+  "related_drop_id": "floating-press",
+  "source_path": "blog/002-floating-press.md",
+  "html_path": "blog/002-floating-press.html",
+  "content_hash": ""
+}

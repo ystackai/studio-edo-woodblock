@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="studio-slug" content="edo-woodblock">
+  <title>The Floating Press</title>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      background: #1a1a1f;
+      font-family: 'IBM Plex Mono', 'Menlo', monospace;
+      overflow: hidden;
+      height: 100vh; width: 100vw;
+      color: #e4e4e4;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+
+    #app { display: flex; height: 100vh; width: 100vw; }
+
+    #sidebar {
+      width: 280px; flex-shrink: 0;
+      background: #121218;
+      border-right: 1px solid #2a2a35;
+      padding: 1.25rem;
+      display: flex; flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+    #sidebar h1 {
+      font-size: 1.1rem; font-weight: 700;
+      color: #c4b8a0; letter-spacing: 0.06em;
+      margin: 0; line-height: 1.3;
+    }
+    #sidebar h1 span { color: #7a6a58; font-weight: 400; }
+
+    .palette-section { margin-bottom: 0.75rem; }
+    .palette-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #7a7a88;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .stamps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+    .stamp-btn {
+      aspect-ratio: 1;
+      border: 1px solid #2a2a35;
+      border-radius: 6px;
+      background: #1e1e25;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .stamp-btn:hover { border-color: #8b735b; background: #282830; }
+    .stamp-btn.active { border-color: #c4b8a0; background: #2a2a35; }
+    .stamp-btn:focus-visible { outline: 2px solid #c4b8a0; outline-offset: 2px; }
+    .stamp-btn svg { width: 80%; height: 80%; fill: none; stroke: #c4b8a0; stroke-width: 0.8; }
+    .stamp-btn .stamp-color-indicator {
+      position: absolute; bottom: 2px; right: 2px;
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 1px solid #333;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.35rem;
+    }
+    .color-btn {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      border: 1px solid #2a2a35;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .color-btn:hover { border-color: #555; transform: scale(1.05); }
+    .color-btn.active { border-color: #c4b8a0; box-shadow: 0 0 0 2px #c4b8a0; }
+    .color-btn:focus-visible { outline: 2px solid #c4b8a0; outline-offset: 2px; }
+
+    #layer-list {
+      flex: 1;
+      min-height: 80px;
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid #2a2a35;
+      border-radius: 6px;
+      padding: 0.35rem;
+      background: #1a1a20;
+    }
+    .layer-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      color: #a0a0a8;
+      cursor: pointer;
+      transition: background 0.1s;
+      margin-bottom: 2px;
+    }
+    .layer-item:hover { background: #24242c; }
+    .layer-item.active { background: #2a2a35; color: #e4e4e4; }
+    .layer-item .layer-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%; flex-shrink: 0;
+    }
+    .layer-item .layer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .layer-item .layer-del {
+      font-size: 0.65rem;
+      color: #666;
+      cursor: pointer;
+      padding: 0 0.2rem;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+    .layer-item .layer-del:hover { color: #ef4444; }
+    .layer-item .layer-del:focus-visible { outline: 1px solid #ef4444; outline-offset: 1px; }
+
+    #action-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: auto;
+      padding-top: 0.5rem;
+    }
+    .action-btn {
+      flex: 1;
+      padding: 0.55rem 0.5rem;
+      border: 1px solid #2a2a35;
+      border-radius: 6px;
+      background: #1e1e25;
+      color: #c4b8a0;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+    .action-btn:hover { border-color: #8b735b; background: #282830; }
+    .action-btn.primary { background: #2a2a35; border-color: #c4b8a0; color: #e4e4e4; }
+    .action-btn.primary:hover { background: #3a3a45; }
+
+    #canvas-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #121218;
+      position: relative;
+    }
+    #canvas-wrap {
+      position: relative;
+      width: min(80vh, 80vw);
+      max-width: 800px;
+      aspect-ratio: 1;
+      background: #f5f0e8;
+      border-radius: 3px;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    #canvas-wrap canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      image-rendering: crisp-edges;
+      touch-action: none;
+    }
+
+    #print-overlay {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: #000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      cursor: pointer;
+    }
+    #print-overlay.show { display: flex; }
+    #print-result {
+      max-width: 90vw;
+      max-height: 90vh;
+      border: 4px solid #c4b8a0;
+      border-radius: 4px;
+      box-shadow: 0 0 60px rgba(196,184,160,0.3);
+      image-rendering: crisp-edges;
+    }
+    .print-caption {
+      position: absolute;
+      bottom: 1.5rem;
+      color: #7a7a88;
+      font-size: 0.8rem;
+      font-family: inherit;
+      text-align: center;
+      padding: 0 1rem;
+    }
+
+    @keyframes inkSplash {
+      0% { transform:translate(-50%,-50%) scale(0.3); opacity:0.9; }
+      100% { transform:translate(-50%,-50%) scale(3); opacity:0; }
+    }
+    @keyframes printReveal {
+      0% { opacity:0; transform:scale(0.8); }
+      100% { opacity:1; transform:scale(1); }
+    }
+    #print-overlay.show #print-result { animation: printReveal 0.4s ease-out; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+    }
+    @media (max-width: 700px) {
+      #app { flex-direction: column; }
+      #sidebar { width: 100%; max-height: 45vh; border-right: none; border-bottom: 1px solid #2a2a35; padding: 0.75rem; }
+      #canvas-area { flex: 1; min-height: 55vh; }
+      #canvas-wrap { width: 95%; }
+      .stamps-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 450px) {
+      .stamps-grid { grid-template-columns: repeat(4, 1fr); }
+      .color-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="sidebar" role="toolbar" aria-label="Print composition controls">
+      <h1>The Floating <span>Press</span></h1>
+
+      <div class="palette-section">
+        <div class="palette-label">Stamps</div>
+        <div class="stamps-grid" id="stamps-grid" role="radiogroup" aria-label="Select a stamp shape"></div>
+      </div>
+      <div class="palette-section">
+        <div class="palette-label">Ink Color</div>
+        <div class="color-grid" id="color-grid" role="radiogroup" aria-label="Select an ink color"></div>
+      </div>
+      <div class="palette-section">
+        <div class="palette-label">Layers</div>
+        <div id="layer-list" role="list" aria-label="Composition layers">
+          <div aria-live="polite" id="sr-announce" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
+          <div style="color:#5a5a65;font-size:0.7rem;padding:0.5rem 0.4rem;text-align:center">Tap the canvas to place a stamp</div>
+        </div>
+      </div>
+      <div id="action-bar">
+        <button class="action-btn" id="clear-btn" aria-label="Clear all layers">Clear</button>
+        <button class="action-btn primary" id="print-btn" aria-label="Print composition">Print</button>
+      </div>
+      <div style="font-size:0.65rem;color:#5a5a65;text-align:center;padding-top:0.25rem">
+        <kbd>C</kbd> clear · <kbd>P</kbd> print · <kbd>←→</kbd> navigate · <kbd>Esc</kbd> close
+      </div>
+    </div>
+    <div id="canvas-area">
+      <div id="canvas-wrap">
+        <canvas id="main-canvas" aria-label="Print composition canvas" role="img"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="print-overlay" role="dialog" aria-label="Printed composition">
+    <img id="print-result" alt="Your printed ukiyo-e composition">
+    <div class="print-caption">Click or tap anywhere to close · A single, ephemeral print</div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STAMPS = [
+    { id:'wave',   name:'Wave',   path:'M10 90 Q20 60 40 70 Q60 80 50 100 M40 70 Q60 50 80 60 Q100 70 90 100 M75 55 Q85 40 100 45 M35 55 Q40 40 55 45 Q70 50 65 70' },
+    { id:'petal',  name:'Petals',  path:'M50 10 Q60 30 50 50 Q40 30 50 10 M50 50 Q70 60 50 90 Q30 60 50 50' },
+    { id:'crane',  name:'Crane',  path:'M80 20 Q90 10 100 15 Q85 25 75 25 M60 35 L50 50 L60 55 M75 25 L60 35 L70 40 M100 15 L75 25 L85 35 M50 50 L40 60 M55 50 L40 40' },
+    { id:'mountain', name:'Mtn',  path:'M20 90 L50 20 L80 50 L70 40 L60 70 L40 50 L30 60 Z' },
+    { id:'bamboo', name:'Bamboo',  path:'M40 10 L40 95 M35 30 L45 30 M32 50 L48 50 M36 70 L44 70 M55 20 L55 95 M50 40 L60 50 M52 60 L58 60' },
+    { id:'cloud',  name:'Cloud',  path:'M20 50 Q30 35 45 40 Q50 30 65 35 Q75 25 90 35 Q95 45 85 55 Q95 65 80 70 Q90 80 75 80 Q70 90 55 85 Q40 95 25 85 Q15 80 20 65 Q10 55 20 50' },
+    { id:'fish',   name:'Koi',    path:'M30 50 Q20 40 10 50 Q20 55 25 50 M25 50 Q35 40 50 45 Q65 50 70 55 Q75 50 85 55 Q80 60 70 60 Q60 65 50 60 Q40 55 30 60 M70 55 Q65 45 75 40 M85 55 Q90 60 95 55' },
+    { id:'fan',    name:'Fan',    path:'M50 10 Q70 25 80 50 Q70 75 50 90 Q30 75 20 50 Q30 25 50 10 M50 30 Q60 40 65 50 Q60 60 50 70 Q40 60 35 50 Q40 40 50 30' },
+  ];
+
+  var COLORS = [
+    { id:'indigo',   hex:'#1a1a5e', name:'Indigo' },
+    { id:'vermilion',hex:'#d23c2a', name:'Vermilion' },
+    { id:'ochre',    hex:'#b8956a', name:'Ochre' },
+    { id:'sage',     hex:'#6b8c6e', name:'Sage' },
+    { id:'ebicha',   hex:'#7a4e5c', name:'Ebicha' },
+    { id:'sumi',     hex:'#1a1a1a', name:'Sumi' },
+    { id:'beni',     hex:'#c84c5e', name:'Beni' },
+    { id:'mizu',     hex:'#5b8c9e', name:'Mizu' },
+  ];
+
+  var canvas, ctx;
+  var canvasWrap = document.getElementById('canvas-wrap');
+  var mainCanvas = document.getElementById('main-canvas');
+  var stampsGrid = document.getElementById('stamps-grid');
+  var colorGrid = document.getElementById('color-grid');
+  var layerList = document.getElementById('layer-list');
+  var printOverlay = document.getElementById('print-overlay');
+  var printResult = document.getElementById('print-result');
+  var clearBtn = document.getElementById('clear-btn');
+  var printBtn = document.getElementById('print-btn');
+  var srAnnounce = document.getElementById('sr-announce');
+
+  var selectedStamp = STAMPS[0];
+  var selectedColor = COLORS[0];
+  var layers = [];
+  var selectedLayer = -1;
+  var canvasSize = 800;
+
+  function announce(msg) {
+    if (srAnnounce) srAnnounce.textContent = msg;
+  }
+
+  function initCanvas() {
+    var rect = canvasWrap.getBoundingClientRect();
+    var w = rect.width, h = rect.height;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var logicalSize = Math.min(w, h);
+    canvas.width = logicalSize * dpr;
+    canvas.height = logicalSize * dpr;
+    canvas.style.width = logicalSize + 'px';
+    canvas.style.height = logicalSize + 'px';
+    ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    draw();
+  }
+
+  function drawStamp(pathStr, x, y, scale, opacity, colorHex) {
+    var segs = pathStr.match(/[MQLTZ]\s*[\d\s.-]+?(?=[MQLTZ]|$)/gi) || [];
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = opacity || 1;
+    ctx.strokeStyle = colorHex || '#1a1a1a';
+    ctx.lineWidth = 3 * scale;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    for (var si = 0; si < segs.length; si++) {
+      var seg = segs[si].trim();
+      var cmd = seg[0];
+      var nums = seg.slice(1).trim().split(/[\s,]+/).filter(Boolean).map(function(v){ return parseFloat(v) * scale * 0.7; });
+      if (cmd === 'M' && nums.length >= 2) { ctx.moveTo(nums[0], nums[1]); }
+      else if (cmd === 'Q' && nums.length >= 4) { ctx.quadraticCurveTo(nums[0], nums[1], nums[2], nums[3]); }
+      else if (cmd === 'L' && nums.length >= 2) { ctx.lineTo(nums[0], nums[1]); }
+      else if (cmd === 'Z') { ctx.closePath(); }
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function reRender() {
+    var rect = canvasWrap.getBoundingClientRect();
+    var logicalSize = Math.min(rect.width, rect.height);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = logicalSize * dpr;
+    canvas.height = logicalSize * dpr;
+    canvas.style.width = logicalSize + 'px';
+    canvas.style.height = logicalSize + 'px';
+
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(dpr, dpr);
+
+    ctx.fillStyle = '#f5f0e8';
+    ctx.fillRect(0, 0, logicalSize, logicalSize);
+
+    ctx.globalAlpha = 0.03;
+    for (var i = 0; i < 40; i++) {
+      ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#fff';
+      ctx.fillRect(Math.random()*logicalSize, Math.random()*logicalSize, Math.random()*3+1, Math.random()*3+1);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.save();
+    ctx.globalAlpha = 0.04;
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(10, 10, logicalSize-20, logicalSize-20);
+    ctx.restore();
+
+    var scaleRatio = canvasSize / logicalSize;
+    for (var li = 0; li < layers.length; li++) {
+      var ly = layers[li];
+      var sx = ly.x * logicalSize / canvasSize;
+      var sy = ly.y * logicalSize / canvasSize;
+      drawStamp(ly.stamp.path, sx, sy, ly.scale * scaleRatio * 0.15, ly.opacity, ly.color.hex);
+    }
+
+    if (selectedLayer >= 0 && selectedLayer < layers.length) {
+      var ly = layers[selectedLayer];
+      ctx.save();
+      ctx.strokeStyle = '#c4b8a0';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      var sx = ly.x * logicalSize / canvasSize;
+      var sy = ly.y * logicalSize / canvasSize;
+      ctx.strokeRect(sx - 25, sy - 25, 50, 50);
+      ctx.restore();
+    }
+  }
+
+  function draw() { reRender(); }
+
+  function handleCanvasClick(e) {
+    var rect = canvas.getBoundingClientRect();
+    var clientX = e.clientX || (e.touches ? e.touches[0].clientX : e.changedTouches[0].clientX);
+    var clientY = e.clientY || (e.touches ? e.touches[0].clientY : e.changedTouches[0].clientY);
+    var x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    var y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    var sx = x * canvasSize, sy = y * canvasSize;
+
+    layers.push({
+      stamp: selectedStamp,
+      color: selectedColor,
+      x: sx, y: sy,
+      scale: 1 + Math.random() * 0.3,
+      opacity: 0.85
+    });
+    selectedLayer = layers.length - 1;
+    updateLayersUI();
+    draw();
+    announce('Placed ' + selectedStamp.name + ' on canvas');
+
+    var inkEl = document.createElement('div');
+    inkEl.style.cssText = 'position:absolute;width:16px;height:16px;border-radius:50%;background:' + selectedColor.hex + ';pointer-events:none;opacity:0.6;transform:translate(-50%,-50%);left:' + ((clientX - rect.left) / rect.width * 100) + '%;top:' + ((clientY - rect.top) / rect.height * 100) + '%;z-index:50;animation:inkSplash 0.6s ease-out forwards;';
+    canvasWrap.appendChild(inkEl);
+    setTimeout(function(){ if (inkEl.parentNode) inkEl.remove(); }, 700);
+  }
+
+  function renderStamps() {
+    stampsGrid.innerHTML = '';
+    STAMPS.forEach(function(s, i) {
+      var btn = document.createElement('button');
+      btn.className = 'stamp-btn' + (i === 0 ? ' active' : '');
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', i === 0 ? 'true' : 'false');
+      btn.setAttribute('aria-label', s.name + ' stamp');
+      btn.innerHTML = '<svg viewBox="0 0 100 100"><path d="' + s.path + '"/></svg>'
+        + '<span class="stamp-color-indicator" style="background:' + selectedColor.hex + '"></span>';
+      btn.addEventListener('click', function() {
+        stampsGrid.querySelectorAll('.stamp-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-checked','false');});
+        btn.classList.add('active');
+        btn.setAttribute('aria-checked', 'true');
+        selectedStamp = s;
+        updateColorIndicator();
+        announce('Selected stamp: ' + s.name);
+      });
+      stampsGrid.appendChild(btn);
+    });
+  }
+
+  function renderColors() {
+    colorGrid.innerHTML = '';
+    COLORS.forEach(function(c, i) {
+      var btn = document.createElement('button');
+      btn.className = 'color-btn' + (i === 0 ? ' active' : '');
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', i === 0 ? 'true' : 'false');
+      btn.setAttribute('aria-label', c.name);
+      btn.style.background = c.hex;
+      btn.addEventListener('click', function() {
+        colorGrid.querySelectorAll('.color-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-checked','false');});
+        btn.classList.add('active');
+        btn.setAttribute('aria-checked', 'true');
+        selectedColor = c;
+        updateColorIndicator();
+        announce('Selected ink: ' + c.name);
+      });
+      colorGrid.appendChild(btn);
+    });
+  }
+
+  function updateColorIndicator() {
+    stampsGrid.querySelectorAll('.stamp-color-indicator').forEach(function(el){
+      el.style.background = selectedColor.hex;
+    });
+  }
+
+  function updateLayersUI() {
+    if (layers.length === 0) {
+      layerList.innerHTML = '<div aria-live="polite" id="sr-announce" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>'
+        + '<div style="color:#5a5a65;font-size:0.7rem;padding:0.5rem 0.4rem;text-align:center">Tap the canvas to place a stamp</div>';
+      srAnnounce = document.getElementById('sr-announce');
+      return;
+    }
+    var html = '<div aria-live="polite" id="sr-announce" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>';
+    for (var i = layers.length - 1; i >= 0; i--) {
+      var ly = layers[i];
+      var activeClass = (i === selectedLayer) ? ' active' : '';
+      html += '<div class="layer-item' + activeClass + '" data-index="' + i + '" role="listitem" tabindex="0">'
+        + '<span class="layer-dot" style="background:' + ly.color.hex + '"></span>'
+        + '<span class="layer-name">' + ly.stamp.name + '</span>'
+        + '<button class="layer-del" data-del="' + i + '" aria-label="Remove layer ' + ly.stamp.name + '">✕</button>'
+        + '</div>';
+    }
+    layerList.innerHTML = html;
+    srAnnounce = document.getElementById('sr-announce');
+
+    layerList.querySelectorAll('.layer-item').forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        if (e.target.closest('.layer-del')) return;
+        var idx = parseInt(el.getAttribute('data-index'), 10);
+        selectedLayer = idx;
+        updateLayersUI();
+        draw();
+      });
+    });
+    layerList.querySelectorAll('.layer-del').forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var idx = parseInt(el.getAttribute('data-del'), 10);
+        layers.splice(idx, 1);
+        if (selectedLayer >= layers.length) selectedLayer = layers.length - 1;
+        if (selectedLayer < 0 && layers.length > 0) selectedLayer = layers.length - 1;
+        updateLayersUI();
+        draw();
+        announce('Layer removed');
+      });
+    });
+  }
+
+  function printComposition() {
+    var printCanvas = document.createElement('canvas');
+    var sz = 1200;
+    printCanvas.width = sz;
+    printCanvas.height = sz;
+    var pCtx = printCanvas.getContext('2d');
+
+    pCtx.fillStyle = '#f5f0e8';
+    pCtx.fillRect(0, 0, sz, sz);
+    pCtx.globalAlpha = 0.04;
+    for (var i = 0; i < 200; i++) {
+      pCtx.fillStyle = Math.random() > 0.5 ? '#000' : '#fff';
+      pCtx.fillRect(Math.random()*sz, Math.random()*sz, Math.random()*4+1, Math.random()*4+1);
+    }
+    pCtx.globalAlpha = 1;
+
+    pCtx.save();
+    pCtx.globalAlpha = 0.08;
+    pCtx.strokeStyle = '#1a1a1a';
+    pCtx.lineWidth = 2;
+    pCtx.strokeRect(40, 40, sz-80, sz-80);
+    pCtx.restore();
+
+    for (var li = 0; li < layers.length; li++) {
+      var ly = layers[li];
+      var s = ly.scale * 0.7;
+      var segs = ly.stamp.path.match(/[MQLTZ]\s*[\d\s.-]+?(?=[MQLTZ]|$)/gi) || [];
+      pCtx.save();
+      pCtx.translate(ly.x * sz / canvasSize, ly.y * sz / canvasSize);
+      pCtx.globalAlpha = ly.opacity || 0.85;
+      pCtx.strokeStyle = ly.color.hex;
+      pCtx.lineWidth = 5;
+      pCtx.lineCap = 'round';
+      pCtx.lineJoin = 'round';
+
+      pCtx.beginPath();
+      for (var si = 0; si < segs.length; si++) {
+        var seg = segs[si].trim();
+        var cmd = seg[0];
+        var nums = seg.slice(1).trim().split(/[\s,]+/).filter(Boolean).map(function(v){ return parseFloat(v) * s * sz / 100; });
+        if (cmd === 'M' && nums.length >= 2) { pCtx.moveTo(nums[0], nums[1]); }
+        else if (cmd === 'Q' && nums.length >= 4) { pCtx.quadraticCurveTo(nums[0], nums[1], nums[2], nums[3]); }
+        else if (cmd === 'L' && nums.length >= 2) { pCtx.lineTo(nums[0], nums[1]); }
+        else if (cmd === 'Z') { pCtx.closePath(); }
+      }
+      pCtx.stroke();
+      pCtx.restore();
+    }
+
+    pCtx.save();
+    pCtx.globalAlpha = 0.25;
+    pCtx.fillStyle = '#1a1a1a';
+    pCtx.font = '14px "IBM Plex Mono", monospace';
+    pCtx.textAlign = 'right';
+    pCtx.fillText('\u6d6e\u4e16', sz - 60, sz - 60);
+    pCtx.restore();
+
+    printResult.src = printCanvas.toDataURL('image/png');
+    printOverlay.classList.add('show');
+    announce('Print ready — click to close');
+  }
+
+  function init() {
+    renderStamps();
+    renderColors();
+    updateLayersUI();
+
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() { initCanvas(); draw(); }, 100);
+    });
+
+    initCanvas();
+    draw();
+
+    mainCanvas.addEventListener('click', handleCanvasClick);
+    mainCanvas.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      handleCanvasClick(e);
+    }, { passive: false });
+
+    clearBtn.addEventListener('click', function() {
+      layers = []; selectedLayer = -1;
+      updateLayersUI(); draw();
+      announce('Canvas cleared');
+    });
+
+    printBtn.addEventListener('click', function() {
+      if (layers.length === 0) return;
+      printComposition();
+    });
+
+    printOverlay.addEventListener('click', function() {
+      printOverlay.classList.remove('show');
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && printOverlay.classList.contains('show')) {
+        printOverlay.classList.remove('show');
+        return;
+      }
+      if (printOverlay.classList.contains('show')) return;
+
+      if (e.key === 'c' || e.key === 'C') {
+        layers = []; selectedLayer = -1;
+        updateLayersUI(); draw();
+        announce('Canvas cleared');
+      }
+      if (e.key === 'p' || e.key === 'P') {
+        if (layers.length > 0) printComposition();
+      }
+      if ((e.key === 'Backspace' || e.key === 'Delete') && selectedLayer >= 0 && selectedLayer < layers.length) {
+        layers.splice(selectedLayer, 1);
+        if (selectedLayer >= layers.length) selectedLayer = layers.length - 1;
+        if (selectedLayer < 0 && layers.length > 0) selectedLayer = layers.length - 1;
+        updateLayersUI(); draw();
+        announce('Layer removed');
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        var focused = document.activeElement;
+        var target = e.key === 'ArrowRight' ? 1 : -1;
+        if (focused && focused.closest && focused.closest('#stamps-grid')) {
+          var idx = Array.prototype.indexOf.call(stampsGrid.children, focused);
+          if (idx < 0) return;
+          var ni = (idx + target + STAMPS.length) % STAMPS.length;
+          stampsGrid.children[ni].focus();
+          stampsGrid.children[ni].click();
+        } else if (focused && focused.closest && focused.closest('#color-grid')) {
+          var idx2 = Array.prototype.indexOf.call(colorGrid.children, focused);
+          if (idx2 < 0) return;
+          var ni2 = (idx2 + target + COLORS.length) % COLORS.length;
+          colorGrid.children[ni2].focus();
+          colorGrid.children[ni2].click();
+        }
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
