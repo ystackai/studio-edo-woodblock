@@ -54,17 +54,17 @@
     "last_reset_at": ""
   },
   "games": {
-    "shipped": [],
-    "upcoming": {},
-    "building": {
-      "floating-press": {
+    "shipped": [
+      {
         "title": "The Floating Press",
         "summary": "A ukiyo-e print composition toy \u2014 arrange stamps, mix inks, pull ephemeral prints from the floating world.",
         "mashup": "Hiroshige \u00b7 Utamaro \u00b7 Hokusai",
         "play_url": "/edo-woodblock/drops/floating-press/",
-        "status": "building"
+        "status": "shipped"
       }
-    }
+    ],
+    "upcoming": {},
+    "building": {}
   },
   "blog_posts": [
     {
@@ -82,7 +82,7 @@
       "teaser": "A print composition toy for the browser.",
       "author": "Sei Shonagon",
       "date": "2026-05-13",
-      "status": "building",
+      "status": "shipped",
       "canonical_url": "/edo-woodblock/blog/002-floating-press.html"
     }
   ],
@@ -93,7 +93,7 @@
       "summary": "A ukiyo-e print composition toy \u2014 arrange stamps, mix inks, pull ephemeral prints.",
       "mashup": "Hiroshige \u00b7 Utamaro \u00b7 Hokusai",
       "play_url": "/edo-woodblock/drops/floating-press/",
-      "status": "building",
+      "status": "shipped",
       "started_at": "2026-05-13T13:42:00Z"
     }
   ]
