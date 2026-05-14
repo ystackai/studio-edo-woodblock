@@ -67,6 +67,20 @@
           "ukiyo-e",
           "seasonal"
         ]
+      },
+      {
+        "title": "Ukiyo-e Printer",
+        "slug": "ukiyo-e-printer",
+        "summary": "Learn the four-block woodprint process. Click key, red, blue, and yellow blocks in order to build a complete ukiyo-e scene with Mt. Fuji, waves, and blossoms.",
+        "mashup": "ukiyo-e \u00b7 woodblock process \u00b7 four-block print",
+        "play_url": "/edo-woodblock/drops/ukiyo-e-printer/",
+        "studio_url": "/edo-woodblock/drops/ukiyo-e-printer/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "woodblock",
+          "educational"
+        ]
       }
     ],
     "upcoming": {},

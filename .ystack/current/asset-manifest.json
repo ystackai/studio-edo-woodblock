@@ -1,3 +1,18 @@
 {
-  "assets": []
+  "assets": [
+    {
+      "type": "html-game",
+      "path": "drops/ukiyo-e-printer/index.html",
+      "slug": "ukiyo-e-printer",
+      "title": "Ukiyo-e Printer",
+      "description": "Learn the four-block woodprint process through interactive layer-by-layer printing"
+    },
+    {
+      "type": "html-game",
+      "path": "drops/floating-world/index.html",
+      "slug": "floating-world",
+      "title": "Floating World",
+      "description": "Drag through the seasons of a ukiyo-e landscape"
+    }
+  ]
 }

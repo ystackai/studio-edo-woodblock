@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Ukiyo-e Printer — The Four-block Process</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #2d2418; font-family: 'IBM Plex Mono', 'Noto Serif JP', monospace;
+      -webkit-user-select: none; user-select: none; touch-action: none;
+      color: #e8e0d8;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    #ui-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 10;
+      display: flex; flex-direction: column;
+    }
+
+    #header {
+      position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+      text-align: center; pointer-events: none; z-index: 12;
+    }
+    #header h1 {
+      font-size: 1.0rem; color: rgba(232,224,216,0.6);
+      font-weight: 400; letter-spacing: 0.14em;
+    }
+    #header .sub {
+      font-size: 0.6rem; color: rgba(232,224,216,0.25);
+      margin-top: 2px; letter-spacing: 0.1em;
+    }
+
+    #blocks-panel {
+      position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 12px; pointer-events: auto; z-index: 20;
+      background: rgba(26,20,14,0.75); padding: 14px 20px; border-radius: 16px;
+      border: 1px solid rgba(232,224,216,0.08); backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .block-btn {
+      width: 58px; height: 58px; border-radius: 8px; border: 1.5px solid rgba(232,224,216,0.15);
+      cursor: pointer; pointer-events: auto;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.4s ease;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 0.55rem; color: rgba(232,224,216,0.5);
+      background: rgba(232,224,216,0.06); gap: 1px;
+    }
+    .block-btn:hover { transform: scale(1.06); }
+    .block-btn.applied { opacity: 0.35; cursor: default; transform: scale(0.95); }
+    .block-btn.wrong { animation: shake 0.35s ease; border-color: rgba(200,80,60,0.6); }
+    .block-btn.hint-glow {
+      box-shadow: 0 0 14px rgba(232,224,216,0.15);
+      border-color: rgba(232,224,216,0.35);
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .block-btn .block-label { font-size: 0.5rem; letter-spacing: 0.06em; }
+    .block-btn .block-num {
+      font-size: 0.42rem; opacity: 0.35; margin-top: 1px;
+    }
+
+    #status-area {
+      position: absolute; top: 72px; left: 50%; transform: translateX(-50%);
+      text-align: center; pointer-events: none; z-index: 12;
+      transition: opacity 0.5s ease;
+    }
+    #status-text {
+      font-size: 0.75rem; color: rgba(232,224,216,0.35);
+      letter-spacing: 0.1em; line-height: 1.6;
+    }
+    #status-text.highlight { color: rgba(232,224,216,0.7); }
+
+    #progress-bar {
+      position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 3px; border-radius: 2px;
+      background: rgba(232,224,216,0.08); overflow: hidden; pointer-events: none; z-index: 9;
+    }
+    #progress-fill {
+      height: 100%; width: 0%; border-radius: 2px;
+      background: linear-gradient(90deg, #c8b090, #d4b8a0, #e0c8b0);
+      transition: width 0.6s ease;
+    }
+
+    #hint-area {
+      position: absolute; top: 110px; left: 50%; transform: translateX(-50%);
+      text-align: center; pointer-events: none; z-index: 9;
+      font-size: 0.55rem; color: rgba(232,224,216,0.12);
+      letter-spacing: 0.08em;
+      transition: opacity 2s ease;
+    }
+
+    #reset-btn {
+      position: absolute; top: 20px; right: 20px; width: 28px; height: 28px;
+      border-radius: 50%; border: 1px solid rgba(232,224,216,0.1);
+      background: rgba(26,20,14,0.5); cursor: pointer; pointer-events: auto; z-index: 25;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; color: rgba(232,224,216,0.2);
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+    #reset-btn:hover { color: rgba(232,224,216,0.5); background: rgba(26,20,14,0.8); }
+
+    @media (max-width: 520px) {
+      #blocks-panel { padding: 10px 12px; gap: 8px; }
+      .block-btn { width: 44px; height: 44px; font-size: 0.45rem; }
+      #header h1 { font-size: 0.8rem; }
+      #status-text { font-size: 0.65rem; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div id="header">
+    <h1>Ukiyo-e Printer</h1>
+    <div class="sub">the four-block process · 浮世絵</div>
+  </div>
+
+  <div id="status-area">
+    <div id="status-text">✥ click a block to begin printing ✥</div>
+  </div>
+
+  <div id="blocks-panel">
+    <div class="block-btn" id="block-0" data-layer="0">
+      <span class="block-label">key</span>
+      <span class="block-num">①</span>
+    </div>
+    <div class="block-btn" id="block-1" data-layer="1">
+      <span class="block-label">red</span>
+      <span class="block-num">②</span>
+    </div>
+    <div class="block-btn" id="block-2" data-layer="2">
+      <span class="block-label">blue</span>
+      <span class="block-num">③</span>
+    </div>
+    <div class="block-btn" id="block-3" data-layer="3">
+      <span class="block-label">yellow</span>
+      <span class="block-num">④</span>
+    </div>
+  </div>
+
+  <div id="hint-area">woodblock order: key → red → blue → yellow</div>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="reset-btn" title="reset">↺</div>
+
+  <script>
+    (function(){
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const statusText = document.getElementById('status-text');
+      const progressFill = document.getElementById('progress-fill');
+      const hintArea = document.getElementById('hint-area');
+      const resetBtn = document.getElementById('reset-btn');
+
+      let W, H;
+      let appliedLayers = new Set();
+      let nextExpectedLayer = 0; // 0=key, 1=red, 2=blue, 3=yellow
+      let stampAnimating = false;
+      let animFrame = null;
+      let stampProgress = 0; // 0-1 for stamp animation
+      let stampLayer = -1;
+      let shakeTimer = null;
+      let hintVisible = true;
+
+      function resize() {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width = W * devicePixelRatio;
+        canvas.height = H * devicePixelRatio;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+        drawScene();
+      }
+
+      // ---- Ukiyo-e scene drawing ----
+      // Each layer adds detail to the scene.
+      // Layer 0 (key): outlines
+      // Layer 1 (red): sun, blossoms
+      // Layer 2 (blue): waves, water
+      // Layer 3 (yellow): highlights, gold accents
+
+      function drawScene() {
+        const w = W, h = H;
+        // Background
+        ctx.fillStyle = '#f5efe8';
+        ctx.fillRect(0, 0, w, h);
+
+        const cx = w / 2;
+        const cy = h / 2 + 20;
+        const scale = Math.min(w, h) * 0.0016;
+
+        // --- Layer 3 (yellow) - highlights & gold accents ---
+        if (appliedLayers.has(3)) {
+          // Gold sky glow around sun
+          ctx.beginPath();
+          ctx.arc(cx + 160 * scale, cy - 110 * scale, 80 * scale, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(218,185,110,0.15)';
+          ctx.fill();
+          // Gold flecks on water
+          for (let i = 0; i < 40; i++) {
+            const x = cx + 120 * scale + Math.cos(i * 1.3) * (80 + 20 * Math.sin(i * 0.7)) * scale;
+            const y = cy + 90 * scale + Math.sin(i * 1.3) * 60 * scale;
+            ctx.beginPath();
+            ctx.arc(x, y, 2.5 * scale * (0.5 + 0.5 * Math.sin(i)), 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(218,185,110,0.6)';
+            ctx.fill();
+          }
+          // Gold outline on wave crests
+          drawWaveCrests(cx, cy, scale, 'rgba(218,185,110,0.5)', 2.5);
+        }
+
+        // --- Layer 2 (blue) - waves & water ---
+        if (appliedLayers.has(2)) {
+          // Water base
+          ctx.fillStyle = 'rgba(120,150,168,0.35)';
+          ctx.fillRect(cx - 200 * scale, cy + 40 * scale, 400 * scale, 160 * scale);
+          // Wave bands
+          for (let row = 0; row < 5; row++) {
+            const yBase = cy + 50 * scale + row * 24 * scale;
+            ctx.beginPath();
+            for (let x = cx - 190 * scale; x < cx + 190 * scale; x += 2) {
+              const rel = (x - cx) / (190 * scale);
+              const wave = Math.sin(rel * 3.5 + row * 0.8) * 14 * scale;
+              if (x === Math.floor(cx - 190 * scale)) ctx.moveTo(x, yBase + wave);
+              else ctx.lineTo(x, yBase + wave);
+            }
+            ctx.strokeStyle = 'rgba(80,120,160,0.25)';
+            ctx.lineWidth = 2 * scale;
+            ctx.stroke();
+          }
+          // Large wave left
+          ctx.beginPath();
+          const waveLeftX = cx - 140 * scale;
+          const waveLeftY = cy + 20 * scale;
+          for (let t = 0; t <= 60; t++) {
+            const angle = t / 60 * Math.PI;
+            const rad = 40 * scale + Math.sin(angle * 4) * 12 * scale;
+            const px = waveLeftX + Math.cos(angle) * rad;
+            const py = waveLeftY - Math.sin(angle) * rad * 0.6;
+            t === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.fillStyle = 'rgba(80,140,175,0.3)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(80,140,175,0.15)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        // --- Layer 1 (red) - sun & blossoms ---
+        if (appliedLayers.has(1)) {
+          // Red sun
+          const sx = cx + 160 * scale;
+          const sy = cy - 110 * scale;
+          const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 40 * scale);
+          grad.addColorStop(0, 'rgba(200,70,50,0.9)');
+          grad.addColorStop(0.6, 'rgba(180,60,50,0.6)');
+          grad.addColorStop(1, 'rgba(160,50,45,0)');
+          ctx.beginPath();
+          ctx.arc(sx, sy, 40 * scale, 0, Math.PI * 2);
+          ctx.fillStyle = grad;
+          ctx.fill();
+          // Cherry blossoms
+          const blossomPositions = [[cx - 60 * scale, cy - 140 * scale], [cx + 40 * scale, cy - 150 * scale],
+            [cx - 100 * scale, cy - 100 * scale], [cx + 120 * scale, cy - 130 * scale],
+            [cx - 40 * scale, cy - 120 * scale]];
+          blossomPositions.forEach((bp) => {
+            for (let p = 0; p < 3; p++) {
+              const bx = bp[0] + Math.cos(p * 2.1) * 8 * scale;
+              const by = bp[1] + Math.sin(p * 2.1) * 8 * scale;
+              ctx.beginPath();
+              for (let a = 0; a < 10; a++) {
+                const rad = 7 * scale * (0.3 + 0.7 * Math.abs(Math.cos(a * 0.6)));
+                const ang = a / 10 * Math.PI * 2;
+                const px = bx + Math.cos(ang) * rad;
+                const py = by + Math.sin(ang) * rad;
+                a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+              }
+              ctx.fillStyle = 'rgba(220,120,110,0.5)';
+              ctx.fill();
+            }
+          });
+        }
+
+        // --- Layer 0 (key) - outlines ---
+        if (appliedLayers.has(0)) {
+          // Mt. Fuji silhouette
+          ctx.beginPath();
+          const fujiX = cx + 80 * scale;
+          const fujiY = cy - 40 * scale;
+          const fujiW = 100 * scale;
+          const fujiH = 90 * scale;
+          ctx.moveTo(fujiX - fujiW, fujiY);
+          ctx.quadraticCurveTo(fujiX - fujiW * 0.2, fujiY - fujiH * 1.2, fujiX, fujiY - fujiH * 1.5);
+          ctx.quadraticCurveTo(fujiX + fujiW * 0.2, fujiY - fujiH * 1.2, fujiX + fujiW, fujiY);
+          ctx.strokeStyle = 'rgba(40,35,30,0.7)';
+          ctx.lineWidth = 2.5 * scale;
+          ctx.stroke();
+          // Snow cap lines
+          ctx.beginPath();
+          ctx.moveTo(fujiX - fujiW * 0.15, fujiY - fujiH * 0.4);
+          ctx.lineTo(fujiX + fujiW * 0.15, fujiY - fujiH * 0.4);
+          ctx.strokeStyle = 'rgba(40,35,30,0.35)';
+          ctx.lineWidth = 1 * scale;
+          ctx.stroke();
+          // Small boat
+          const boatX = cx - 110 * scale;
+          const boatY = cy + 80 * scale;
+          ctx.beginPath();
+          ctx.moveTo(boatX - 16 * scale, boatY);
+          ctx.lineTo(boatX + 16 * scale, boatY);
+          ctx.lineTo(boatX + 10 * scale, boatY - 8 * scale);
+          ctx.lineTo(boatX - 10 * scale, boatY - 8 * scale);
+          ctx.closePath();
+          ctx.strokeStyle = 'rgba(40,35,30,0.5)';
+          ctx.lineWidth = 1.5 * scale;
+          ctx.stroke();
+          // Mast
+          ctx.beginPath();
+          ctx.moveTo(boatX, boatY);
+          ctx.lineTo(boatX, boatY - 10 * scale);
+          ctx.strokeStyle = 'rgba(40,35,30,0.4)';
+          ctx.lineWidth = 1 * scale;
+          ctx.stroke();
+          // Pine tree left
+          const pineX = cx - 170 * scale;
+          const pineY = cy + 10 * scale;
+          ctx.beginPath();
+          ctx.moveTo(pineX - 2 * scale, pineY);
+          ctx.lineTo(pineX, pineY - 40 * scale);
+          ctx.strokeStyle = 'rgba(40,35,30,0.35)';
+          ctx.lineWidth = 1.5 * scale;
+          ctx.stroke();
+          // Pine branches
+          for (let b = 0; b < 5; b++) {
+            const by = pineY - 8 * scale - b * 7 * scale;
+            ctx.beginPath();
+            ctx.moveTo(pineX, by);
+            ctx.lineTo(pineX + 12 * scale * (1 + b * 0.1), by - 3 * scale);
+            ctx.strokeStyle = 'rgba(40,35,30,0.3)';
+            ctx.lineWidth = 0.8 * scale;
+            ctx.stroke();
+          }
+        }
+
+        // --- Stamp effect overlay ---
+        if (stampAnimating) {
+          const progress = stampProgress;
+          // Fade in the layer
+          const layerColor = ['rgba(40,35,30,0.5)', 'rgba(200,70,50,0.35)', 'rgba(80,140,175,0.3)', 'rgba(218,185,110,0.4)'][stampLayer];
+          // Draw a radial reveal expanding from center
+          const reveal = Math.min(1, progress * 2);
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, 0, w, h);
+          if (reveal < 1) {
+            ctx.beginPath();
+            ctx.rect(0, 0, w, h);
+            ctx.arc(cx, cy, (1 - reveal) * w * 0.6, 0, Math.PI * 2, true);
+          }
+          ctx.fillStyle = layerColor;
+          ctx.fill('evenodd');
+          ctx.restore();
+        }
+
+        // --- Completion overlay ---
+        if (appliedLayers.size === 4 && !stampAnimating) {
+          // Vignette
+          const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.7);
+          grad.addColorStop(0, 'rgba(0,0,0,0)');
+          grad.addColorStop(1, 'rgba(0,0,0,0.15)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, w, h);
+          // Subtle gold border
+          ctx.strokeStyle = 'rgba(218,185,110,0.2)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(8, 8, w - 16, h - 16);
+        }
+      }
+
+      function drawWaveCrests(cx, cy, s, color, lw) {
+        for (let i = 0; i < 8; i++) {
+          const ang = Math.PI * 2 * i / 8;
+          const r = 50 * s + 10 * s * Math.sin(ang * 3);
+          const x = cx - 100 * s + Math.cos(ang) * r;
+          const y = cy + 50 * s + Math.sin(ang) * r * 0.5;
+          ctx.beginPath();
+          ctx.arc(x, y, 4 * s * (0.6 + 0.4 * Math.sin(ang)), 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+        }
+      }
+
+      // ---- Layer state helpers ----
+      const layerNames = ['key', 'red', 'blue', 'yellow'];
+      const layerColors = ['#282218', '#c84632', '#5088a8', '#dab96e'];
+
+      function resetAll() {
+        appliedLayers.clear();
+        nextExpectedLayer = 0;
+        stampAnimating = false;
+        stampLayer = -1;
+        stampProgress = 0;
+        if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+        updateUI();
+        drawScene();
+        hintArea.style.opacity = 1;
+        hintVisible = true;
+        statusText.className = '';
+        statusText.textContent = '✥ click a block to begin printing ✥';
+      }
+
+      function applyLayer(layerIndex) {
+        if (stampAnimating || appliedLayers.has(layerIndex)) return;
+
+        if (layerIndex === nextExpectedLayer) {
+          // Correct!
+          appliedLayers.add(layerIndex);
+          stampLayer = layerIndex;
+          stampProgress = 0;
+          stampAnimating = true;
+          animateStamp(layerIndex);
+          nextExpectedLayer++;
+          updateUI();
+        } else {
+          // Wrong block - shake effect
+          const btn = document.getElementById('block-' + layerIndex);
+          btn.classList.add('wrong');
+          setTimeout(() => btn.classList.remove('wrong'), 350);
+          statusText.textContent = '✥ wrong order — try the ' + layerNames[nextExpectedLayer] + ' block ✥';
+          statusText.className = 'highlight';
+          hintArea.style.opacity = 1;
+        }
+      }
+
+      function animateStamp(layerIndex) {
+        const durations = [600, 500, 500, 400];
+        const duration = durations[layerIndex] || 500;
+        const startTime = performance.now();
+
+        function frame(now) {
+          const elapsed = now - startTime;
+          stampProgress = Math.min(elapsed / duration, 1);
+          drawScene();
+
+          // Stamp impact effect on blocks panel
+          const btn = document.getElementById('block-' + layerIndex);
+          if (stampProgress < 0.3) {
+            btn.style.transform = 'translateY(-4px) scale(1.05)';
+          } else if (stampProgress < 0.5) {
+            btn.style.transform = 'translateY(0) scale(1.0)';
+          }
+
+          if (stampProgress < 1) {
+            animFrame = requestAnimationFrame(frame);
+          } else {
+            stampAnimating = false;
+            btn.style.transform = '';
+            btn.classList.add('applied');
+            drawScene();
+            updateUI();
+            animFrame = null;
+            if (appliedLayers.size === 4) {
+              showCompletion();
+            }
+          }
+        }
+        animFrame = requestAnimationFrame(frame);
+      }
+
+      function showCompletion() {
+        statusText.textContent = '✥ a complete ukiyo-e print ✥';
+        statusText.className = 'highlight';
+        hintArea.style.opacity = 0;
+        // Final haiku appears via overlay after a delay
+        setTimeout(() => {
+          if (appliedLayers.size === 4) {
+            statusText.textContent = '✥ "beyond the floating world — a single print holds all seasons" ✥';
+          }
+        }, 2000);
+      }
+
+      function updateUI() {
+        const total = appliedLayers.size;
+        progressFill.style.width = (total * 25) + '%';
+        // Update block button states
+        for (let i = 0; i < 4; i++) {
+          const btn = document.getElementById('block-' + i);
+          if (appliedLayers.has(i)) {
+            btn.classList.add('applied');
+          } else if (i === nextExpectedLayer) {
+            btn.classList.remove('applied');
+            btn.classList.add('hint-glow');
+          } else {
+            btn.classList.remove('applied', 'hint-glow');
+          }
+        }
+        // Update status text if not already set by wrong order
+        if (total === 0) {
+          statusText.textContent = '✥ click a block to begin printing ✥';
+          statusText.className = '';
+        } else if (total < 4 && !statusText.textContent.includes('wrong')) {
+          statusText.textContent = '✥ layer ' + (total + 1) + ' — apply the ' + layerNames[nextExpectedLayer] + ' block ✥';
+          statusText.className = '';
+        }
+      }
+
+      // ---- Block click handlers ----
+      document.querySelectorAll('.block-btn').forEach((btn) => {
+        btn.addEventListener('click', function(e) {
+          const layer = parseInt(this.dataset.layer);
+          applyLayer(layer);
+        });
+        btn.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          const layer = parseInt(this.dataset.layer);
+          applyLayer(layer);
+        }, { passive: false });
+      });
+
+      resetBtn.addEventListener('click', resetAll);
+      resetBtn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        resetAll();
+      }, { passive: false });
+
+      // ---- Keyboard support ----
+      document.addEventListener('keydown', function(e) {
+        const key = e.key;
+        if (key >= '1' && key <= '4') {
+          const idx = parseInt(key) - 1;
+          applyLayer(idx);
+        }
+        if (key === 'r' || key === 'R') resetAll();
+      });
+
+      // ---- Init ----
+      resize();
+      window.addEventListener('resize', resize);
+      resetAll();
+    })();
+  </script>
+</body>
+</html>
