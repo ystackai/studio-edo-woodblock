@@ -134,6 +134,27 @@
       transition: opacity 1.2s;
       padding: 0 1rem;
     }
+    .wave-counter {
+      pointer-events: auto;
+      background: rgba(26,26,46,0.75);
+      border: 1px solid rgba(248,238,232,0.2);
+      border-radius: 24px;
+      padding: 0.45rem 0.9rem;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      color: rgba(248,238,232,0.85);
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 60px;
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 600px) {
+      .wave-counter { padding: 0.35rem 0.6rem; font-size: 0.7rem; min-width: 44px; }
+    }
+
 
     .status-message.visible { opacity: 1; }
     .status-message h1 {
@@ -174,14 +195,17 @@
   </div>
 
   <div class="hud">
-    <button class="hud-btn" id="clear-btn" aria-label="Clear all waves">✕　Clear</button>
+    <button class="hud-btn" id="clear-btn" aria-label="Clear all waves">✕　Clear</button>    <button class="hud-btn" id="screenshot-btn" aria-label="Save screenshot as PNG">📷</button>
+    <button class="hud-btn" id="fullscreen-btn" aria-label="Enter fullscreen">⛶</button>
+
     <div class="color-indicator" id="color-picker" role="toolbar" aria-label="Wave color selection">
       <button class="color-swatch active" data-color="#2a9d8f" style="background:#2a9d8f" aria-label="Azure wave color"></button>
       <button class="color-swatch" data-color="#e76f51" style="background:#e76f51" aria-label="Vermilion wave color"></button>
       <button class="color-swatch" data-color="#f4a261" style="background:#f4a261" aria-label="Gold ochre wave color"></button>
       <button class="color-swatch" data-color="#52796f" style="background:#52796f" aria-label="Bamboo green wave color"></button>
       <button class="color-swatch" data-color="#6b8fa0" style="background:#6b8fa0" aria-label="Wave light blue color"></button>
-    </div>
+    </div    <div class="wave-counter" id="wave-counter" aria-live="polite">—</div>
+>
   </div>
 </div>
 
@@ -259,6 +283,8 @@
         rings: 1 + Math.floor(Math.random() * 2)
       };
       ripples.push(r);
+          updateCounter();
+      hapticFeedback();
       spawnParticles(x, y, 10 + Math.floor(Math.random() * 6), color);
 
       // Spawn foam flecks
@@ -611,7 +637,45 @@
       });
     });
 
-    // ─── Clear ───
+    
+    // ─── Wave counter ───
+    var waveCount = 0;
+    var waveCounter = document.getElementById('wave-counter');
+    function updateCounter() {
+      waveCount++;
+      waveCounter.textContent = waveCount + ' waves';
+    }
+
+    // ─── Screenshot ───
+    document.getElementById('screenshot-btn').addEventListener('click', function(e) {
+      var link = document.createElement('a');
+      link.download = 'the-great-wave-' + Date.now() + '.png';
+      canvas.toBlob(function(blob) {
+        link.href = URL.createObjectURL(blob);
+        link.click();
+      });
+      e.stopPropagation();
+    });
+
+    // ─── Fullscreen ───
+    var fsBtn = document.getElementById('fullscreen-btn');
+    fsBtn.addEventListener('click', function(e) {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+      e.stopPropagation();
+    });
+    document.addEventListener('fullscreenchange', function() {
+      fsBtn.textContent = document.fullscreenElement ? '⛶' : '⛶';
+    });
+
+    // ─── Touch haptic feedback (light) ───
+    function hapticFeedback() {
+      if (navigator.vibrate) navigator.vibrate(4);
+    }
+// ─── Clear ───
     document.getElementById('clear-btn').addEventListener('click', function(e) {
       ripples = [];
       particles = [];
