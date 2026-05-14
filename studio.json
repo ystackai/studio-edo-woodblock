@@ -54,7 +54,16 @@
     "last_reset_at": ""
   },
   "games": {
-    "shipped": [],
+    "shipped": [
+      {
+        "title": "Floating Press",
+        "slug": "floating-press",
+        "summary": "An interactive ukiyo-e printmaker. Tap anywhere to create a unique ephemeral composition of waves, blossoms, mountains, clouds, and birds \u2014 each one a fleeting picture of the floating world.",
+        "mashup": "modern canvas \u00b7 ukiyo-e palette",
+        "play_url": "/edo-woodblock/drops/floating-press/",
+        "studio_url": "/edo-woodblock/drops/floating-press/"
+      }
+    ],
     "upcoming": {},
     "building": {}
   },

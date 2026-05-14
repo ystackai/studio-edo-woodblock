@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floating Press — Pictures of the Floating World</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #F2EDE6;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+
+    #canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    #ui {
+      position: fixed; bottom: 30px; left: 0; right: 0;
+      text-align: center; z-index: 10;
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+    }
+    #ui.hidden { opacity: 0; }
+
+    #hint {
+      display: inline-block;
+      padding: 10px 24px;
+      background: rgba(242,237,230,0.85);
+      color: #5C4F3B;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      border: 1px solid #C8B9A5;
+      border-radius: 30px;
+      backdrop-filter: blur(4px);
+      pointer-events: auto;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      user-select: none;
+    }
+    #hint:hover {
+      background: #C8B9A5;
+      color: #F2EDE6;
+    }
+
+    #counter {
+      position: fixed; top: 20px; right: 24px;
+      font-size: 12px; color: #9C8E7D;
+      letter-spacing: 0.06em; z-index: 10;
+      font-family: inherit;
+      opacity: 0.6;
+      user-select: none;
+    }
+
+    @media (max-width: 600px) {
+      #hint { font-size: 16px; padding: 14px 28px; }
+      #counter { top: 16px; right: 16px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="counter">PRINT 0</div>
+  <div id="ui">
+    <div id="hint">☼ tap to print</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const hint = document.getElementById('hint');
+    const counter = document.getElementById('counter');
+    const ui = document.getElementById('ui');
+
+    let W, H;
+    let printCount = 0;
+    let currentComposition = null;
+    let fadeOut = null;
+    let fadeAnim = null;
+    let particles = [];
+
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * devicePixelRatio;
+      canvas.height = H * devicePixelRatio;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // --- Ukiyo-e color palette ---
+    const COLORS = {
+      indigo:    '#213B5E',
+      vermilion: '#BA2F22',
+      bamboo:    '#497A5E',
+      willow:    '#8BA97A',
+      yellow:    '#D4A657',
+      charcoal:  '#2C2C2C',
+      paper:     '#F2EDE6',
+      sky:       '#D6CED8',
+      water:     '#5886A0'
+    };
+
+    // --- Element generators ---
+
+    function drawWave(ctx, x, y, t, size) {
+      // A Hokusai-style wave arc
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size / 100, size / 100);
+      ctx.strokeStyle = COLORS.indigo;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Wave crest
+      ctx.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const p = i / 20;
+        const angle = p * Math.PI;
+        const r = 40 + p * 30 + 10 * Math.sin(t * 2 + p * 4);
+        const px = Math.cos(angle) * r;
+        const py = Math.sin(angle) * r * 0.6;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      // Spray
+      for (let s = 0; s < 6; s++) {
+        const sp = s / 6;
+        const a = sp * Math.PI;
+        const r = 50 + 15 * Math.sin(t * 3 + s);
+        const sx = Math.cos(a) * r;
+        const sy = Math.sin(a) * r * 0.5 - 8;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2 + Math.sin(t + s) * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.water;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawCherryBlossom(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size / 60, size / 60);
+      const petals = 5;
+      for (let p = 0; p < petals; p++) {
+        const a = p / petals * Math.PI * 2 + t * 0.3;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.translate(10, 0);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 8, 6, 0, 0, Math.PI * 2);
+        ctx.fillStyle = petalCount % 3 === 0 ? '#F4C9C9' : '#F0D6D1';
+        ctx.fill();
+        ctx.restore();
+      }
+      // Center
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#D4A657';
+      ctx.fill();
+      ctx.restore();
+      petalCount++;
+    }
+    let petalCount = 0;
+
+    function drawMountain(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size / 80, size / 80);
+      // Distant mountain
+      ctx.beginPath();
+      ctx.moveTo(-40, 10);
+      ctx.lineTo(0, -30 - 8 * Math.sin(t));
+      ctx.lineTo(40, 10);
+      ctx.closePath();
+      ctx.fillStyle = COLORS.indigo;
+      ctx.globalAlpha = 0.5;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Near mountain
+      ctx.beginPath();
+      ctx.moveTo(-30, 15);
+      ctx.lineTo(5, -20 - 5 * Math.sin(t + 1));
+      ctx.lineTo(35, 15);
+      ctx.closePath();
+      ctx.fillStyle = COLORS.bamboo;
+      ctx.globalAlpha = 0.55;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    function drawCloud(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size / 60, size / 60);
+      for (let i = 0; i < 4; i++) {
+        const ox = i * 14 - 20;
+        const oy = 4 * Math.sin(t + i * 1.5);
+        ctx.beginPath();
+        ctx.arc(ox, oy, 10 + 3 * Math.sin(t * 0.7 + i), 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.sky;
+        ctx.globalAlpha = 0.35;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+    }
+
+    function drawBird(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size / 40, size / 40);
+      const wing = 12 + 8 * Math.sin(t * 3);
+      ctx.strokeStyle = COLORS.charcoal;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-wing, -4);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(-wing, 4);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(wing, -4);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(wing, 4);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // --- Composition generation ---
+
+    function generateComposition() {
+      const elements = [];
+      const numElements = 4 + Math.floor(Math.random() * 4);
+
+      for (let i = 0; i < numElements; i++) {
+        const kind = Math.random();
+        let type, size, x, y;
+        size = 60 + Math.random() * 140;
+        x = 0.1 + Math.random() * 0.8;
+        y = 0.1 + Math.random() * 0.8;
+        if (kind < 0.25) type = 'wave';
+        else if (kind < 0.45) type = 'blossom';
+        else if (kind < 0.65) type = 'mountain';
+        else if (kind < 0.8) type = 'cloud';
+        else type = 'bird';
+        elements.push({ type, x, y, size });
+      }
+      return elements;
+    }
+
+    function paintComposition(elements, t) {
+      ctx.clearRect(0, 0, W, H);
+
+      // Subtle paper texture
+      ctx.fillStyle = COLORS.paper;
+      ctx.fillRect(0, 0, W, H);
+
+      // Traditional ukiyo-e border (frame)
+      ctx.strokeStyle = COLORS.charcoal;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(30, 20, W - 60, H - 40);
+
+      // Inner ruled border
+      ctx.strokeStyle = COLORS.charcoal;
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(36, 26, W - 72, H - 52);
+
+      // Signature seal stamp
+      ctx.save();
+      ctx.translate(W - 90, H - 60);
+      ctx.fillStyle = COLORS.vermilion;
+      ctx.fillRect(0, 0, 24, 24);
+      ctx.fillStyle = '#F2EDE6';
+      ctx.font = '10px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('浮', 12, 16);
+      ctx.restore();
+
+      if (!elements) return;
+
+      const now = performance.now() / 1000;
+
+      for (const el of elements) {
+        const ex = el.x * W;
+        const ey = el.y * H;
+        const driftX = 10 * Math.sin(now * 0.1 + el.x * 4);
+        const driftY = 5 * Math.cos(now * 0.08 + el.y * 3);
+
+        switch (el.type) {
+          case 'wave': drawWave(ctx, ex + driftX, ey + driftY, now, el.size); break;
+          case 'blossom': drawCherryBlossom(ctx, ex + driftX, ey + driftY, now, el.size); break;
+          case 'mountain': drawMountain(ctx, ex + driftX, ey + driftY, now, el.size); break;
+          case 'cloud': drawCloud(ctx, ex + driftX, ey + driftY, now, el.size); break;
+          case 'bird': drawBird(ctx, ex + driftX, ey + driftY, now, el.size); break;
+        }
+      }
+
+      // Subtle floating particles
+      for (const p of particles) {
+        const px = p.x * W + Math.sin(now * p.speed + p.phase) * 2;
+        const py = p.y * H + Math.cos(now * p.speed * 0.7 + p.phase * 1.3) * 2;
+        ctx.beginPath();
+        ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.sky;
+        ctx.globalAlpha = 0.45 * p.life;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // --- Interaction ---
+
+    let interactionTimer = null;
+
+    function createPrint(e) {
+      if (fadeAnim) {
+        cancelAnimationFrame(fadeAnim);
+        fadeAnim = null;
+      }
+      if (fadeOut) {
+        cancelAnimationFrame(fadeOut);
+        fadeOut = null;
+      }
+
+      printCount++;
+      counter.textContent = 'PRINT ' + printCount;
+      hint.textContent = '☼ tap again';
+
+      const rect = canvas.getBoundingClientRect();
+      const cx = (e.clientX || e.touches?.[0]?.clientX || W/2) / rect.width;
+      const cy = (e.clientY || e.touches?.[0]?.clientY || H/2) / rect.height;
+
+      // Seed based on click position - different prints based on where you tap
+      Math.seeded = Math.seeded || 0;
+      const seed = (cx * 100 + cy * 100) * 1000;
+      // We'll just use random()
+
+      const elements = generateComposition();
+
+      // Spawn particles at click point
+      for (let i = 0; i < 20; i++) {
+        particles.push({
+          x: cx + (Math.random() - 0.5) * 0.1,
+          y: cy + (Math.random() - 0.5) * 0.1,
+          speed: 0.5 + Math.random() * 1.5,
+          phase: Math.random() * Math.PI * 2,
+          life: 1
+        });
+      }
+      if (particles.length > 200) particles.splice(0, 50);
+
+      currentComposition = elements;
+      fadeOut = null;
+
+      // Start fading after 4 seconds
+      if (interactionTimer) clearTimeout(interactionTimer);
+      interactionTimer = setTimeout(() => {
+        startFade();
+      }, 4000);
+    }
+
+    function startFade() {
+      if (fadeAnim) return;
+      let opacity = 1;
+      const duration = 2000;
+      const start = performance.now();
+
+      function fadeFrame() {
+        const elapsed = performance.now() - start;
+        const progress = elapsed / duration;
+        opacity = Math.max(0, 1 - progress);
+
+        paintComposition(currentComposition, performance.now() / 1000);
+        ctx.globalAlpha = opacity;
+        // Apply fade as a white overlay
+        ctx.fillStyle = COLORS.paper;
+        ctx.globalAlpha = (1 - opacity) * 0.9;
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+
+        if (progress < 1) {
+          fadeAnim = requestAnimationFrame(fadeFrame);
+        } else {
+          fadeAnim = null;
+          currentComposition = null;
+          // Draw blank paper
+          paintComposition(null, 0);
+          hint.textContent = '☼ tap to print';
+          particles = [];
+        }
+      }
+      fadeAnim = requestAnimationFrame(fadeFrame);
+    }
+
+    function handleClick(e) {
+      e.preventDefault();
+      ui.classList.add('hidden');
+      setTimeout(() => ui.classList.remove('hidden'), 500);
+      // Reset hint on first click
+      if (printCount === 0) hint.textContent = '☼ tap again';
+      createPrint(e);
+    }
+
+    canvas.addEventListener('click', handleClick);
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleClick(e);
+    }, { passive: false });
+
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        handleClick({ clientX: W/2, clientY: H/2 });
+      }
+    });
+
+    // --- Particle decay ---
+    function updateParticles() {
+      for (const p of particles) {
+        p.life -= 0.003;
+      }
+      particles = particles.filter(p => p.life > 0);
+    }
+
+    // --- Main loop ---
+    function loop() {
+      updateParticles();
+      if (!fadeAnim) {
+        paintComposition(currentComposition, performance.now() / 1000);
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    // Initial blank state
+    paintComposition(null, 0);
+
+    console.log('Floating Press loaded. Tap to print ukiyo-e compositions.');
+  </script>
+</body>
+</html>
