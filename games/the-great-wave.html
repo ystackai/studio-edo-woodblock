@@ -200,7 +200,9 @@
 
   <div class="hud">
     <button class="hud-btn" id="clear-btn" aria-label="Clear all waves">✕　Clear</button>    <button class="hud-btn" id="screenshot-btn" aria-label="Save screenshot as PNG">📷</button>
-    <button class="hud-btn" id="fullscreen-btn" aria-label="Enter fullscreen">⛶</button>
+    <button class="hud-btn" id="fullscreen-btn" aria-label="Enter fullscreen">⛶</button>    <button class="hud-btn" id="paper-btn" aria-label="Toggle paper background mode">📄</button>    <button class="hud-btn" id="share-btn" aria-label="Share this game">↗</button>
+
+
 
     <div class="color-indicator" id="color-picker" role="toolbar" aria-label="Wave color selection">
       <button class="color-swatch active" data-color="#2a9d8f" style="background:#2a9d8f" aria-label="Azure wave color"></button>
@@ -547,6 +549,26 @@
   canvas.addEventListener('click', function() { initAudio(); }, { once: true });
   canvas.addEventListener('touchstart', function() { initAudio(); }, { once: true });
 
+
+    // ─── Paper mode toggle ───
+    var paperBtn = document.getElementById('paper-btn');
+    paperBtn.addEventListener('click', function(e) {
+      document.body.classList.toggle('paper-mode');
+      e.stopPropagation();
+    });
+
+    // ─── Share ───
+    document.getElementById('share-btn').addEventListener('click', function(e) {
+      var url = window.location.href;
+      if (navigator.share) {
+        navigator.share({ title: 'The Great Wave', url: url });
+      } else {
+        navigator.clipboard.writeText(url).then(function() {
+          alert('Link copied!');
+        });
+      }
+      e.stopPropagation();
+    });
 
 function render(delta) {
       capArrays();
