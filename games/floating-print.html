@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>The Floating Print — Pictures of the Floating World</title>
+  <meta name="description" content="Compose your own ukiyo-e woodblock print. Stamp traditional Edo motifs onto the floating world canvas.">
+  <meta name="theme-color" content="#2b1a0f">
+  <link rel="canonical" href="/edo-woodblock/games/floating-print.html">
+  <link rel="stylesheet" href="https://ystackai.com/shared/studio-theme.css?v=20260327-avatarfix1">
+  <style>
+    :root {
+      --washi: #f5edd5;
+      --washi-dark: #e5d5b5;
+      --sumi: #1a1410;
+      --vermillion: #c83e2a;
+      --indigo: #1d3e5c;
+      --pine: #2d5a4a;
+      --gold: #c8923a;
+      --sakura: #d4a0a0;
+      --bamboo: #5a7a5a;
+      --water: #5a7a9a;
+      --cloud: #c0c8d0;
+      --print-bg: #f0e8d4;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #2b1a0f;
+      color: var(--washi);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      height: 100dvh;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      background: #3a2a1a;
+    }
+
+    #print-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: var(--print-bg);
+      border-radius: 4px;
+      touch-action: none;
+      cursor: crosshair;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      position: relative;
+      outline: none;
+    }
+
+    #stamp-preview {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0.5;
+      transition: opacity 0.1s;
+      z-index: 10;
+      image-rendering: crisp-edges;
+    }
+
+    .toolbar {
+      background: rgba(26,20,16,0.92);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-top: 1px solid rgba(245,237,213,0.1);
+      padding: 0.5rem 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+      justify-content: center;
+      min-height: 70px;
+    }
+
+    .stamp-btn {
+      pointer-events: auto;
+      background: rgba(245,237,213,0.08);
+      border: 1px solid rgba(245,237,213,0.15);
+      border-radius: 12px;
+      padding: 0.3rem 0.5rem;
+      color: var(--washi);
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-direction: column;
+      line-height: 1.1;
+      position: relative;
+    }
+
+    .stamp-btn:hover { background: rgba(245,237,213,0.18); border-color: rgba(245,237,213,0.3); }
+    .stamp-btn.active { background: rgba(200,146,58,0.25); border-color: var(--gold); }
+    .stamp-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .stamp-icon { font-size: 1.3rem; line-height: 1; }
+
+    .action-btn {
+      pointer-events: auto;
+      background: rgba(245,237,213,0.08);
+      border: 1px solid rgba(245,237,213,0.15);
+      border-radius: 24px;
+      padding: 0.4rem 0.75rem;
+      color: var(--washi);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .action-btn:hover { background: rgba(245,237,213,0.18); border-color: rgba(245,237,213,0.3); }
+    .action-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+    .size-control {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      pointer-events: auto;
+      background: rgba(245,237,213,0.06);
+      border: 1px solid rgba(245,237,213,0.1);
+      border-radius: 24px;
+      padding: 0.2rem 0.5rem;
+    }
+    .size-control label { font-size: 0.65rem; opacity: 0.7; }
+    .size-control input[type=range] {
+      width: 60px;
+      height: 4px;
+      -webkit-appearance: none;
+      background: rgba(245,237,213,0.15);
+      border-radius: 2px;
+      outline: none;
+    }
+    .size-control input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--gold);
+      border: none;
+      cursor: pointer;
+    }
+    .size-control input[type=range]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--gold);
+      border: none;
+      cursor: pointer;
+    }
+
+    .status-msg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1s;
+      padding: 0 1.5rem;
+      z-index: 5;
+    }
+    .status-msg.visible { opacity: 1; }
+    .status-msg h1 {
+      font-size: clamp(1.1rem, 3.5vw, 1.6rem);
+      font-weight: 800;
+      color: var(--sumi);
+      margin-bottom: 0.4rem;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .status-msg p {
+      font-size: clamp(0.75rem, 2vw, 0.95rem);
+      color: #4a3a2a;
+    }
+    .status-msg .hint-icon { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+
+    .stamp-count {
+      font-size: 0.65rem;
+      opacity: 0.6;
+      padding: 0.2rem 0.4rem;
+      background: rgba(245,237,213,0.08);
+      border-radius: 10px;
+      min-width: 50px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .toolbar { gap: 0.3rem; padding: 0.4rem 0.5rem; min-height: 60px; }
+      .stamp-btn { padding: 0.2rem 0.35rem; min-width: 40px; min-height: 40px; font-size: 0.65rem; }
+      .stamp-icon { font-size: 1.1rem; }
+      .action-btn { padding: 0.3rem 0.6rem; min-width: 40px; min-height: 40px; font-size: 0.7rem; }
+      .size-control { padding: 0.15rem 0.35rem; }
+      .size-control input[type=range] { width: 44px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #print-canvas { animation: none; }
+    }
+  
+    /* ─── Woodblock paper texture via CSS ─── */
+    #canvas-wrap::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 2;
+      background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      opacity: 0.35;
+      mix-blend-mode: overlay;
+    }
+
+    /* Woodblock border grain */
+    #canvas-wrap::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 3;
+      border: 3px solid rgba(26,20,16,0.12);
+      box-shadow: 0 0 20px rgba(26,20,16,0.15), inset 0 0 15px rgba(200,146,58,0.05);
+    }
+
+    /* Stamp animation */
+    @keyframes stamp-press {
+      0% { transform: scale(0.85); opacity: 0.3; }
+      40% { transform: scale(1.05); opacity: 0.9; }
+      100% { transform: scale(1); opacity: var(--stamp-alpha, 0.9); }
+    }
+
+    #print-canvas.stamping {
+      animation: none;
+    }
+
+    /* Warm paper status message */
+    .status-msg {
+      background: rgba(245,237,213,0.85);
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      backdrop-filter: blur(2px);
+    }
+    .status-msg h1 {
+      color: var(--sumi);
+      font-size: clamp(1.1rem, 3.5vw, 1.6rem);
+      margin-bottom: 0.3rem;
+    }
+    .status-msg p {
+      color: #4a3a2a;
+      font-size: clamp(0.75rem, 2vw, 0.95rem);
+    }
+</style>
+</head>
+<body>
+  <div id="app">
+    <div id="canvas-wrap">
+      <canvas id="print-canvas" tabindex="0" role="img" aria-label="Floating print canvas. Tap or press Enter to stamp motifs."></canvas>
+      <div id="stamp-preview"></div>
+      <div id="status-msg" class="status-msg">
+        <span class="hint-icon">🖌️</span>
+        <h1>Floating Print</h1>
+        <p>Choose a motif below, then tap the canvas to stamp it onto the print.</p>
+      </div>
+    </div>
+    <div class="toolbar" id="toolbar">
+      <button class="stamp-btn active" data-motif="wave" id="motif-wave" aria-label="Wave stamp motif">
+        <span class="stamp-icon">🌊</span>Wave
+      </button>
+      <button class="stamp-btn" data-motif="mountain" id="motif-mountain" aria-label="Mountain stamp motif">
+        <span class="stamp-icon">🗻</span>Mountain
+      </button>
+      <button class="stamp-btn" data-motif="cherry" id="motif-cherry" aria-label="Cherry blossom stamp motif">
+        <span class="stamp-icon">🌸</span>Cherry
+      </button>
+      <button class="stamp-btn" data-motif="crane" id="motif-crane" aria-label="Crane stamp motif">
+        <span class="stamp-icon">🕊️</span>Crane
+      </button>
+      <button class="stamp-btn" data-motif="cloud" id="motif-cloud" aria-label="Cloud stamp motif">
+        <span class="stamp-icon">☁️</span>Cloud
+      </button>
+      <button class="stamp-btn" data-motif="bamboo" id="motif-bamboo" aria-label="Bamboo stamp motif">
+        <span class="stamp-icon">🎋</span>Bamboo
+      </button>
+      <button class="stamp-btn" data-motif="boat" id="motif-boat" aria-label="Boat stamp motif">
+        <span class="stamp-icon">⛵</span>Boat
+      </button>
+      <div class="size-control">
+        <label>Size</label>
+        <input type="range" id="size-slider" min="0.2" max="1.2" step="0.05" value="0.7">
+      </div>
+      <button class="action-btn" id="clear-btn" aria-label="Clear all stamps">✕ Clear</button>
+      <button class="action-btn" id="screenshot-btn" aria-label="Save screenshot as PNG">📷 Save</button>
+      <span class="stamp-count" id="stamp-count">0 stamps</span>
+    </div>
+  </div>
+  <script>
+    (function() {
+      'use strict';
+
+      var canvas = document.getElementById('print-canvas');
+      var ctx = canvas.getContext('2d');
+      var W, H;
+      var stamps = [];
+      var currentMotif = 'wave';
+      var stampSize = 0.7;
+      var statusMsg = document.getElementById('status-msg');
+      var stampPreview = document.getElementById('stamp-preview');
+
+      // ─── Motif rendering ───
+      function drawMotif(ctx, x, y, size, motif, alpha) {
+        var s = size * 80;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.globalAlpha = alpha || 0.9;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        switch (motif) {
+          case 'wave': {
+            // Hokusai-style wave curl
+            var w = s, h = s * 0.6;
+            ctx.beginPath();
+            ctx.moveTo(-w/2, 0);
+            for (var i = 0; i < 10; i++) {
+              var px = -w/2 + (i/9) * w;
+              var py = Math.sin(i * 1.2) * h * 0.3;
+              if (i % 2 === 0) {
+                ctx.quadraticCurveTo(px + w/18, py - h*0.2, px + w/9, py);
+              } else {
+                ctx.quadraticCurveTo(px + w/18, py + h*0.2, px + w/9, py);
+              }
+            }
+            ctx.strokeStyle = '#264653';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // foam dots
+            for (var fi = 0; fi < 5; fi++) {
+              var fx = -w/2 + Math.random() * w;
+              var fy = Math.sin(1.2 + fi * 0.2) * h * 0.3 + Math.random() * 6;
+              ctx.beginPath();
+              ctx.arc(fx, fy, 2 + Math.random() * 2, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(200,220,230,0.5)';
+              ctx.fill();
+            }
+            break;
+          }
+          case 'mountain': {
+            // Fuji-style cone
+            var mw = s * 0.6, mh = s * 0.7;
+            ctx.beginPath();
+            ctx.moveTo(-mw, mh/2);
+            ctx.quadraticCurveTo(0, -mh, mw, mh/2);
+            ctx.closePath();
+            ctx.fillStyle = '#1d3e5c';
+            ctx.fill();
+
+            // snow cap
+            ctx.beginPath();
+            ctx.moveTo(-mw * 0.25, -mh * 0.25);
+            ctx.quadraticCurveTo(0, -mh * 0.6, mw * 0.25, -mh * 0.25);
+            ctx.strokeStyle = '#e8e0d0';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // base line
+            ctx.beginPath();
+            ctx.moveTo(-mw * 1.2, mh/2);
+            ctx.lineTo(mw * 1.2, mh/2);
+            ctx.strokeStyle = '#3a5a3a';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            break;
+          }
+          case 'cherry': {
+            // Sakura blossom
+            var r = s * 0.35;
+            for (var p = 0; p < 5; p++) {
+              var a = p * Math.PI * 2 / 5 - Math.PI/2;
+              var cx = Math.cos(a) * r;
+              var cy = Math.sin(a) * r;
+              ctx.beginPath();
+              ctx.ellipse(cx, cy, r * 0.45, r * 0.3, a + 0.3, 0, Math.PI * 2);
+              ctx.fillStyle = '#d4a0a0';
+              ctx.fill();
+            }
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.15, 0, Math.PI * 2);
+            ctx.fillStyle = '#e8c8a0';
+            ctx.fill();
+            break;
+          }
+          case 'crane': {
+            // Simple crane silhouette
+            var cw = s * 0.7, ch = s * 0.5;
+            // body
+            ctx.beginPath();
+            ctx.ellipse(0, ch * 0.1, cw * 0.35, ch * 0.25, 0, 0, Math.PI * 2);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fill();
+            // neck
+            ctx.beginPath();
+            ctx.moveTo(cw * 0.1, -ch * 0.1);
+            ctx.quadraticCurveTo(cw * 0.05, -ch * 0.3, cw * 0.15, -ch * 0.45);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.stroke();
+            // head
+            ctx.beginPath();
+            ctx.arc(cw * 0.15, -ch * 0.45, cw * 0.06, 0, Math.PI * 2);
+            ctx.fill();
+            // beak
+            ctx.beginPath();
+            ctx.moveTo(cw * 0.15 + cw * 0.06, -ch * 0.45);
+            ctx.lineTo(cw * 0.22, -ch * 0.43);
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // wing
+            ctx.beginPath();
+            ctx.moveTo(-cw * 0.1, -ch * 0.05);
+            ctx.quadraticCurveTo(-cw * 0.1, -ch * 0.35, cw * 0.1, -ch * 0.35);
+            ctx.closePath();
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fill();
+            // legs
+            ctx.beginPath();
+            ctx.moveTo(-cw * 0.05, ch * 0.2);
+            ctx.lineTo(-cw * 0.08, ch * 0.45);
+            ctx.moveTo(cw * 0.05, ch * 0.2);
+            ctx.lineTo(cw * 0.02, ch * 0.45);
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.stroke();
+            break;
+          }
+          case 'cloud': {
+            // Ukiyo-e cloud band
+            var clw = s * 0.85, clh = s * 0.35;
+            ctx.beginPath();
+            ctx.moveTo(-clw/2, clh * 0.1);
+            ctx.quadraticCurveTo(-clw/2, -clh/2, -clw/4, -clh/2);
+            ctx.quadraticCurveTo(0, -clh * 0.7, clw/4, -clh/2);
+            ctx.quadraticCurveTo(clw/2, -clh/2, clw/2, clh * 0.1);
+            ctx.quadraticCurveTo(clw/2, clh * 0.3, clw/4, clh * 0.3);
+            ctx.quadraticCurveTo(0, clh * 0.4, -clw/4, clh * 0.3);
+            ctx.quadraticCurveTo(-clw/2, clh * 0.3, -clw/2, clh * 0.1);
+            ctx.closePath();
+            ctx.fillStyle = '#c0c8d0';
+            ctx.fill();
+            // horizontal band lines
+            ctx.beginPath();
+            ctx.moveTo(-clw/2, clh * 0.05);
+            ctx.lineTo(clw/2, clh * 0.05);
+            ctx.strokeStyle = '#a0a8b0';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+            break;
+          }
+          case 'bamboo': {
+            // Bamboo stalks
+            var bh = s * 0.9, bw = s * 0.1;
+            for (var bi = 0; bi < 3; bi++) {
+              var ox = -bw + bi * bw * 0.8;
+              ctx.beginPath();
+              ctx.moveTo(ox, bh/2);
+              ctx.lineTo(ox, -bh/2);
+              ctx.strokeStyle = bi === 1 ? '#4a6a4a' : '#5a7a5a';
+              ctx.lineWidth = bi === 1 ? 1.5 : 2;
+              ctx.stroke();
+              // nodes
+              for (var ni = 0; ni < 3; ni++) {
+                var ny = -bh/2 + (ni/2) * bh;
+                ctx.beginPath();
+                ctx.moveTo(ox - bw * 0.15, ny);
+                ctx.lineTo(ox + bw * 0.15, ny);
+                ctx.strokeStyle = '#3a5a3a';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+              }
+              // leaves
+              if (bi === 0 || bi === 2) {
+                ctx.beginPath();
+                ctx.moveTo(ox, -bh/2);
+                ctx.quadraticCurveTo(ox + bw * 0.8, -bh/2 - bh * 0.15, ox + bw * 1.2, -bh/2 - bh * 0.05);
+                ctx.strokeStyle = '#4a7a4a';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+              }
+            }
+            break;
+          }
+          case 'boat': {
+            // Small sailboat
+            var bw2 = s * 0.6, bh2 = s * 0.3;
+            // hull
+            ctx.beginPath();
+            ctx.moveTo(-bw2/2, bh2 * 0.3);
+            ctx.quadraticCurveTo(0, bh2 * 0.5, bw2/2, bh2 * 0.3);
+            ctx.closePath();
+            ctx.fillStyle = '#4a3a2a';
+            ctx.fill();
+            // mast
+            ctx.beginPath();
+            ctx.moveTo(0, bh2 * 0.3);
+            ctx.lineTo(0, -bh2 * 0.4);
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#3a2a1a';
+            ctx.stroke();
+            // sail
+            ctx.beginPath();
+            ctx.moveTo(0, -bh2 * 0.35);
+            ctx.quadraticCurveTo(bw2/3, -bh2 * 0.1, bw2/2.5, bh2 * 0.1);
+            ctx.strokeStyle = '#d4c0a0';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, -bh2 * 0.35, bw2/3, 0, Math.PI * 0.6);
+            ctx.stroke();
+            // water line
+            ctx.beginPath();
+            ctx.moveTo(-bw2/1.5, bh2 * 0.35);
+            ctx.quadraticCurveTo(0, bh2 * 0.45, bw2/1.5, bh2 * 0.35);
+            ctx.strokeStyle = '#5a7a9a';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            break;
+          }
+        }
+
+        ctx.restore();
+      }
+
+      // ─── Canvas setup ───
+      function resize() {
+        var rect = canvas.parentElement.getBoundingClientRect();
+        W = rect.width;
+        H = rect.height;
+        canvas.width = W;
+        canvas.height = H;
+
+        // Redraw all stamps after resize
+        ctx.fillStyle = '#f0e8d4';
+        ctx.fillRect(0, 0, W, H);
+        stamps.forEach(function(s) {
+          drawMotif(ctx, s.x, s.y, s.size, s.motif, s.alpha);
+        });
+        updateStatus();
+      }
+
+      // ─── Stamp creation ───
+      function stamp(x, y, motif, size) {
+        var alpha = 0.7 + Math.random() * 0.3;
+        stamps.push({ x: x, y: y, motif: motif || currentMotif, size: size || stampSize, alpha: alpha 
+    // Haptic + animation
+    if (navigator.vibrate) navigator.vibrate(4);
+    var can = document.getElementById('print-canvas');
+    can.style.transform = 'scale(0.97) translateY(1px)';
+    can.style.transition = 'transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    setTimeout(function() {
+      can.style.transform = '';
+    }, 120);
+});
+        drawMotif(ctx, x, y, size || stampSize, motif || currentMotif, alpha);
+        statusMsg.classList.remove('visible');
+        document.getElementById('stamp-count').textContent = stamps.length + ' stamps';
+      }
+
+      // ─── Interaction ───
+      function getPos(e) {
+        var rect = canvas.getBoundingClientRect();
+        var clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      }
+
+      function handleStamp(e) {
+        var pos = getPos(e);
+        if (pos.x < 0 || pos.x > W || pos.y < 0 || pos.y > H) return;
+        stamp(pos.x, pos.y);
+        if (typeof navigator.vibrate === 'function') { navigator.vibrate(12); }
+        e.preventDefault();
+      }
+
+      function handleDrag(e) {
+        var pos = getPos(e);
+        if (pos.x < 0 || pos.x > W || pos.y < 0 || pos.y > H) return;
+        stamp(pos.x, pos.y);
+        if (typeof navigator.vibrate === 'function') { navigator.vibrate(6); }
+        e.preventDefault();
+      }
+
+      canvas.addEventListener('click', handleStamp);
+      canvas.addEventListener('touchstart', function(e) {
+        handleStamp(e);
+        canvas.addEventListener('touchmove', handleDrag, { passive: false });
+      }, { passive: false });
+
+      canvas.addEventListener('mousedown', function(e) {
+        handleStamp(e);
+        canvas.addEventListener('mousemove', handleDrag, { passive: false });
+      });
+
+      function stopDrag() {
+        canvas.removeEventListener('touchmove', handleDrag);
+        canvas.removeEventListener('mousemove', handleDrag);
+      }
+      canvas.addEventListener('touchend', stopDrag, { passive: true });
+      canvas.addEventListener('touchcancel', stopDrag, { passive: true });
+      canvas.addEventListener('mouseup', stopDrag);
+      canvas.addEventListener('mouseleave', stopDrag);
+
+      // ─── Keyboard ───
+      canvas.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          stamp(Math.random() * W, Math.random() * H);
+          e.preventDefault();
+        }
+        if (e.key === 'c' || e.key === 'C') {
+          clearAll();
+          e.preventDefault();
+        }
+      });
+
+      // ─── Motif selector ───
+      var motifBtns = document.querySelectorAll('.stamp-btn');
+      motifBtns.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          motifBtns.forEach(function(b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          currentMotif = btn.getAttribute('data-motif');
+          e.stopPropagation();
+        });
+      });
+
+      // ─── Size slider ───
+      document.getElementById('size-slider').addEventListener('input', function(e) {
+        stampSize = parseFloat(e.target.value);
+      });
+
+      // ─── Clear ───
+      function clearAll() {
+        stamps = [];
+        ctx.fillStyle = '#f0e8d4';
+        ctx.fillRect(0, 0, W, H);
+        statusMsg.classList.add('visible');
+        document.getElementById('stamp-count').textContent = '0 stamps';
+      }
+      document.getElementById('clear-btn').addEventListener('click', function(e) {
+        clearAll();
+        e.stopPropagation();
+      });
+
+      // ─── Screenshot ───
+      document.getElementById('screenshot-btn').addEventListener('click', function(e) {
+        var link = document.createElement('a');
+        link.download = 'floating-print-' + Date.now() + '.png';
+        canvas.toBlob(function(blob) {
+          if (!blob) return;
+          if (!blob) return;
+          var url = URL.createObjectURL(blob);
+          link.href = url;
+          link.click();
+          setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+        });
+        e.stopPropagation();
+      });
+
+      // ─── Reduced motion ───
+      var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // ─── Init ───
+      resize();
+      window.addEventListener('resize', resize);
+      window.addEventListener('beforeunload', function() {
+        window.removeEventListener('resize', resize);
+      });
+
+      // Clean up resize handler on unload to prevent leaks
+      window.addEventListener('beforeunload', function() {
+        window.removeEventListener('resize', resize);
+        clearTimeout(t0); clearTimeout(t1); clearTimeout(t2);
+      });
+
+      // Welcome ambient stamps
+      setTimeout(function() {
+        stamp(W * 0.3, H * 0.4, 'wave', 0.6);
+      }, 300);
+      setTimeout(function() {
+        stamp(W * 0.6, H * 0.35, 'cloud', 0.55);
+      }, 700);
+      setTimeout(function() {
+        stamp(W * 0.5, H * 0.65, 'crane', 0.5);
+      }, 1100);
+    })();
+  </script>
+</body>
+</html>

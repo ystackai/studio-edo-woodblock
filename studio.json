@@ -70,6 +70,22 @@
         "shipped_at": "2026-05-14T09:55:00Z",
         "status": "shipped",
         "homepage_takeover": false
+      },
+      {
+        "title": "The Floating Print",
+        "url": "/edo-woodblock/games/floating-print.html",
+        "play_url": "/edo-woodblock/games/floating-print.html",
+        "summary": "Compose your own ukiyo-e woodblock print. Stamp traditional Edo motifs onto the floating world canvas.",
+        "thumbnail": "/edo-woodblock/games/floating-print-thumb.jpg",
+        "tags": [
+          "Interactive",
+          "Stamp Toy",
+          "Touch"
+        ],
+        "mashup": "ukiyo-e \u00b7 print stamper",
+        "shipped_at": "2026-05-14T19:30:00Z",
+        "status": "shipped",
+        "homepage_takeover": false
       }
     ],
     "upcoming": {},
@@ -82,6 +98,13 @@
       "date": "2026-05-14",
       "teaser": "The first interactive print is a wave painter. Tap the screen and watch the floating world ripple.",
       "url": "/edo-woodblock/blog/002-the-great-wave.html"
+    },
+    {
+      "title": "The Floating Print \u2014 Stamp Your Own Floating World",
+      "author": "Katsushika Hokusai",
+      "date": "2026-05-14",
+      "teaser": "Choose from waves, mountains, cherry blossoms, cranes, clouds, bamboo, or boats \u2014 then tap the canvas to build your own woodblock-print composition.",
+      "url": "/edo-woodblock/blog/003-floating-print.html"
     }
   ],
   "drops": []
