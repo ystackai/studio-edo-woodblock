@@ -13,6 +13,13 @@
       "slug": "floating-world",
       "title": "Floating World",
       "description": "Drag through the seasons of a ukiyo-e landscape"
+    },
+    {
+      "type": "html-game",
+      "path": "drops/wind-impressions/index.html",
+      "slug": "wind-impressions",
+      "title": "Wind Impressions",
+      "description": "Brush the floating world with fading seasonal impressions — a gentle canvas that teaches ephemeral beauty"
     }
   ]
 }

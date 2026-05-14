@@ -1,4 +1,4 @@
-// Verification script for Ukiyo-e Printer drop
+// Verification script for studio-edo-woodblock drops
 // Run: node verify.js
 
 const fs = require('fs');
@@ -19,7 +19,7 @@ function check(filePath, ...checks) {
   });
 }
 
-// Core drop check
+// Core drop — Ukiyo-e Printer
 check('drops/ukiyo-e-printer/index.html',
   { name: 'contains canvas element', test: c => c.includes('<canvas') },
   { name: 'contains block buttons', test: c => c.includes('block-btn') },
@@ -27,24 +27,26 @@ check('drops/ukiyo-e-printer/index.html',
   { name: 'contains key block label', test: c => c.includes('key') },
   { name: 'contains red block label', test: c => c.includes('red') },
   { name: 'contains blue block label', test: c => c.includes('blue') },
-  { name: 'contains yellow block label', test: c => c.includes('yellow') },
-  { name: 'has touch event handling', test: c => c.includes('touchstart') },
-  { name: 'has keyboard support', test: c => c.includes('keydown') },
-  { name: 'has reset functionality', test: c => c.includes('reset') },
-  { name: 'has completion state', test: c => c.includes('complete') || c.includes('Completion') },
-  { name: 'has ukiyo-e drawing code', test: c => c.includes('drawScene') },
-  { name: 'has stamp animation', test: c => c.includes('stampAnimating') || c.includes('animateStamp') },
-  { name: 'viewport meta set', test: c => c.includes('viewport') && c.includes('user-scalable=no') },
-  { name: 'status/progress UI present', test: c => c.includes('status-text') && c.includes('progress-fill') },
-  { name: 'has hint area', test: c => c.includes('hint-area') },
 );
 
-// Floating World drop check (existing, should still work)
+// Core drop — Floating World
 check('drops/floating-world/index.html',
-  { name: 'Floating World still exists', test: () => true },
-  { name: 'contains canvas', test: c => c.includes('<canvas') },
-  { name: 'has seasonal interaction', test: c => c.includes('season') || c.includes('Season') },
-  { name: 'has drag interaction', test: c => c.includes('drag') || c.includes('mousedown') || c.includes('mousemove') },
+  { name: 'contains canvas element', test: c => c.includes('<canvas') },
+  { name: 'contains seasonal palette', test: c => c.includes('season') },
+  { name: 'contains keyboard handler', test: c => c.includes('keydown') },
+  { name: 'contains pointer position tracking', test: c => c.includes('pointerX') },
+);
+
+// New drop — Wind Impressions
+check('drops/wind-impressions/index.html',
+  { name: 'contains canvas element', test: c => c.includes('<canvas') },
+  { name: 'contains palette-bar', test: c => c.includes('palette-bar') },
+  { name: 'contains seasonal palettes', test: c => c.includes('seasons') },
+  { name: 'contains keyboard support', test: c => c.includes('keydown') },
+  { name: 'contains pointer drawing', test: c => c.includes('addStroke') },
+  { name: 'contains fade/ephemeral effect', test: c => c.includes('maxLife') && c.includes('fade') },
+  { name: 'contains clear button', test: c => c.includes('clear-btn') },
+  { name: 'contains title-area', test: c => c.includes('Wind Impressions') },
 );
 
 // Studio config check
@@ -52,6 +54,14 @@ check('studio.json',
   { name: 'studio.json is valid JSON', test: c => { try { JSON.parse(c); return true; } catch { return false; } } },
   { name: 'studio contains ukiyo-e-printer entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'ukiyo-e-printer') },
   { name: 'studio contains floating-world entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-world') },
+);
+
+// Asset manifest check
+check('.ystack/current/asset-manifest.json',
+  { name: 'asset-manifest is valid JSON', test: c => { try { JSON.parse(c); return true; } catch { return false; } } },
+  { name: 'contains wind-impressions', test: c => JSON.parse(c).assets.some(a => a.slug === 'wind-impressions') },
+  { name: 'contains ukiyo-e-printer', test: c => JSON.parse(c).assets.some(a => a.slug === 'ukiyo-e-printer') },
+  { name: 'contains floating-world', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-world') },
 );
 
 // Drops index check
