@@ -184,6 +184,10 @@
       .hud { bottom: 1.5rem; }
     }
   </style>
+
+  <style>
+    .skip-link:focus { left: 0; outline: 2px solid #f4a261; }
+  </style>
 </head>
 <body>
 <div id="game-container">
@@ -472,7 +476,81 @@
     }
 
     // ─── Render ───
-    function render(delta) {
+    
+    // ─── Performance capping ───
+    var MAX_PARTICLES = 300;
+    var MAX_RIPPLES = 60;
+    var MAX_FOAM = 80;
+    function capArrays() {
+      if (particles.length > MAX_PARTICLES) particles.splice(0, particles.length - MAX_PARTICLES);
+      if (ripples.length > MAX_RIPPLES) ripples.splice(0, ripples.length - MAX_RIPPLES);
+      if (foamDrops.length > MAX_FOAM) foamDrops.splice(0, foamDrops.length - MAX_FOAM);
+    }
+
+  // ─── Ambient audio (Web Audio wind/water drone) ───
+  var audioCtx = null;
+  var droneGain = null;
+  var audioStarted = false;
+  function initAudio() {
+    if (audioStarted) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      droneGain = audioCtx.createGain();
+      droneGain.gain.value = 0.04;
+      droneGain.connect(audioCtx.destination);
+
+      var osc1 = audioCtx.createOscillator();
+      osc1.type = 'sine';
+      osc1.frequency.value = 60;
+      var osc2 = audioCtx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.value = 80;
+
+      var filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 300;
+      filter.Q.value = 1;
+
+      var gainNode = audioCtx.createGain();
+      gainNode.gain.value = 0.04;
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(droneGain);
+      osc1.start();
+      osc2.start();
+
+      var bufferSize = audioCtx.sampleRate * 2;
+      var buf = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var si = 0; si < bufferSize; si++) {
+        data[si] = (Math.random() * 2 - 1) * 0.015;
+      }
+      var noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+      noise.loop = true;
+      var noiseFilter = audioCtx.createBiquadFilter();
+      noiseFilter.type = 'lowpass';
+      noiseFilter.frequency.value = 200;
+      var noiseGain = audioCtx.createGain();
+      noiseGain.gain.value = 0.02;
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(droneGain);
+      noise.start();
+      audioStarted = true;
+    } catch(e) { /* silent fallback */ }
+  }
+
+  // Trigger audio on first click/touch
+  canvas.addEventListener('click', function() { initAudio(); }, { once: true });
+  canvas.addEventListener('touchstart', function() { initAudio(); }, { once: true });
+
+
+function render(delta) {
+      capArrays();
+
       ambientTime += delta || 16;
       cloudTime += delta || 16;
 
