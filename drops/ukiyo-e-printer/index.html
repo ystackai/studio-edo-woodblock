@@ -14,12 +14,6 @@
     }
     canvas { display: block; width: 100%; height: 100%; }
 
-    #ui-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 10;
-      display: flex; flex-direction: column;
-    }
-
     #header {
       position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
       text-align: center; pointer-events: none; z-index: 12;
@@ -47,13 +41,19 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       font-size: 0.55rem; color: rgba(232,224,216,0.5);
       background: rgba(232,224,216,0.06); gap: 1px;
+      animation: pulse-btn 2.4s ease-in-out infinite;
     }
     .block-btn:hover { transform: scale(1.06); }
-    .block-btn.applied { opacity: 0.35; cursor: default; transform: scale(0.95); }
+    .block-btn.applied { opacity: 0.35; cursor: default; transform: scale(0.95); animation: none; }
     .block-btn.wrong { animation: shake 0.35s ease; border-color: rgba(200,80,60,0.6); }
     .block-btn.hint-glow {
+      animation: none; transform: scale(1.05);
       box-shadow: 0 0 14px rgba(232,224,216,0.15);
       border-color: rgba(232,224,216,0.35);
+    }
+    @keyframes pulse-btn {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 6px rgba(232,224,216,0.05); }
+      50% { transform: scale(1.04); box-shadow: 0 0 16px rgba(232,224,216,0.12); }
     }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
@@ -62,9 +62,17 @@
       60% { transform: translateX(-4px); }
       80% { transform: translateX(4px); }
     }
+    @keyframes floatHint {
+      0%, 100% { transform: translateY(0); opacity: 0.12; }
+      50% { transform: translateY(-4px); opacity: 0.3; }
+    }
     .block-btn .block-label { font-size: 0.5rem; letter-spacing: 0.06em; }
     .block-btn .block-num {
       font-size: 0.42rem; opacity: 0.35; margin-top: 1px;
+    }
+    .block-btn .block-color {
+      width: 18px; height: 3px; border-radius: 2px;
+      margin-top: 2px;
     }
 
     #status-area {
@@ -77,6 +85,11 @@
       letter-spacing: 0.1em; line-height: 1.6;
     }
     #status-text.highlight { color: rgba(232,224,216,0.7); }
+    #status-text.complete {
+      color: rgba(218,185,110,0.9);
+      font-size: 0.85rem;
+      font-style: italic;
+    }
 
     #progress-bar {
       position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
@@ -92,9 +105,10 @@
     #hint-area {
       position: absolute; top: 110px; left: 50%; transform: translateX(-50%);
       text-align: center; pointer-events: none; z-index: 9;
-      font-size: 0.55rem; color: rgba(232,224,216,0.12);
+      font-size: 0.55rem; color: rgba(232,224,216,0.15);
       letter-spacing: 0.08em;
-      transition: opacity 2s ease;
+      transition: opacity 1.5s ease;
+      animation: floatHint 3.2s ease-in-out infinite;
     }
 
     #reset-btn {
@@ -130,18 +144,22 @@
   <div id="blocks-panel">
     <div class="block-btn" id="block-0" data-layer="0">
       <span class="block-label">key</span>
+      <div class="block-color" style="background:#282218"></div>
       <span class="block-num">①</span>
     </div>
     <div class="block-btn" id="block-1" data-layer="1">
       <span class="block-label">red</span>
+      <div class="block-color" style="background:#c84632"></div>
       <span class="block-num">②</span>
     </div>
     <div class="block-btn" id="block-2" data-layer="2">
       <span class="block-label">blue</span>
+      <div class="block-color" style="background:#5088a8"></div>
       <span class="block-num">③</span>
     </div>
     <div class="block-btn" id="block-3" data-layer="3">
       <span class="block-label">yellow</span>
+      <div class="block-color" style="background:#dab96e"></div>
       <span class="block-num">④</span>
     </div>
   </div>
@@ -161,13 +179,18 @@
 
       let W, H;
       let appliedLayers = new Set();
-      let nextExpectedLayer = 0; // 0=key, 1=red, 2=blue, 3=yellow
+      let nextExpectedLayer = 0;
       let stampAnimating = false;
       let animFrame = null;
-      let stampProgress = 0; // 0-1 for stamp animation
+      let stampProgress = 0;
       let stampLayer = -1;
-      let shakeTimer = null;
+      let idleAnimFrame = null;
+      let idleTime = 0;
       let hintVisible = true;
+      let completed = false;
+
+      // Layer color swatches shown on each block button
+      const layerColors = ['#282218', '#c84632', '#5088a8', '#dab96e'];
 
       function resize() {
         W = window.innerWidth;
@@ -180,70 +203,75 @@
       }
 
       // ---- Ukiyo-e scene drawing ----
-      // Each layer adds detail to the scene.
-      // Layer 0 (key): outlines
-      // Layer 1 (red): sun, blossoms
-      // Layer 2 (blue): waves, water
-      // Layer 3 (yellow): highlights, gold accents
-
       function drawScene() {
         const w = W, h = H;
-        // Background
+        // Warm paper background
         ctx.fillStyle = '#f5efe8';
         ctx.fillRect(0, 0, w, h);
 
         const cx = w / 2;
         const cy = h / 2 + 20;
-        const scale = Math.min(w, h) * 0.0016;
+        const s = Math.min(w, h) * 0.0016;
 
-        // --- Layer 3 (yellow) - highlights & gold accents ---
+        // --- Layer 3 (yellow) — highlights & gold ---
         if (appliedLayers.has(3)) {
-          // Gold sky glow around sun
+          // Gold sky nimbus
           ctx.beginPath();
-          ctx.arc(cx + 160 * scale, cy - 110 * scale, 80 * scale, 0, Math.PI * 2);
+          ctx.arc(cx + 160 * s, cy - 110 * s, 80 * s, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(218,185,110,0.15)';
           ctx.fill();
           // Gold flecks on water
           for (let i = 0; i < 40; i++) {
-            const x = cx + 120 * scale + Math.cos(i * 1.3) * (80 + 20 * Math.sin(i * 0.7)) * scale;
-            const y = cy + 90 * scale + Math.sin(i * 1.3) * 60 * scale;
+            const ang = i * 1.3;
+            const x = cx + 120 * s + Math.cos(ang) * (80 + 20 * Math.sin(ang * 0.7)) * s;
+            const y = cy + 90 * s + Math.sin(ang) * 60 * s;
             ctx.beginPath();
-            ctx.arc(x, y, 2.5 * scale * (0.5 + 0.5 * Math.sin(i)), 0, Math.PI * 2);
+            ctx.arc(x, y, 2.5 * s * (0.5 + 0.5 * Math.sin(i)), 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(218,185,110,0.6)';
             ctx.fill();
           }
-          // Gold outline on wave crests
-          drawWaveCrests(cx, cy, scale, 'rgba(218,185,110,0.5)', 2.5);
+          // Gold wave crest highlights
+          for (let i = 0; i < 8; i++) {
+            const ang = Math.PI * 2 * i / 8;
+            const r = 50 * s + 10 * s * Math.sin(ang * 3);
+            const wx = cx - 100 * s + Math.cos(ang) * r;
+            const wy = cy + 50 * s + Math.sin(ang) * r * 0.5;
+            ctx.beginPath();
+            ctx.arc(wx, wy, 4 * s * (0.6 + 0.4 * Math.sin(ang)), 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(218,185,110,0.5)';
+            ctx.fill();
+          }
         }
 
-        // --- Layer 2 (blue) - waves & water ---
+        // --- Layer 2 (blue) — waves & water ---
         if (appliedLayers.has(2)) {
-          // Water base
+          // Water fill
           ctx.fillStyle = 'rgba(120,150,168,0.35)';
-          ctx.fillRect(cx - 200 * scale, cy + 40 * scale, 400 * scale, 160 * scale);
-          // Wave bands
+          ctx.fillRect(cx - 200 * s, cy + 40 * s, 400 * s, 160 * s);
+          // Wave lines
           for (let row = 0; row < 5; row++) {
-            const yBase = cy + 50 * scale + row * 24 * scale;
+            const yBase = cy + 50 * s + row * 24 * s;
             ctx.beginPath();
-            for (let x = cx - 190 * scale; x < cx + 190 * scale; x += 2) {
-              const rel = (x - cx) / (190 * scale);
-              const wave = Math.sin(rel * 3.5 + row * 0.8) * 14 * scale;
-              if (x === Math.floor(cx - 190 * scale)) ctx.moveTo(x, yBase + wave);
-              else ctx.lineTo(x, yBase + wave);
+            let first = true;
+            for (let px = cx - 190 * s; px < cx + 190 * s; px += 2) {
+              const rel = (px - cx) / (190 * s);
+              const wave = Math.sin(rel * 3.5 + row * 0.8) * 14 * s;
+              if (first) { ctx.moveTo(px, yBase + wave); first = false; }
+              else ctx.lineTo(px, yBase + wave);
             }
             ctx.strokeStyle = 'rgba(80,120,160,0.25)';
-            ctx.lineWidth = 2 * scale;
+            ctx.lineWidth = 2 * s;
             ctx.stroke();
           }
-          // Large wave left
+          // Large curling wave left
+          const wx = cx - 140 * s;
+          const wy = cy + 20 * s;
           ctx.beginPath();
-          const waveLeftX = cx - 140 * scale;
-          const waveLeftY = cy + 20 * scale;
           for (let t = 0; t <= 60; t++) {
-            const angle = t / 60 * Math.PI;
-            const rad = 40 * scale + Math.sin(angle * 4) * 12 * scale;
-            const px = waveLeftX + Math.cos(angle) * rad;
-            const py = waveLeftY - Math.sin(angle) * rad * 0.6;
+            const ang = t / 60 * Math.PI;
+            const rad = 40 * s + Math.sin(ang * 4) * 12 * s;
+            const px = wx + Math.cos(ang) * rad;
+            const py = wy - Math.sin(ang) * rad * 0.6;
             t === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
           }
           ctx.fillStyle = 'rgba(80,140,175,0.3)';
@@ -253,30 +281,32 @@
           ctx.stroke();
         }
 
-        // --- Layer 1 (red) - sun & blossoms ---
+        // --- Layer 1 (red) — sun & blossoms ---
         if (appliedLayers.has(1)) {
           // Red sun
-          const sx = cx + 160 * scale;
-          const sy = cy - 110 * scale;
-          const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 40 * scale);
+          const sx = cx + 160 * s;
+          const sy = cy - 110 * s;
+          const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 40 * s);
           grad.addColorStop(0, 'rgba(200,70,50,0.9)');
           grad.addColorStop(0.6, 'rgba(180,60,50,0.6)');
           grad.addColorStop(1, 'rgba(160,50,45,0)');
           ctx.beginPath();
-          ctx.arc(sx, sy, 40 * scale, 0, Math.PI * 2);
+          ctx.arc(sx, sy, 40 * s, 0, Math.PI * 2);
           ctx.fillStyle = grad;
           ctx.fill();
-          // Cherry blossoms
-          const blossomPositions = [[cx - 60 * scale, cy - 140 * scale], [cx + 40 * scale, cy - 150 * scale],
-            [cx - 100 * scale, cy - 100 * scale], [cx + 120 * scale, cy - 130 * scale],
-            [cx - 40 * scale, cy - 120 * scale]];
+          // Cherry blossom clusters
+          const blossomPositions = [
+            [cx - 60 * s, cy - 140 * s], [cx + 40 * s, cy - 150 * s],
+            [cx - 100 * s, cy - 100 * s], [cx + 120 * s, cy - 130 * s],
+            [cx - 40 * s, cy - 120 * s]
+          ];
           blossomPositions.forEach((bp) => {
             for (let p = 0; p < 3; p++) {
-              const bx = bp[0] + Math.cos(p * 2.1) * 8 * scale;
-              const by = bp[1] + Math.sin(p * 2.1) * 8 * scale;
+              const bx = bp[0] + Math.cos(p * 2.1) * 8 * s;
+              const by = bp[1] + Math.sin(p * 2.1) * 8 * s;
               ctx.beginPath();
               for (let a = 0; a < 10; a++) {
-                const rad = 7 * scale * (0.3 + 0.7 * Math.abs(Math.cos(a * 0.6)));
+                const rad = 7 * s * (0.3 + 0.7 * Math.abs(Math.cos(a * 0.6)));
                 const ang = a / 10 * Math.PI * 2;
                 const px = bx + Math.cos(ang) * rad;
                 const py = by + Math.sin(ang) * rad;
@@ -288,81 +318,82 @@
           });
         }
 
-        // --- Layer 0 (key) - outlines ---
+        // --- Layer 0 (key) — outlines ---
         if (appliedLayers.has(0)) {
-          // Mt. Fuji silhouette
+          // Mt. Fuji
           ctx.beginPath();
-          const fujiX = cx + 80 * scale;
-          const fujiY = cy - 40 * scale;
-          const fujiW = 100 * scale;
-          const fujiH = 90 * scale;
-          ctx.moveTo(fujiX - fujiW, fujiY);
-          ctx.quadraticCurveTo(fujiX - fujiW * 0.2, fujiY - fujiH * 1.2, fujiX, fujiY - fujiH * 1.5);
-          ctx.quadraticCurveTo(fujiX + fujiW * 0.2, fujiY - fujiH * 1.2, fujiX + fujiW, fujiY);
+          const fx = cx + 80 * s;
+          const fy = cy - 40 * s;
+          const fw = 100 * s;
+          const fh = 90 * s;
+          ctx.moveTo(fx - fw, fy);
+          ctx.quadraticCurveTo(fx - fw * 0.2, fy - fh * 1.2, fx, fy - fh * 1.5);
+          ctx.quadraticCurveTo(fx + fw * 0.2, fy - fh * 1.2, fx + fw, fy);
           ctx.strokeStyle = 'rgba(40,35,30,0.7)';
-          ctx.lineWidth = 2.5 * scale;
+          ctx.lineWidth = 2.5 * s;
           ctx.stroke();
-          // Snow cap lines
+          // Snow cap line
           ctx.beginPath();
-          ctx.moveTo(fujiX - fujiW * 0.15, fujiY - fujiH * 0.4);
-          ctx.lineTo(fujiX + fujiW * 0.15, fujiY - fujiH * 0.4);
+          ctx.moveTo(fx - fw * 0.15, fy - fh * 0.4);
+          ctx.lineTo(fx + fw * 0.15, fy - fh * 0.4);
           ctx.strokeStyle = 'rgba(40,35,30,0.35)';
-          ctx.lineWidth = 1 * scale;
+          ctx.lineWidth = 1 * s;
           ctx.stroke();
-          // Small boat
-          const boatX = cx - 110 * scale;
-          const boatY = cy + 80 * scale;
+          // Boat
+          const bx = cx - 110 * s;
+          const by = cy + 80 * s;
           ctx.beginPath();
-          ctx.moveTo(boatX - 16 * scale, boatY);
-          ctx.lineTo(boatX + 16 * scale, boatY);
-          ctx.lineTo(boatX + 10 * scale, boatY - 8 * scale);
-          ctx.lineTo(boatX - 10 * scale, boatY - 8 * scale);
+          ctx.moveTo(bx - 16 * s, by);
+          ctx.lineTo(bx + 16 * s, by);
+          ctx.lineTo(bx + 10 * s, by - 8 * s);
+          ctx.lineTo(bx - 10 * s, by - 8 * s);
           ctx.closePath();
           ctx.strokeStyle = 'rgba(40,35,30,0.5)';
-          ctx.lineWidth = 1.5 * scale;
+          ctx.lineWidth = 1.5 * s;
           ctx.stroke();
           // Mast
           ctx.beginPath();
-          ctx.moveTo(boatX, boatY);
-          ctx.lineTo(boatX, boatY - 10 * scale);
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx, by - 10 * s);
           ctx.strokeStyle = 'rgba(40,35,30,0.4)';
-          ctx.lineWidth = 1 * scale;
+          ctx.lineWidth = 1 * s;
           ctx.stroke();
-          // Pine tree left
-          const pineX = cx - 170 * scale;
-          const pineY = cy + 10 * scale;
+          // Pine tree
+          const px = cx - 170 * s;
+          const py = cy + 10 * s;
           ctx.beginPath();
-          ctx.moveTo(pineX - 2 * scale, pineY);
-          ctx.lineTo(pineX, pineY - 40 * scale);
+          ctx.moveTo(px - 2 * s, py);
+          ctx.lineTo(px, py - 40 * s);
           ctx.strokeStyle = 'rgba(40,35,30,0.35)';
-          ctx.lineWidth = 1.5 * scale;
+          ctx.lineWidth = 1.5 * s;
           ctx.stroke();
-          // Pine branches
           for (let b = 0; b < 5; b++) {
-            const by = pineY - 8 * scale - b * 7 * scale;
+            const bry = py - 8 * s - b * 7 * s;
             ctx.beginPath();
-            ctx.moveTo(pineX, by);
-            ctx.lineTo(pineX + 12 * scale * (1 + b * 0.1), by - 3 * scale);
+            ctx.moveTo(px, bry);
+            ctx.lineTo(px + 12 * s * (1 + b * 0.1), bry - 3 * s);
             ctx.strokeStyle = 'rgba(40,35,30,0.3)';
-            ctx.lineWidth = 0.8 * scale;
+            ctx.lineWidth = 0.8 * s;
             ctx.stroke();
           }
         }
 
-        // --- Stamp effect overlay ---
+        // --- Stamp reveal overlay ---
         if (stampAnimating) {
           const progress = stampProgress;
-          // Fade in the layer
-          const layerColor = ['rgba(40,35,30,0.5)', 'rgba(200,70,50,0.35)', 'rgba(80,140,175,0.3)', 'rgba(218,185,110,0.4)'][stampLayer];
-          // Draw a radial reveal expanding from center
+          const layerColor = [
+            'rgba(40,35,30,0.5)', 'rgba(200,70,50,0.35)',
+            'rgba(80,140,175,0.3)', 'rgba(218,185,110,0.4)'
+          ][stampLayer];
           const reveal = Math.min(1, progress * 2);
           ctx.save();
-          ctx.beginPath();
-          ctx.rect(0, 0, w, h);
           if (reveal < 1) {
             ctx.beginPath();
             ctx.rect(0, 0, w, h);
             ctx.arc(cx, cy, (1 - reveal) * w * 0.6, 0, Math.PI * 2, true);
+          } else {
+            ctx.beginPath();
+            ctx.rect(0, 0, w, h);
           }
           ctx.fillStyle = layerColor;
           ctx.fill('evenodd');
@@ -371,35 +402,19 @@
 
         // --- Completion overlay ---
         if (appliedLayers.size === 4 && !stampAnimating) {
-          // Vignette
           const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.7);
           grad.addColorStop(0, 'rgba(0,0,0,0)');
           grad.addColorStop(1, 'rgba(0,0,0,0.15)');
           ctx.fillStyle = grad;
           ctx.fillRect(0, 0, w, h);
-          // Subtle gold border
           ctx.strokeStyle = 'rgba(218,185,110,0.2)';
           ctx.lineWidth = 2;
           ctx.strokeRect(8, 8, w - 16, h - 16);
         }
       }
 
-      function drawWaveCrests(cx, cy, s, color, lw) {
-        for (let i = 0; i < 8; i++) {
-          const ang = Math.PI * 2 * i / 8;
-          const r = 50 * s + 10 * s * Math.sin(ang * 3);
-          const x = cx - 100 * s + Math.cos(ang) * r;
-          const y = cy + 50 * s + Math.sin(ang) * r * 0.5;
-          ctx.beginPath();
-          ctx.arc(x, y, 4 * s * (0.6 + 0.4 * Math.sin(ang)), 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
-        }
-      }
-
-      // ---- Layer state helpers ----
+      // ---- Layer state ----
       const layerNames = ['key', 'red', 'blue', 'yellow'];
-      const layerColors = ['#282218', '#c84632', '#5088a8', '#dab96e'];
 
       function resetAll() {
         appliedLayers.clear();
@@ -407,20 +422,22 @@
         stampAnimating = false;
         stampLayer = -1;
         stampProgress = 0;
+        completed = false;
         if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+        if (idleAnimFrame) { cancelAnimationFrame(idleAnimFrame); idleAnimFrame = null; }
         updateUI();
         drawScene();
         hintArea.style.opacity = 1;
+        hintArea.style.animation = 'floatHint 3.2s ease-in-out infinite';
         hintVisible = true;
         statusText.className = '';
         statusText.textContent = '✥ click a block to begin printing ✥';
       }
 
       function applyLayer(layerIndex) {
-        if (stampAnimating || appliedLayers.has(layerIndex)) return;
+        if (stampAnimating || appliedLayers.has(layerIndex) || completed) return;
 
         if (layerIndex === nextExpectedLayer) {
-          // Correct!
           appliedLayers.add(layerIndex);
           stampLayer = layerIndex;
           stampProgress = 0;
@@ -428,8 +445,13 @@
           animateStamp(layerIndex);
           nextExpectedLayer++;
           updateUI();
+          // Hide hint after first interaction
+          if (hintVisible && nextExpectedLayer > 1) {
+            hintArea.style.opacity = 0;
+            hintArea.style.animation = 'none';
+            hintVisible = false;
+          }
         } else {
-          // Wrong block - shake effect
           const btn = document.getElementById('block-' + layerIndex);
           btn.classList.add('wrong');
           setTimeout(() => btn.classList.remove('wrong'), 350);
@@ -449,7 +471,6 @@
           stampProgress = Math.min(elapsed / duration, 1);
           drawScene();
 
-          // Stamp impact effect on blocks panel
           const btn = document.getElementById('block-' + layerIndex);
           if (stampProgress < 0.3) {
             btn.style.transform = 'translateY(-4px) scale(1.05)';
@@ -467,6 +488,7 @@
             updateUI();
             animFrame = null;
             if (appliedLayers.size === 4) {
+              completed = true;
               showCompletion();
             }
           }
@@ -478,10 +500,11 @@
         statusText.textContent = '✥ a complete ukiyo-e print ✥';
         statusText.className = 'highlight';
         hintArea.style.opacity = 0;
-        // Final haiku appears via overlay after a delay
-        setTimeout(() => {
-          if (appliedLayers.size === 4) {
+        hintArea.style.animation = 'none';
+        setTimeout(function() {
+          if (completed) {
             statusText.textContent = '✥ "beyond the floating world — a single print holds all seasons" ✥';
+            statusText.className = 'complete';
           }
         }, 2000);
       }
@@ -489,19 +512,17 @@
       function updateUI() {
         const total = appliedLayers.size;
         progressFill.style.width = (total * 25) + '%';
-        // Update block button states
         for (let i = 0; i < 4; i++) {
           const btn = document.getElementById('block-' + i);
           if (appliedLayers.has(i)) {
             btn.classList.add('applied');
           } else if (i === nextExpectedLayer) {
-            btn.classList.remove('applied');
+            btn.classList.remove('applied', 'wrong');
             btn.classList.add('hint-glow');
           } else {
-            btn.classList.remove('applied', 'hint-glow');
+            btn.classList.remove('applied', 'hint-glow', 'wrong');
           }
         }
-        // Update status text if not already set by wrong order
         if (total === 0) {
           statusText.textContent = '✥ click a block to begin printing ✥';
           statusText.className = '';
@@ -512,14 +533,14 @@
       }
 
       // ---- Block click handlers ----
-      document.querySelectorAll('.block-btn').forEach((btn) => {
+      document.querySelectorAll('.block-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
-          const layer = parseInt(this.dataset.layer);
+          var layer = parseInt(this.dataset.layer);
           applyLayer(layer);
         });
         btn.addEventListener('touchstart', function(e) {
           e.preventDefault();
-          const layer = parseInt(this.dataset.layer);
+          var layer = parseInt(this.dataset.layer);
           applyLayer(layer);
         }, { passive: false });
       });
@@ -532,9 +553,9 @@
 
       // ---- Keyboard support ----
       document.addEventListener('keydown', function(e) {
-        const key = e.key;
+        var key = e.key;
         if (key >= '1' && key <= '4') {
-          const idx = parseInt(key) - 1;
+          var idx = parseInt(key) - 1;
           applyLayer(idx);
         }
         if (key === 'r' || key === 'R') resetAll();
