@@ -19,7 +19,14 @@
       "path": "drops/wind-impressions/index.html",
       "slug": "wind-impressions",
       "title": "Wind Impressions",
-      "description": "Brush the floating world with fading seasonal impressions — a gentle canvas that teaches ephemeral beauty"
+      "description": "Brush the floating world with fading seasonal impressions \u2014 a gentle canvas that teaches ephemeral beauty"
+    },
+    {
+      "type": "html-game",
+      "path": "drops/floating-moment/index.html",
+      "slug": "floating-moment",
+      "title": "Floating Moment",
+      "description": "Capture ephemeral beauty. Click or press keys 1-5 to choose a flower bloom, watch it drift and fade like a woodblock print"
     }
   ]
 }

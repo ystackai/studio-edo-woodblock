@@ -56,6 +56,20 @@
   "games": {
     "shipped": [
       {
+        "title": "Floating Moment",
+        "slug": "floating-moment",
+        "summary": "Capture ephemeral beauty. Click or press keys 1-5 to choose a flower bloom, watch it drift and fade like a woodblock print. Each bloom is a unique, fleeting moment.",
+        "mashup": "ukiyo-e \u00b7 ephemeral blooms \u00b7 floating world",
+        "play_url": "/edo-woodblock/drops/floating-moment/",
+        "studio_url": "/edo-woodblock/drops/floating-moment/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "ephemeral",
+          "generative"
+        ]
+      },
+      {
         "title": "Floating World",
         "slug": "floating-world",
         "summary": "Drag through the seasons of a ukiyo-e landscape. Each touch changes the scene \u2014 cherry blossoms, summer greens, autumn maples, winter snow. A haiku follows your brush.",
@@ -87,5 +101,23 @@
     "building": {}
   },
   "blog_posts": [],
-  "drops": []
+  "drops": [],
+  "assets": [
+    {
+      "slug": "floating-world",
+      "title": "Floating World"
+    },
+    {
+      "slug": "ukiyo-e-printer",
+      "title": "Ukiyo-e Printer"
+    },
+    {
+      "slug": "wind-impressions",
+      "title": "Wind Impressions"
+    },
+    {
+      "slug": "floating-moment",
+      "title": "Floating Moment"
+    }
+  ]
 }

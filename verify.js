@@ -50,10 +50,23 @@ check('drops/wind-impressions/index.html',
 );
 
 // Studio config check
+
+// New drop — Floating Moment
+check('drops/floating-moment/index.html',
+  { name: 'contains canvas element', test: c => c.includes('<canvas') },
+  { name: 'contains flower/ukiyo-e bloom drawing', test: c => c.includes('createBloom') },
+  { name: 'contains keyboard palette switching', test: c => c.includes('keydown') && c.includes('flowerPalette') && c.includes('parseInt(key)') },
+  { name: 'contains scatter functionality', test: c => c.includes('scatter') },
+  { name: 'contains fade ability', test: c => c.includes('fade') },
+  { name: 'contains touch event handler', test: c => c.includes('touchstart') },
+  { name: 'contains animation loop', test: c => c.includes('requestAnimationFrame') },
+);
+
 check('studio.json',
   { name: 'studio.json is valid JSON', test: c => { try { JSON.parse(c); return true; } catch { return false; } } },
   { name: 'studio contains ukiyo-e-printer entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'ukiyo-e-printer') },
   { name: 'studio contains floating-world entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-world') },
+  { name: 'studio contains floating-moment entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-moment') },
 );
 
 // Asset manifest check
@@ -62,6 +75,8 @@ check('.ystack/current/asset-manifest.json',
   { name: 'contains wind-impressions', test: c => JSON.parse(c).assets.some(a => a.slug === 'wind-impressions') },
   { name: 'contains ukiyo-e-printer', test: c => JSON.parse(c).assets.some(a => a.slug === 'ukiyo-e-printer') },
   { name: 'contains floating-world', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-world') },
+  { name: 'contains floating-moment', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-moment') },
+
 );
 
 // Drops index check
@@ -72,7 +87,7 @@ check('drops/index.html',
 
 // Games index redirect check
 check('games/index.html',
-  { name: 'games/index.html redirects to drops', test: c => c.includes('drops') },
+  { name: 'games/index.html redirects to floating-moment', test: c => c.includes('floating-moment') },
 );
 
 // Output
