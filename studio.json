@@ -54,7 +54,24 @@
     "last_reset_at": ""
   },
   "games": {
-    "shipped": [],
+    "shipped": [
+      {
+        "title": "The Great Wave",
+        "url": "/edo-woodblock/games/the-great-wave.html",
+        "play_url": "/edo-woodblock/games/the-great-wave.html",
+        "summary": "Tap to create rippling waves in the floating world. An interactive ukiyo-e canvas experiment.",
+        "thumbnail": "/edo-woodblock/games/the-great-wave-thumb.jpg",
+        "tags": [
+          "Interactive",
+          "Canvas",
+          "Touch"
+        ],
+        "mashup": "ukiyo-e \u00b7 wave painter",
+        "shipped_at": "2026-05-14T09:55:00Z",
+        "status": "shipped",
+        "homepage_takeover": false
+      }
+    ],
     "upcoming": {},
     "building": {}
   },

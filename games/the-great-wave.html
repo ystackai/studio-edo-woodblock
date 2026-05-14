@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>The Great Wave — Pictures of the Floating World</title>
+  <meta name="description" content="An interactive ukiyo-e wave painter. Tap to create ripples in the floating world.">
+  <meta name="theme-color" content="#1a1a2e">
+  <link rel="preconnect" href="https://ystackai.com">
+  <link rel="stylesheet" href="https://ystackai.com/shared/studio-theme.css?v=20260327-avatarfix1">
+  <style>
+    :root {
+      --indigo: #264653;
+      --azure: #2a9d8f;
+      --vermillion: #e76f51;
+      --gold-ochre: #f4a261;
+      --bamboo-green: #52796f;
+      --sumi-black: #1a1a2e;
+      --washi-white: #f8f4e8;
+      --paper: #f5edd5;
+      --wave-dark: #1d2b34;
+      --wave-mid: #3a5a6e;
+      --wave-light: #6b8fa0;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--sumi-black);
+      color: var(--washi-white);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      height: 100dvh;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #wave-canvas {
+      flex: 1;
+      width: 100%;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: absolute;
+      bottom: 1rem;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 0 1rem;
+      pointer-events: none;
+    }
+
+    .hud-btn {
+      pointer-events: auto;
+      background: rgba(26,26,46,0.75);
+      border: 1px solid rgba(248,238,232,0.2);
+      border-radius: 24px;
+      padding: 0.5rem 1.25rem;
+      color: var(--washi-white);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      font-family: inherit;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hud-btn:hover { background: rgba(248,238,232,0.15); border-color: rgba(248,238,232,0.4); }
+    .hud-btn:focus-visible { outline: 2px solid var(--gold-ochre); outline-offset: 2px; }
+
+    .color-indicator {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+      pointer-events: auto;
+      background: rgba(26,26,46,0.75);
+      border: 1px solid rgba(248,238,232,0.2);
+      border-radius: 24px;
+      padding: 0.35rem 0.75rem;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .color-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid rgba(248,238,232,0.3);
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.15s;
+    }
+    .color-swatch:hover { transform: scale(1.2); }
+    .color-swatch.active { border: 2px solid var(--washi-white); }
+
+    .status-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1s;
+      padding: 0 1rem;
+    }
+
+    .status-message.visible { opacity: 1; }
+    .status-message h1 {
+      font-size: clamp(1.25rem, 4vw, 2rem);
+      font-weight: 800;
+      color: var(--washi-white);
+      margin-bottom: 0.5rem;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .status-message p {
+      font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+      color: rgba(248,238,232,0.7);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #wave-canvas { animation: none; }
+    }
+
+    @media (max-width: 600px) {
+      .hud-btn { padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+      .color-swatch { width: 18px; height: 18px; }
+    }
+
+    @media (display-mode: fullscreen) {
+      .hud { bottom: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+<div id="game-container">
+  <canvas id="wave-canvas" tabindex="0" role="application" aria-label="The Great Wave — interactive ukiyo-e wave painter. Tap or click to create wave ripples."></canvas>
+
+  <div class="status-message visible" id="status-msg" role="status">
+    <h1>The Great Wave</h1>
+    <p>Tap anywhere to create ripples in the floating world</p>
+  </div>
+
+  <div class="hud">
+    <button class="hud-btn" id="clear-btn" aria-label="Clear all waves">✕　Clear</button>
+    <div class="color-indicator" id="color-picker" role="toolbar" aria-label="Wave color selection">
+      <button class="color-swatch active" data-color="#2a9d8f" style="background:#2a9d8f" aria-label="Azure wave color"></button>
+      <button class="color-swatch" data-color="#e76f51" style="background:#e76f51" aria-label="Vermilion wave color"></button>
+      <button class="color-swatch" data-color="#f4a261" style="background:#f4a261" aria-label="Gold ochre wave color"></button>
+      <button class="color-swatch" data-color="#52796f" style="background:#52796f" aria-label="Bamboo green wave color"></button>
+      <button class="color-swatch" data-color="#6b8fa0" style="background:#6b8fa0" aria-label="Wave light blue color"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    'use strict';
+
+    // ─── Canvas setup ───
+    var canvas = document.getElementById('wave-canvas');
+    var ctx = canvas.getContext('2d');
+    var statusMsg = document.getElementById('status-msg');
+
+    // ─── Ukiyo-e palette ───
+    var PALETTE = ['#2a9d8f', '#e76f51', '#f4a261', '#52796f', '#6b8fa0'];
+    var currentColor = PALETTE[0];
+
+    // ─── State ───
+    var W = 0, H = 0;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var particles = [];
+    var ripples = [];
+    var ambientTime = 0;
+    var animId = null;
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ─── Resize ───
+    function resize() {
+      var rect = canvas.getBoundingClientRect();
+      W = rect.width;
+      H = rect.height;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    }
+
+    // ─── Particles (white spray / splash) ───
+    function spawnParticles(x, y, count, color) {
+      for (var i = 0; i < count; i++) {
+        var angle = Math.random() * 2 * Math.PI;
+        var speed = 60 + Math.random() * 100;
+        particles.push({
+          x: x, y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed * 0.6,
+          life: 1,
+          decay: 0.012 + Math.random() * 0.015,
+          size: 1.5 + Math.random() * 2.5,
+          color: color || 'rgba(248,238,232,0.9)'
+        });
+      }
+    }
+
+    // ─── Ripples ───
+    function createRipple(x, y, color) {
+      var r = {
+        x: x, y: y,
+        radius: 0,
+        maxRadius: 120 + Math.random() * 80,
+        speed: 80 + Math.random() * 50,
+        life: 1,
+        lineWidth: 3 + Math.random() * 2,
+        color: color || currentColor,
+        rings: 1 + Math.floor(Math.random() * 2)
+      };
+      ripples.push(r);
+      spawnParticles(x, y, 10 + Math.floor(Math.random() * 6), color);
+      return r;
+    }
+
+    // ─── Ukioye woodblock grain texture ───
+    function drawWoodblockGrain(ctx, w, h) {
+      ctx.save();
+      ctx.globalAlpha = 0.06;
+      for (var i = 0; i < 40; i++) {
+        var x = Math.random() * w;
+        var y = Math.random() * h;
+        var len = 20 + Math.random() * 60;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + len * (0.5 + Math.random() * 0.5), y + (Math.random() - 0.5) * 3);
+        ctx.strokeStyle = '#f8f4e8';
+        ctx.lineWidth = 0.5 + Math.random();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ─── Wave motifs (ambient background waves) ───
+    function drawAmbientWaves(ctx, t, w, h) {
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+
+      // Layered gentle wave lines
+      var layers = [
+        { offset: 0, freq: 0.003, amp: 18, yBase: h * 0.6, color: '#3a5a6e' },
+        { offset: 1, freq: 0.004, amp: 12, yBase: h * 0.72, color: '#2a9d8f' },
+        { offset: 2, freq: 0.002, amp: 8, yBase: h * 0.85, color: '#6b8fa0' }
+      ];
+
+      for (var li = 0; li < layers.length; li++) {
+        var l = layers[li];
+        ctx.beginPath();
+        ctx.strokeStyle = l.color;
+        ctx.lineWidth = 1.5;
+        var x0 = 0;
+        for (var xi = 0; xi < w; xi += 3) {
+          var y = l.yBase + Math.sin(xi * l.freq + t * 0.0006 + l.offset * 5) * l.amp
+                + Math.sin(xi * l.freq * 1.7 + t * 0.0003 + l.offset * 3) * (l.amp * 0.6);
+          if (xi === 0) ctx.moveTo(x0, y);
+          else ctx.lineTo(xi, y);
+        }
+        ctx.stroke();
+      }
+
+      // Small cresting wave peaks
+      ctx.globalAlpha = 0.08;
+      for (var ci = 0; ci < 20; ci++) {
+        var cx = Math.random() * w;
+        var cy = h * (0.55 + Math.random() * 0.35);
+        var cSize = 4 + Math.random() * 12;
+        ctx.beginPath();
+        ctx.arc(cx + Math.sin(ci * 1.7 + t * 0.001) * 8, cy + Math.cos(ci * 2.3 + t * 0.0012) * 6, cSize, 0, Math.PI * 2);
+        ctx.strokeStyle = '#f8f4e8';
+        ctx.lineWidth = 0.5 + Math.random() * 0.5;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ─── Render ───
+    function render(delta) {
+      ambientTime += delta || 16;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Dark background
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, W, H);
+
+      // Ambient waves
+      if (!reducedMotion) {
+        drawAmbientWaves(ctx, ambientTime, W, H);
+      }
+
+      // Woodblock grain
+      drawWoodblockGrain(ctx, W, H);
+
+      // Update + draw ripples
+      for (var i = ripples.length - 1; i >= 0; i--) {
+        var r = ripples[i];
+        r.radius += r.speed * (delta / 1000);
+        r.life -= 0.006 * (delta / 16);
+
+        if (r.radius > r.maxRadius || r.life <= 0) {
+          ripples.splice(i, 1);
+          continue;
+        }
+
+        var alpha = r.life * (1 - r.radius / r.maxRadius);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.strokeStyle = r.color;
+        ctx.lineWidth = r.lineWidth * (1 - r.radius / r.maxRadius * 0.5);
+
+        // Draw multiple rings
+        for (var ri = 0; ri < r.rings; ri++) {
+          var ringRadius = r.radius - ri * 15;
+          if (ringRadius < 0) continue;
+          ctx.beginPath();
+          ctx.arc(r.x, r.y, ringRadius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Inner glow fill
+        ctx.globalAlpha = Math.max(0, alpha * 0.3);
+        ctx.fillStyle = r.color;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.radius * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Update + draw particles (white spray)
+      for (var pi = particles.length - 1; pi >= 0; pi--) {
+        var p = particles[pi];
+        p.x += p.vx * (delta / 1000);
+        p.y += p.vy * (delta / 1000);
+        p.vy += 30 * (delta / 1000); // gravity
+        p.life -= p.decay * (delta / 16);
+
+        if (p.life <= 0) {
+          particles.splice(pi, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.life * 0.8;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // ─── Animation loop ───
+    var lastTime = 0;
+    function loop(now) {
+      var delta = lastTime ? Math.min(now - lastTime, 50) : 16;
+      lastTime = now;
+      render(delta);
+      animId = requestAnimationFrame(loop);
+    }
+
+    // ─── Interaction ───
+    function getPos(e) {
+      var rect = canvas.getBoundingClientRect();
+      var clientX, clientY;
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function handleInteraction(e) {
+      var pos = getPos(e);
+      if (pos.x < 0 || pos.x > W || pos.y < 0 || pos.y > H) return;
+
+      createRipple(pos.x, pos.y);
+      statusMsg.classList.remove('visible');
+      e.preventDefault();
+    }
+
+    function handleDrag(e) {
+      var pos = getPos(e);
+      if (pos.x < 0 || pos.x > W || pos.y < 0 || pos.y > H) return;
+
+      // Create ripples along drag path at reduced frequency
+      createRipple(pos.x, pos.y);
+      statusMsg.classList.remove('visible');
+      e.preventDefault();
+    }
+
+    canvas.addEventListener('click', handleInteraction);
+    canvas.addEventListener('touchstart', function(e) {
+      handleInteraction(e);
+      // Enable drag
+      canvas.addEventListener('touchmove', handleDrag, { passive: false });
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', function(e) {
+      handleInteraction(e);
+      canvas.addEventListener('mousemove', handleDrag, { passive: false });
+    });
+
+    // Clean up drag listeners
+    function stopDrag() {
+      canvas.removeEventListener('touchmove', handleDrag);
+      canvas.removeEventListener('mousemove', handleDrag);
+    }
+    canvas.addEventListener('touchend', stopDrag);
+    canvas.addEventListener('touchcancel', stopDrag);
+    canvas.addEventListener('mouseup', stopDrag);
+    canvas.addEventListener('mouseleave', stopDrag);
+
+    // ─── Color picker ───
+    var colorSwatches = document.querySelectorAll('.color-swatch');
+    colorSwatches.forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        colorSwatches.forEach(function(s) { s.classList.remove('active'); });
+        el.classList.add('active');
+        currentColor = el.getAttribute('data-color');
+        e.stopPropagation();
+      });
+    });
+
+    // ─── Clear ───
+    document.getElementById('clear-btn').addEventListener('click', function(e) {
+      ripples = [];
+      particles = [];
+      statusMsg.classList.add('visible');
+      e.stopPropagation();
+    });
+
+    // ─── Keyboard ───
+    canvas.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        var cx = W / 2 + (Math.random() - 0.5) * W * 0.4;
+        var cy = H / 2 + (Math.random() - 0.5) * H * 0.4;
+        createRipple(cx, cy);
+        statusMsg.classList.remove('visible');
+        e.preventDefault();
+      }
+      if (e.key === 'c' || e.key === 'C') {
+        ripples = [];
+        particles = [];
+        statusMsg.classList.add('visible');
+        e.preventDefault();
+      }
+    });
+
+    // ─── Reduced motion ───
+    var motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    motionQuery.addEventListener('change', function(m) {
+      reducedMotion = m.matches;
+    });
+
+    // ─── Init ───
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Spawn initial ambient waves
+    for (var si = 0; si < 3; si++) {
+      setTimeout(function() {
+        createRipple(
+          Math.random() * W,
+          Math.random() * H * 0.7 + H * 0.15,
+          PALETTE[Math.floor(Math.random() * PALETTE.length)]
+        );
+      }, si * 400);
+    }
+
+    loop(0);
+
+    // ─── Reduced FPS for battery ───
+    // Already handled via delta capping
+  })();
+</script>
+</body>
+</html>
