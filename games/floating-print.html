@@ -69,6 +69,22 @@
       outline: none;
     }
 
+    #stamp-preview { position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 10;
+      image-rendering: crisp-edges;
+      background: transparent;
+    }
+    #stamp-preview.visible {
+      opacity: 0.5;
+    }
+    #stamp-preview canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
     #stamp-preview {
       position: absolute;
       pointer-events: none;
@@ -285,14 +301,70 @@
       color: #4a3a2a;
       font-size: clamp(0.75rem, 2vw, 0.95rem);
     }
+
+    .help-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(26,20,16,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .help-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .help-content {
+      background: var(--print-bg);
+      color: var(--sumi);
+      border-radius: 16px;
+      padding: 1.5rem 2rem;
+      max-width: 320px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .help-content h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem; color: var(--sumi); }
+    .help-row { font-size: 0.85rem; margin: 0.4rem 0; line-height: 1.6; }
+    .help-row kbd {
+      background: rgba(26,20,16,0.1);
+      border: 1px solid rgba(26,20,16,0.15);
+      border-radius: 6px;
+      padding: 0.1rem 0.4rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .help-content .action-btn { margin-top: 1rem; background: var(--gold); color: var(--sumi); border: none; }
+    .help-content .action-btn:hover { background: #d4a040; }
+
 </style>
 </head>
 <body>
   <div id="app">
     <div id="canvas-wrap">
       <canvas id="print-canvas" tabindex="0" role="img" aria-label="Floating print canvas. Tap or press Enter to stamp motifs."></canvas>
-      <div id="stamp-preview"></div>
-      <div id="status-msg" class="status-msg">
+      <div id="stamp-preview"><canvas id="preview-canvas"></canvas></div>
+      
+    <div id="help-overlay" class="help-overlay">
+      <div class="help-content">
+        <h2>🎮 Keyboard & Controls</h2>
+        <div class="help-row"><kbd>Click</kbd> Stamp motif at position</div>
+        <div class="help-row"><kbd>Drag</kbd> Stamp continuously</div>
+        <div class="help-row"><kbd>Space / Enter</kbd> Random stamp</div>
+        <div class="help-row"><kbd>C</kbd> Clear all stamps</div>
+        <div class="help-row"><kbd>1-7</kbd> Switch motif</div>
+        <div class="help-row"><kbd>Esc / Click outside</kbd> Close help</div>
+        <div class="help-row"><kbd>📷</kbd> Save PNG</div>
+        <button class="action-btn" id="help-close-btn">Got it</button>
+      </div>
+    </div>
+
+    <div id="status-msg" class="status-msg">
         <span class="hint-icon">🖌️</span>
         <h1>Floating Print</h1>
         <p>Choose a motif below, then tap the canvas to stamp it onto the print.</p>
@@ -320,6 +392,7 @@
       <button class="stamp-btn" data-motif="boat" id="motif-boat" aria-label="Boat stamp motif">
         <span class="stamp-icon">⛵</span>Boat
       </button>
+      <button class="action-btn" id="help-btn" aria-label="Show keyboard shortcuts">?</button>
       <div class="size-control">
         <label>Size</label>
         <input type="range" id="size-slider" min="0.2" max="1.2" step="0.05" value="0.7">
@@ -653,6 +726,24 @@
 
       // ─── Keyboard ───
       canvas.addEventListener('keydown', function(e) {
+      // Motif shortcuts 1-7
+      var motifKeys = ['','wave','mountain','cherry','crane','cloud','bamboo','boat'];
+      if (e.key >= '1' && e.key <= '7') {
+        var idx = parseInt(e.key);
+        var motif = motifKeys[idx];
+        var btn = document.querySelector('.stamp-btn[data-motif="'+motif+'"]');
+        if (btn) {
+          document.querySelectorAll('.stamp-btn').forEach(function(b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          currentMotif = motif;
+        }
+        e.preventDefault();
+      }
+      if (e.key === '?' || e.key === '/') {
+        toggleHelp();
+        e.preventDefault();
+      }
+
         if (e.key === 'Enter' || e.key === ' ') {
           stamp(Math.random() * W, Math.random() * H);
           e.preventDefault();
@@ -707,7 +798,72 @@
         e.stopPropagation();
       });
 
-      // ─── Reduced motion ───
+        // ─── Help toggle ───
+    function toggleHelp() {
+      var overlay = document.getElementById('help-overlay');
+      overlay.classList.toggle('visible');
+    }
+    document.getElementById('help-btn').addEventListener('click', function(e) {
+      toggleHelp();
+      e.stopPropagation();
+    });
+    document.getElementById('help-close-btn').addEventListener('click', function(e) {
+      document.getElementById('help-overlay').classList.remove('visible');
+      e.stopPropagation();
+    });
+    document.getElementById('help-overlay').addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('visible');
+    });
+
+    // ─── Stamp preview (show motif under cursor) ───
+    var previewEl = document.getElementById('stamp-preview');
+    var prevCanvas = document.getElementById('preview-canvas');
+    var prevCtx;
+    if (prevCanvas) {
+      prevCtx = prevCanvas.getContext('2d');
+      prevCanvas.width = 80;
+      prevCanvas.height = 80;
+      // Draw initial preview
+      drawMotif(prevCtx, 40, 40, 0.5, 'wave', 0.8);
+    }
+
+    canvas.addEventListener('mousemove', function(e) {
+      var rect = canvas.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+      if (x >= 0 && x <= W && y >= 0 && y <= H) {
+        previewEl.style.left = (x + 10) + 'px';
+        previewEl.style.top = (y + 10) + 'px';
+        previewEl.style.width = (stampSize * 80) + 'px';
+        previewEl.style.height = (stampSize * 80 * 0.8) + 'px';
+        previewEl.classList.add('visible');
+        if (prevCtx) {
+          prevCanvas.width = 80;
+          prevCanvas.height = 80;
+          drawMotif(prevCtx, 40, 40, 0.5, currentMotif, 0.8);
+        }
+      } else {
+        previewEl.classList.remove('visible');
+      }
+    });
+
+    canvas.addEventListener('mouseleave', function() {
+      previewEl.classList.remove('visible');
+    });
+
+    // Update preview when motif changes
+    motifBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (prevCtx) {
+          prevCanvas.width = 80;
+          prevCanvas.height = 80;
+          drawMotif(prevCtx, 40, 40, 0.5, currentMotif, 0.8);
+        }
+      });
+    });
+
+    // ─── Reduced motion ───
+
       var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       // ─── Init ───
