@@ -54,7 +54,21 @@
     "last_reset_at": ""
   },
   "games": {
-    "shipped": [],
+    "shipped": [
+      {
+        "title": "Floating World",
+        "slug": "floating-world",
+        "summary": "Drag through the seasons of a ukiyo-e landscape. Each touch changes the scene \u2014 cherry blossoms, summer greens, autumn maples, winter snow. A haiku follows your brush.",
+        "mashup": "ukiyo-e \u00b7 seasonal passage \u00b7 floating world",
+        "play_url": "/edo-woodblock/drops/floating-world/",
+        "studio_url": "/edo-woodblock/drops/floating-world/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "seasonal"
+        ]
+      }
+    ],
     "upcoming": {},
     "building": {}
   },

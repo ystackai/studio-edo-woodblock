@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Floating World — A Seasonal Passage</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #1a1a2e; font-family: 'IBM Plex Mono', 'Noto Serif JP', monospace;
+      -webkit-user-select: none; user-select: none; touch-action: none;
+    }
+    canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+    #hint {
+      position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
+      color: rgba(255,255,255,0.35); font-size: 0.85rem; z-index: 20;
+      pointer-events: none; text-align: center; font-family: 'IBM Plex Mono', monospace;
+      transition: opacity 2s ease;
+    }
+    #hint span { display: inline-block; animation: floatHint 2.4s ease-in-out infinite; }
+    @keyframes floatHint {
+      0%, 100% { transform: translateY(0); opacity: 0.3; }
+      50% { transform: translateY(-6px); opacity: 0.9; }
+    }
+
+    #title-bar {
+      position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+      z-index: 10; pointer-events: none; text-align: center;
+    }
+    #title-bar h1 {
+      font-size: 1.05rem; color: rgba(255,255,255,0.55);
+      font-weight: 400; letter-spacing: 0.12em;
+    }
+    #title-bar .sub {
+      font-size: 0.6rem; color: rgba(255,255,255,0.25);
+      margin-top: 2px; letter-spacing: 0.08em;
+    }
+
+    #season-label {
+      position: absolute; top: 48%; right: 16px; transform: translateY(-50%);
+      z-index: 10; pointer-events: none;
+      font-size: 0.7rem; color: rgba(255,255,255,0.25);
+      writing-mode: vertical-rl; letter-spacing: 0.15em;
+      transition: opacity 0.8s ease;
+    }
+
+    #haiku-box {
+      position: absolute; bottom: 48px; left: 50%; transform: translateX(-50%);
+      max-width: 85%; padding: 10px 18px;
+      background: rgba(26,26,46,0.75); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; backdrop-filter: blur(6px);
+      text-align: center; pointer-events: none; z-index: 8;
+      transition: opacity 0.6s ease;
+    }
+    #haiku-text { color: #ddd; font-size: 0.88rem; line-height: 1.55; font-style: italic; letter-spacing: 0.04em; }
+    #haiku-attribution { color: #7a7a88; font-size: 0.6rem; margin-top: 3px; }
+
+    #slider-track {
+      position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+      width: 140px; height: 6px; border-radius: 3px;
+      background: rgba(255,255,255,0.10); overflow: hidden;
+      pointer-events: none; z-index: 10;
+    }
+    #slider-fill {
+      height: 100%; width: 25%; border-radius: 3px;
+      background: #e8b4b4; transition: background 0.5s ease, width 0.3s ease;
+    }
+    #slider-dot {
+      position: absolute; bottom: 19px; left: calc(50% - 5px); width: 10px; height: 10px;
+      border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.15); pointer-events: none; z-index: 11;
+      transition: left 0.3s ease;
+    }
+
+    #keyboard-hint {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.12); font-size: 0.55rem; z-index: 5;
+      pointer-events: none; font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.1em;
+    }
+
+    @media (max-width: 480px) {
+      #title-bar h1 { font-size: 0.85rem; }
+      #haiku-text { font-size: 0.78rem; }
+      #haiku-box { bottom: 44px; padding: 7px 12px; }
+      #season-label { font-size: 0.55rem; }
+      #slider-track { width: 110px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="title-bar">
+    <h1>Floating World</h1>
+    <div class="sub">a seasonal passage · 浮世絵</div>
+  </div>
+  <div id="hint"><span>✥ drag or press ← → to begin ✥</span></div>
+  <div id="season-label"></div>
+  <div id="haiku-box">
+    <div id="haiku-text"></div>
+    <div id="haiku-attribution">— 浮世 (ukyo) · the floating world</div>
+  </div>
+  <div id="slider-track"><div id="slider-fill"></div></div>
+  <div id="slider-dot"></div>
+  <div id="keyboard-hint">←  →   seasons</div>
+
+  <script>
+    (function(){
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const hint = document.getElementById('hint');
+      const sliderFill = document.getElementById('slider-fill');
+      const sliderDot = document.getElementById('slider-dot');
+      const seasonLabel = document.getElementById('season-label');
+      const haikuText = document.getElementById('haiku-text');
+
+      let W, H;
+      function resize() {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width = W * devicePixelRatio;
+        canvas.height = H * devicePixelRatio;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      const seasons = [
+        { name: 'Spring',  fill: '#e8b4b4', label: '春 (Spring)' },
+        { name: 'Summer',  fill: '#6b9e6b', label: '夏 (Summer)' },
+        { name: 'Autumn',  fill: '#c87b3a', label: '秋 (Autumn)' },
+        { name: 'Winter',  fill: '#b0c4de', label: '冬 (Winter)' },
+      ];
+      let seasonFloat = 0.5; // start mid-spring for immediate visual interest
+      let pointerX = -1, pointerY = -1;
+      let pointerActive = false;
+      let hasInteracted = false;
+      let particles = [];
+      const MAX_P = 150;
+      const treeX = 0.68;
+      const mountainPeaks = [
+        { x: 0.12, h: 0.32 }, { x: 0.30, h: 0.44 }, { x: 0.50, h: 0.28 },
+        { x: 0.70, h: 0.38 }, { x: 0.88, h: 0.22 },
+      ];
+      const haikuSet = [
+        ['Cherry petals fall —', 'the brush dips into indigo;', 'spring dissolves like mist.'],
+        ['Green hills pulse with light,', 'a dragonfly skims the pond;', 'summer hums its heat.'],
+        ['Maples catch the blaze,', 'each leaf a jewel of fire;', 'autumn burns away.'],
+        ['Snow on bare branches,', 'the world hushed in white silence;', 'winter seals the print.'],
+      ];
+      // Ground flora colors per season
+      const groundColors = ['#d4a06a', '#5a7a3a', '#b85a2a', '#c8c8d8'];
+
+      function lerp(a, b, t) { return a + (b - a) * t; }
+      function lerpColor(c1, c2, t) {
+        const r1 = parseInt(c1.slice(1,3),16), g1 = parseInt(c1.slice(3,5),16), b1 = parseInt(c1.slice(5,7),16);
+        const r2 = parseInt(c2.slice(1,3),16), g2 = parseInt(c2.slice(3,5),16), b2 = parseInt(c2.slice(5,7),16);
+        return `rgb(${Math.floor(lerp(r1,r2,t))},${Math.floor(lerp(g1,g2,t))},${Math.floor(lerp(b1,b2,t))})`;
+      }
+      function getSeasonColors(t) {
+        const i0 = Math.floor(t) % 4, i1 = (i0 + 1) % 4;
+        const frac = t - Math.floor(t);
+        return {
+          sky: lerpColor(seasons[i0].fill, seasons[i1].fill, frac),
+          accent: lerpColor(seasons[i0].fill, seasons[i1].fill, frac),
+          label: frac < 0.3 ? seasons[i0].label : (frac > 0.7 ? seasons[i1].label : seasons[i0].label),
+        };
+      }
+
+      function drawBackground(sceneT) {
+        const c = getSeasonColors(sceneT);
+        const skyTop = lerpColor('#1a1a2e', '#2d1f2e', sceneT / 3);
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+        skyGrad.addColorStop(0, skyTop);
+        skyGrad.addColorStop(0.55, lerpColor(c.sky, '#0a0a1a', 0.25));
+        skyGrad.addColorStop(1, '#0a0a1a');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Distant mist band — scrolls with season
+        const mistAlpha = 0.04 + 0.03 * Math.sin(sceneT * Math.PI * 0.5);
+        const mistY = H * 0.35 + 0.02 * H * Math.sin(sceneT * 0.5);
+        const mistGrad = ctx.createRadialGradient(W * 0.5, mistY, 0, W * 0.5, mistY, W * 0.4);
+        mistGrad.addColorStop(0, `rgba(200,220,255,${mistAlpha})`);
+        mistGrad.addColorStop(1, 'rgba(200,220,255,0)');
+        ctx.fillStyle = mistGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Moon disc — drifts subtly with season
+        const moonY = 0.14 + 0.06 * Math.sin(sceneT * Math.PI * 0.5);
+        ctx.beginPath();
+        ctx.arc(W * 0.85, H * moonY, W * 0.035, 0, Math.PI * 2);
+        const mA = 0.12 + 0.10 * (1 - Math.abs(sceneT - 1.5) / 1.5);
+        ctx.fillStyle = `rgba(255,240,220,${mA})`;
+        ctx.fill();
+
+        // Mountains with slight seasonal tint
+        mountainPeaks.forEach((mp, i) => {
+          const x = W * mp.x;
+          const baseH = H * mp.h;
+          const h = baseH + H * 0.08 * Math.sin(sceneT * Math.PI * 0.35 + i * 2.1);
+          ctx.beginPath();
+          ctx.moveTo(x - W * 0.07, H);
+          ctx.lineTo(x, H - h);
+          ctx.lineTo(x + W * 0.06, H);
+          const tint = lerpColor('#2a2a3a', '#3a3a4a', sceneT / 3);
+          ctx.fillStyle = tint;
+          ctx.fill();
+          // snow cap in winter
+          if (sceneT > 2.5 && sceneT < 4) {
+            const snowH = 0.03 * H * Math.min(1, sceneT - 2.5);
+            ctx.beginPath();
+            ctx.moveTo(x - W * 0.02, H - h);
+            ctx.lineTo(x, H - h + snowH);
+            ctx.lineTo(x + W * 0.02, H - h);
+            ctx.fillStyle = 'rgba(230,240,255,0.3)';
+            ctx.fill();
+          }
+        });
+
+        // Tree trunk with seasonal variation
+        const trunkX = W * treeX;
+        const trunkH = H * 0.38;
+        const barkT = 0.7 * Math.sin(sceneT * Math.PI * 0.5) + 0.5;
+        const barkColor = lerpColor('#3d2b1f', '#4a3a2a', barkT);
+        ctx.fillStyle = barkColor;
+        ctx.fillRect(trunkX - W * 0.015, H - trunkH, W * 0.03, trunkH);
+
+        // Branches with seasonal blossom hints
+        ctx.strokeStyle = barkColor;
+        ctx.lineWidth = Math.max(1.5, W * 0.003);
+        for (let i = 0; i < 10; i++) {
+          const yFrac = 0.25 + 0.65 * i / 10;
+          const y = H - trunkH * yFrac;
+          const side = i % 2 === 0 ? 1 : -1;
+          const len = W * 0.055 * (1 + 0.25 * Math.sin(sceneT * Math.PI * 0.5 + i * 1.3));
+          ctx.beginPath();
+          ctx.moveTo(trunkX, y);
+          const endX = trunkX + side * len;
+          const endY = y - 6;
+          ctx.lineTo(endX, endY);
+          ctx.stroke();
+          // Tiny blossom/leaf dots at branch tips
+          if (i % 2 === 0) {
+            const si = Math.floor(sceneT) % 4;
+            const blossomColor = si === 0 ? '#ffb7c5' : si === 1 ? '#6ba36b' : si === 2 ? '#f4a36c' : '#d8d8e8';
+            ctx.beginPath();
+            ctx.arc(endX, endY, Math.max(2, W * 0.005), 0, Math.PI * 2);
+            ctx.fillStyle = blossomColor + '60';
+            ctx.fill();
+          }
+        }
+
+        // Canopy glow
+        const canopy = ctx.createRadialGradient(trunkX, H - trunkH * 0.65, 0, trunkX, H - trunkH * 0.65, W * 0.18);
+        canopy.addColorStop(0, c.accent + '35');
+        canopy.addColorStop(1, c.accent + '00');
+        ctx.fillStyle = canopy;
+        ctx.fillRect(0, 0, W, H);
+
+        // Ground plane with seasonal flora tint
+        const gIdx = Math.floor(sceneT) % 4;
+        const gNext = (gIdx + 1) % 4;
+        const gFrac = sceneT - Math.floor(sceneT);
+        const gCol = lerpColor(groundColors[gIdx], groundColors[gNext], gFrac);
+        const gradGround = ctx.createLinearGradient(0, H - 6, 0, H);
+        gradGround.addColorStop(0, gCol + '20');
+        gradGround.addColorStop(0.6, gCol + '50');
+        gradGround.addColorStop(1, 'rgba(10,10,20,0.6)');
+        ctx.fillStyle = gradGround;
+        ctx.fillRect(0, H - 6, W, 6);
+      }
+
+      function updateParticles(sceneT) {
+        while (particles.length < MAX_P) {
+          particles.push({
+            x: Math.random() * W, y: Math.random() * H * 0.55,
+            size: 1.5 + Math.random() * 4,
+            speed: 0.2 + Math.random() * 0.6,
+            drift: (Math.random() - 0.5) * 0.5,
+            phase: Math.random() * Math.PI * 2,
+            life: Math.random(),
+          });
+        }
+        particles.forEach(p => {
+          const si = Math.floor(sceneT) % 4;
+          if (si === 0) { p.x += Math.sin(p.phase + p.y * 0.012) * 0.35; p.y += p.speed * 0.45; }
+          else if (si === 1) { p.y -= p.speed * 0.35; p.x += p.drift * 0.8; }
+          else if (si === 2) { p.x += Math.sin(p.phase + p.y * 0.008 + sceneT * 0.4) * 0.9; p.y += p.speed * 0.35; }
+          else { p.x += p.drift * 0.6; p.y += p.speed * 0.55; }
+          if (p.y > H) { p.y = -5; p.x = Math.random() * W; }
+          if (p.y < -10) { p.y = H + 5; }
+          if (p.x > W + 10) p.x = -10;
+          if (p.x < -10) p.x = W + 10;
+        });
+      }
+
+      function drawParticles(sceneT) {
+        particles.forEach(p => {
+          const alpha = 0.15 + 0.3 * (0.5 + 0.5 * Math.sin(p.phase + p.y * 0.005));
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 0.45, 0, Math.PI * 2);
+          const si = Math.floor(sceneT) % 4;
+          const col = si === 0 ? '#ffb7c5' : si === 1 ? '#b7d6a4' : si === 2 ? '#f4a36c' : '#e8e8f0';
+          const r = parseInt(col.slice(1,3),16), g = parseInt(col.slice(3,5),16), b = parseInt(col.slice(5,7),16);
+          ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+          ctx.fill();
+        });
+      }
+
+      function handlePointer(x, y) {
+        if (!hasInteracted) { hasInteracted = true; hint.style.opacity = 0; }
+        pointerX = x; pointerY = y; pointerActive = true;
+        const newFloat = Math.max(0, Math.min(3, (x / W) * 3));
+        seasonFloat = seasonFloat * 0.88 + newFloat * 0.12;
+      }
+
+      canvas.addEventListener('mousedown', e => handlePointer(e.clientX, e.clientY));
+      canvas.addEventListener('mousemove', e => { if (e.buttons > 0) handlePointer(e.clientX, e.clientY); });
+      canvas.addEventListener('mouseup', () => { pointerActive = false; });
+      canvas.addEventListener('touchstart', e => { const t = e.touches[0]; handlePointer(t.clientX, t.clientY); }, { passive: true });
+      canvas.addEventListener('touchmove', e => { e.preventDefault(); const t = e.touches[0]; handlePointer(t.clientX, t.clientY); }, { passive: false });
+      canvas.addEventListener('touchend', () => { pointerActive = false; });
+
+      document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          if (!hasInteracted) { hasInteracted = true; hint.style.opacity = 0; }
+          const dir = e.key === 'ArrowRight' ? 0.08 : -0.08;
+          seasonFloat = Math.max(0, Math.min(3, seasonFloat + dir));
+          pointerActive = true;
+          pointerX = W * (seasonFloat / 3);
+          pointerY = H * 0.5;
+        }
+      });
+
+      function updateUI() {
+        const c = getSeasonColors(seasonFloat);
+        const pct = (seasonFloat / 3) * 100;
+        sliderFill.style.width = pct + '%';
+        sliderFill.style.background = c.accent;
+        sliderDot.style.left = `calc(${pct}% - 5px)`;
+        const label = seasons[Math.floor(seasonFloat) % 4].label;
+        seasonLabel.textContent = label;
+        const hi = Math.floor(seasonFloat) % 4, nhi = (hi + 1) % 4;
+        const frac = seasonFloat - Math.floor(seasonFloat);
+        const blend = Math.min(1, frac * 3); // smooth blend over 1/3 of season
+        const h0 = blend < 0.5 ? haikuSet[hi][0] : haikuSet[nhi][0];
+        const h1 = blend < 0.5 ? haikuSet[hi][1] : haikuSet[nhi][1];
+        const h2 = blend < 0.5 ? haikuSet[hi][2] : haikuSet[nhi][2];
+        haikuText.innerHTML = h0 + '<br>' + h1 + '<br>' + h2;
+      }
+
+      let lastTime = 0;
+      function loop(time) {
+        if (!lastTime) lastTime = time;
+        lastTime = time;
+        if (!hasInteracted) {
+          seasonFloat = 0.6 + 0.2 * Math.sin(time * 0.00025);
+        }
+        drawBackground(seasonFloat);
+        updateParticles(seasonFloat);
+        drawParticles(seasonFloat);
+
+        if (pointerActive && pointerX >= 0) {
+          const c = getSeasonColors(seasonFloat);
+          // Brush glow
+          for (let r = 18; r >= 0; r -= 6) {
+            ctx.beginPath();
+            ctx.arc(pointerX, pointerY, Math.max(6, r), 0, Math.PI * 2);
+            const alpha = 0.05 + 0.10 * (r / 18);
+            ctx.fillStyle = c.accent + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+            ctx.fill();
+          }
+          ctx.beginPath();
+          ctx.arc(pointerX, pointerY, 4, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffffee';
+          ctx.fill();
+          // Trail
+          for (let i = 1; i <= 4; i++) {
+            const trail = ctx.createRadialGradient(pointerX, pointerY - 2, 0, pointerX, pointerY - 2, 18 * i + 4);
+            trail.addColorStop(0, c.accent + '25');
+            trail.addColorStop(1, c.accent + '00');
+            ctx.fillStyle = trail;
+            ctx.fillRect(pointerX - 18 * i - 2, pointerY - 4, 18 * i * 2 + 4, 8);
+          }
+        }
+        updateUI();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+
+      setTimeout(() => { if (!hasInteracted) hint.style.opacity = 0.25; }, 10000);
+    })();
+  </script>
+</body>
+</html>
