@@ -120,3 +120,16 @@ if (errors.length === 0) {
   errors.forEach(e => console.log('  ' + e));
   process.exit(1);
 }
+
+// --- Floating Score polish checks ---
+check('drops/floating-score/index.html',
+  { name: 'has Web Audio API (playTone)', test: c => c.includes('playTone') },
+  { name: 'has audio feedback (playCatch)', test: c => c.includes('playCatch') },
+  { name: 'has aria-label on canvas', test: c => c.includes('aria-label') },
+  { name: 'has aria-label on buttons', test: c => c.includes('aria-label=') },
+  { name: 'has controls hint', test: c => c.includes('controls-hint') },
+  { name: 'has stat-row breakdown', test: c => c.includes('stat-row') },
+  { name: 'has relative home URL', test: c => c.includes('../../drops/') },
+  { name: 'has level announcement element', test: c => c.includes('level-announce') },
+  { name: 'has streak unlock element', test: c => c.includes('streak-unlock') },
+);

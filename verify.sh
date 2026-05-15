@@ -131,3 +131,69 @@ fi
 
 echo ""
 echo "=== All verifications passed ==="
+
+# --- New polish checks ---
+
+# Audio system
+if grep -q 'playTone' "$FILE"; then
+  echo "PASS: audio system (playTone)"
+else
+  echo "FAIL: audio system missing"
+  exit 1
+fi
+
+# Catch sound
+if grep -q 'playCatch' "$FILE"; then
+  echo "PASS: catch sound feedback"
+else
+  echo "FAIL: playCatch missing"
+  exit 1
+fi
+
+# Accessibility: aria-label attributes
+if grep -q 'aria-label' "$FILE"; then
+  echo "PASS: aria-label attributes"
+else
+  echo "FAIL: missing aria-label"
+  exit 1
+fi
+
+# Controls hint
+if grep -q 'controls-hint' "$FILE"; then
+  echo "PASS: controls hint"
+else
+  echo "FAIL: missing controls-hint"
+  exit 1
+fi
+
+# Stats breakdown
+if grep -q 'stat-row' "$FILE"; then
+  echo "PASS: stat-row breakdown"
+else
+  echo "FAIL: missing stat-row"
+  exit 1
+fi
+
+# Relative home URL
+if grep -q '../../drops/' "$FILE"; then
+  echo "PASS: relative home URL"
+else
+  echo "FAIL: absolute home URL"
+  exit 1
+fi
+
+# Level announcement
+if grep -q 'level-announce' "$FILE"; then
+  echo "PASS: level announcement element"
+else
+  echo "FAIL: missing level-announce"
+  exit 1
+fi
+
+# Streak unlock
+if grep -q 'streak-unlock' "$FILE"; then
+  echo "PASS: streak unlock element"
+else
+  echo "FAIL: missing streak-unlock"
+  exit 1
+fi

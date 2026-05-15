@@ -86,6 +86,36 @@
       pointer-events: none;
       opacity: 0.5;
     }
+    #level-announce {
+      position: fixed; top: 35%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 32px; font-weight: 700;
+      color: #F4C9C9;
+      text-shadow: 0 2px 20px rgba(244,201,201,0.6), 0 2px 4px rgba(0,0,0,0.8);
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease, top 0.6s ease;
+      letter-spacing: 0.15em;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+    #level-announce.show {
+      opacity: 1;
+      top: 32%;
+    }
+    #streak-unlock {
+      position: fixed; top: 42%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 18px;
+      color: #D4A657;
+      text-shadow: 0 1px 10px rgba(212,166,87,0.5), 0 1px 3px rgba(0,0,0,0.8);
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+    #streak-unlock.show {
+    }
+    }
     #start-screen, #over-screen {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       z-index: 20;
@@ -208,7 +238,7 @@
   </style>
 </head>
 <body>
-  <canvas id="game-canvas"></canvas>
+  <canvas id="game-canvas" role="application" aria-label="Floating Score game canvas"></canvas>
 
   <div id="hud">
     <div class="hud-left">
@@ -227,10 +257,13 @@
 
   <div class="watermark">浮世 · Floating Score</div>
 
+  <div id="level-announce"></div>
+  <div id="streak-unlock"></div>
   <div id="start-screen">
     <h1>Floating Score<span>Catch the floating world</span></h1>
     <p>Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
-    <button class="btn" id="start-btn">☼ Begin</button>
+    <button class="btn" id="start-btn" aria-label="Begin the game">🎨 Begin</button>
+    <p class="controls-hint">Tap or press <kbd>Space</kbd> / <kbd>Enter</kbd> to catch</p>
     <div class="highscore-display" id="start-hs"></div>
   </div>
 
@@ -238,8 +271,8 @@
     <h1>Float Complete</h1>
     <div class="score-final" id="final-score">0</div>
     <div class="score-breakdown" id="final-detail"></div>
-    <button class="btn" id="retry-btn">☼ Play Again</button>
-    <button class="btn secondary" id="home-btn">Back to Drops</button>
+    <button class="btn" id="retry-btn" aria-label="Play again">☼ Play Again</button>
+    <button class="btn secondary" id="home-btn" aria-label="Return to drops catalog">Back to Drops</button>
     <div class="highscore-display" id="over-hs"></div>
   </div>
 
@@ -256,6 +289,8 @@
     const finalDetail = document.getElementById('final-detail');
     const startHs = document.getElementById('start-hs');
     const overHs = document.getElementById('over-hs');
+    const levelAnnounce = document.getElementById('level-announce');
+    const streakUnlock = document.getElementById('streak-unlock');
 
     let W, H, dpr;
     let gameRunning = false;
@@ -284,6 +319,31 @@
     // --- Element types with points ---
     const ELEMENT_TYPES = [
       { id: 'wave',    points: 10, color: COLORS.indigo, label: 'Wave' },
+
+    // --- Audio (Web Audio synthesis) ---
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    function playTone(freq, duration, type) {
+      try {
+        ensureAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) { /* audio not critical */ }
+    }
+    function playCatch() { playTone(523, 0.08, 'sine'); }         /* C5 */
+    function playMiss()  { playTone(150, 0.15, 'sawtooth'); }    /* low buzz */
+    function playLevel() { playTone(659, 0.06, 'sine'); setTimeout(() => playTone(784, 0.06, 'sine'), 80); } /* E5 G5 */
+    function playGameOver() { playTone(200, 0.3, 'sawtooth'); setTimeout(() => playTone(150, 0.4, 'sawtooth'), 150); }
       { id: 'blossom', points: 15, color: '#F4C9C9',    label: 'Blossom' },
       { id: 'mountain',points: 20, color: COLORS.bamboo, label: 'Mountain' },
       { id: 'bird',    points: 25, color: COLORS.charcoal,label: 'Bird' },
@@ -540,6 +600,7 @@
     }
 
     function endGame() {
+      playGameOver();
       gameRunning = false;
       if (timerInterval) clearInterval(timerInterval);
       if (animId) cancelAnimationFrame(animId);
@@ -548,8 +609,14 @@
       const total = score + streakBonus;
 
       finalScore.textContent = total;
-      finalDetail.innerHTML =
-        `Base: <strong>${score}</strong> · Streak bonus: <strong>${streakBonus}</strong> · Level: <strong>${level}</strong>` +
+      finalDetail.innerHTML = '
+        <div class="stat-row"><span class="stat-label">Base Score</span><span class="stat-value">' + score + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Streak Bonus</span><span class="stat-value">+' + streakBonus + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Total</span><span class="stat-value" style="color:#F4C9C9">' + (score + streakBonus) + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Catches</span><span class="stat-value">' + catches + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Max Streak</span><span class="stat-value">' + maxStreak + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Level Reached</span><span class="stat-value">' + level + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Time Played</span><span class="stat-value">' + (60 - timeLeft) + 's</span></div>';
         `<br>Catches: <strong>${catches}</strong> · Max streak: <strong>${maxStreak}</strong>`;
 
       // High score
@@ -589,10 +656,21 @@
 
       // Score: base points * streak multiplier
       const multiplier = 1 + Math.floor(streak / 3);
+      playCatch();
       const gained = el.points * multiplier;
       score += gained;
 
       // Streak bar
+      // Streak unlock announcements
+      if (streak === 5 || streak === 15) {
+        var ut = streak === 5 ? "Flowing Streak!" : "Master Streak!";
+        streakUnlock.textContent = ut;
+        streakUnlock.classList.remove("show");
+        void streakUnlock.offsetHeight;
+        streakUnlock.classList.add("show");
+        setTimeout(() => streakUnlock.classList.remove("show"), 1500);
+        playLevel();
+      }
       const streakPct = Math.min(100, (streak / 15) * 100);
       streakFill.style.width = streakPct + '%';
 
@@ -603,6 +681,12 @@
         levelDisplay.textContent = String(level);
         levelDisplay.classList.remove('level-up');
         void levelDisplay.offsetHeight;
+        playLevel();
+        levelAnnounce.textContent = 'Level ' + level;
+        levelAnnounce.classList.remove('show');
+        void levelAnnounce.offsetHeight;
+        levelAnnounce.classList.add('show');
+        setTimeout(() => levelAnnounce.classList.remove('show'), 1200);
         levelDisplay.classList.add('level-up');
       }
 
@@ -669,14 +753,11 @@
         }
       }
       if (!hit) {
-        // Miss: reset streak
-        streak = 0;
-        streakFill.style.width = '0%';
-        // Flash red briefly on miss
-        if (streak > 0) {
-          streakFill.style.background = 'linear-gradient(90deg, #BA2F22, #BA2F22)';
-          setTimeout(() => {
-            streakFill.style.background = 'linear-gradient(90deg, #D4A657, #BA2F22)';
+        playMiss();
+        streakFill.style.background = "linear-gradient(90deg, #BA2F22, #BA2F22)";
+        setTimeout(() => {
+          streakFill.style.background = "linear-gradient(90deg, #D4A657, #BA2F22)";
+        }, 200);
           }, 200);
         }
       }
@@ -797,7 +878,7 @@
     document.getElementById('retry-btn').addEventListener('click', startGame);
     document.getElementById('home-btn').addEventListener('click', () => {
       // Keep current behavior but add aria support
-      window.location.href = '/edo-woodblock/drops/';
+      window.location.href = '../../drops/';
     });
 
     // --- Show saved high score ---
