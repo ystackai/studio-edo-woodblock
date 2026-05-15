@@ -1,3 +1,32 @@
 {
-  "assets": []
+  "assets": [
+    {
+      "type": "html-game",
+      "path": "drops/ukiyo-e-printer/index.html",
+      "slug": "ukiyo-e-printer",
+      "title": "Ukiyo-e Printer",
+      "description": "Learn the four-block woodprint process through interactive layer-by-layer printing"
+    },
+    {
+      "type": "html-game",
+      "path": "drops/floating-world/index.html",
+      "slug": "floating-world",
+      "title": "Floating World",
+      "description": "Drag through the seasons of a ukiyo-e landscape"
+    },
+    {
+      "type": "html-game",
+      "path": "drops/wind-impressions/index.html",
+      "slug": "wind-impressions",
+      "title": "Wind Impressions",
+      "description": "Brush the floating world with fading seasonal impressions \u2014 a gentle canvas that teaches ephemeral beauty"
+    },
+    {
+      "type": "html-game",
+      "path": "drops/floating-moment/index.html",
+      "slug": "floating-moment",
+      "title": "Floating Moment",
+      "description": "Capture ephemeral beauty. Click or press keys 1-5 to choose a flower bloom, watch it drift and fade like a woodblock print"
+    }
+  ]
 }
