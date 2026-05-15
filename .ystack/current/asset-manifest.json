@@ -27,6 +27,13 @@
       "slug": "floating-moment",
       "title": "Floating Moment",
       "description": "Capture ephemeral beauty. Click or press keys 1-5 to choose a flower bloom, watch it drift and fade like a woodblock print"
+    },
+    {
+      "type": "html-game",
+      "path": "drops/floating-score/index.html",
+      "slug": "floating-score",
+      "title": "Floating Score",
+      "description": "Catch ukiyo-e elements as they drift across the canvas. Score points, build streaks, level up through faster rounds."
     }
   ]
 }

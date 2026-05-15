@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Floating Score — Pictures of the Floating World</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #1a1a2e;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #game-canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 10;
+      pointer-events: none;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    #hud > div {
+      pointer-events: auto;
+    }
+    .hud-left, .hud-right {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .hud-label {
+      font-size: 10px;
+      color: #9C8E7D;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+    .hud-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #F2EDE6;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s ease, color 0.15s ease;
+    }
+    .hud-value.pop {
+      transform: scale(1.3);
+      color: #D4A657;
+    }
+    .hud-value.level-up {
+      animation: levelUp 0.4s ease-out;
+    }
+    @keyframes levelUp {
+      0% { transform: scale(1); color: #F2EDE6; }
+      50% { transform: scale(1.6); color: #D4A657; }
+      100% { transform: scale(1); color: #F2EDE6; }
+    }
+    #streak-bar {
+      position: fixed; bottom: 70px; left: 20px; right: 20px;
+      height: 4px;
+      background: rgba(242,237,230,0.1);
+      border-radius: 2px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #streak-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #D4A657, #BA2F22);
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+    #streak-label {
+      position: fixed; bottom: 82px; left: 20px;
+      font-size: 9px;
+      color: #9C8E7D;
+      letter-spacing: 0.06em;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    #start-screen, #over-screen {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(26,26,46,0.92);
+      backdrop-filter: blur(6px);
+      padding: 20px;
+      text-align: center;
+      transition: opacity 0.5s ease;
+    }
+    #start-screen.hidden, #over-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #start-screen h1, #over-screen h1 {
+      font-size: 28px;
+      color: #F2EDE6;
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    #start-screen h1 span {
+      display: block;
+      font-size: 14px;
+      color: #D4A657;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+    #start-screen p, #over-screen p {
+      color: #9C8E7D;
+      font-size: 13px;
+      max-width: 300px;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+    .score-final {
+      font-size: 48px;
+      font-weight: 700;
+      color: #D4A657;
+      margin: 16px 0 8px;
+    }
+    .score-breakdown {
+      font-size: 13px;
+      color: #9C8E7D;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .score-breakdown strong {
+      color: #F2EDE6;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 36px;
+      background: transparent;
+      color: #F2EDE6;
+      border: 1px solid #D4A657;
+      border-radius: 30px;
+      font-size: 15px;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.25s ease;
+      margin-top: 16px;
+    }
+    .btn:hover {
+      background: #D4A657;
+      color: #1a1a2e;
+    }
+    .btn.secondary {
+      border-color: #9C8E7D;
+      color: #9C8E7D;
+      font-size: 12px;
+      padding: 10px 28px;
+      margin-top: 8px;
+    }
+    .btn.secondary:hover {
+      background: #9C8E7D;
+      color: #1a1a2e;
+    }
+    .highscore-display {
+      font-size: 13px;
+      color: #5886A0;
+      margin-top: 10px;
+    }
+    #timer-bar {
+      position: fixed; bottom: 56px; left: 20px; right: 20px;
+      height: 2px;
+      background: rgba(242,237,230,0.08);
+      border-radius: 1px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #timer-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 1px;
+      background: #5886A0;
+      transition: width 0.5s linear;
+    }
+    .watermark {
+      position: fixed; bottom: 20px; right: 20px;
+      font-size: 8px;
+      color: rgba(242,237,230,0.15);
+      letter-spacing: 0.04em;
+      z-index: 5;
+      pointer-events: none;
+    }
+    @media (max-width: 600px) {
+      .hud-value { font-size: 18px; }
+      #start-screen h1 { font-size: 22px; }
+      .score-final { font-size: 38px; }
+      #streak-bar { bottom: 60px; }
+      #timer-bar { bottom: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <div id="hud">
+    <div class="hud-left">
+      <div class="hud-label">Score</div>
+      <div class="hud-value" id="score-display">0</div>
+    </div>
+    <div class="hud-right" style="text-align:right">
+      <div class="hud-label">Level</div>
+      <div class="hud-value" id="level-display">1</div>
+    </div>
+  </div>
+
+  <div id="streak-bar"><div id="streak-fill"></div></div>
+  <div id="streak-label">STREAK</div>
+  <div id="timer-bar"><div id="timer-fill"></div></div>
+
+  <div class="watermark">浮世 · Floating Score</div>
+
+  <div id="start-screen">
+    <h1>Floating Score<span>Catch the floating world</span></h1>
+    <p>Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
+    <button class="btn" id="start-btn">☼ Begin</button>
+    <div class="highscore-display" id="start-hs"></div>
+  </div>
+
+  <div id="over-screen" class="hidden">
+    <h1>Float Complete</h1>
+    <div class="score-final" id="final-score">0</div>
+    <div class="score-breakdown" id="final-detail"></div>
+    <button class="btn" id="retry-btn">☼ Play Again</button>
+    <button class="btn secondary" id="home-btn">Back to Drops</button>
+    <div class="highscore-display" id="over-hs"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score-display');
+    const levelDisplay = document.getElementById('level-display');
+    const streakFill = document.getElementById('streak-fill');
+    const timerFill = document.getElementById('timer-fill');
+    const startScreen = document.getElementById('start-screen');
+    const overScreen = document.getElementById('over-screen');
+    const finalScore = document.getElementById('final-score');
+    const finalDetail = document.getElementById('final-detail');
+    const startHs = document.getElementById('start-hs');
+    const overHs = document.getElementById('over-hs');
+
+    let W, H, dpr;
+    let gameRunning = false;
+    let score = 0;
+    let level = 1;
+    let streak = 0;
+    let maxStreak = 0;
+    let catches = 0;
+    let timeLeft = 60;
+    let timerInterval = null;
+    let animId = null;
+
+    // Ukiyo-e color palette
+    const COLORS = {
+      indigo:    '#213B5E',
+      vermilion: '#BA2F22',
+      bamboo:    '#497A5E',
+      willow:    '#8BA97A',
+      yellow:    '#D4A657',
+      charcoal:  '#2C2C2C',
+      paper:     '#F2EDE6',
+      sky:       '#D6CED8',
+      water:     '#5886A0'
+    };
+
+    // --- Element types with points ---
+    const ELEMENT_TYPES = [
+      { id: 'wave',    points: 10, color: COLORS.indigo, label: 'Wave' },
+      { id: 'blossom', points: 15, color: '#F4C9C9',    label: 'Blossom' },
+      { id: 'mountain',points: 20, color: COLORS.bamboo, label: 'Mountain' },
+      { id: 'bird',    points: 25, color: COLORS.charcoal,label: 'Bird' },
+      { id: 'cloud',   points: 8,  color: COLORS.water,  label: 'Cloud' },
+    ];
+
+    // --- Game objects ---
+    let elements = [];
+    let particles = [];
+    let cloudBg = null;
+
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      dpr = devicePixelRatio || 1;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // --- Draw helpers (ukiyo-e style) ---
+
+    function drawWave(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/80, size/80);
+      ctx.strokeStyle = COLORS.indigo;
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const p = i / 20;
+        const angle = p * Math.PI;
+        const r = 35 + p * 25 + 8 * Math.sin(t * 2 + p * 4);
+        const px = Math.cos(angle) * r;
+        const py = Math.sin(angle) * r * 0.6;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      for (let s = 0; s < 5; s++) {
+        const a = (s/5) * Math.PI;
+        const r = 44 + 12 * Math.sin(t * 3 + s);
+        ctx.beginPath();
+        ctx.arc(Math.cos(a)*r, Math.sin(a)*r*0.5 - 6, 1.5 + Math.sin(t+s)*1.2, 0, Math.PI*2);
+        ctx.fillStyle = COLORS.water;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawBlossom(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/50, size/50);
+      const petals = 5;
+      for (let p = 0; p < petals; p++) {
+        const a = p/petals * Math.PI * 2 + t * 0.3;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.translate(9, 0);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 7, 5, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#F4C9C9';
+        ctx.fill();
+        ctx.restore();
+      }
+      // Center
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#E8A8A8';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawMountain(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/70, size/70);
+      // Snow cap
+      ctx.beginPath();
+      ctx.moveTo(-30, 5);
+      ctx.lineTo(0, -35);
+      ctx.lineTo(30, 5);
+      ctx.closePath();
+      ctx.fillStyle = COLORS.bamboo;
+      ctx.globalAlpha = 0.7;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // Snow on top
+      ctx.beginPath();
+      ctx.moveTo(-10, -20);
+      ctx.lineTo(0, -35);
+      ctx.lineTo(10, -20);
+      ctx.closePath();
+      ctx.fillStyle = COLORS.paper;
+      ctx.fill();
+      // Base
+      ctx.beginPath();
+      ctx.moveTo(-40, 5);
+      ctx.lineTo(-30, 5);
+      ctx.lineTo(30, 5);
+      ctx.lineTo(40, 5);
+      ctx.strokeStyle = COLORS.charcoal;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawBird(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/30, size/30);
+      ctx.strokeStyle = COLORS.charcoal;
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      const wingAngle = Math.sin(t * 3) * 0.4;
+      // Body
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.quadraticCurveTo(0, -3, 8, 0);
+      ctx.quadraticCurveTo(0, 3, -8, 0);
+      ctx.stroke();
+      // Left wing
+      ctx.beginPath();
+      ctx.moveTo(-2, 0);
+      ctx.lineTo(-12, -6 + wingAngle * 3);
+      ctx.stroke();
+      // Right wing
+      ctx.beginPath();
+      ctx.moveTo(2, 0);
+      ctx.lineTo(12, -6 - wingAngle * 3);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCloud(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/40, size/40);
+      ctx.fillStyle = COLORS.sky;
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.arc(-10, 0, 10, 0, Math.PI * 2);
+      ctx.arc(10, -4, 8, 0, Math.PI * 2);
+      ctx.arc(10, 4, 7, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    // --- Element spawning ---
+
+    function spawnElement() {
+      const maxLevel = Math.min(level, 5);
+      const available = ELEMENT_TYPES.slice(0, maxLevel);
+      const type = available[Math.floor(Math.random() * available.length)];
+      const size = 30 + Math.random() * 30 + level * 3;
+      const speed = 0.4 + Math.random() * 0.6 + level * 0.08;
+      const x = 0.1 + Math.random() * 0.8;
+      const y = -0.1;
+      const drift = (Math.random() - 0.5) * 0.03;
+      return {
+        type: type.id,
+        points: type.points,
+        x, y,
+        size: Math.min(size, 80),
+        speed: Math.min(speed, 2.0),
+        drift,
+        alive: true,
+        t: Math.random() * 100,
+        r: Math.random() * Math.PI * 2
+      };
+    }
+
+    function spawnParticles(x, y, count, color) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 20 + Math.random() * 40;
+        particles.push({
+          x: x, y: y,
+          dx: Math.cos(angle) * dist * 0.03,
+          dy: Math.sin(angle) * dist * 0.03,
+          life: 1,
+          decay: 0.02 + Math.random() * 0.02,
+          size: 1.5 + Math.random() * 2,
+          color
+        });
+      }
+    }
+
+    // --- Game logic ---
+
+    function startGame() {
+      score = 0;
+      level = 1;
+      streak = 0;
+      maxStreak = 0;
+      catches = 0;
+      timeLeft = 60;
+      elements = [];
+      particles = [];
+      cloudBg = null;
+
+      startScreen.classList.add('hidden');
+      overScreen.classList.add('hidden');
+      gameRunning = true;
+
+      scoreDisplay.textContent = '0';
+      levelDisplay.textContent = '1';
+      streakFill.style.width = '0%';
+      timerFill.style.width = '100%';
+
+      // Spawn initial elements
+      for (let i = 0; i < 5 + level * 2; i++) {
+        const el = spawnElement();
+        el.y = Math.random() * 1.2;
+        elements.push(el);
+      }
+
+      // Timer
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft -= 1;
+        const pct = Math.max(0, (timeLeft / 60) * 100);
+        timerFill.style.width = pct + '%';
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+
+      // Loop
+      if (animId) cancelAnimationFrame(animId);
+      loop();
+    }
+
+    function endGame() {
+      gameRunning = false;
+      if (timerInterval) clearInterval(timerInterval);
+      if (animId) cancelAnimationFrame(animId);
+
+      const streakBonus = maxStreak * 5;
+      const total = score + streakBonus;
+
+      finalScore.textContent = total;
+      finalDetail.innerHTML =
+        `Base: <strong>${score}</strong> · Streak bonus: <strong>${streakBonus}</strong> · Level: <strong>${level}</strong>` +
+        `<br>Catches: <strong>${catches}</strong> · Max streak: <strong>${maxStreak}</strong>`;
+
+      // High score
+      const saved = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
+      let isNew = false;
+      if (total > saved) {
+        localStorage.setItem('floating-score-hs', String(total));
+        isNew = true;
+      }
+
+      overHs.innerHTML = (isNew ? '✦ New high score!' : 'Best: ' + saved);
+      overScreen.classList.remove('hidden');
+      paintFinalFrame();
+    }
+
+    function paintFinalFrame() {
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, W, H);
+      // Draw a decorative wave pattern as background
+      ctx.save();
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        drawWave(ctx, x, y, i * 10, 40 + Math.random() * 40);
+      }
+      ctx.restore();
+    }
+
+    function handleCatch(el) {
+      if (!gameRunning) return;
+      el.alive = false;
+
+      const typeInfo = ELEMENT_TYPES.find(t => t.id === el.type);
+      streak += 1;
+      if (streak > maxStreak) maxStreak = streak;
+      catches += 1;
+
+      // Score: base points * streak multiplier
+      const multiplier = 1 + Math.floor(streak / 3);
+      const gained = el.points * multiplier;
+      score += gained;
+
+      // Streak bar
+      const streakPct = Math.min(100, (streak / 15) * 100);
+      streakFill.style.width = streakPct + '%';
+
+      // Level check: every 10 catches
+      const newLevel = Math.floor(catches / 10) + 1;
+      if (newLevel > level) {
+        level = newLevel;
+        levelDisplay.textContent = String(level);
+        levelDisplay.classList.remove('level-up');
+        void levelDisplay.offsetHeight;
+        levelDisplay.classList.add('level-up');
+      }
+
+      // Score display
+      scoreDisplay.textContent = String(score);
+      scoreDisplay.classList.remove('pop');
+      void scoreDisplay.offsetHeight;
+      scoreDisplay.classList.add('pop');
+
+      // Particles at catch
+      spawnParticles(el.x * W, el.y * H, 10,
+        typeInfo ? typeInfo.color : COLORS.yellow);
+
+      // Spawn a new element to replace
+      elements.push(spawnElement());
+
+      // Level up: add more elements
+      if (elements.length < 8 + level * 2) {
+        elements.push(spawnElement());
+      }
+    }
+
+    function checkHit(el, cx, cy) {
+      const ex = el.x * W;
+      const ey = el.y * H;
+      const dx = cx - ex;
+      const dy = cy - ey;
+      const r = el.size * 0.5;
+      return (dx * dx + dy * dy) < r * r;
+    }
+
+    function pointerDown(e) {
+      if (!gameRunning) return;
+      const rect = canvas.getBoundingClientRect();
+      const cx = ((e.clientX || e.touches?.[0]?.clientX || W/2) / rect.width) * W;
+      const cy = ((e.clientY || e.touches?.[0]?.clientY || H/2) / rect.height) * H;
+
+      // Check hits in reverse order (top-most)
+      let hit = false;
+      for (let i = elements.length - 1; i >= 0; i--) {
+        const el = elements[i];
+        if (!el.alive) continue;
+        // Only check if visible on screen
+        if (el.y < -0.1 || el.y > 1.1) continue;
+        if (checkHit(el, cx, cy)) {
+          handleCatch(el);
+          hit = true;
+          break;
+        }
+      }
+      if (!hit) {
+        // Miss: reset streak
+        streak = 0;
+        streakFill.style.width = '0%';
+      }
+    }
+
+    // --- Main render ---
+
+    function loop() {
+      if (!gameRunning && animId === null) return;
+
+      const now = performance.now() / 1000;
+
+      // Clear
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, W, H);
+
+      // Draw subtle background particles
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 0.025 * W + Math.sin(now * 0.05 + i)) % W;
+        const y = (i * 37 + now * 3) % H;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.8, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.sky;
+        ctx.globalAlpha = 0.08;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // Update and draw elements
+      const toRemove = [];
+      for (const el of elements) {
+        if (!el.alive) {
+          toRemove.push(el);
+          continue;
+        }
+        el.y += el.speed * (1 / 60) * 2;
+        el.x += el.drift;
+        el.t += 0.05;
+
+        // Wrap x
+        if (el.x < -0.1) el.x = 1.1;
+        if (el.x > 1.1) el.x = -0.1;
+
+        // Remove if off bottom
+        if (el.y > 1.3) {
+          // Miss: reset streak
+          streak = 0;
+          streakFill.style.width = '0%';
+          toRemove.push(el);
+          continue;
+        }
+
+        // Draw
+        const ex = el.x * W;
+        const ey = el.y * H;
+        const driftX = 10 * Math.sin(now * 0.08 + el.r);
+        switch (el.type) {
+          case 'wave':    drawWave(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'blossom': drawBlossom(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'mountain':drawMountain(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'bird':    drawBird(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'cloud':   drawCloud(ctx, ex + driftX, ey, el.t, el.size); break;
+        }
+      }
+
+      // Remove dead elements
+      elements = elements.filter(el => el.alive && el.y <= 1.3);
+
+      // Keep enough elements on screen
+      if (elements.length < 3) {
+        elements.push(spawnElement());
+      }
+
+      // Draw particles
+      for (const p of particles) {
+        p.x += p.dx;
+        p.y += p.dy;
+        p.life -= p.decay;
+        if (p.life <= 0) continue;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life * 0.8;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      particles = particles.filter(p => p.life > 0);
+
+      animId = requestAnimationFrame(loop);
+    }
+
+    // --- Input ---
+    canvas.addEventListener('click', pointerDown);
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      pointerDown(e);
+    }, { passive: false });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        if (!gameRunning && !startScreen.classList.contains('hidden')) {
+          startGame();
+        } else if (gameRunning) {
+          pointerDown({ clientX: W/2, clientY: H * 0.5 });
+        }
+      }
+    });
+
+    // --- Start/Retry ---
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    document.getElementById('retry-btn').addEventListener('click', startGame);
+    document.getElementById('home-btn').addEventListener('click', () => {
+      window.location.href = '/edo-woodblock/drops/';
+    });
+
+    // --- Show saved high score ---
+    const savedHs = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
+    if (savedHs > 0) {
+      startHs.textContent = 'Best: ' + savedHs;
+    }
+
+    console.log('Floating Score loaded. Catch ukiyo-e elements to score!');
+  </script>
+</body>
+</html>

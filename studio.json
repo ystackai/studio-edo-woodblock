@@ -108,6 +108,21 @@
           "ukiyo-e",
           "generative"
         ]
+      },
+      {
+        "title": "Floating Score",
+        "slug": "floating-score",
+        "summary": "Catch ukiyo-e elements as they drift across the canvas. Score points, build streaks, level up through faster rounds. A timed collection game in the floating world.",
+        "mashup": "catch \u00b7 score \u00b7 streaks \u00b7 levels",
+        "play_url": "/edo-woodblock/drops/floating-score/",
+        "studio_url": "/edo-woodblock/drops/floating-score/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "game",
+          "scoring",
+          "progression"
+        ]
       }
     ],
     "upcoming": {},
@@ -135,6 +150,10 @@
     {
       "slug": "floating-press",
       "title": "Floating Press"
+    },
+    {
+      "slug": "floating-score",
+      "title": "Floating Score"
     }
   ]
 }

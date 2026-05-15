@@ -49,6 +49,24 @@ check('drops/wind-impressions/index.html',
   { name: 'contains title-area', test: c => c.includes('Wind Impressions') },
 );
 
+
+// New drop — Floating Score (catch game with progression)
+check('drops/floating-score/index.html',
+  { name: 'contains canvas element', test: c => c.includes('<canvas') },
+  { name: 'contains score display', test: c => c.includes('score-display') },
+  { name: 'contains level display', test: c => c.includes('level-display') },
+  { name: 'contains streak mechanic', test: c => c.includes('streak') },
+  { name: 'contains timer mechanic', test: c => c.includes('timer') && c.includes('timeLeft') },
+  { name: 'contains start screen', test: c => c.includes('start-screen') },
+  { name: 'contains game over screen', test: c => c.includes('over-screen') },
+  { name: 'contains high score persistence', test: c => c.includes('localStorage') && c.includes('floating-score-hs') },
+  { name: 'contains keyboard support', test: c => c.includes('keydown') },
+  { name: 'contains touch handler', test: c => c.includes('touchstart') },
+  { name: 'contains animation loop', test: c => c.includes('requestAnimationFrame') },
+  { name: 'contains level progression', test: c => c.includes('level') && c.includes('score') },
+  { name: 'contains ukiyo-e element drawing', test: c => c.includes('drawWave') || c.includes('drawBlossom') || c.includes('drawMountain') },
+);
+
 // Studio config check
 
 // New drop — Floating Moment
@@ -67,6 +85,7 @@ check('studio.json',
   { name: 'studio contains ukiyo-e-printer entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'ukiyo-e-printer') },
   { name: 'studio contains floating-world entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-world') },
   { name: 'studio contains floating-moment entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-moment') },
+  { name: 'studio contains floating-score entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-score') },
 );
 
 // Asset manifest check
@@ -76,6 +95,7 @@ check('.ystack/current/asset-manifest.json',
   { name: 'contains ukiyo-e-printer', test: c => JSON.parse(c).assets.some(a => a.slug === 'ukiyo-e-printer') },
   { name: 'contains floating-world', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-world') },
   { name: 'contains floating-moment', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-moment') },
+  { name: 'contains floating-score', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-score') },
 
 );
 
@@ -83,11 +103,12 @@ check('.ystack/current/asset-manifest.json',
 check('drops/index.html',
   { name: 'drops index exists', test: () => true },
   { name: 'drops index has studio slug', test: c => c.includes('edo-woodblock') },
+  { name: 'drops index lists floating-score', test: c => c.includes('floating-score') },
 );
 
 // Games index redirect check
 check('games/index.html',
-  { name: 'games/index.html redirects to floating-moment', test: c => c.includes('floating-moment') },
+  { name: 'games/index.html redirects to floating-score', test: c => c.includes('floating-score') },
 );
 
 // Output
