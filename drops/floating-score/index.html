@@ -393,10 +393,45 @@
       color: #5886A0;
       font-weight: 500;
     }
+
+    /* --- Ambient start screen particles --- */
+    .ambient-particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 5;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    .ambient-particle.visible {
+      opacity: 0.15;
+    }
+    #start-screen:not(.hidden) ~ .ambient-particle,
+    #over-screen:not(.hidden) ~ .ambient-particle {
+      animation: none;
+    }
+    #start-screen.ambient-running ~ .ambient-particle {
+      animation: ambientDrift 12s ease-in-out infinite;
+    }
+    @keyframes ambientDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(20px, -15px); }
+      50% { transform: translate(-10px, -25px); }
+      75% { transform: translate(15px, -10px); }
+    }
+
 </style>
 </head>
 <body>
   <canvas id="game-canvas" role="application" aria-label="Floating Score game canvas"></canvas>
+
+  <!-- Ambient floating particles for start screen -->
+  <div class="ambient-particle" style="top:15%;left:10%;width:6px;height:6px;background:#D4A657;border-radius:50%;"></div>
+  <div class="ambient-particle" style="top:25%;left:85%;width:4px;height:4px;background:#F4C9C9;border-radius:50%;"></div>
+  <div class="ambient-particle" style="top:60%;left:5%;width:5px;height:5px;background:#5886A0;border-radius:50%;"></div>
+  <div class="ambient-particle" style="top:70%;left:75%;width:3px;height:3px;background:#8BA97A;border-radius:50%;"></div>
+  <div class="ambient-particle" style="top:85%;left:20%;width:7px;height:7px;background:#9C8E7D;border-radius:50%;"></div>
+
 
   <div id="hud">
     <div class="hud-left">
@@ -405,10 +440,10 @@
     </div>
     <div class="hud-right" style="text-align:right">
       <div class="hud-label">Level</div>
-      <div class="hud-value" id="level-display">1  <button id="mute-btn" aria-label="Toggle sound">♫ Sound</button>
-</div>
+      <div class="hud-value" id="level-display">1</div>
     </div>
   </div>
+  <button id="mute-btn" aria-label="Toggle sound">♫ Sound</button>
 
   <div id="streak-bar"><div id="streak-fill"></div></div>
   <div id="streak-label">STREAK</div>
@@ -1126,13 +1161,9 @@
     // --- Start/Retry ---
     document.getElementById('start-btn').addEventListener('click', startGame);
     document.getElementById('retry-btn').addEventListener('click', startGame);
-    document.getElementById('home-btn').addEventListener('click', () => {    document.getElementById('mute-btn').addEventListener('click', toggleMute);
-    document.getElementById('pause-btn').addEventListener('click', togglePause);
-
-      // Keep current behavior but add aria support
+    document.getElementById('home-btn').addEventListener('click', () => {
       window.location.href = '../../drops/';
     });
-
     // --- Show saved high score ---
     const savedHs = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
     // Build element legend from ELEMENT_TYPES
@@ -1146,6 +1177,70 @@
       startHs.textContent = 'Best: ' + savedHs;
       hudHsDisplay.textContent = String(savedHs);
     }
+
+
+    // --- Ambient start screen particles ---
+    const ambientParticles = document.querySelectorAll('.ambient-particle');
+    let ambientAnimId = null;
+    let ambientTime = 0;
+
+    function animateAmbient() {
+      if (startScreen.classList.contains('hidden') && overScreen.classList.contains('hidden')) {
+        ambientParticles.forEach(p => p.classList.remove('visible'));
+        ambientAnimId = requestAnimationFrame(animateAmbient);
+        return;
+      }
+      ambientTime += 0.02;
+      ambientParticles.forEach((p, idx) => {
+        p.classList.add('visible');
+        const baseX = parseFloat(p.style.left);
+        const baseY = parseFloat(p.style.top);
+        const offsetX = Math.sin(ambientTime * 0.5 + idx * 1.7) * 15;
+        const offsetY = Math.cos(ambientTime * 0.4 + idx * 2.3) * 10;
+        p.style.transform = 'translate(' + offsetX.toFixed(1) + 'px, ' + offsetY.toFixed(1) + 'px)';
+        // Subtle pulsing opacity
+        p.style.opacity = 0.08 + 0.07 * (1 + Math.sin(ambientTime * 0.3 + idx * 1.1));
+      });
+      ambientAnimId = requestAnimationFrame(animateAmbient);
+    }
+    animateAmbient();
+
+    // --- New high score badge animation ---
+    function showNewHighScoreBadge() {
+      const badge = document.createElement('div');
+      badge.style.cssText = 'position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);z-index:30;font-size:22px;font-weight:700;color:#D4A657;text-shadow:0 0 20px rgba(212,166,87,0.8),0 2px 4px rgba(0,0,0,0.8);letter-spacing:0.1em;opacity:0;transition:opacity 0.6s ease,top 0.6s ease;pointer-events:none;';
+      badge.textContent = '✦ New High Score! ✦';
+      document.body.appendChild(badge);
+      requestAnimationFrame(() => {
+        badge.style.opacity = '1';
+        badge.style.top = '28%';
+      });
+      setTimeout(() => {
+        badge.style.opacity = '0';
+        badge.style.top = '26%';
+        setTimeout(() => badge.remove(), 700);
+      }, 3000);
+    }
+
+    // Patch endGame to call showNewHighScoreBadge
+    const origEndGame = endGame;
+    endGame = function() {
+      origEndGame.apply(this, arguments);
+      const totalScore = score + (maxStreak * 5);
+      const saved = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
+      if (totalScore > saved) {
+        setTimeout(showNewHighScoreBadge, 200);
+      }
+    };
+
+    // --- Ukiyo-e decorative border on start screen ---
+    function drawStartDecor() {
+      const decor = document.createElement('div');
+      decor.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:19;pointer-events:none;opacity:0.04;background:radial-gradient(ellipse at 20% 20%, rgba(212,166,87,0.1), transparent 70%), radial-gradient(ellipse at 80% 80%, rgba(133,133,133,0.1), transparent 70%);';
+      decor.id = 'start-decor';
+      document.body.appendChild(decor);
+    }
+    drawStartDecor();
 
     console.log('Floating Score loaded. Catch ukiyo-e elements to score!');
   </script>
