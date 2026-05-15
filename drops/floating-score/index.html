@@ -264,7 +264,38 @@
       #streak-bar { bottom: 60px; }
       #timer-bar { bottom: 48px; }
     }
-  </style>
+      /* --- Game-over stats breakdown --- */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      font-size: 13px;
+      color: #9C8E7D;
+      border-bottom: 1px solid rgba(242,237,230,0.06);
+    }
+    .stat-row:last-of-type { border-bottom: none; }
+    .stat-label { color: #9C8E7D; }
+    .stat-value { color: #F2EDE6; font-weight: 600; }
+    /* --- Streak count text --- */
+    #streak-count {
+      position: fixed; bottom: 82px; left: 60px;
+      font-size: 11px;
+      color: #D4A657;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    #streak-count.show { opacity: 1; }
+    /* --- HUD high score --- */
+    #hud-hs-display {
+      font-size: 14px;
+      color: #5886A0;
+      font-weight: 500;
+    }
+</style>
 </head>
 <body>
   <canvas id="game-canvas" role="application" aria-label="Floating Score game canvas"></canvas>
@@ -282,6 +313,7 @@
 
   <div id="streak-bar"><div id="streak-fill"></div></div>
   <div id="streak-label">STREAK</div>
+    <div id="streak-count"></div>
   <div id="timer-bar"><div id="timer-fill"></div></div>
 
   <div id="timer-text"><span id="timer-seconds">60</span><span class="timer-unit">s</span></div>
@@ -289,6 +321,7 @@
 
   <div id="level-announce"></div>
   <div id="streak-unlock"></div>
+    <div id="game-aria-live" aria-live="polite" aria-atomic="true" style="position:fixed;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap"></div>
   <div id="start-screen">
     <h1>Floating Score<span>Catch the floating world</span></h1>
     <p>Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
@@ -322,6 +355,9 @@
     const levelAnnounce = document.getElementById('level-announce');
     const timerSeconds = document.getElementById('timer-seconds');
     const streakUnlock = document.getElementById('streak-unlock');
+    const streakCount = document.getElementById('streak-count');
+    const hudHsDisplay = document.getElementById('hud-hs-display');
+    const ariaLive = document.getElementById('game-aria-live');
 
     let W, H, dpr;
     let gameRunning = false;
@@ -593,6 +629,8 @@
       scoreDisplay.textContent = '0';
       levelDisplay.textContent = '1';
       timerFill.style.width = '100%';
+      streakCount.textContent = '';
+      streakCount.classList.remove('show');
 
       // Spawn initial elements
       for (let i = 0; i < 3 + level; i++) {
@@ -656,23 +694,37 @@
       }
 
       overHs.innerHTML = (isNew ? '✦ New high score!' : 'Best: ' + saved);
+      hudHsDisplay.textContent = String(Math.max(total, saved));
+      ariaLive.textContent = 'Game over. Final score ' + total + '. ' + (isNew ? 'New high score!' : '');
       overScreen.classList.remove('hidden');
+      streakCount.textContent = '';
+      streakCount.classList.remove('show');
       paintFinalFrame();
     }
 
     function paintFinalFrame() {
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(0, 0, W, H);
-      // Draw a decorative wave pattern as background
-      ctx.save();
-      for (let i = 0; i < 20; i++) {
-        const x = Math.random() * W;
-        const y = Math.random() * H;
-        drawWave(ctx, x, y, i * 10, 40 + Math.random() * 40);
-        drawBlossom(ctx, x + Math.random() * 40 - 20, y + Math.random() * 40 - 20, i * 5, 30 + Math.random() * 30);
-        drawBird(ctx, x, y, i * 3, 25 + Math.random() * 20);
+      // Smoothly fade out via overlay
+      let opacity = 0;
+      function fadeStep() {
+        opacity += 0.1;
+        ctx.fillStyle = 'rgba(26,26,46,' + opacity + ')';
+        ctx.fillRect(0, 0, W, H);
+        if (opacity < 1.0) {
+          requestAnimationFrame(fadeStep);
+        } else {
+          // Draw decorative pattern
+          ctx.save();
+          for (let i = 0; i < 30; i++) {
+            const x = Math.random() * W;
+            const y = Math.random() * H;
+            drawWave(ctx, x, y, i * 10, 40 + Math.random() * 40);
+            drawBlossom(ctx, x + Math.random() * 40 - 20, y + Math.random() * 40 - 20, i * 5, 30 + Math.random() * 30);
+            drawCloud(ctx, x + Math.random() * 30 - 15, y + Math.random() * 30 - 15, i * 3, 20 + Math.random() * 20);
+          }
+          ctx.restore();
+        }
       }
-      ctx.restore();
+      fadeStep();
     }
 
     function handleCatch(el) {
@@ -704,6 +756,9 @@
       }
       const streakPct = Math.min(100, (streak / 15) * 100);
       streakFill.style.width = streakPct + '%';
+      streakCount.textContent = String(streak);
+      streakCount.classList.add('show');
+      ariaLive.textContent = streak === 1 ? 'Streak ' + streak : 'Streak ' + streak + '!';
 
       // Level check: every 10 catches
       const newLevel = Math.floor(catches / 10) + 1;
@@ -729,7 +784,9 @@
       scoreDisplay.textContent = String(score);
         // Animate score change
         const popup = document.createElement('div');
-        popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15;font-size:28px;font-weight:700;color:#D4A657;pointer-events:none;transition:all 0.6s ease;opacity:1;';
+        const popX = el.x * W;
+        const popY = el.y * H;
+        popup.style.cssText = 'position:fixed;top:' + popY + 'px;left:' + popX + 'px;transform:translate(-50%,-50%);z-index:15;font-size:24px;font-weight:700;color:#D4A657;pointer-events:none;transition:all 0.6s ease;opacity:1;text-shadow:0 1px 6px rgba(0,0,0,0.6);';
         popup.textContent = '+' + gained;
         document.body.appendChild(popup);
         requestAnimationFrame(() => {
@@ -744,6 +801,11 @@
       // Particles at catch
       spawnParticles(el.x * W, el.y * H, 10,
         typeInfo ? typeInfo.color : COLORS.yellow);
+      // Brief canvas flash overlay
+      const flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:12;pointer-events:none;background:radial-gradient(ellipse at ' + (el.x * W) + 'px ' + (el.y * H) + 'px, rgba(212,166,87,0.15), transparent 70%);transition:opacity 0.3s ease;opacity:1;';
+      document.body.appendChild(flash);
+      requestAnimationFrame(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 350); });
 
       // Spawn a new element to replace
       elements.push(spawnElement());
@@ -790,6 +852,8 @@
       if (!hit) {
         playMiss();
         streakFill.style.background = "linear-gradient(90deg, #BA2F22, #BA2F22)";
+        streakCount.textContent = '';
+        streakCount.classList.remove('show');
         setTimeout(() => {
           streakFill.style.background = "linear-gradient(90deg, #D4A657, #BA2F22)";
         }, 200);
@@ -839,6 +903,8 @@
           if (streak > 0) playMiss();
           streak = 0;
           streakFill.style.width = '0%';
+          streakCount.textContent = '';
+          streakCount.classList.remove('show');
           toRemove.push(el);
           continue;
         }
@@ -911,6 +977,7 @@
     const savedHs = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
     if (savedHs > 0) {
       startHs.textContent = 'Best: ' + savedHs;
+      hudHsDisplay.textContent = String(savedHs);
     }
 
     console.log('Floating Score loaded. Catch ukiyo-e elements to score!');
