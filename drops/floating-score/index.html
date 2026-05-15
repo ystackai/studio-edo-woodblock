@@ -188,7 +188,7 @@
       width: 100%;
       border-radius: 1px;
       background: #5886A0;
-      transition: width 0.5s linear;
+      transition: width 0.3s ease, background 0.3s ease;
     }
     .watermark {
       position: fixed; bottom: 20px; right: 20px;
@@ -501,10 +501,17 @@
       scoreDisplay.textContent = '0';
       levelDisplay.textContent = '1';
       streakFill.style.width = '0%';
+        // Flash red briefly on miss
+        if (streak > 0) {
+          streakFill.style.background = 'linear-gradient(90deg, #BA2F22, #BA2F22)';
+          setTimeout(() => {
+            streakFill.style.background = 'linear-gradient(90deg, #D4A657, #BA2F22)';
+          }, 200);
+        }
       timerFill.style.width = '100%';
 
       // Spawn initial elements
-      for (let i = 0; i < 5 + level * 2; i++) {
+      for (let i = 0; i < 3 + level; i++) {
         const el = spawnElement();
         el.y = Math.random() * 1.2;
         elements.push(el);
@@ -516,6 +523,14 @@
         timeLeft -= 1;
         const pct = Math.max(0, (timeLeft / 60) * 100);
         timerFill.style.width = pct + '%';
+        // Time warning flash
+        if (timeLeft <= 10) {
+          timerFill.style.background = '#BA2F22';
+        } else if (timeLeft <= 20) {
+          timerFill.style.background = '#D4A657';
+        } else {
+          timerFill.style.background = '#5886A0';
+        }
         if (timeLeft <= 0) endGame();
       }, 1000);
 
@@ -593,6 +608,16 @@
 
       // Score display
       scoreDisplay.textContent = String(score);
+        // Animate score change
+        const popup = document.createElement('div');
+        popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15;font-size:28px;font-weight:700;color:#D4A657;pointer-events:none;transition:all 0.6s ease;opacity:1;';
+        popup.textContent = '+' + gained;
+        document.body.appendChild(popup);
+        requestAnimationFrame(() => {
+          popup.style.transform = 'translate(-50%,-80%)';
+          popup.style.opacity = '0';
+          setTimeout(() => popup.remove(), 700);
+        });
       scoreDisplay.classList.remove('pop');
       void scoreDisplay.offsetHeight;
       scoreDisplay.classList.add('pop');
@@ -615,11 +640,15 @@
       const ey = el.y * H;
       const dx = cx - ex;
       const dy = cy - ey;
-      const r = el.size * 0.5;
+      const r = Math.max(el.size * 0.6, 35); // larger hit area for mobile
       return (dx * dx + dy * dy) < r * r;
     }
 
+    let lastHitTime = 0;
     function pointerDown(e) {
+      // Throttle to prevent double-register on fast taps
+      const now = performance.now();
+      if (now - lastHitTime < 100) return;
       if (!gameRunning) return;
       const rect = canvas.getBoundingClientRect();
       const cx = ((e.clientX || e.touches?.[0]?.clientX || W/2) / rect.width) * W;
@@ -635,6 +664,7 @@
         if (checkHit(el, cx, cy)) {
           handleCatch(el);
           hit = true;
+          lastHitTime = now;
           break;
         }
       }
@@ -642,6 +672,13 @@
         // Miss: reset streak
         streak = 0;
         streakFill.style.width = '0%';
+        // Flash red briefly on miss
+        if (streak > 0) {
+          streakFill.style.background = 'linear-gradient(90deg, #BA2F22, #BA2F22)';
+          setTimeout(() => {
+            streakFill.style.background = 'linear-gradient(90deg, #D4A657, #BA2F22)';
+          }, 200);
+        }
       }
     }
 
@@ -688,6 +725,13 @@
           // Miss: reset streak
           streak = 0;
           streakFill.style.width = '0%';
+        // Flash red briefly on miss
+        if (streak > 0) {
+          streakFill.style.background = 'linear-gradient(90deg, #BA2F22, #BA2F22)';
+          setTimeout(() => {
+            streakFill.style.background = 'linear-gradient(90deg, #D4A657, #BA2F22)';
+          }, 200);
+        }
           toRemove.push(el);
           continue;
         }
@@ -752,6 +796,7 @@
     document.getElementById('start-btn').addEventListener('click', startGame);
     document.getElementById('retry-btn').addEventListener('click', startGame);
     document.getElementById('home-btn').addEventListener('click', () => {
+      // Keep current behavior but add aria support
       window.location.href = '/edo-woodblock/drops/';
     });
 
