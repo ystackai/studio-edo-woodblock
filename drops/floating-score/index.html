@@ -31,10 +31,19 @@
     #hud > div {
       pointer-events: auto;
     }
-    .hud-left, .hud-right {
+    .hud-left, .hud-center, .hud-right {
       display: flex;
       flex-direction: column;
       gap: 4px;
+    }
+    .hud-center {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: center;
+    }
+    .hud-small {
+      font-size: 16px;
     }
     .hud-label {
       font-size: 10px;
@@ -418,6 +427,8 @@
       border-bottom: 1px solid rgba(242,237,230,0.06);
     }
     .stat-row:last-of-type { border-bottom: none; }
+    .stat-row-element { padding-left: 6px; margin-left: 0; font-size: 12px; border-bottom: 1px solid rgba(242,237,230,0.05); }
+    .stat-divider { height: 1px; background: rgba(242,237,230,0.1); margin: 6px 0; }
     .stat-label { color: #9C8E7D; }
     .stat-value { color: #F2EDE6; font-weight: 600; }
         /* --- Difficulty indicator --- */
@@ -509,6 +520,10 @@
       <div class="hud-label">Score</div>
       <div class="hud-value" id="score-display">0</div>
     </div>
+    <div class="hud-center">
+      <div class="hud-label">Multiplier</div>
+      <div class="hud-value hud-small" id="mult-display">×1</div>
+    </div>
     <div class="hud-right" style="text-align:right">
       <div class="hud-label">Level</div>
       <div class="hud-value" id="level-display">1</div>
@@ -589,6 +604,7 @@
     let streak = 0;
     let maxStreak = 0;
     let catches = 0;
+    let elementCounts = {};
     let timeLeft = 60;
     let timerInterval = null;
     let animId = null;
@@ -638,7 +654,17 @@
         osc.stop(audioCtx.currentTime + duration);
       } catch(e) { /* audio not critical */ }
     }
-    function playCatch() { playTone(523, 0.08, 'sine'); }         /* C5 */
+    function playCatch(typeId) {
+      const CATCH_TONES = {
+        wave: { freq: 523, type: 'sine' },
+        blossom: { freq: 659, type: 'triangle' },
+        mountain: { freq: 392, type: 'sawtooth' },
+        bird: { freq: 784, type: 'sine' },
+        cloud: { freq: 440, type: 'triangle' }
+      };
+      const t = CATCH_TONES[typeId] || { freq: 523, type: 'sine' };
+      playTone(t.freq, 0.08, t.type);
+    }         /* C5 */
     function playMiss()  { playTone(150, 0.15, 'sawtooth'); }    /* low buzz */
     function playLevel() { playTone(659, 0.06, 'sine'); setTimeout(() => playTone(784, 0.06, 'sine'), 80); setTimeout(() => playTone(880, 0.06, 'sine'), 160); }
     function playStreak() { playTone(392, 0.1, 'sine'); setTimeout(() => { playTone(523, 0.1, 'sine'); }, 100); setTimeout(() => { playTone(659, 0.1, 'sine'); }, 200); }
@@ -843,6 +869,7 @@
       streak = 0;
       maxStreak = 0;
       catches = 0;
+      elementCounts = {};
       timeLeft = 60;
       paused = false;
       elements = [];
@@ -856,6 +883,8 @@
       gameRunning = true;
 
       scoreDisplay.textContent = '0';
+      const multDisplayMobile = document.getElementById('mult-display');
+      if (multDisplayMobile) multDisplayMobile.textContent = '×1';
       levelDisplay.textContent = '1';
       timerFill.style.width = '100%';
       streakCount.textContent = '';
@@ -913,7 +942,10 @@
         '<div class="stat-row"><span class="stat-label">Catches</span><span class="stat-value">' + catches + '</span></div>' +
         '<div class="stat-row"><span class="stat-label">Max Streak</span><span class="stat-value">' + maxStreak + '</span></div>' +
         '<div class="stat-row"><span class="stat-label">Level Reached</span><span class="stat-value">' + level + '</span></div>' +
-        '<div class="stat-row"><span class="stat-label">Time Played</span><span class="stat-value">' + (60 - timeLeft) + 's</span></div>';
+        '<div class="stat-row"><span class="stat-label">Time Played</span><span class="stat-value">' + (60 - timeLeft) + 's</span></div>' +
+        '<div class="stat-divider"></div>' +
+        ELEMENT_TYPES.map(t => '<div class="stat-row stat-row-element" style="border-left:3px solid ' + t.color + '"><span class="stat-label">' + t.label + '</span><span class="stat-value">' + (elementCounts[t.id] || 0) + ' &times; ' + t.points + '</span></div>').join('') +
+        '<div class="stat-divider"></div>';
 
       // High score
       const saved = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
@@ -1005,10 +1037,11 @@
       streak += 1;
       if (streak > maxStreak) maxStreak = streak;
       catches += 1;
+      elementCounts[typeInfo.id] = (elementCounts[typeInfo.id] || 0) + 1;
 
       // Score: base points * streak multiplier
       const multiplier = 1 + Math.floor(streak / 3);
-      playCatch();
+      playCatch(el.type);
       const gained = el.points * multiplier;
       score += gained;
 
