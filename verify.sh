@@ -197,3 +197,18 @@ else
   echo "FAIL: missing streak-unlock"
   exit 1
 fi
+# Timer seconds display
+if grep -q 'timer-seconds' "$FILE"; then
+  echo "PASS: timer-seconds display found"
+else
+  echo "FAIL: missing timer-seconds display"
+  exit 1
+fi
+
+# playStreak audio function
+if grep -q 'playStreak' "$FILE"; then
+  echo "PASS: playStreak audio function found"
+else
+  echo "FAIL: missing playStreak audio"
+  exit 1
+fi

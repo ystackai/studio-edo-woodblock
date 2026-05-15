@@ -130,6 +130,8 @@ check('drops/floating-score/index.html',
   { name: 'has controls hint', test: c => c.includes('controls-hint') },
   { name: 'has stat-row breakdown', test: c => c.includes('stat-row') },
   { name: 'has relative home URL', test: c => c.includes('../../drops/') },
+  { name: 'has timer-seconds display', test: c => c.includes('timer-seconds') },
+  { name: 'has playStreak audio', test: c => c.includes('playStreak') },
   { name: 'has level announcement element', test: c => c.includes('level-announce') },
   { name: 'has streak unlock element', test: c => c.includes('streak-unlock') },
 );
