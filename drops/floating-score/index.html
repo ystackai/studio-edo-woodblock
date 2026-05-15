@@ -62,6 +62,86 @@
       50% { transform: scale(1.6); color: #D4A657; }
       100% { transform: scale(1); color: #F2EDE6; }
     }
+    /* --- Mute toggle --- */
+    #mute-btn {
+      position: fixed; top: 16px; right: 60px;
+      z-index: 11;
+      background: transparent;
+      border: 1px solid rgba(242,237,230,0.2);
+      color: #9C8E7D;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+      pointer-events: auto;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      transition: all 0.2s ease;
+    }
+    #mute-btn:hover { border-color: #D4A657; color: #F2EDE6; }
+    #mute-btn.muted { border-color: #BA2F22; color: #BA2F22; }
+    /* --- Pause overlay --- */
+    #pause-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 18;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(26,26,46,0.85);
+      backdrop-filter: blur(4px);
+      padding: 20px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #pause-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #pause-overlay h2 {
+      font-size: 24px;
+      color: #F2EDE6;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+    #pause-overlay p {
+      color: #9C8E7D;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    /* --- Element legend on start screen --- */
+    .element-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin: 8px 0;
+    }
+    .element-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      background: rgba(242,237,230,0.06);
+      color: #9C8E7D;
+      letter-spacing: 0.02em;
+    }
+    .element-legend-item .el-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .element-legend-item .el-pts {
+      color: #D4A657;
+      font-weight: 600;
+      margin-left: 2px;
+    }
     #streak-bar {
       position: fixed; bottom: 70px; left: 20px; right: 20px;
       height: 4px;
@@ -201,6 +281,24 @@
       background: #9C8E7D;
       color: #1a1a2e;
     }
+    #pause-btn {
+      font-size: 10px;
+      padding: 6px 18px;
+      border-color: #9C8E7D;
+      color: #9C8E7D;
+      background: transparent;
+      border: 1px solid #9C8E7D;
+      border-radius: 24px;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.04em;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+    #pause-btn:hover {
+      background: #9C8E7D;
+      color: #1a1a2e;
+    }
     .highscore-display {
       font-size: 13px;
       color: #5886A0;
@@ -307,7 +405,8 @@
     </div>
     <div class="hud-right" style="text-align:right">
       <div class="hud-label">Level</div>
-      <div class="hud-value" id="level-display">1</div>
+      <div class="hud-value" id="level-display">1  <button id="mute-btn" aria-label="Toggle sound">♫ Sound</button>
+</div>
     </div>
   </div>
 
@@ -318,6 +417,11 @@
 
   <div id="timer-text"><span id="timer-seconds">60</span><span class="timer-unit">s</span></div>
   <div class="watermark">浮世 · Floating Score</div>
+  <div id="pause-overlay">
+    <h2>⏸ Paused</h2>
+    <p>Press <kbd>P</kbd> or <kbd>Esc</kbd> to resume</p>
+    <button id="pause-btn" aria-label="Resume the game">Resume</button>
+  </div>
 
   <div id="level-announce"></div>
   <div id="streak-unlock"></div>
@@ -327,6 +431,7 @@
     <p>Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
     <button class="btn" id="start-btn" aria-label="Begin the game">🎨 Begin</button>
     <p class="controls-hint">Tap or press <kbd>Space</kbd> / <kbd>Enter</kbd> to catch</p>
+    <div class="element-legend" id="el-legend"></div>
     <div class="highscore-display" id="start-hs"></div>
   </div>
 
@@ -369,6 +474,8 @@
     let timeLeft = 60;
     let timerInterval = null;
     let animId = null;
+    let audioMuted = false;
+    let paused = false;
 
     // Ukiyo-e color palette
     const COLORS = {
@@ -398,6 +505,7 @@
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     function playTone(freq, duration, type) {
+      if (audioMuted) return;
       try {
         ensureAudio();
         const osc = audioCtx.createOscillator();
@@ -618,11 +726,13 @@
       maxStreak = 0;
       catches = 0;
       timeLeft = 60;
+      paused = false;
       elements = [];
       particles = [];
       cloudBg = null;
 
       startScreen.classList.add('hidden');
+      document.getElementById('pause-overlay').classList.remove('show');
       overScreen.classList.add('hidden');
       gameRunning = true;
 
@@ -726,6 +836,46 @@
       }
       fadeStep();
     }
+    // --- Pause controls ---
+    function togglePause() {
+      if (!gameRunning) return;
+      paused = !paused;
+      document.getElementById('pause-overlay').classList.toggle('show', paused);
+      if (paused) {
+        // Pause timer
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null;
+      } else {
+        // Resume timer
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          timeLeft -= 1;
+          const pct = Math.max(0, (timeLeft / 60) * 100);
+          timerSeconds.textContent = String(timeLeft);
+          timerFill.style.width = pct + '%';
+          if (timeLeft <= 10) {
+            timerSeconds.classList.add('danger'); timerSeconds.classList.remove('warning');
+            timerFill.style.background = '#BA2F22';
+          } else if (timeLeft <= 20) {
+            timerSeconds.classList.add('warning'); timerSeconds.classList.remove('danger');
+            timerFill.style.background = '#D4A657';
+          } else {
+            timerSeconds.classList.remove('warning','danger');
+            timerFill.style.background = '#5886A0';
+          }
+          if (timeLeft <= 0) endGame();
+        }, 1000);
+      }
+    }
+
+    // --- Mute toggle ---
+    function toggleMute() {
+      audioMuted = !audioMuted;
+      const btn = document.getElementById('mute-btn');
+      btn.textContent = audioMuted ? '♫ Muted' : '♫ Sound';
+      btn.classList.toggle('muted', audioMuted);
+    }
+
 
     function handleCatch(el) {
       if (!gameRunning) return;
@@ -864,6 +1014,10 @@
 
     function loop() {
       if (!gameRunning && animId === null) return;
+      if (paused) {
+        animId = requestAnimationFrame(loop);
+        return;
+      }
 
       const now = performance.now() / 1000;
 
@@ -956,6 +1110,10 @@
     }, { passive: false });
 
     document.addEventListener('keydown', (e) => {
+      if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+        if (gameRunning) { togglePause(); return; }
+      }
+
       if (e.key === ' ' || e.key === 'Enter') {
         if (!gameRunning && !startScreen.classList.contains('hidden')) {
           startGame();
@@ -968,13 +1126,22 @@
     // --- Start/Retry ---
     document.getElementById('start-btn').addEventListener('click', startGame);
     document.getElementById('retry-btn').addEventListener('click', startGame);
-    document.getElementById('home-btn').addEventListener('click', () => {
+    document.getElementById('home-btn').addEventListener('click', () => {    document.getElementById('mute-btn').addEventListener('click', toggleMute);
+    document.getElementById('pause-btn').addEventListener('click', togglePause);
+
       // Keep current behavior but add aria support
       window.location.href = '../../drops/';
     });
 
     // --- Show saved high score ---
     const savedHs = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
+    // Build element legend from ELEMENT_TYPES
+    const legendEl = document.getElementById('el-legend');
+    if (legendEl) {
+      legendEl.innerHTML = ELEMENT_TYPES.map(t => 
+        '<span class="element-legend-item"><span class="el-dot" style="background:' + t.color + '"></span> ' + t.label + ' <span class="el-pts">' + t.points + '</span></span>'
+      ).join('');
+    }
     if (savedHs > 0) {
       startHs.textContent = 'Best: ' + savedHs;
       hudHsDisplay.textContent = String(savedHs);

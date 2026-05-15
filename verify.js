@@ -135,3 +135,15 @@ check('drops/floating-score/index.html',
   { name: 'has level announcement element', test: c => c.includes('level-announce') },
   { name: 'has streak unlock element', test: c => c.includes('streak-unlock') },
 );
+// --- Floating Score UX polish (round 3) ---
+check('drops/floating-score/index.html',
+  { name: 'has mute toggle button', test: c => c.includes('mute-btn') },
+  { name: 'has pause overlay', test: c => c.includes('pause-overlay') },
+  { name: 'has togglePause function', test: c => c.includes('togglePause') },
+  { name: 'has toggleMute function', test: c => c.includes('toggleMute') },
+  { name: 'has audioMuted flag', test: c => c.includes('audioMuted') },
+  { name: 'has element legend', test: c => c.includes('element-legend') },
+  { name: 'has pause keyboard handler', test: c => c.includes("e.key === 'p'") || c.includes('Escape') },
+);
+
+
