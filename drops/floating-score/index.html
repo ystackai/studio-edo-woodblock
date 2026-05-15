@@ -214,6 +214,10 @@
       opacity: 0;
       pointer-events: none;
     }
+    #start-screen.fade-out {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
     #start-screen h1, #over-screen h1 {
       font-size: 28px;
       color: #F2EDE6;
@@ -229,13 +233,26 @@
       letter-spacing: 0.04em;
       margin-top: 4px;
     }
-    #start-screen p, #over-screen p {
+    #start-screen p, #over-screen p, .start-copy {
       color: #9C8E7D;
       font-size: 13px;
       max-width: 300px;
       line-height: 1.6;
       margin: 12px 0;
     }
+    .start-quote {
+      font-style: italic;
+      color: #D4A657;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      margin: 8px 0 16px;
+      padding: 8px 16px;
+      border-left: 2px solid rgba(212,166,87,0.3);
+      max-width: 320px;
+      line-height: 1.5;
+      opacity: 0.85;
+    }
+
     .score-final {
       font-size: 48px;
       font-weight: 700;
@@ -362,7 +379,36 @@
       #streak-bar { bottom: 60px; }
       #timer-bar { bottom: 48px; }
     }
-      /* --- Game-over stats breakdown --- */
+          /* --- Miss feedback effects --- */
+    .miss-ring {
+      position: fixed;
+      pointer-events: none;
+      z-index: 15;
+      border-radius: 50%;
+      border: 2px solid rgba(186,47,34,0.6);
+      opacity: 1;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+    .miss-ring.active {
+      opacity: 0;
+      transform: scale(2.5);
+    }
+
+    /* --- Game-over decorative elements --- */
+    .over-blossom {
+      position: fixed;
+      pointer-events: none;
+      z-index: 4;
+      font-size: 32px;
+      opacity: 0.06;
+      animation: overBlossomDrift 8s ease-in-out infinite;
+    }
+    @keyframes overBlossomDrift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.06; }
+      50% { transform: translate(15px, -20px) rotate(180deg); opacity: 0.1; }
+    }
+
+/* --- Game-over stats breakdown --- */
     .stat-row {
       display: flex;
       justify-content: space-between;
@@ -374,7 +420,32 @@
     .stat-row:last-of-type { border-bottom: none; }
     .stat-label { color: #9C8E7D; }
     .stat-value { color: #F2EDE6; font-weight: 600; }
-    /* --- Streak count text --- */
+        /* --- Difficulty indicator --- */
+    #diff-indicator {
+      position: fixed; top: 48px; left: 50%; transform: translateX(-50%);
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: #9C8E7D;
+      letter-spacing: 0.06em;
+    }
+    #diff-bar {
+      width: 60px; height: 2px;
+      background: rgba(242,237,230,0.1);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    #diff-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #5886A0, #D4A657, #BA2F22);
+      transition: width 0.5s ease;
+    }
+
+/* --- Streak count text --- */
     #streak-count {
       position: fixed; bottom: 82px; left: 60px;
       font-size: 11px;
@@ -451,6 +522,10 @@
   <div id="timer-bar"><div id="timer-fill"></div></div>
 
   <div id="timer-text"><span id="timer-seconds">60</span><span class="timer-unit">s</span></div>
+  <div id="diff-indicator">
+    <span>PACE</span>
+    <div id="diff-bar"><div id="diff-fill"></div></div>
+  </div>
   <div class="watermark">浮世 · Floating Score</div>
   <div id="pause-overlay">
     <h2>⏸ Paused</h2>
@@ -463,7 +538,9 @@
     <div id="game-aria-live" aria-live="polite" aria-atomic="true" style="position:fixed;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap"></div>
   <div id="start-screen">
     <h1>Floating Score<span>Catch the floating world</span></h1>
+    <div class="start-quote">"The floating world is a world of fleeting beauty — catch what drifts before it fades."</div>
     <p>Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
+    <p class="start-copy">Waves, blossoms, mountains, birds, clouds — each carry the spirit of ukiyo-e. Collect them all, build your streak, and chase the high score.</p>
     <button class="btn" id="start-btn" aria-label="Begin the game">🎨 Begin</button>
     <p class="controls-hint">Tap or press <kbd>Space</kbd> / <kbd>Enter</kbd> to catch</p>
     <div class="element-legend" id="el-legend"></div>
@@ -477,6 +554,12 @@
     <button class="btn" id="retry-btn" aria-label="Play again">☼ Play Again</button>
     <button class="btn secondary" id="home-btn" aria-label="Return to drops catalog">Back to Drops</button>
     <div class="highscore-display" id="over-hs"></div>
+    <!-- Decorative blossoms behind game-over -->
+    <div class="over-blossom" style="top:10%;left:5%;">🌸</div>
+    <div class="over-blossom" style="top:15%;left:85%;animation-delay:2s;">🌸</div>
+    <div class="over-blossom" style="top:75%;left:10%;animation-delay:4s;">🌸</div>
+    <div class="over-blossom" style="top:80%;left:80%;animation-delay:1s;">🌸</div>
+    <div class="over-blossom" style="top:50%;left:92%;animation-delay:3s;">🌸</div>
   </div>
 
   <script>
@@ -766,7 +849,8 @@
       particles = [];
       cloudBg = null;
 
-      startScreen.classList.add('hidden');
+      startScreen.classList.add('fade-out');
+      setTimeout(() => { startScreen.classList.add('hidden'); startScreen.classList.remove('fade-out'); }, 400);
       document.getElementById('pause-overlay').classList.remove('show');
       overScreen.classList.add('hidden');
       gameRunning = true;
@@ -776,6 +860,7 @@
       timerFill.style.width = '100%';
       streakCount.textContent = '';
       streakCount.classList.remove('show');
+      document.getElementById('diff-fill').style.width = '0%';
 
       // Spawn initial elements
       for (let i = 0; i < 3 + level; i++) {
@@ -938,6 +1023,10 @@
         streakUnlock.classList.add("show");
         setTimeout(() => streakUnlock.classList.remove("show"), 1500);
         playStreak();
+        // Star burst at streak milestone
+        spawnParticles(el.x * W, el.y * H, 20, '#D4A657');
+        spawnParticles(el.x * W + 30, el.y * H + 30, 15, '#F4C9C9');
+        spawnParticles(el.x * W - 30, el.y * H - 30, 15, '#F2EDE6');
       }
       const streakPct = Math.min(100, (streak / 15) * 100);
       streakFill.style.width = streakPct + '%';
@@ -953,6 +1042,9 @@
         levelDisplay.classList.remove('level-up');
         void levelDisplay.offsetHeight;
         playLevel();
+        // Update difficulty indicator
+        var diffPct = Math.min(100, ((level - 1) / 9) * 100);
+        document.getElementById('diff-fill').style.width = diffPct + '%';
         // Celebration burst on level up
         spawnParticles(W/2, H/2, 30, COLORS.yellow);
         spawnParticles(W/2 - 40, H/2 - 40, 20, COLORS.paper);
@@ -984,8 +1076,13 @@
       scoreDisplay.classList.add('pop');
 
       // Particles at catch
-      spawnParticles(el.x * W, el.y * H, 10,
-        typeInfo ? typeInfo.color : COLORS.yellow);
+      // Enhanced catch burst with combo color
+      var comboColor = multiplier > 1 ? '#D4A657' : (typeInfo ? typeInfo.color : COLORS.yellow);
+      spawnParticles(el.x * W, el.y * H, 10 + streak * 2, comboColor);
+      // Extra sparkle on combo
+      if (multiplier > 1) {
+        spawnParticles(el.x * W + 20, el.y * H + 20, 5, '#F2EDE6');
+      }
       // Brief canvas flash overlay
       const flash = document.createElement('div');
       flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:12;pointer-events:none;background:radial-gradient(ellipse at ' + (el.x * W) + 'px ' + (el.y * H) + 'px, rgba(212,166,87,0.15), transparent 70%);transition:opacity 0.3s ease;opacity:1;';
@@ -1036,12 +1133,28 @@
       }
       if (!hit) {
         playMiss();
+        // Miss ripple effect
+        const ring = document.createElement('div');
+        ring.className = 'miss-ring';
+        ring.style.cssText = 'left:' + (cx/W*100) + '%;top:' + (cy/H*100) + '%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;border:2px solid rgba(186,47,34,0.6);position:fixed;pointer-events:none;z-index:15;opacity:1;transition:transform 0.4s ease, opacity 0.4s ease;';
+        document.body.appendChild(ring);
+        requestAnimationFrame(() => {
+          ring.style.transform = 'scale(2.5)';
+          ring.style.opacity = '0';
+          setTimeout(() => ring.remove(), 450);
+        });
+        // Screen shake
+        const shakeIntensity = 6;
+        document.body.style.transform = 'translate(' + (Math.random()*2-1)*shakeIntensity + 'px,' + (Math.random()*2-1)*shakeIntensity + 'px)';
+        setTimeout(() => { document.body.style.transform = ''; }, 200);
         streakFill.style.background = "linear-gradient(90deg, #BA2F22, #BA2F22)";
         streakCount.textContent = '';
         streakCount.classList.remove('show');
         setTimeout(() => {
           streakFill.style.background = "linear-gradient(90deg, #D4A657, #BA2F22)";
         }, 200);
+        // Announce miss
+        ariaLive.textContent = 'Miss';
     }
     }
 
