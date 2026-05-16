@@ -212,3 +212,67 @@ else
   echo "FAIL: missing playStreak audio"
   exit 1
 fi
+
+# --- Polish round 8 checks ---
+if grep -q 'danger-pulse' "$FILE"; then
+  echo "PASS: danger-pulse CSS animation"
+else
+  echo "FAIL: missing danger-pulse"
+  exit 1
+fi
+if grep -q 'miss-flash' "$FILE"; then
+  echo "PASS: miss-flash overlay"
+else
+  echo "FAIL: missing miss-flash"
+  exit 1
+fi
+if grep -q 'spawnPetals' "$FILE"; then
+  echo "PASS: sakura petal overlay on game-over"
+else
+  echo "FAIL: missing spawnPetals"
+  exit 1
+fi
+if grep -q 'petalFall' "$FILE"; then
+  echo "PASS: petalFall keyframe animation"
+else
+  echo "FAIL: missing petalFall"
+  exit 1
+fi
+if grep -q 'Gentle Breeze' "$FILE"; then
+  echo "PASS: streak milestone 3 text"
+else
+  echo "FAIL: missing streak milestone 3"
+  exit 1
+fi
+if grep -q 'Autumn Gust' "$FILE"; then
+  echo "PASS: streak milestone 10 text"
+else
+  echo "FAIL: missing streak milestone 10"
+  exit 1
+fi
+
+# --- Polish round 9 checks ---
+if grep -q 'combo-meter' "$FILE"; then
+  echo "PASS: combo meter element"
+else
+  echo "FAIL: missing combo-meter"
+  exit 1
+fi
+if grep -q 'combo-gold' "$FILE"; then
+  echo "PASS: combo-gold class for high streaks"
+else
+  echo "FAIL: missing combo-gold"
+  exit 1
+fi
+if grep -q 'level-flash' "$FILE"; then
+  echo "PASS: level-flash overlay"
+else
+  echo "FAIL: missing level-flash"
+  exit 1
+fi
+if grep -q 'woodblock-texture' "$FILE"; then
+  echo "PASS: woodblock texture overlay"
+else
+  echo "FAIL: missing woodblock-texture"
+  exit 1
+fi

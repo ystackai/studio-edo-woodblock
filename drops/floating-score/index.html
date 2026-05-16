@@ -390,6 +390,63 @@
     }
           /* --- Miss feedback effects --- */
     .miss-ring {
+    
+    
+    /* --- Woodblock grain texture overlay --- */
+    #woodblock-texture {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 3; pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpattern id='g' patternUnits='userSpaceOnUse' width='4' height='4'%3E%3Ccircle cx='1' cy='1' r='0.4' fill='%23F2EDE6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 100px 100px;
+    }
+
+    /* --- Combo meter --- */
+    #combo-meter {
+      position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+      z-index: 10; pointer-events: none;
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 0.08em;
+      opacity: 0;
+      transition: opacity 0.3s ease, bottom 0.3s ease;
+      text-shadow: 0 0 12px rgba(212,166,87,0.4);
+    }
+    #combo-meter.show {
+      opacity: 1;
+      bottom: 130px;
+    }
+    #combo-meter .combo-icon { color: #D4A657; }
+    #combo-meter .combo-label { color: #F2EDE6; margin-left: 4px; }
+    #combo-meter.combo-gold .combo-icon,
+    #combo-meter.combo-gold .combo-label { color: #FFD700; }
+    /* --- Level-up flash overlay --- */
+    .level-flash {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 13; pointer-events: none;
+      background: radial-gradient(circle, rgba(212,166,87,0.15), transparent 60%);
+      opacity: 0; transition: opacity 0.2s ease;
+    }
+    .level-flash.show { opacity: 1; }
+
+    /* --- Timer danger pulse --- */
+    #timer-seconds.danger-pulse {
+      animation: dangerPulse 0.6s ease-in-out infinite;
+    }
+    @keyframes dangerPulse {
+      0%, 100% { color: #BA2F22; transform: scale(1); opacity: 1; }
+      50% { color: #FF3B3B; transform: scale(1.15); opacity: 0.75; }
+    }
+
+    /* --- Miss flash overlay --- */
+    .miss-flash {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 14; pointer-events: none;
+      background: radial-gradient(circle, rgba(186,47,34,0.3), transparent 70%);
+      opacity: 0; transition: opacity 0.15s ease;
+    }
+    .miss-flash.show { opacity: 1; }
+
       position: fixed;
       pointer-events: none;
       z-index: 15;
@@ -403,6 +460,8 @@
       transform: scale(2.5);
     }
 
+    /* --- Sakura petal fall animation --- */
+@keyframes petalFall { 0% { transform: translate(0, -10px) rotate(0deg); opacity: 0; } 10% { opacity: 0.06; } 90% { opacity: 0.03; } 100% { transform: translate(0px, 100vh) rotate(360deg); opacity: 0; } }
     /* --- Game-over decorative elements --- */
     .over-blossom {
       position: fixed;
@@ -542,7 +601,11 @@
     <div id="diff-bar"><div id="diff-fill"></div></div>
   </div>
   <div class="watermark">浮世 · Floating Score</div>
-  <div id="pause-overlay">
+  <div id="miss-flash" class="miss-flash"></div>
+    <div id="combo-meter"><span class="combo-icon">&#x2727;</span><span class="combo-label">Combo</span></div>
+    <div class="level-flash" id="level-flash"></div>
+    <div id="woodblock-texture"></div>
+    <div id="pause-overlay">
     <h2>⏸ Paused</h2>
     <p>Press <kbd>P</kbd> or <kbd>Esc</kbd> to resume</p>
     <button id="pause-btn" aria-label="Resume the game">Resume</button>
@@ -907,14 +970,14 @@
         timerFill.style.width = pct + '%';
         // Time warning flash
         if (timeLeft <= 10) {
-        timerSeconds.classList.add('danger'); timerSeconds.classList.remove('warning');
+        timerSeconds.classList.add('danger','danger-pulse'); timerSeconds.classList.remove('warning');
           timerFill.style.background = '#BA2F22';
         } else if (timeLeft <= 20) {
         timerSeconds.classList.add('warning'); timerSeconds.classList.remove('danger');
 
           timerFill.style.background = '#D4A657';
         } else {
-          timerSeconds.classList.remove('warning','danger');
+          timerSeconds.classList.remove('warning','danger','danger-pulse');
           timerFill.style.background = '#5886A0';
         }
         if (timeLeft <= 0) endGame();
@@ -962,6 +1025,26 @@
       streakCount.textContent = '';
       streakCount.classList.remove('show');
       paintFinalFrame();
+      // Sakura petal overlay
+      spawnPetals(12);
+      // Auto-focus retry button for keyboard users
+      setTimeout(() => { document.getElementById('retry-btn')?.focus(); }, 100);
+    }
+
+    
+    function spawnPetals(count) {
+      const petalChars = ['\u{1F338}','\u271D','\u25CC','.']; 
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.textContent = petalChars[i % petalChars.length];
+        const sz = 12 + Math.random() * 16;
+        const left = Math.random() * 100;
+        const dur = 6 + Math.random() * 6;
+        const delay = Math.random() * 3;
+        p.style.cssText = 'position:fixed;pointer-events:none;z-index:5;font-size:' + sz + 'px;opacity:' + (0.04 + Math.random() * 0.06) + ';left:' + left + '%;top:-20px;animation:petalFall ' + dur + 's ease-in infinite;animation-delay:' + delay + 's;';
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 12000);
+      }
     }
 
     function paintFinalFrame() {
@@ -1041,13 +1124,13 @@
           timerSeconds.textContent = String(timeLeft);
           timerFill.style.width = pct + '%';
           if (timeLeft <= 10) {
-            timerSeconds.classList.add('danger'); timerSeconds.classList.remove('warning');
+            timerSeconds.classList.add('danger','danger-pulse'); timerSeconds.classList.remove('warning');
             timerFill.style.background = '#BA2F22';
           } else if (timeLeft <= 20) {
             timerSeconds.classList.add('warning'); timerSeconds.classList.remove('danger');
             timerFill.style.background = '#D4A657';
           } else {
-            timerSeconds.classList.remove('warning','danger');
+            timerSeconds.classList.remove('warning','danger','danger-pulse');
             timerFill.style.background = '#5886A0';
           }
           if (timeLeft <= 0) endGame();
@@ -1083,9 +1166,9 @@
 
       // Streak bar
       // Streak unlock announcements
-      if (streak === 5 || streak === 15) {
+      if (streak === 3 || streak === 5 || streak === 10 || streak === 15) {
         // Special streak sound
-        var ut = streak === 5 ? "Flowing Streak!" : "Master Streak!";
+        var ut = streak === 3 ? "Gentle Breeze!" : streak === 5 ? "Flowing Streak!" : streak === 10 ? "Autumn Gust!" : "Master Streak!";
         streakUnlock.textContent = ut;
         streakUnlock.classList.remove("show");
         void streakUnlock.offsetHeight;
@@ -1101,6 +1184,20 @@
       streakFill.style.width = streakPct + '%';
       streakCount.textContent = String(streak);
       streakCount.classList.add('show');
+
+      // Combo meter update
+      const comboMeter = document.getElementById('combo-meter');
+      if (comboMeter) {
+        if (streak >= 3) {
+          const comboLabels = { 3:'&#x2727; Combo', 5:'&#x2727; Flowing', 10:'&#x2727; Autumn', 15:'&#x2727; Master' };
+          const label = Object.keys(comboLabels).sort((a,b)=>parseInt(b)-parseInt(a)).find(k => streak >= parseInt(k));
+          comboMeter.innerHTML = '<span class="combo-icon">&#x2727;</span><span class="combo-label">' + (label ? comboLabels[label] : 'Combo') + ' x' + streak + '</span>';
+          comboMeter.classList.add('show');
+          if (streak >= 5) comboMeter.classList.add('combo-gold');
+        } else {
+          comboMeter.classList.remove('show','combo-gold');
+        }
+      }
       ariaLive.textContent = streak === 1 ? 'Streak ' + streak : 'Streak ' + streak + '!';
 
       // Level check: every 10 catches
@@ -1215,6 +1312,9 @@
         // Screen shake
         const shakeIntensity = 6;
         document.body.style.transform = 'translate(' + (Math.random()*2-1)*shakeIntensity + 'px,' + (Math.random()*2-1)*shakeIntensity + 'px)';
+        // Miss flash
+        const flash = document.getElementById('miss-flash');
+        if (flash) { flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 150); }
         setTimeout(() => { document.body.style.transform = ''; }, 200);
         streakFill.style.background = "linear-gradient(90deg, #BA2F22, #BA2F22)";
         streakCount.textContent = '';
