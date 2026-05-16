@@ -310,3 +310,17 @@ else
   echo "FAIL: missing ambient drone"
   exit 1
 fi
+
+# --- Polish round 10c checks ---
+if grep -q 'game-over-flavor' "$FILE"; then
+  echo "PASS: game-over ukiyo-e flavor text"
+else
+  echo "FAIL: missing game-over flavor text"
+  exit 1
+fi
+if grep -q '@keyframes fadeIn' "$FILE"; then
+  echo "PASS: fadeIn keyframe animation"
+else
+  echo "FAIL: missing fadeIn keyframe"
+  exit 1
+fi

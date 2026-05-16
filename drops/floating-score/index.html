@@ -461,7 +461,11 @@
     }
 
     /* --- Sakura petal fall animation --- */
-@keyframes petalFall { 0% { transform: translate(0, -10px) rotate(0deg); opacity: 0; } 10% { opacity: 0.06; } 90% { opacity: 0.03; } 100% { transform: translate(0px, 100vh) rotate(360deg); opacity: 0; } }
+@keyframes fadeIn {
+      from { opacity: 0; transform: translate(-50%, 10px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    @keyframes petalFall { 0% { transform: translate(0, -10px) rotate(0deg); opacity: 0; } 10% { opacity: 0.06; } 90% { opacity: 0.03; } 100% { transform: translate(0px, 100vh) rotate(360deg); opacity: 0; } }
     /* --- Game-over decorative elements --- */
     .over-blossom {
       position: fixed;
@@ -1077,6 +1081,20 @@
       finalScore.classList.toggle('new-highscore', isNew);
       hudHsDisplay.textContent = String(Math.max(total, saved));
       ariaLive.textContent = 'Game over. Final score ' + total + '. ' + (isNew ? 'New high score!' : '');
+      // Ukiyo-e wisdom flavor text based on score
+      const flavorQuotes = [
+        { min: 0, text: '🌸 "Even a single petal reminds us — beauty drifts, catch what you can."' },
+        { min: 100, text: '🎋 "The wave that breaks upon the shore carries the memory of the open sea."' },
+        { min: 300, text: '🏔️ "A mountain seen through morning mist — impermanent, yet eternal."' },
+        { min: 500, text: '🕊️ "Like birds crossing the floating world, our moments scatter on the wind."' },
+        { min: 800, text: '✨ "You have touched the floating world's heart. Well caught, traveler."' }
+      ];
+      const flavor = flavorQuotes.slice().reverse().find(q => total >= q.min) || flavorQuotes[0];
+      const flavorEl = document.createElement('div');
+      flavorEl.id = 'game-over-flavor';
+      flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:25;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;';
+      flavorEl.textContent = flavor.text;
+      document.body.appendChild(flavorEl);
       overScreen.classList.remove('hidden');
       streakCount.textContent = '';
       streakCount.classList.remove('show');
