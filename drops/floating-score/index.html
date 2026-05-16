@@ -1036,10 +1036,6 @@
       };
       requestAnimationFrame(step);
     }
-        else el.textContent = target;
-      };
-      requestAnimationFrame(step);
-    }
 
 
     function endGame() {
@@ -1087,7 +1083,7 @@
         { min: 100, text: '🎋 "The wave that breaks upon the shore carries the memory of the open sea."' },
         { min: 300, text: '🏔️ "A mountain seen through morning mist — impermanent, yet eternal."' },
         { min: 500, text: '🕊️ "Like birds crossing the floating world, our moments scatter on the wind."' },
-        { min: 800, text: '✨ "You have touched the floating world's heart. Well caught, traveler."' }
+        { min: 800, text: '✨ "You have touched the floating world\'s heart. Well caught, traveler."' }
       ];
       const flavor = flavorQuotes.slice().reverse().find(q => total >= q.min) || flavorQuotes[0];
       const flavorEl = document.createElement('div');
