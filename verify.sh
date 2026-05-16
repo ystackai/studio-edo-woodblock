@@ -276,3 +276,37 @@ else
   echo "FAIL: missing woodblock-texture"
   exit 1
 fi
+
+# --- Polish round 10 checks ---
+if grep -q 'function animateCountUp' "$FILE"; then
+  echo "PASS: count-up score animation function"
+else
+  echo "FAIL: missing animateCountUp"
+  exit 1
+fi
+if grep -q 'animateCountUp.*finalScore' "$FILE"; then
+  echo "PASS: count-up score animation used on game-over"
+else
+  echo "FAIL: animateCountUp not called for final score"
+  exit 1
+fi
+
+# --- Polish round 10b checks ---
+if grep -q 'new-highscore' "$FILE"; then
+  echo "PASS: new-highscore CSS class for celebration glow"
+else
+  echo "FAIL: missing new-highscore"
+  exit 1
+fi
+if grep -q 'Beat previous record' "$FILE"; then
+  echo "PASS: score comparison message on game-over"
+else
+  echo "FAIL: missing score comparison"
+  exit 1
+fi
+if grep -q 'startAmbientDrone' "$FILE"; then
+  echo "PASS: ambient drone audio function"
+else
+  echo "FAIL: missing ambient drone"
+  exit 1
+fi

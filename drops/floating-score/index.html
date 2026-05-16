@@ -672,6 +672,7 @@
     let timerInterval = null;
     let animId = null;
     let audioMuted = false;
+    let ambientDroneId = null;
     let paused = false;
 
     // Ukiyo-e color palette
@@ -730,8 +731,34 @@
     }         /* C5 */
     function playMiss()  { playTone(150, 0.15, 'sawtooth'); }    /* low buzz */
     function playLevel() { playTone(659, 0.06, 'sine'); setTimeout(() => playTone(784, 0.06, 'sine'), 80); setTimeout(() => playTone(880, 0.06, 'sine'), 160); }
-    function playStreak() { playTone(392, 0.1, 'sine'); setTimeout(() => { playTone(523, 0.1, 'sine'); }, 100); setTimeout(() => { playTone(659, 0.1, 'sine'); }, 200); }
-    function playGameOver() { playTone(200, 0.3, 'sawtooth'); setTimeout(() => playTone(150, 0.4, 'sawtooth'), 150); }
+    function playStreak() { playTone(392, 0.1, 'sine'); setTimeout(() => { playTone(523, 0.1, 'sine'); }, 100); setTimeout(() => { playTone(659, 0.1, 'sine'); }, 200); setTimeout(() => { playTone(784, 0.15, 'triangle'); }, 280); }
+    function playGameOver() { playTone(200, 0.3, 'sawtooth'); setTimeout(() => playTone(150, 0.4, 'sawtooth'), 150); setTimeout(() => playTone(120, 0.5, 'sine'), 300); setTimeout(() => playTone(90, 0.6, 'triangle'), 450); }
+    function startAmbientDrone() {
+      if (audioMuted || ambientDroneId) return;
+      try {
+        ensureAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 55;
+        gain.gain.value = 0.3;
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 60);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        ambientDroneId = { osc, gain };
+      } catch(e) { /* ignore */ }
+    }
+    function stopAmbientDrone() {
+      if (ambientDroneId) {
+        try {
+          ambientDroneId.gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
+          setTimeout(() => { ambientDroneId.osc.stop(); ambientDroneId = null; }, 1000);
+        } catch(e) { ambientDroneId = null; }
+      }
+    }
+
+
 
     // --- Game objects ---
     let elements = [];
@@ -988,7 +1015,31 @@
       loop();
     }
 
+    function animateCountUp(el, target, durationMs) {
+      const startVal = 0;
+      const startTime = performance.now();
+      const step = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        // Ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(startVal + (target - startVal) * eased);
+        el.textContent = current;
+        // Tick sound at every 50 points
+        if (current > 0 && current % 50 === 0) playTone(800 + (current % 100) * 2, 0.03, 'sine');
+        if (progress < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      };
+      requestAnimationFrame(step);
+    }
+        else el.textContent = target;
+      };
+      requestAnimationFrame(step);
+    }
+
+
     function endGame() {
+      stopAmbientDrone();
       playGameOver();
       gameRunning = false;
       if (timerInterval) clearInterval(timerInterval);
@@ -997,7 +1048,8 @@
       const streakBonus = maxStreak * 5;
       const total = score + streakBonus;
 
-      finalScore.textContent = total;
+      // Animate score count-up instead of setting instantly
+      animateCountUp(finalScore, total, 800);
       finalDetail.innerHTML = '\
         <div class="stat-row"><span class="stat-label">Base Score</span><span class="stat-value">' + score + '</span></div>' +
         '<div class="stat-row"><span class="stat-label">Streak Bonus</span><span class="stat-value">+' + streakBonus + '</span></div>' +
@@ -1019,6 +1071,10 @@
       }
 
       overHs.innerHTML = (isNew ? '✦ New high score!' : 'Best: ' + saved);
+      const scoreDiff = Math.abs(total - saved);
+      const compareMsg = isNew ? '🎉 Beat previous record by ' + scoreDiff + ' points!' : '📈 ' + scoreDiff + ' points away from high score';
+      overHs.innerHTML += '<br><span style="font-size:13px;opacity:0.8">' + compareMsg + '</span>';
+      finalScore.classList.toggle('new-highscore', isNew);
       hudHsDisplay.textContent = String(Math.max(total, saved));
       ariaLive.textContent = 'Game over. Final score ' + total + '. ' + (isNew ? 'New high score!' : '');
       overScreen.classList.remove('hidden');
@@ -1144,6 +1200,7 @@
       const btn = document.getElementById('mute-btn');
       btn.textContent = audioMuted ? '♫ Muted' : '♫ Sound';
       btn.classList.toggle('muted', audioMuted);
+      if (audioMuted) { stopAmbientDrone(); } else if (gameRunning) { startAmbientDrone(); }
     }
 
 
