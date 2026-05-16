@@ -1,1 +1,0 @@
-{ description = "Reviews coherence, presentation, and release notes.", developer_instructions = "Act as the curation subagent. Verify the work feels intentional, summarize the review outcome, and flag anything that should return for iteration.", name = "Curator" }

@@ -974,15 +974,50 @@
         if (opacity < 1.0) {
           requestAnimationFrame(fadeStep);
         } else {
-          // Draw decorative pattern
+          // Draw decorative ukiyo-e composition
           ctx.save();
-          for (let i = 0; i < 30; i++) {
-            const x = Math.random() * W;
-            const y = Math.random() * H;
-            drawWave(ctx, x, y, i * 10, 40 + Math.random() * 40);
-            drawBlossom(ctx, x + Math.random() * 40 - 20, y + Math.random() * 40 - 20, i * 5, 30 + Math.random() * 30);
-            drawCloud(ctx, x + Math.random() * 30 - 15, y + Math.random() * 30 - 15, i * 3, 20 + Math.random() * 20);
-          }
+          const layoutPositions = [
+            // Waves at bottom foreground
+            { type: 'wave', x: 0.15, y: 0.85, t: 0, size: 70 },
+            { type: 'wave', x: 0.40, y: 0.88, t: 2, size: 55 },
+            { type: 'wave', x: 0.70, y: 0.82, t: 4, size: 65 },
+            { type: 'wave', x: 0.90, y: 0.87, t: 1, size: 50 },
+            // Blossom trees middle distance
+            { type: 'blossom', x: 0.10, y: 0.50, t: 0, size: 45 },
+            { type: 'blossom', x: 0.35, y: 0.45, t: 3, size: 50 },
+            { type: 'blossom', x: 0.65, y: 0.40, t: 1, size: 55 },
+            { type: 'blossom', x: 0.90, y: 0.50, t: 2, size: 40 },
+            // Mountains far background
+            { type: 'mountain', x: 0.25, y: 0.35, t: 0, size: 60 },
+            { type: 'mountain', x: 0.75, y: 0.30, t: 1, size: 70 },
+            // Clouds sky layer
+            { type: 'cloud', x: 0.15, y: 0.20, t: 0, size: 35 },
+            { type: 'cloud', x: 0.50, y: 0.15, t: 1, size: 40 },
+            { type: 'cloud', x: 0.85, y: 0.25, t: 2, size: 30 },
+            // Birds above mountains
+            { type: 'bird', x: 0.40, y: 0.22, t: 0, size: 25 },
+            { type: 'bird', x: 0.55, y: 0.18, t: 3, size: 28 },
+            { type: 'bird', x: 0.30, y: 0.25, t: 5, size: 22 },
+            // Extra foreground blossoms
+            { type: 'blossom', x: 0.05, y: 0.75, t: 5, size: 35 },
+            { type: 'blossom', x: 0.95, y: 0.70, t: 4, size: 32 },
+            // Extra low clouds
+            { type: 'cloud', x: 0.05, y: 0.60, t: 3, size: 28 },
+            { type: 'cloud', x: 0.95, y: 0.55, t: 4, size: 25 },
+          ];
+          layoutPositions.forEach(function(lp) {
+            var lx = lp.x * W;
+            var ly = lp.y * H;
+            var ls = lp.size;
+            var drawFn = {
+              wave: drawWave,
+              blossom: drawBlossom,
+              mountain: drawMountain,
+              bird: drawBird,
+              cloud: drawCloud
+            }[lp.type];
+            if (drawFn) drawFn(ctx, lx, ly, lp.t, ls);
+          });
           ctx.restore();
         }
       }
@@ -1041,6 +1076,7 @@
 
       // Score: base points * streak multiplier
       const multiplier = 1 + Math.floor(streak / 3);
+      document.getElementById('mult-display').textContent = '×' + multiplier;
       playCatch(el.type);
       const gained = el.points * multiplier;
       score += gained;
@@ -1310,6 +1346,8 @@
     document.getElementById('home-btn').addEventListener('click', () => {
       window.location.href = '../../drops/';
     });
+    document.getElementById('mute-btn').addEventListener('click', toggleMute);
+    document.getElementById('pause-btn').addEventListener('click', togglePause);
     // --- Show saved high score ---
     const savedHs = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
     // Build element legend from ELEMENT_TYPES
