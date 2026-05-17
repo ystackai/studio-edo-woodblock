@@ -8,6 +8,10 @@ elif [ -f package.json ]; then
   npm install --no-audit --no-fund
 fi
 
+if [ -f package.json ] && grep -q '"playwright"' package.json; then
+  npx playwright install --with-deps chromium
+fi
+
 ./verify.sh "$@"
 if [ -f verify.js ]; then
   node verify.js
