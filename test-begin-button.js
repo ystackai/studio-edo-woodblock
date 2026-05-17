@@ -136,7 +136,21 @@ async function main() {
   if (!flavorEl) throw new Error('Game-over flavor text missing');
   console.log('PASS: Game-over flavor text found');
 
-  // --- 16. Retry button click restarts game ---
+  // --- 16. Mute key toggles mute state ---
+  const muteBtn = await page.waitForSelector('#mute-btn', { timeout: 3000 });
+  const muteTextBefore = await muteBtn.textContent();
+  await page.keyboard.press('m');
+  await page.waitForTimeout(100);
+  const muteTextAfter = await muteBtn.textContent();
+  if (muteTextAfter === muteTextBefore) throw new Error('Mute button did not change after M key');
+  console.log('PASS: Mute key (M) toggles mute state');
+  await page.keyboard.press('m');
+  await page.waitForTimeout(100);
+  const muteTextRestored = await muteBtn.textContent();
+  if (muteTextRestored === muteTextAfter) throw new Error('Second M key press did not restore mute');
+  console.log('PASS: Mute key restores sound on second press');
+
+  // --- 17. Retry button click restarts game ---
   await retryBtn.click();
   await page.waitForSelector('#start-screen.hidden', { timeout: 5000 });
   await page.waitForTimeout(500);

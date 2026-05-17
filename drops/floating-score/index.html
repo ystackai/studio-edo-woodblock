@@ -1761,6 +1761,11 @@
         if (gameRunning) { togglePause(); return; }
       }
 
+      // M key toggles mute (listed in controls modal)
+      if (e.key === 'm' || e.key === 'M') {
+        toggleMute();
+        return;
+      }
       if (e.key === ' ' || e.key === 'Enter') {
         if (!gameRunning && !startScreen.classList.contains('hidden')) {
           startGame();
@@ -1775,11 +1780,24 @@
     // --- Controls modal ---
     document.getElementById('close-controls-btn').addEventListener('click', function() {
       document.getElementById('controls-modal').classList.remove('show');
+      // Return focus to controls button when modal closes
+      var cb = document.getElementById('controls-btn');
+      if (cb) setTimeout(function() { cb.focus(); }, 50);
+      else document.getElementById('start-btn')?.focus();
     });
     // Show controls modal on '?' or 'h' key, or from a button on start screen
     document.addEventListener('keydown', function(e) {
       if (e.key === '?' || e.key === 'h' || e.key === 'H') {
-        document.getElementById('controls-modal').classList.toggle('show');
+        var modal = document.getElementById('controls-modal');
+        var isOpen = modal.classList.contains('show');
+        modal.classList.toggle('show');
+        if (!isOpen) {
+          setTimeout(function() { document.getElementById('close-controls-btn')?.focus(); }, 50);
+        } else {
+          var cb = document.getElementById('controls-btn');
+          if (cb) setTimeout(function() { cb.focus(); }, 50);
+          else document.getElementById('start-btn')?.focus();
+        }
       }
     });
     // Add controls toggle button to start screen
@@ -1789,6 +1807,7 @@
     controlsBtn.style.cssText = 'position:absolute;bottom:12px;right:12px;z-index:20;font-size:11px;padding:4px 12px;border:1px solid #9C8E7D;border-radius:24px;color:#9C8E7D;background:transparent;cursor:pointer;font-family:inherit;letter-spacing:0.04em;transition:all 0.2s ease;';
     controlsBtn.addEventListener('click', function() {
       document.getElementById('controls-modal').classList.add('show');
+      setTimeout(function() { document.getElementById('close-controls-btn')?.focus(); }, 50);
     });
     document.getElementById('start-screen').appendChild(controlsBtn);
 

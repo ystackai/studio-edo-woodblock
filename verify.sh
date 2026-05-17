@@ -334,3 +334,17 @@ else
   echo "FAIL: missing fadeIn keyframe"
   exit 1
 fi
+
+# --- Polish: Mute key and focus management ---
+if grep -q "M key toggles mute" "$FILE"; then
+  echo "PASS: mute key handler (M key)"
+else
+  echo "FAIL: missing mute key handler"
+  exit 1
+fi
+if grep -q "close-controls-btn" "$FILE" && grep -q "focus" "$FILE"; then
+  echo "PASS: controls modal focus management"
+else
+  echo "FAIL: missing controls modal focus management"
+  exit 1
+fi
