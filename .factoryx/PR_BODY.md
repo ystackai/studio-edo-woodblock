@@ -1,27 +1,22 @@
 ## FactoryX WorkOrder Context
 
-**WorkOrder ID:** `work-order-1779049180797-1`
+FactoryX-WorkOrder: work-order-1779058005807-18
+FactoryX-Factory: factory-edo-woodblock
+
+**WorkOrder ID:** `work-order-1779058005807-18`
 **Factory:** `factory-edo-woodblock`
 **Studio:** `studio-edo-woodblock` — "Pictures of the Floating World"
 **Project:** `ystackai/studio-edo-woodblock`
 **Branch:** `factoryx/factory-edo-woodblock/studio-art-build`
-**Deadline:** 2026-05-18T12:19:40Z
+**Deadline:** 2026-05-18T14:46:45Z
 
 ### Brief
 - Build a visual instrument where user input creates meaningful changes over time
 - Include at least one progression mechanic (levels, unlocks, streaks, score)
 - Ship a polished vertical slice with no dead buttons, broken layout, or placeholder screens
 
-### Human Review Feedback Addressed
-Reviewer `tallhamn` requested at `5109f70`:
-> "the begin button doesn't do anything. Please add tests and fix it."
-
-Fixed across 5 commits after `5109f70`:
-1. `613f3f0` — Added `test-begin-button.js` + verify.sh regression gate
-2. `3970042` — Added `.gitignore`, `package.json` test scripts
-3. `5959a5d` — Rewrote test file with robust assertions
-4. `bedc819` — Added `canvas.focus()` in `startGame()`, high score comparison, game-over flavor text
-5. `a3fe611` — Fixed preview root redirect for Floating Score
+### Latest Commit
+`8b93b56` — Add controls button in pause overlay, ?/H controls grid entry, context-aware focus restoration
 
 ---
 
@@ -45,7 +40,9 @@ Fixed across 5 commits after `5109f70`:
 - Keyboard: Space/Enter to catch, P/Esc pause, M mute, ?/H controls
 - Touch: `touch-action: manipulation`, pointer event handling
 - Canvas focus management, aria-labels, aria-live polite region
-- Controls modal with keyboard shortcut reference
+- Controls modal with keyboard shortcut reference (available from start screen and pause overlay)
+- Controls auto-close on game start/end to prevent overlap with gameplay/game-over screen
+- Context-aware focus restoration when controls modal closes (returns to pause-controls-btn if paused, or start-screen controls-btn otherwise)
 
 **Polish features:**
 - Ukiyo-e flavor text on game-over (5 quote tiers based on score)
@@ -60,7 +57,7 @@ Fixed across 5 commits after `5109f70`:
 - `aria-live="polite"` region for game state announcements
 - Keyboard shortcuts for all core actions
 - Focus management: canvas on start, retry button on game-over, close button in controls modal
-- Auto-focus restoration when controls modal closes
+- Context-aware focus restoration when controls modal closes
 
 ### Verification
 
@@ -69,7 +66,7 @@ Fixed across 5 commits after `5109f70`:
 - Game-over screen, final score, stats breakdown, retry button, home button, flavor text
 - Retry restarts game, Mute key (M) toggles/restores mute state
 
-**Structural verification:** `verify.sh` — 31 structural grep checks + Playwright gate
+**Structural verification:** `verify.sh` — 33 structural grep checks + Playwright gate
 - HTML validity, canvas, score/level/streak/timer mechanics
 - Keyboard/touch support, ukiyo-e drawing functions, studio.json/asset-manifest/drops/index registration
 - Audio (playTone, playCatch, playStreak, startAmbientDrone)
@@ -78,30 +75,30 @@ Fixed across 5 commits after `5109f70`:
 - Danger-pulse, miss-flash, spawnPetals, petalFall, combo-meter, combo-gold, level-flash, woodblock-texture
 - animateCountUp, new-highscore, score comparison, game-over flavor, fadeIn
 - Mute key handler, controls modal focus management
+- pause-controls-btn, ?/H controls grid entry, toggleMute function
 
-**Verification output:**
+**Verification output (latest):**
 ```
 === Verification: Floating Score ===
 All regression checks passed (19 assertions)
-All structural checks passed (31 checks)
+All structural checks passed (33 checks)
 === All verifications passed ===
 ```
 
 ### Preview
 
-The preview root (`index.html` at repo root) redirects to `drops/floating-score/` via the FactoryX preview path:
+Preview root (`index.html` at repo root) redirects to `drops/floating-score/`:
 - `/factoryx/previews/edo-woodblock/studio-art-build/` → `drops/floating-score/`
 - Preview works with relative paths under the FactoryX preview tree
-- No studio homepage mutations were needed for the preview link
 
 ### Known Limitations
 - Audio requires initial user gesture for Web Audio API (browser autoplay policy)
 - No service-worker or offline caching
 - Canvas renders at display resolution (retina scaling via `devicePixelRatio`)
-- `gh` CLI token not available in this runtime, so PR body could not be updated via `gh pr update`
+- PR body is updated through the FactoryX GitHub delivery path
 - Preview redirect uses relative paths
 
 ### Review Questions
 1. Does the result satisfy the concrete brief? (visual instrument, progression mechanics, polished vertical slice)
-2. Is the interaction coherent enough for a user to evaluate without extra instructions? (start screen explains mechanics, controls modal available)
+2. Is the interaction coherent enough for a user to evaluate without extra instructions? (start screen explains mechanics, controls modal available from start screen and pause overlay)
 3. Are verification steps and known limitations clearly documented in the PR? (verification output included, limitations called out)

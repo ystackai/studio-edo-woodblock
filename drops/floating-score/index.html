@@ -222,6 +222,10 @@
     #start-screen.hidden, #over-screen.hidden {
       opacity: 0;
       pointer-events: none;
+      visibility: hidden;
+    }
+    #start-screen.hidden *, #over-screen.hidden * {
+      pointer-events: none;
     }
     #start-screen.fade-out {
       opacity: 0;
@@ -1474,6 +1478,8 @@
       playCatch(el.type);
       const gained = el.points * multiplier;
       score += gained;
+      // Particle burst on every catch using element color
+      spawnParticles(el.x * W, el.y * H, 10, typeInfo.color);
 
       // Streak bar
       // Streak unlock announcements
