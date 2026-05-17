@@ -4,9 +4,31 @@
 
 const { chromium } = require('playwright');
 const { exit } = process;
+const path = require('path');
+
+async function testPreviewRootRedirect(browser) {
+  const page = await browser.newPage();
+  const rootIndex = path.join(__dirname, 'index.html');
+  const gameIndex = path.join(__dirname, 'drops/floating-score/index.html');
+
+  await page.route('https://preview.test/**', route => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.pathname.endsWith('/drops/floating-score/')) {
+      return route.fulfill({ path: gameIndex, contentType: 'text/html' });
+    }
+    return route.fulfill({ path: rootIndex, contentType: 'text/html' });
+  });
+
+  await page.goto('https://preview.test/factoryx/previews/edo-woodblock/studio-art-build/');
+  await page.waitForURL('**/drops/floating-score/', { timeout: 5000 });
+  console.log('PASS: FactoryX preview root redirects to Floating Score');
+  await page.close();
+}
 
 async function main() {
   const browser = await chromium.launch({ headless: true });
+  await testPreviewRootRedirect(browser);
+
   const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
 
   await page.goto('file://' + __dirname + '/drops/floating-score/index.html');
