@@ -1162,6 +1162,8 @@
       elements = [];
       particles = [];
       cloudBg = null;
+      // Auto-close controls modal when game starts to prevent overlap during play
+      document.getElementById('controls-modal').classList.remove('show');
 
       startScreen.classList.add('fade-out');
       setTimeout(() => { startScreen.classList.add('hidden'); startScreen.classList.remove('fade-out'); }, 400);
@@ -1210,6 +1212,8 @@
 
       // Loop
       if (animId) cancelAnimationFrame(animId);
+      // Auto-close controls modal when game ends to prevent overlap with game-over screen
+      document.getElementById('controls-modal').classList.remove('show');
       loop();
     }
 
@@ -1238,6 +1242,8 @@
       gameRunning = false;
       if (timerInterval) clearInterval(timerInterval);
       if (animId) cancelAnimationFrame(animId);
+      // Auto-close controls modal when game ends to prevent overlap with game-over screen
+      document.getElementById('controls-modal').classList.remove('show');
 
       const streakBonus = maxStreak * 5;
       const total = score + streakBonus;
@@ -1767,6 +1773,8 @@
         return;
       }
       if (e.key === ' ' || e.key === 'Enter') {
+        // Don't trigger start while controls modal is visible
+        if (document.getElementById('controls-modal').classList.contains('show')) return;
         if (!gameRunning && !startScreen.classList.contains('hidden')) {
           startGame();
         } else if (gameRunning) {
