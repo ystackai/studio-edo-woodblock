@@ -348,3 +348,23 @@ else
   echo "FAIL: missing controls modal focus management"
   exit 1
 fi
+
+# --- Polish: pause-controls-btn and controls grid entry ---
+if grep -q 'pause-controls-btn' "$FILE"; then
+  echo "PASS: pause-controls-btn found (controls access during paused state)"
+else
+  echo "FAIL: missing pause-controls-btn"
+  exit 1
+fi
+if grep -q '? / H.*Show controls' "$FILE"; then
+  echo "PASS: controls grid entry for ?/H shortcut"
+else
+  echo "FAIL: missing ?/H controls grid entry"
+  exit 1
+fi
+if grep -q 'toggleMute' "$FILE"; then
+  echo "PASS: toggleMute function found"
+else
+  echo "FAIL: missing toggleMute function"
+  exit 1
+fi

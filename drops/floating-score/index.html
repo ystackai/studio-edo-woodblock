@@ -741,6 +741,7 @@
     <h2>⏸ Paused</h2>
     <p>Press <kbd>P</kbd> or <kbd>Esc</kbd> to resume</p>
     <button id="pause-btn" aria-label="Resume the game">Resume</button>
+    <button id="pause-controls-btn" aria-label="Show controls" style="margin-top:8px;font-size:11px;padding:4px 12px;border:1px solid #9C8E7D;border-radius:24px;color:#9C8E7D;background:transparent;cursor:pointer;font-family:inherit;letter-spacing:0.04em;transition:all 0.2s ease;">? Controls</button>
   </div>
 
   <div id="level-announce"></div>
@@ -764,6 +765,7 @@
       <span class="key-cell">P / Esc</span><span class="action-cell">Pause / Resume</span>
       <span class="key-cell">M</span><span class="action-cell">Toggle mute</span>
       <span class="key-cell">Click / Tap</span><span class="action-cell">Catch element</span>
+      <span class="key-cell">? / H</span><span class="action-cell">Show controls</span>
     </div>
     <p class="controls-note">Tap or click ukiyo-e elements as they drift across the canvas. Build streaks for bonus points. Each caught element type scores different points.</p>
     <button class="close-controls-btn" id="close-controls-btn" aria-label="Close controls">Close</button>
@@ -1788,10 +1790,16 @@
     // --- Controls modal ---
     document.getElementById('close-controls-btn').addEventListener('click', function() {
       document.getElementById('controls-modal').classList.remove('show');
-      // Return focus to controls button when modal closes
-      var cb = document.getElementById('controls-btn');
-      if (cb) setTimeout(function() { cb.focus(); }, 50);
-      else document.getElementById('start-btn')?.focus();
+      // Return focus based on context: paused or start screen
+      var pausedPanel = document.getElementById('pause-overlay');
+      var pauseControlsBtn = document.getElementById('pause-controls-btn');
+      if (pausedPanel && pausedPanel.classList.contains('show') && pauseControlsBtn) {
+        setTimeout(function() { pauseControlsBtn.focus(); }, 50);
+      } else {
+        var cb = document.getElementById('controls-btn');
+        if (cb) setTimeout(function() { cb.focus(); }, 50);
+        else document.getElementById('start-btn')?.focus();
+      }
     });
     // Show controls modal on '?' or 'h' key, or from a button on start screen
     document.addEventListener('keydown', function(e) {
@@ -1802,9 +1810,15 @@
         if (!isOpen) {
           setTimeout(function() { document.getElementById('close-controls-btn')?.focus(); }, 50);
         } else {
-          var cb = document.getElementById('controls-btn');
-          if (cb) setTimeout(function() { cb.focus(); }, 50);
-          else document.getElementById('start-btn')?.focus();
+          var pausedPanel = document.getElementById('pause-overlay');
+          var pauseControlsBtn = document.getElementById('pause-controls-btn');
+          if (pausedPanel && pausedPanel.classList.contains('show') && pauseControlsBtn) {
+            setTimeout(function() { pauseControlsBtn.focus(); }, 50);
+          } else {
+            var cb = document.getElementById('controls-btn');
+            if (cb) setTimeout(function() { cb.focus(); }, 50);
+            else document.getElementById('start-btn')?.focus();
+          }
         }
       }
     });
@@ -1826,6 +1840,10 @@
     });
     document.getElementById('mute-btn').addEventListener('click', toggleMute);
     document.getElementById('pause-btn').addEventListener('click', togglePause);
+    document.getElementById('pause-controls-btn').addEventListener('click', function() {
+      document.getElementById('controls-modal').classList.add('show');
+      setTimeout(function() { document.getElementById('close-controls-btn')?.focus(); }, 50);
+    });
     // --- Show saved high score ---
     const savedHs = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
     // Build element legend from ELEMENT_TYPES
