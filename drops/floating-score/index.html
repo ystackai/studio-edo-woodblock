@@ -693,7 +693,7 @@
 </style>
 </head>
 <body>
-  <canvas id="game-canvas" role="application" aria-label="Floating Score game canvas"></canvas>
+  <canvas id="game-canvas" role="application" tabindex="0" aria-label="Floating Score game canvas"></canvas>
   <div id="seasonal-tint"></div>
 
   <!-- Ambient floating particles for start screen -->
@@ -716,6 +716,8 @@
     <div class="hud-right" style="text-align:right">
       <div class="hud-label">Level</div>
       <div class="hud-value" id="level-display">1</div>
+      <div class="hud-label">Best</div>
+      <div class="hud-value hud-small" id="hud-hs-display">0</div>
     </div>
   </div>
   <button id="mute-btn" aria-label="Toggle sound">♫ Sound</button>
@@ -1166,6 +1168,7 @@
       document.getElementById('pause-overlay').classList.remove('show');
       overScreen.classList.add('hidden');
       gameRunning = true;
+      canvas.focus();
 
       scoreDisplay.textContent = '0';
       const multDisplayMobile = document.getElementById('mult-display');
@@ -1284,9 +1287,11 @@
 
       }
 
-      overHs.innerHTML = (isNew ? '✦ New high score!' : 'Best: ' + saved);
       const scoreDiff = Math.abs(total - saved);
-      const compareMsg = isNew ? '🎉 Beat previous record by ' + scoreDiff + ' points!' : '📈 ' + scoreDiff + ' points away from high score';
+      let compareMsg;
+      if (isNew) compareMsg = '🎉 Beat previous record by ' + scoreDiff + ' points!';
+      else if (scoreDiff === 0) compareMsg = '🎯 Tied the high score!';
+      else compareMsg = '📈 ' + scoreDiff + ' points away from high score';
       overHs.innerHTML += '<br><span style="font-size:13px;opacity:0.8">' + compareMsg + '</span>';
       finalScore.classList.toggle('new-highscore', isNew);
       hudHsDisplay.textContent = String(Math.max(total, saved));
@@ -1302,7 +1307,7 @@
       const flavor = flavorQuotes.slice().reverse().find(q => total >= q.min) || flavorQuotes[0];
       const flavorEl = document.createElement('div');
       flavorEl.id = 'game-over-flavor';
-      flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:25;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;';
+      flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:25;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;pointer-events:none;';
       flavorEl.textContent = flavor.text;
       document.body.appendChild(flavorEl);
       overScreen.classList.remove('hidden');
