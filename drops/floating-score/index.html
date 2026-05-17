@@ -389,9 +389,23 @@
       #timer-bar { bottom: 48px; }
     }
           /* --- Miss feedback effects --- */
+    /* --- Miss ring animation --- */
     .miss-ring {
-    
-    
+      position: fixed;
+      pointer-events: none;
+      z-index: 15;
+      border-radius: 50%;
+      border: 2px solid rgba(186,47,34,0.6);
+      opacity: 1;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+    .miss-ring.active {
+      opacity: 0;
+      transform: scale(2.5);
+    }
+
+
+
     /* --- Woodblock grain texture overlay --- */
     #woodblock-texture {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -446,19 +460,6 @@
       opacity: 0; transition: opacity 0.15s ease;
     }
     .miss-flash.show { opacity: 1; }
-
-      position: fixed;
-      pointer-events: none;
-      z-index: 15;
-      border-radius: 50%;
-      border: 2px solid rgba(186,47,34,0.6);
-      opacity: 1;
-      transition: transform 0.4s ease, opacity 0.4s ease;
-    }
-    .miss-ring.active {
-      opacity: 0;
-      transform: scale(2.5);
-    }
 
     /* --- Sakura petal fall animation --- */
 @keyframes fadeIn {
@@ -698,7 +699,7 @@
       { id: 'blossom', points: 15, color: '#F4C9C9',    label: 'Blossom' },
       { id: 'mountain',points: 20, color: COLORS.bamboo, label: 'Mountain' },
       { id: 'bird',    points: 25, color: COLORS.charcoal,label: 'Bird' },
-      { id: 'cloud',   points: 8,  color: COLORS.water,  label: 'Cloud' },
+      { id: 'cloud',   points: 12,  color: COLORS.water,  label: 'Cloud' },
     ];
 
     // --- Audio (Web Audio synthesis) ---
@@ -1068,6 +1069,7 @@
       if (total > saved) {
         localStorage.setItem('floating-score-hs', String(total));
         isNew = true;
+        setTimeout(showNewHighScoreBadge, 200);
       }
 
       overHs.innerHTML = (isNew ? '✦ New high score!' : 'Best: ' + saved);
@@ -1388,7 +1390,15 @@
         if (flash) { flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 150); }
         setTimeout(() => { document.body.style.transform = ''; }, 200);
         streakFill.style.background = "linear-gradient(90deg, #BA2F22, #BA2F22)";
+        streakFill.style.width = '0%';
+        streak = 0;
         streakCount.textContent = '';
+        // Reset combo meter
+        const comboMeter = document.getElementById('combo-meter');
+        if (comboMeter) {
+          comboMeter.classList.remove('show','combo-gold');
+        }
+        document.getElementById('mult-display').textContent = '×1';
         streakCount.classList.remove('show');
         setTimeout(() => {
           streakFill.style.background = "linear-gradient(90deg, #D4A657, #BA2F22)";
@@ -1576,17 +1586,6 @@
         setTimeout(() => badge.remove(), 700);
       }, 3000);
     }
-
-    // Patch endGame to call showNewHighScoreBadge
-    const origEndGame = endGame;
-    endGame = function() {
-      origEndGame.apply(this, arguments);
-      const totalScore = score + (maxStreak * 5);
-      const saved = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
-      if (totalScore > saved) {
-        setTimeout(showNewHighScoreBadge, 200);
-      }
-    };
 
     // --- Ukiyo-e decorative border on start screen ---
     function drawStartDecor() {
