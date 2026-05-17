@@ -3,6 +3,16 @@ set -euo pipefail
 
 echo "=== Verification: Floating Score ==="
 
+# --- Regression test: Begin/startGame interaction ---
+if [ -f "test-begin-button.js" ]; then
+  echo "PASS: test-begin-button.js exists"
+  node test-begin-button.js || { echo "FAIL: test-begin-button.js failed"; exit 1; }
+  echo "PASS: Begin/startGame regression test passes"
+else
+  echo "FAIL: test-begin-button.js not found"
+  exit 1
+fi
+
 # Check that the game HTML file exists
 FILE="drops/floating-score/index.html"
 if [ ! -f "$FILE" ]; then

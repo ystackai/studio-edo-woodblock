@@ -111,6 +111,20 @@ check('games/index.html',
   { name: 'games/index.html redirects to floating-score', test: c => c.includes('floating-score') },
 );
 
+// --- Regression test: Begin/startGame interaction ---
+var execSync = null;
+try {
+  execSync = require("child_process").execSync;
+} catch (e) {}
+if (execSync) {
+  try {
+    execSync("node test-begin-button.js", { timeout: 10000 });
+    console.log("PASS: Begin/startGame regression test passes");
+  } catch (e) {
+    errors.push("FAIL: test-begin-button.js - " + (e.stderr || e.message));
+  }
+}
+
 // Output
 if (errors.length === 0) {
   console.log('✅ All verifications passed.');
