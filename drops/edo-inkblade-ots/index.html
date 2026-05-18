@@ -105,6 +105,32 @@ h1{font-family:serif;font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 4
         <p class="sub">Press any key to walk the road again.</p>
       </div>
   </section>
+
+<section id="touch-controls" style="position:fixed;inset:0;z-index:2;pointer-events:none;display:none">
+  <div style="position:absolute;left:0;top:0;width:30%;height:100%;pointer-events:auto" id="tc-move-left" class="touch-zone"><div style="position:absolute;left:20px;bottom:80px;color:#b9a88d;font-size:10px;text-transform:uppercase;opacity:.5">Walk</div></div>
+  <div style="position:absolute;right:0;top:0;width:30%;height:100%;pointer-events:auto" id="tc-move-right" class="touch-zone"><div style="position:absolute;right:20px;bottom:80px;color:#b9a88d;font-size:10px;text-transform:uppercase;opacity:.5">Turn</div></div>
+  <div style="position:absolute;right:40px;top:40%;width:80px;height:80px;border-radius:50%;background:rgba(215,182,111,.12);border:1px solid rgba(215,182,111,.25);pointer-events:auto;display:flex;align-items:center;justify-content:center" id="tc-slash"><span style="color:#d9c49e;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Slash</span></div>
+  <div style="position:absolute;right:40px;top:calc(40% + 100px);width:80px;height:80px;border-radius:50%;background:rgba(140,200,180,.1);border:1px solid rgba(140,200,180,.22);pointer-events:auto;display:flex;align-items:center;justify-content:center" id="tc-paint"><span style="color:#b9d6b8;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Paint</span></div>
+  <div style="position:absolute;left:40px;top:40%;width:80px;height:80px;border-radius:50%;background:rgba(90,90,110,.15);border:1px solid rgba(215,182,111,.2);pointer-events:auto;display:flex;align-items:center;justify-content:center" id="tc-block"><span style="color:#d9c49e;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Block</span></div>
+</section>
+<script>
+(function(){if('ontouchstart' in document.documentElement){document.getElementById('touch-controls').style.display=''}
+document.getElementById('tc-slash').addEventListener('click',function(e){e.stopPropagation();slash()});
+document.getElementById('tc-paint').addEventListener('click',function(e){e.stopPropagation();paint()});
+document.getElementById('tc-block').addEventListener('mousedown',function(e){e.stopPropagation();player.blocking=true;player.blockDecay=0});
+document.getElementById('tc-block').addEventListener('mouseup',function(e){e.stopPropagation();player.blocking=false});
+document.getElementById('tc-block').addEventListener('touchstart',function(e){e.stopPropagation();e.preventDefault();player.blocking=true;player.blockDecay=0});
+document.getElementById('tc-block').addEventListener('touchend',function(e){e.stopPropagation();e.preventDefault();player.blocking=false});
+var ml=document.getElementById('tc-move-left'),mr=document.getElementById('tc-move-right');
+function moveDir(dir){return function(e){e.stopPropagation();if(dir==='fwd')keys.w=true;else if(dir==='left')keys.a=true;else if(dir==='right')keys.d=true}};
+function stopDir(dir){return function(e){e.stopPropagation();if(dir==='fwd')keys.w=false;else if(dir==='left')keys.a=false;else if(dir==='right')keys.d=false}};
+ml.addEventListener('touchstart',moveDir('fwd'));ml.addEventListener('touchend',stopDir('fwd'));
+mr.addEventListener('touchstart',moveDir('right'));mr.addEventListener('touchend',stopDir('right'));
+ml.addEventListener('touchstart',moveDir('left'));// dual left: also left-turn
+mr.addEventListener('touchstart',function(e){e.stopPropagation();keys.d=true});// right also strafe right
+mr.addEventListener('touchend',function(e){e.stopPropagation();keys.d=false});
+})();
+</script>
 <section id="select">
     <div id="select-inner">
       <canvas id="select-canvas" width="920" height="480"></canvas>
@@ -185,7 +211,7 @@ function initAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||windo
 let currentHeroKey="musashi";
 
 let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0,inkTimer:0};
-let keys={},last=0,won=false,hitStop=0;
+let keys={},last=0,won=false,hitStop=0,touch={id:0,sx:0,sy:0,startTime:0,hold:false,moving:false};
 let gameStartTime=0,enemiesDefeated=0,inkUsedTotal=0,marksPlacedTotal=0;
 let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
@@ -193,7 +219,7 @@ let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],win
 let enemies=[
   {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:14,atkRange:44,patrolX:-140,patrolZ:340,patrolRadius:55,patrolSpeed:.3,patrolAngle:0},
   {name:"cedar bandit",x:120,z:620,hp:64,max:64,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:17,atkRange:48,patrolX:120,patrolZ:620,patrolRadius:80,patrolSpeed:.28,patrolAngle:1.8},
-  {name:"bridge duelist",x:-80,z:900,hp:80,max:80,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:20,atkRange:52,patrolX:-80,patrolZ:900,patrolRadius:65,patrolSpeed:.22,patrolAngle:3.2},
+  {name:"bridge duelist",x:-80,z:900,hp:80,max:80,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:20,atkRange:52,patrolX:-80,patrolZ:900,patrolRadius:65,patrolSpeed:.22,patrolAngle:3.2,attackCount:0},
   {name:"straw-hat vagrant",x:180,z:450,hp:44,max:44,phase:0.8,wind:0,color:"#5a4a38",type:"prowler",atk:11,atkRange:40,patrolX:180,patrolZ:450,patrolRadius:50,patrolSpeed:.35,patrolAngle:1.2},
   {name:"river-bank monk",x:-160,z:700,hp:56,max:56,phase:1.8,wind:0,color:"#4a5a58",type:"chaser",atk:13,atkRange:42,patrolX:-160,patrolZ:700,patrolRadius:60,patrolSpeed:.32,patrolAngle:2.8}
 ];
@@ -331,13 +357,16 @@ for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()
 })();
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
 function start(id){currentHeroKey=id;
-  hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
+  hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,blockDecay:0,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
   marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i];e.patrolAngle=i*1.6;e.wind=0});
   screenShake=0;gameStartTime=Date.now();enemiesDefeated=0;inkUsedTotal=0;marksPlacedTotal=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
-addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
+addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase())){player.blocking=true;player.blockDecay=0}});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false});
-addEventListener("touchstart",e=>{e.preventDefault();if(player.hp<=0)start(hero.label.toLowerCase()===hero.label?Object.keys(heroes).find(k=>heroes[k].label===hero.label):"musashi");else slash()});
+addEventListener("touchstart",(e)=>{e.preventDefault();const t=e.changedTouches[0];touch.id=t.identifier;touch.sx=t.clientX;touch.sy=t.clientY;touch.startTime=Date.now();touch.hold=false;touch.moving=false;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}});
+addEventListener("touchmove",(e)=>{e.preventDefault();const t=e.changedTouches[0];if(t.identifier!==touch.id)return;const dx=t.clientX-touch.sx,dy=t.clientY-touch.sy;if(Math.abs(dx)>18||Math.abs(dy)>18){touch.moving=true;touch.sx=t.clientX;touch.sy=t.clientY}if(touch.moving){const spd=hero.speed*1.1;const ang=Math.atan2(dy,dx);if(ang>-2.5&&ang<.7){player.heading+=dx*.003}else{const fwd=Math.cos(ang)*spd*.03,side=Math.sin(ang)*spd*.03;player.mx+=((side-player.mx)*.08);player.mz+=((fwd-player.mz)*.08)}}});
+addEventListener("touchend",(e)=>{e.preventDefault();if(touch.moving){touch.moving=false;player.mx=0;player.mz=0;return}const held=Date.now()-touch.startTime;if(held>500){paint()}else if(!touch.hold){slash()}});
+addEventListener("touchcancel",(e)=>{touch.moving=false;player.mx=0;player.mz=0});
 addEventListener("contextmenu",e=>e.preventDefault());
 addEventListener("mousedown",e=>{if(e.button===0)slash();if(e.button===2)paint()});
 addEventListener("resize",resize);resize();requestAnimationFrame(loop);
@@ -367,7 +396,7 @@ function step(dt){
   // Ambient: footsteps, wind drift, river near bridge
   initAudio();var amb=window._amb;amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);amb.river.gain.gain.exponentialSmoothValueAtTime(0,audioCtx.currentTime+.6)
     if(won)victoryParticles.push({x:player.x+(Math.random()-.5)*30,z:player.z+(Math.random()-.5)*30,a:1,vx:(Math.random()-.5)*.8,vy:Math.random()*3+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb"][Math.random()*5|0],d:Math.random()*4+1});
-    player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
+    player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);if(player.blocking){player.blockDecay+=dt*3}else{player.blockDecay=Math.max(0,player.blockDecay-dt*5)}
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
     if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show");var e=Math.floor((Date.now()-gameStartTime)/1000);var tm=Math.floor(e/60)+"m "+(e%60)+"s";document.getElementById("death-time").textContent=tm;document.getElementById("death-defeated").textContent=enemiesDefeated;document.getElementById("death-ink").textContent=inkUsedTotal;document.getElementById("death-resolve").textContent=player.resolve}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0)ui.death.classList.remove("show")}
     milestonePopup.timer=Math.max(0,milestonePopup.timer-dt);
@@ -393,9 +422,12 @@ function updateEnemies(dt){
     // Combat approach patterns per type with retreat/evade when player blocks
     if(player.blocking&&dist<100){
       // Retreat briefly when player is blocking and close
-      e.x-=dx/dist*.25*dt;e.z-=dz/dist*.25*dt;e.phase+=.05*dt
+      e.x-=dx/dist*.25*dt;e.z-=dz/dist*.25*dt;e.phase+=.05*dt;
+      // Block timing: sustained block reduces effectiveness — enemies adapt
+      if(e.type==="duelist"){e.phase+=.03*dt}
     }else if(e.type==="prowler"&&patrolEngaged){e.x+=dx/dist*.55*dt;e.z+=dz/dist*.55*dt;e.x+=Math.cos(e.phase)*.4*dt}
-    else if(e.type==="duelist"){const face=Math.atan2(dx,dz);e.phase+=.025*dt;if(patrolEngaged&&dist<240){e.x+=dx/dist*.55*dt;e.z+=dz/dist*.55*dt}else{e.z+=.35*dt};if(dist<140){e.x-=dx/dist*.35*dt;e.z-=dz/dist*.35*dt}}
+    else if(e.type==="duelist"){const face=Math.atan2(dx,dz);e.phase+=.025*dt;if(patrolEngaged&&dist<240){e.x+=dx/dist*.55*dt;e.z+=dz/dist*.55*dt}else{e.z+=.35*dt};if(dist<140){e.x-=dx/dist*.35*dt;e.z-=dz/dist*.35*dt};// Duelist combo: after landing a hit, prep a quick follow-up thrust
+if(e.attackCount>0){e.attackCount--;if(dist<e.atkRange+25){e.wind=e.attackCount===0?50:35;e.attackWindUp=0;e.attackCount--}else{e.attackCount=0}}}
     else if(e.type==="chaser"&&patrolEngaged){e.x+=dx/dist*.75*dt;e.z+=dz/dist*.75*dt}
     // Telegraph with wind glow - longer wind for duelist
     if(dist<e.atkRange&&e.wind<=0){
@@ -406,7 +438,7 @@ function updateEnemies(dt){
     e.attackWindUp=(e.attackWindUp||0)+dt;
     if(e.wind>40&&e.attackWindUp>8&&dist<e.atkRange+15){
       // Strike when wind telegraphed long enough
-      const dmg=player.blocking?Math.max(1,e.atk/3):e.atk;
+      const dmg=player.blocking?Math.max(1,e.atk/(3+Math.min(player.blockDecay/10,4))):e.atk;
       player.hp=Math.max(0,player.hp-dmg);
       player.damageFlash=player.invincible>0?0:10;
       player.invincible=player.invincible>0?player.invincible:24;
@@ -414,7 +446,9 @@ function updateEnemies(dt){
       hitStop=dmg>10?3:1;
       burst(player.x,player.z,player.blocking?"#d7b66f":"#c85d43");
       say(player.blocking?"Parry catches the cut.":(dmg>15?"Bitter strike cuts deep.":"A blade slips through your guard."));
-      e.wind=0;e.attackWindUp=0;
+      // Duelist follow-up: if duelist hit, start combo
+      if(e.type==="duelist"&&dmg>0){e.attackCount=dmg>12?3:2;e.wind=0;e.attackWindUp=0}
+      else{e.wind=0;e.attackWindUp=0}
     }
   });
   enemies.filter(e=>e.hp<=0).forEach(e=>{if(e.deathAge===undefined)e.deathAge=0;e.deathAge+=dt});
@@ -449,9 +483,11 @@ function updateQuest(){
     say("Ganryu shore opens. Art and steel find peace.");
     initAudio();sfx.victory();
     burst(player.x,player.z,"#f4ead8","#d7b66f");
+    // Ganryu closing ceremony — layered arrival particles
+    for(var ci=0;ci<60;ci++){var ca=Math.random()*7,cd=Math.random()*60+20;victoryParticles.push({x:player.x+Math.cos(ca)*cd,z:player.z+Math.sin(ca)*cd,a:1,vx:(Math.random()-.5)*.6,vy:Math.random()*2+.3,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb","#caa45f"][Math.random()*6|0],d:Math.random()*4+2})}
     ui.victory.classList.add("show");
   }
-  if(won)ui.quest.textContent="Victory: the road holds your prints and the duel is ended.";
+  if(won)ui.quest.textContent="Ganryu: the shore holds your prints and the journey is written in ink and steel.";
   else if(painted<3){const remaining=3-painted;if(player.z<200)ui.quest.textContent=`Paint ${remaining} more waymark${remaining===1?"":"s"} near the road. Ink flows as you walk.`;else if(player.z<520)ui.quest.textContent=`The bridge looms ahead. Paint ${remaining} waymark${remaining===1?"":"s"} to make your passage known.`;else ui.quest.textContent=`The road narrows toward Ganryu. Paint ${remaining} more waymark${remaining===1?"":"s"} to honor the journey.`;}
   else if(alive>0)ui.quest.textContent=`Reach the shore or pacify ${alive} remaining challenger${alive===1?"":"s"}.`;
   route.forEach(r=>{if(Math.abs(player.z-r.z)<18&&!r.triggered){say(r.text);milestonePopup={active:true,text:r.text,timer:80};r.triggered=true}else if(Math.abs(player.z-r.z)>=30)r.triggered=false});
@@ -480,6 +516,10 @@ function updateUi(){ui.style.textContent=hero.label;
   else if(enemyDist<100&&alive>0&&player.ink>0)hintText="Enemy near — press Space to paint a sealing mark, or J/E to duel.";
   else if(painted<3&&player.ink<1)hintText="Ink is low. Keep moving to let it flow back.";
   else if(alive>0&&player.z>880)hintText="Ganryu shore nears. Resolve your encounters.";
+  
+  // Mobile touch hint - prepend for touch devices
+  if('ontouchstart' in document.documentElement&&hintText){hintText='Tap=Slash, Hold=Paint. Drag sides to move. '+hintText}
+
   if(hintText){hint.textContent=hintText;hint.style.display=""}else{hint.style.display="none"}}
 function project(x,z,h=0){
   const dx=x-player.x,dz=z-player.z,cs=Math.cos(player.heading),sn=Math.sin(player.heading);
@@ -494,7 +534,7 @@ function draw(){
   const w=innerWidth,h=innerHeight,horizon=h*.42;
   ctx.clearRect(0,0,w,h);
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#1c2839");sky.addColorStop(.5,"#6a5a4b");sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
-  drawSun(w,horizon);drawMountains(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
+  drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
   drawRoad(w,h,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawLeaves();drawFireflies();drawRiverMist();
   const visible=[];
   scenery.forEach(o=>{const p=project(o.x,o.z,o.h);if(p)visible.push({p,o,type:"scenery"})});
@@ -539,7 +579,8 @@ function drawSun(w,hor){
   ctx.fillStyle="rgba(244,163,90,.08)";ctx.beginPath();ctx.arc(w*.78,hor*.45,68,0,7);ctx.fill()
 }
 function drawMountains(w,hor){ctx.fillStyle="#29333c";for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(i*w/5-80,hor);ctx.lineTo(i*w/5+80,hor*(.42+.12*(i%2)));ctx.lineTo(i*w/5+230,hor);ctx.fill()}}
-function drawMist(w,hor){ctx.strokeStyle="rgba(245,232,204,.06)";ctx.lineWidth=2;for(let i=0;i<14;i++){ctx.beginPath();ctx.moveTo(0,hor+10+i*16+Math.sin(last*.0008+i)*10);ctx.bezierCurveTo(w*.25,hor+i*12,w*.6,hor+50+i*10,w,hor+20+i*18);ctx.stroke()}}
+function drawMist(w,hor){ctx.strokeStyle="rgba(245,232,204,.06)";ctx.lineWidth=2;for(let i=0;i<14;i++){ctx.beginPath();ctx.moveTo(0,hor+10+i*16+Math.sin(last*.0008+i)*10);ctx.bezierCurveTo(w*.25,hor+i*12,w*.6,hor+50+i*10,w,hor+20+i*18);ctx.stroke()};// Deep mist at Ganryu approach
+var ganryuMist=Math.min(1,Math.max(0,(player.z-800)/200));if(ganryuMist>0){ctx.globalAlpha=ganryuMist*.2;ctx.fillStyle="rgba(200,220,230,.6)";ctx.fillRect(0,0,w,hor);ctx.globalAlpha=1}}
 function drawMilestoneGlow(w,hor){
   // Glow rings near each route milestone zone
   route.forEach(r=>{const dz=Math.abs(player.z-r.z);if(dz<40&&dz<60){const ga=Math.max(0,1-dz/40)*.12;ctx.globalAlpha=ga;const g=ctx.createRadialGradient(w/2,hor+60,10,w/2,hor+60,80);g.addColorStop(0,"rgba(215,182,111,.08)");g.addColorStop(1,"rgba(215,182,111,0)");ctx.fillStyle=g;ctx.fillRect(w/2-80,hor+20,160,120);ctx.globalAlpha=1}})}
