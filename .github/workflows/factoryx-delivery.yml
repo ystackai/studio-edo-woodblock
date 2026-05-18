@@ -213,6 +213,7 @@ jobs:
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='.DS_Store' \
+            --exclude='node_modules/' \
             --exclude='factoryx-artifacts/' \
             -e "ssh -i ~/.ssh/factoryx_preview -o StrictHostKeyChecking=accept-new" \
             "$site_dir/" "$FACTORYX_PREVIEW_USER@$FACTORYX_PREVIEW_HOST:$remote_dir/"
@@ -253,6 +254,7 @@ jobs:
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='.DS_Store' \
+            --exclude='node_modules/' \
             --exclude='factoryx-artifacts/' \
             -e "ssh -i ~/.ssh/factoryx_production -o StrictHostKeyChecking=accept-new" \
             "$site_dir/" "$FACTORYX_PRODUCTION_USER@$FACTORYX_PRODUCTION_HOST:$FACTORYX_PRODUCTION_ROOT/"
