@@ -77,11 +77,18 @@ FactoryX-Factory: factory-edo-woodblock
 - Mute key handler, controls modal focus management
 - pause-controls-btn, ?/H controls grid entry, toggleMute function
 
+### Polish Pass C — Combo meter pulse animation, screen reader announcements, start-screen atmosphere
+
+**Polish Pass C changes:**
+- Added `@keyframes goldPulse` and `#combo-meter.combo-gold { animation: goldPulse ... }` — continuous gentle scale pulse while at streak >= 5 (combo-gold status)
+- Added `ariaLive.textContent` announcements for pause/resume for screen reader users
+- Added `@keyframes titleAtmosphere` and `#start-screen::before` animated gradient background for atmospheric start screen
+
 **Verification output (latest):**
 ```
 === Verification: Floating Score ===
-All regression checks passed (19 assertions)
-All structural checks passed (33 checks)
+All regression checks passed (26 assertions)
+All structural checks passed (42 checks)
 === All verifications passed ===
 ```
 
@@ -97,6 +104,7 @@ Preview root (`index.html` at repo root) redirects to `drops/floating-score/`:
 - Canvas renders at display resolution (retina scaling via `devicePixelRatio`)
 - PR body is updated through the FactoryX GitHub delivery path
 - Preview redirect uses relative paths
+- `gh` CLI not available for automated PR update — staged in `.factoryx/PR_BODY.md`
 
 ### Review Questions
 1. Does the result satisfy the concrete brief? (visual instrument, progression mechanics, polished vertical slice)

@@ -219,6 +219,18 @@
       text-align: center;
       transition: opacity 0.5s ease;
     }
+    #start-screen::before {
+      content: "";
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: -1;
+      background: radial-gradient(circle at 30% 50%, rgba(212,166,87,0.06) 0%, transparent 60%),
+                  radial-gradient(circle at 70% 30%, rgba(136,137,162,0.05) 0%, transparent 50%),
+                  radial-gradient(circle at 50% 80%, rgba(73,122,94,0.04) 0%, transparent 50%);
+      background-size: 200% 200%;
+      background-position: 0% 50%;
+      animation: titleAtmosphere 24s ease-in-out infinite;
+      pointer-events: none;
+    }
     #start-screen.hidden, #over-screen.hidden {
       opacity: 0;
       pointer-events: none;
@@ -438,6 +450,9 @@
     #combo-meter .combo-label { color: #F2EDE6; margin-left: 4px; }
     #combo-meter.combo-gold .combo-icon,
     #combo-meter.combo-gold .combo-label { color: #FFD700; }
+    #combo-meter.combo-gold {
+      animation: goldPulse 2s ease-in-out infinite;
+    }
     /* --- Level-up flash overlay --- */
     .level-flash {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -466,6 +481,16 @@
     .miss-flash.show { opacity: 1; }
 
     /* --- Sakura petal fall animation --- */
+    /* --- Subtle start-screen background atmosphere --- */
+    @keyframes titleAtmosphere {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes goldPulse {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.06); }
+    }
 @keyframes fadeIn {
       from { opacity: 0; transform: translate(-50%, 10px); }
       to { opacity: 1; transform: translate(-50%, 0); }
@@ -1427,11 +1452,13 @@
       document.getElementById('pause-overlay').classList.toggle('show', paused);
       if (paused) {
         // Pause timer
+        ariaLive.textContent = 'Game paused';
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = null;
       } else {
         // Resume timer
         if (timerInterval) clearInterval(timerInterval);
+        ariaLive.textContent = 'Game resumed';
         timerInterval = setInterval(() => {
           timeLeft -= 1;
           const pct = Math.max(0, (timeLeft / 60) * 100);
