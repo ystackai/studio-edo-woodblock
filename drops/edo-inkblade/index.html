@@ -9,15 +9,15 @@
 body{background:#1a1a1a;color:#e0d5c8;font-family:'Segoe UI',system-ui,sans-serif;display:flex;justify-content:center;padding:20px}
 #game{max-width:800px;width:100%}
 canvas{display:block;background:#2d2418;border:2px solid #5a4a38;border-radius:4px;width:100%;aspect-ratio:4/3}
-#ui{display:flex;justify-content:space-between;padding:10px 0;gap:10px}
-#info{display:flex;gap:20px;font-size:14px}
+#ui{display:flex;justify-content:space-between;padding:10px 0;gap:10px;flex-wrap:wrap}
+#info{display:flex;gap:10px;font-size:13px}
 #info span{background:#2d2418;padding:4px 10px;border-radius:4px;border:1px solid #5a4a38}
-#controls{font-size:13px;color:#a09080}
+#controls{font-size:12px;color:#a09080}
 .hidden{display:none}
-#char-select{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px;margin-bottom:10px}
+#char-select{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px;margin-bottom:10px}
 #char-select h2{font-size:18px;font-weight:400}
-#char-select div{display:flex;gap:12px}
-#char-select button{padding:10px 20px;border:1px solid #5a4a38;border-radius:4px;cursor:pointer;font-size:14px}
+#char-select div{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#char-select button{padding:8px 16px;border:1px solid #5a4a38;border-radius:4px;cursor:pointer;font-size:13px;background:#2a1f14;color:#e0d5c8;transition:0.2s}
 #char-select button.selected{border-color:#d4b878;background:#3a3028}
 </style>
 </head>
@@ -27,79 +27,78 @@ canvas{display:block;background:#2d2418;border:2px solid #5a4a38;border-radius:4
   <div id="char-select">
     <h2>Choose your style</h2>
     <div>
-      <button data-char="musashi" class="selected">Miyamoto Musashi</button>
-      <button data-char="koeda">Koeda Kendo</button>
-      <button data-char="yoshino">Yoshino Yagyu</button>
+      <button data-char="musashi" class="selected">Miyamoto Musashi (balanced)</button>
+      <button data-char="koeda">Koeda Kendo (swift)</button>
+      <button data-char="yoshino">Yoshino Yagyu (ink master)</button>
     </div>
-    <p style="font-size:12px;color:#a09080">WASD move · Space art · E duel · F objective</p>
+    <p style="font-size:12px;color:#a09080">WASD move · Space art · E duel (block with Q) · F objective</p>
   </div>
   <canvas id="c" width="800" height="600"></canvas>
   <div id="ui">
     <div id="info"><span id="hp">HP: 100</span><span id="ink">Ink: 3</span><span id="obj">Artwork: 0/3</span></div>
-    <div id="controls">WASD move · Space art · E duel</div>
+    <div id="controls">WASD move · Space=art · E=duel · Q=block</div>
   </div>
 </div>
 <script>
-// Edo Inkblade — minimal playable scaffold
+// Edo Inkblade — vertical slice pass 2
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const W = 800, H = 600;
 
-// Character definitions
 const chars = {
-  musashi: { name: 'Miyamoto Musashi', hp: 100, ink: 3, speed: 3, artStyle: 'watercolor', color: '#d4b878' },
-  koeda: { name: 'Koeda Kendo', hp: 120, ink: 2, speed: 4, artStyle: 'brush', color: '#78b8d4' },
-  yoshino: { name: 'Yoshino Yagyu', hp: 80, ink: 5, speed: 2, artStyle: 'woodblock', color: '#d47878' }
+  musashi: { name: 'Miyamoto Musashi', hp: 100, ink: 3, speed: 3, artStyle: 'watercolor', color: '#d4b878', inkRegen: 0.008 },
+  koeda: { name: 'Koeda Kendo', hp: 80, ink: 4, speed: 4.5, artStyle: 'brush', color: '#78b8d4', inkRegen: 0.012 },
+  yoshino: { name: 'Yoshino Yagyu', hp: 90, ink: 5, speed: 2.2, artStyle: 'woodblock', color: '#d47878', inkRegen: 0.01 }
 };
 
-// Game state
 let selectedChar = 'musashi';
 let player = { x: 100, y: 300, hp: 100, maxHp: 100, ink: 3, maxInk: 5 };
-let artworks = [];
-let enemies = [];
-let duelActive = false;
-let duelTimer = 0;
-let artMarks = [];
+let artworks = [], enemies = [], artMarks = [];
+let duelActive = false, duelTimer = 0, blocking = false;
 let objective = { completed: 0, needed: 3 };
-let keys = {};
-let messages = [];
-let frame = 0;
+let keys = {}, messages = [], frame = 0;
+let inkTimer = 0;
+
+const enemyDefs = [
+  { x: 580, y: 180, hp: 40, maxHp: 40, type: 'ronin', dir: 1, color: '#6b4a3a', speed: 1.2 },
+  { x: 650, y: 420, hp: 50, maxHp: 50, type: 'bandit', dir: -1, color: '#3a4a6b', speed: 1.5 },
+  { x: 200, y: 500, hp: 35, maxHp: 35, type: 'wanderer', dir: 1, color: '#4a6b3a', speed: 0.9 }
+];
 
 function resetPlayer(char) {
   const c = chars[char];
   player = { x: 100, y: 300, hp: c.hp, maxHp: c.hp, ink: c.ink, maxInk: 5 };
-  artworks = [];
-  artMarks = [];
-  enemies = [
-    { x: 600, y: 200, hp: 40, maxHp: 40, type: 'ronin', patrol: true, dir: 1 },
-    { x: 650, y: 450, hp: 50, maxHp: 50, type: 'bandit', patrol: true, dir: -1 }
-  ];
-  duelActive = false;
+  artworks = []; artMarks = [];
+  enemies = enemyDefs.map(e => ({...e}));
+  duelActive = false; blocking = false;
   objective = { completed: 0, needed: 3 };
+  inkTimer = 0;
 }
 
 resetPlayer(selectedChar);
 
-// Character selection
 document.querySelectorAll('#char-select button').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('#char-select button').forEach(x => x.classList.remove('selected'));
     b.classList.add('selected');
     selectedChar = b.dataset.char;
     resetPlayer(selectedChar);
+    updateUI();
   });
 });
 
-// Input
 document.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === ' ') handleArt();
   if (e.key.toLowerCase() === 'e') handleDuelStart();
+  if (e.key.toLowerCase() === 'q') { blocking = true; }
   if (e.key.toLowerCase() === 'f') handleObjective();
 });
-document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+document.addEventListener('keyup', e => {
+  keys[e.key.toLowerCase()] = false;
+  if (e.key.toLowerCase() === 'q') blocking = false;
+});
 
-// Movement
 function movePlayer() {
   const s = chars[selectedChar].speed;
   let dx = 0, dy = 0;
@@ -107,56 +106,74 @@ function movePlayer() {
   if (keys['s']) dy += s;
   if (keys['a']) dx -= s;
   if (keys['d']) dx += s;
+  if (dx || dy) {
+    const len = Math.hypot(dx, dy);
+    dx = dx / len * s;
+    dy = dy / len * s;
+  }
   player.x = Math.max(20, Math.min(W - 20, player.x + dx));
   player.y = Math.max(20, Math.min(H - 20, player.y + dy));
 }
 
-// Enemy patrol
+function updateInk() {
+  inkTimer += chars[selectedChar].inkRegen;
+  if (inkTimer >= 1 && player.ink < player.maxInk) {
+    player.ink++;
+    inkTimer = 0;
+  }
+}
+
 function updateEnemies() {
   for (const e of enemies) {
-    if (e.patrol) {
-      e.x += e.dir * 1.2;
-      if (e.x > 750 || e.x < 200) e.dir *= -1;
-    }
-    // Detect player proximity
     const dist = Math.hypot(player.x - e.x, player.y - e.y);
-    if (dist < 60 && !duelActive) {
+    // Patrol when far, approach when close
+    if (dist > 120) {
+      e.x += e.dir * e.speed;
+      if (e.x > 750 || e.x < 180) e.dir *= -1;
+    } else if (dist > 40) {
+      const dx = (player.x - e.x) / dist * e.speed * 0.8;
+      const dy = (player.y - e.y) / dist * e.speed * 0.8;
+      e.x += dx; e.y += dy;
+    }
+    e.x = Math.max(20, Math.min(W - 20, e.x));
+    e.y = Math.max(20, Math.min(H - 20, e.y));
+
+    // Initiate duel when close
+    if (dist < 50 && !duelActive) {
       duelActive = true;
-      duelTimer = 60;
-      addMsg(`Duel with ${e.type}!`);
+      duelTimer = 80;
+      e.inDuel = true;
+      addMsg(`⚔ Duel with ${e.type}!`);
     }
   }
 }
 
-// Art action (Space)
 function handleArt() {
-  if (player.ink <= 0) return;
+  if (player.ink <= 0) { addMsg('No ink — wait for regen'); return; }
   player.ink--;
   const style = chars[selectedChar].artStyle;
-  const mark = {
-    x: player.x, y: player.y,
-    style, frame: 0,
-    color: chars[selectedChar].color
-  };
+  const mark = { x: player.x, y: player.y, style, frame: 0, color: chars[selectedChar].color };
   artMarks.push(mark);
   artworks.push({ x: player.x, y: player.y, style });
-  addMsg(`${style} mark placed`);
+  addMsg(`🎨 ${style} mark placed (ink: ${player.ink})`);
   if (artworks.length >= objective.needed) {
     objective.completed = objective.needed;
-    addMsg('Objective met! Artwork complete.');
+    addMsg('✅ Objective met! Artwork complete — all enemies flee.');
+    enemies = [];
+    duelActive = false;
   }
   updateUI();
 }
 
-// Duel action (E)
 function handleDuelStart() {
-  if (duelActive) return;
+  if (duelActive) { addMsg('Already dueling!'); return; }
   for (const e of enemies) {
     const dist = Math.hypot(player.x - e.x, player.y - e.y);
     if (dist < 80) {
       duelActive = true;
-      duelTimer = 60;
-      addMsg(`Duel with ${e.type}!`);
+      duelTimer = 80;
+      e.inDuel = true;
+      addMsg(`⚔ Duel with ${e.type}!`);
       return;
     }
   }
@@ -166,104 +183,177 @@ function handleDuelStart() {
 function updateDuel() {
   if (!duelActive) return;
   duelTimer--;
-  if (duelTimer % 20 === 0 && duelTimer > 0) {
-    const e = enemies.find(e => Math.hypot(player.x - e.x, player.y - e.y) < 80) || enemies[0];
-    if (e) {
-      player.hp -= 5;
-      e.hp -= 15;
-      addMsg(`Strike! ${e.type} -${15}HP, you -${5}HP`);
-      if (e.hp <= 0) {
-        addMsg(`${e.type} defeated!`);
-        enemies = enemies.filter(x => x.hp > 0);
-        duelActive = false;
-        objective.completed = Math.min(objective.needed, objective.completed + 1);
-      }
+  const e = enemies.find(x => x.inDuel);
+  if (!e || e.hp <= 0) { duelActive = false; return; }
+  const dist = Math.hypot(player.x - e.x, player.y - e.y);
+  if (dist > 100) { duelActive = false; e.inDuel = false; addMsg('Duel broken — too far'); return; }
+
+  // Duel ticks every 15 frames
+  if (duelTimer % 15 === 0 && duelTimer > 0) {
+    const playerDmg = blocking ? 2 : 5;
+    const enemyDmg = blocking ? 3 : 12;
+    player.hp -= playerDmg;
+    e.hp -= enemyDmg;
+    addMsg(`${blocking ? '🛡 Blocked! ' : ''}Hit ${e.type}: -${enemyDmg}HP, you: -${playerDmg}HP`);
+    if (e.hp <= 0) {
+      addMsg(`💥 ${e.type} defeated!`);
+      enemies = enemies.filter(x => x.hp > 0);
+      duelActive = false;
+      objective.completed = Math.min(objective.needed, objective.completed + 1);
+      if (enemies.length === 0) addMsg('🏆 All enemies defeated!');
     }
   }
   if (duelTimer <= 0) duelActive = false;
-  if (player.hp <= 0) { addMsg('Defeated — resetting'); resetPlayer(selectedChar); }
+  if (player.hp <= 0) { addMsg('💀 Defeated — press any button to reset'); setTimeout(() => resetPlayer(selectedChar), 1000); }
   updateUI();
 }
 
-// Objective (F)
 function handleObjective() {
-  addMsg(`Artwork: ${artworks.length}/${objective.needed} · Enemies: ${enemies.length}`);
+  addMsg(`🎯 Artwork: ${artworks.length}/${objective.needed} · Enemies: ${enemies.length}`);
 }
 
-function addMsg(t) { messages.push(t); if (messages.length > 8) messages.shift(); }
+function addMsg(t) { messages.push(t); if (messages.length > 10) messages.shift(); }
 
-// Render
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  // Ground
-  ctx.fillStyle = '#2d2418';
-  ctx.fillRect(0, 0, W, H);
-  // Checkerboard floor
+function drawBackground() {
+  // Woodblock-inspired floor with ink stains
   for (let i = 0; i < W; i += 40) {
     for (let j = 0; j < H; j += 40) {
-      ctx.fillStyle = ((i / 40 + j / 40) % 2 === 0) ? '#3a3028' : '#2d2418';
+      const shade = ((i / 40 + j / 40) % 2 === 0) ? '#3a3028' : '#2d2418';
+      ctx.fillStyle = shade;
       ctx.fillRect(i, j, 40, 40);
+      // Wood grain lines
+      ctx.strokeStyle = '#4a3a28';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(i, j + 10);
+      ctx.lineTo(i + 40, j + 12);
+      ctx.stroke();
     }
   }
-  // Art marks
+  // Ink stains on floor
+  for (let t = 0; t < 20; t++) {
+    const sx = Math.sin(t * 2.4 + 100) * 300 + 400;
+    const sy = Math.cos(t * 1.7 + 200) * 200 + 300;
+    const sz = 15 + Math.sin(t * 3.1) * 8;
+    ctx.fillStyle = 'rgba(30,20,10,' + (0.05 + Math.sin(t * 2.2) * 0.03) + ')';
+    ctx.beginPath();
+    ctx.arc(sx, sy, sz, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawArtMarks() {
   for (const m of artMarks) {
     m.frame++;
-    ctx.globalAlpha = 0.6;
-    ctx.beginPath();
+    ctx.globalAlpha = Math.min(0.7, 0.3 + m.frame * 0.008);
     if (m.style === 'watercolor') {
+      // Soft expanding circles
       ctx.fillStyle = m.color;
-      ctx.arc(m.x, m.y, 20 + Math.sin(m.frame * 0.05) * 4, 0, Math.PI * 2);
-      ctx.fill();
+      for (let r = 0; r < 3; r++) {
+        const off = r * 8;
+        ctx.beginPath();
+        ctx.arc(m.x + Math.sin(m.frame * 0.04 + r) * off, m.y + Math.cos(m.frame * 0.04 + r) * off, 18 + Math.sin(m.frame * 0.05 + r) * 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else if (m.style === 'brush') {
+      // Sweeping brush strokes
       ctx.strokeStyle = m.color;
-      ctx.lineWidth = 6;
-      for (let t = 0; t < 1; t += 0.1) {
-        const angle = m.frame * 0.03 + t * Math.PI;
+      ctx.lineWidth = 5;
+      for (let t = 0; t < 3; t++) {
+        const angle = m.frame * 0.02 + t * 0.7;
         ctx.beginPath();
         ctx.moveTo(m.x, m.y);
-        ctx.lineTo(m.x + Math.cos(angle) * 25, m.y + Math.sin(angle) * 25);
+        ctx.lineTo(m.x + Math.cos(angle) * 35, m.y + Math.sin(angle) * 35);
         ctx.stroke();
       }
     } else {
+      // Woodblock squares — repeating stamp
       ctx.fillStyle = m.color;
-      for (let t = 0; t < 4; t++) {
-        const a = m.frame * 0.02 + t * Math.PI / 2;
-        ctx.fillRect(m.x + Math.cos(a) * 18 - 4, m.y + Math.sin(a) * 18 - 4, 8, 8);
+      for (let t = 0; t < 6; t++) {
+        const a = m.frame * 0.015 + t * 0.5;
+        const off = 22;
+        ctx.fillRect(m.x + Math.cos(a) * off - 5, m.y + Math.sin(a) * off - 5, 10, 10);
       }
     }
     ctx.globalAlpha = 1;
   }
-  // Enemies
+}
+
+function drawEnemies() {
   for (const e of enemies) {
-    ctx.fillStyle = e.type === 'ronin' ? '#6b4a3a' : '#3a4a6b';
+    ctx.fillStyle = e.color;
     ctx.beginPath();
     ctx.arc(e.x, e.y, 16, 0, Math.PI * 2);
     ctx.fill();
+    // Hat / distinctive shape
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.arc(e.x, e.y - 12, 10, Math.PI, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.font = '10px monospace';
-    ctx.fillText(`${e.type} ${e.hp}HP`, e.x - 20, e.y - 22);
+    ctx.fillText(`${e.type} ${e.hp}HP`, e.x - 20, e.y - 26);
   }
-  // Player
+}
+
+function drawPlayer() {
   const pc = chars[selectedChar];
   ctx.fillStyle = pc.color;
   ctx.beginPath();
   ctx.arc(player.x, player.y, 14, 0, Math.PI * 2);
   ctx.fill();
+  // Sword / brush icon
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(player.x + 10, player.y - 10);
+  ctx.lineTo(player.x + 18, player.y - 16);
+  ctx.stroke();
   ctx.fillStyle = '#fff';
   ctx.font = '11px monospace';
-  ctx.fillText(pc.name.split(' ')[0], player.x - 16, player.y - 22);
-  // Duel indicator
+  ctx.fillText(pc.name.split(' ')[0], player.x - 16, player.y - 24);
+
   if (duelActive) {
     ctx.strokeStyle = '#ff6666';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(player.x, player.y, 28, 0, Math.PI * 2);
+    ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
     ctx.stroke();
   }
-  // Messages
+  if (blocking) {
+    ctx.strokeStyle = '#66ff66';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, 22, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Ink particles around player
+  for (let t = 0; t < 4; t++) {
+    const a = frame * 0.05 + t * 1.5;
+    ctx.fillStyle = `rgba(200,180,160,${0.2 + Math.sin(frame * 0.03 + t) * 0.1})`;
+    ctx.fillRect(player.x + Math.cos(a) * 20 - 2, player.y + Math.sin(a) * 20 - 2, 4, 4);
+  }
+}
+
+function drawMessages() {
   ctx.fillStyle = '#ffffcc';
   ctx.font = '12px monospace';
-  messages.forEach((m, i) => ctx.fillText(m, 10, H - 10 - i * 16));
+  ctx.textBaseline = 'bottom';
+  for (let i = 0; i < messages.length; i++) {
+    const alpha = 1 - (messages.length - i - 1) * 0.08;
+    ctx.fillStyle = `rgba(255,255,204,${Math.max(0.3, alpha)})`;
+    ctx.fillText(messages[i], 10, H - 10 - i * 16);
+  }
+  ctx.textBaseline = 'alphabetic';
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  drawArtMarks();
+  drawEnemies();
+  drawPlayer();
+  drawMessages();
 }
 
 function updateUI() {
@@ -272,13 +362,14 @@ function updateUI() {
   document.getElementById('obj').textContent = `Artwork: ${artworks.length}/${objective.needed}`;
 }
 
-// Game loop
 function loop() {
   frame++;
   movePlayer();
+  updateInk();
   updateEnemies();
   updateDuel();
   draw();
+  updateUI();
   requestAnimationFrame(loop);
 }
 loop();
