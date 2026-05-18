@@ -146,7 +146,7 @@ function paint(){
   const x=player.x+Math.sin(player.heading)*70,z=player.z+Math.cos(player.heading)*70;
   marks.push({x,z,age:0,color:hero.color,style:hero.label});
   enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{e.hp-=12*hero.art;player.resolve+=1;say(e.name+" hesitates before the fresh print.")});
-  player.resolve+=1;burst(x,z,hero.color);say(hero.label+" lays a living ink mark.");
+  player.resolve+=1;burst(x,z,hero.color);inkSplatter(x,z,hero.color);say(hero.label+" lays a living ink mark.");
 }
 function slash(){
   if(!ui.select.classList.contains("hidden")||player.slashTimer>0)return;
@@ -155,19 +155,19 @@ function slash(){
     const dx=e.x-player.x,dz=e.z-player.z,dist=Math.hypot(dx,dz),ang=Math.atan2(dx,dz)-player.heading;
     if(dist<82&&Math.abs(Math.atan2(Math.sin(ang),Math.cos(ang)))<.72){e.hp-=hero.slash;hit=true;screenShake=2;burst(e.x,e.z,"#efe1c0","#fff");say("Inkblade strikes "+e.name+".");if(e.hp<=0){player.resolve+=3;screenShake=4;say(e.name+" scatters like mist under the blade.");burst(e.x,e.z,"#fff","#d7b66f")}}
   });
-  if(!hit)say("The cut passes through rain and lantern smoke.");
+  if(!hit){say("The blade cuts only mist.");screenShake=.5}
 }
 function updateQuest(){
   const alive=enemies.filter(e=>e.hp>0).length,painted=marks.length;
   if(player.hp<=0){ui.quest.textContent="Defeated. Choose a style to restart.";ui.select.classList.remove("hidden");return}
   if(!won&&player.z>980&&(painted>=3||alive===0)){won=true;say("Ganryu shore opens. Art and steel are both quiet.");}
   if(won)ui.quest.textContent="Victory: the road holds your prints and the duel is ended.";
-  else if(painted<3)ui.quest.textContent=`Paint ${3-painted} more waymark${3-painted===1?"":"s"} before Ganryu.`;
+  else if(painted<3)ui.quest.textContent=`Paint ${3-painted} more waymark${3-painted===1?"":"s"} on the road ahead.`;
   else if(alive>0)ui.quest.textContent=`Reach the shore or pacify ${alive} remaining challenger${alive===1?"":"s"}.`;
   route.forEach(r=>{if(Math.abs(player.z-r.z)<18)say(r.text)});
 }
 function say(text){if(messages[0]!==text){messages.unshift(text);messages=messages.slice(0,5)}}
-function updateUi(){ui.style.textContent=hero.label;ui.hp.textContent=Math.round(player.hp);ui.ink.textContent=player.ink.toFixed(1);ui.resolve.textContent=player.resolve;ui.log.innerHTML=messages.map(m=>`<div>${m}</div>`).join("")}
+function updateUi(){ui.style.textContent=hero.label;ui.hp.textContent=Math.round(player.hp);ui.ink.textContent=player.ink.toFixed(1);var inkEl=ui.ink;if(player.ink<hero.ink&&player.ink>player.ink-.1){inkEl.style.transition="color .3s";inkEl.style.color="#b8d6b6";setTimeout(function(){inkEl.style.color=""},600)}ui.resolve.textContent=player.resolve;ui.log.innerHTML=messages.map(m=>`<div>${m}</div>`).join("")}
 function project(x,z,h=0){
   const dx=x-player.x,dz=z-player.z,cs=Math.cos(player.heading),sn=Math.sin(player.heading);
   const cx=dx*cs-dz*sn,cz=dx*sn+dz*cs;
@@ -193,6 +193,8 @@ function draw(){
 function drawRoad(w,h,hor){
   for(let i=0;i<18;i++){const y1=hor+i*(h-hor)/18,y2=hor+(i+1)*(h-hor)/18,t=i/18;ctx.fillStyle=i%2?"#403121":"#36291c";ctx.beginPath();ctx.moveTo(w*.5-28-260*t,y1);ctx.lineTo(w*.5+28+260*t,y1);ctx.lineTo(w*.5+42+285*(t+.04),y2);ctx.lineTo(w*.5-42-285*(t+.04),y2);ctx.closePath();ctx.fill()}
   ctx.strokeStyle="rgba(231,197,130,.22)";ctx.lineWidth=2;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(w*.5+i*16,hor);ctx.lineTo(w*.5+i*120,h);ctx.stroke()}
+  // road edge marker poles
+  ctx.fillStyle="#3a2c1d";for(let i=0;i<5;i++){const mt=i/5;ctx.save();ctx.globalAlpha=.35;ctx.fillRect(w*.5-50-280*mt-4,y1+mt*(h-hor),6,18);ctx.fillRect(w*.5+50+280*mt-4,y1+mt*(h-hor),6,18);ctx.restore()}
 }
 function drawSun(w,hor){
   ctx.fillStyle="#f4a35a";ctx.beginPath();ctx.arc(w*.78,hor*.45,42,0,7);ctx.fill();
@@ -252,10 +254,15 @@ function drawEnemy(e,p){
 }
 function drawMark(m,p){
   const s=Math.min(p.s,5),r=18*s+Math.sin(m.age*.08)*3*s;
+  // stake post
+  ctx.fillStyle="#2a1f14";ctx.fillRect(p.x-2*s,p.y,4*s,28*s);
+  // banner
   ctx.globalAlpha=.72;ctx.strokeStyle=m.color;ctx.lineWidth=4*s;ctx.beginPath();ctx.ellipse(p.x,p.y-r*.18,r,r*.32,0,0,7);ctx.stroke();
   ctx.fillStyle=m.color;ctx.globalAlpha=.16;ctx.beginPath();ctx.ellipse(p.x,p.y-r*.18,r*1.2,r*.42,0,0,7);ctx.fill();ctx.globalAlpha=1;
   ctx.globalAlpha=.28;ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(p.x,p.y-r*.18,3*s,0,7);ctx.fill();ctx.globalAlpha=1;
   if(m.age<30){ctx.globalAlpha=.24;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y-r*.18,r*1.6,r*.52,0,0,7);ctx.fill();ctx.globalAlpha=1}
+  // ground glow
+  ctx.globalAlpha=.08;ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(p.x,p.y,16*s,0,7);ctx.fill();ctx.globalAlpha=1
 }
 function drawPlayer(){
   const x=innerWidth/2,y=innerHeight*.78;ctx.save();ctx.translate(x,y);
