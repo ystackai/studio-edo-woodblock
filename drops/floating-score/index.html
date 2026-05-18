@@ -57,19 +57,20 @@
       font-weight: 700;
       color: #F2EDE6;
       letter-spacing: 0.02em;
-      transition: transform 0.15s ease, color 0.15s ease;
+      transition: transform 0.15s ease, color 0.15s ease, text-shadow 0.15s ease;
     }
     .hud-value.pop {
       transform: scale(1.3);
       color: #D4A657;
+      text-shadow: 0 0 12px rgba(212,166,87,0.5);
     }
     .hud-value.level-up {
       animation: levelUp 0.4s ease-out;
     }
     @keyframes levelUp {
-      0% { transform: scale(1); color: #F2EDE6; }
-      50% { transform: scale(1.6); color: #D4A657; }
-      100% { transform: scale(1); color: #F2EDE6; }
+      0% { transform: scale(1); color: #F2EDE6; text-shadow: 0 0 0px rgba(242,237,230,0); }
+      50% { transform: scale(1.6); color: #D4A657; text-shadow: 0 0 20px rgba(212,166,87,0.6); }
+      100% { transform: scale(1); color: #F2EDE6; text-shadow: 0 0 0px rgba(242,237,230,0); }
     }
     /* --- Mute toggle --- */
     #mute-btn {
@@ -311,6 +312,7 @@
     .btn:hover {
       background: #D4A657;
       color: #1a1a2e;
+      box-shadow: 0 0 20px rgba(212,166,87,0.3);
     }
     .btn.secondary {
       border-color: #9C8E7D;
@@ -454,6 +456,10 @@
       opacity: 0;
       transition: opacity 0.3s ease, bottom 0.3s ease;
       text-shadow: 0 0 12px rgba(212,166,87,0.4);
+      background: rgba(212,166,87,0.06);
+      padding: 4px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(212,166,87,0.15);
     }
     #combo-meter.show {
       opacity: 1;
@@ -464,6 +470,8 @@
     #combo-meter.combo-gold .combo-icon,
     #combo-meter.combo-gold .combo-label { color: #FFD700; }
     #combo-meter.combo-gold {
+      border-color: #FFD700;
+      background: rgba(255,215,0,0.1);
       animation: goldPulse 2s ease-in-out infinite;
     }
     /* --- Level-up flash overlay --- */
@@ -480,8 +488,8 @@
       animation: dangerPulse 0.6s ease-in-out infinite;
     }
     @keyframes dangerPulse {
-      0%, 100% { color: #BA2F22; transform: scale(1); opacity: 1; }
-      50% { color: #FF3B3B; transform: scale(1.15); opacity: 0.75; }
+      0%, 100% { color: #BA2F22; transform: scale(1); opacity: 1; text-shadow: 0 0 0px rgba(186,47,34,0); }
+      50% { color: #FF3B3B; transform: scale(1.15); opacity: 0.75; text-shadow: 0 0 16px rgba(186,47,34,0.6); }
     }
 
     /* --- Miss flash overlay --- */
@@ -490,6 +498,7 @@
       z-index: 14; pointer-events: none;
       background: radial-gradient(circle, rgba(186,47,34,0.3), transparent 70%);
       opacity: 0; transition: opacity 0.15s ease;
+      backdrop-filter: blur(1px);
     }
     .miss-flash.show { opacity: 1; }
 
@@ -958,7 +967,11 @@
     // --- Audio (Web Audio synthesis) ---
     let audioCtx = null;
     function ensureAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Chrome autoplay policy: AudioContext must be resumed after user gesture
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      }
     }
     function playTone(freq, duration, type) {
       if (audioMuted) return;
@@ -1040,6 +1053,10 @@
     // --- Draw helpers (ukiyo-e style) ---
 
     function drawWave(ctx, x, y, t, size) {
+      // Woodblock shadow for depth
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 2;
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/80, size/80);
@@ -1069,6 +1086,9 @@
     }
 
     function drawBlossom(ctx, x, y, t, size) {
+      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/50, size/50);
@@ -1093,6 +1113,9 @@
     }
 
     function drawMountain(ctx, x, y, t, size) {
+      ctx.shadowOffsetY = 3;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/70, size/70);
@@ -1127,6 +1150,9 @@
     }
 
     function drawBird(ctx, x, y, t, size) {
+      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/30, size/30);
@@ -1154,6 +1180,9 @@
     }
 
     function drawCloud(ctx, x, y, t, size) {
+      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/40, size/40);
@@ -1651,10 +1680,10 @@
       // Particles at catch
       // Enhanced catch burst with combo color
       var comboColor = multiplier > 1 ? '#D4A657' : (typeInfo ? typeInfo.color : COLORS.yellow);
-      spawnParticles(el.x * W, el.y * H, 10 + streak * 2, comboColor);
+      spawnParticles(el.x * W, el.y * H, 15 + streak * 3, comboColor);
       // Extra sparkle on combo
       if (multiplier > 1) {
-        spawnParticles(el.x * W + 20, el.y * H + 20, 5, '#F2EDE6');
+        spawnParticles(el.x * W + 20, el.y * H + 20, 10, '#F2EDE6');
       }
       // Brief canvas flash overlay
       const flash = document.createElement('div');
@@ -1682,6 +1711,8 @@
 
     let lastHitTime = 0;
     function pointerDown(e) {
+      // Resume audio context if suspended (Chrome autoplay policy)
+      try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
       // Throttle to prevent double-register on fast taps
       const now = performance.now();
       if (now - lastHitTime < 100) return;
@@ -1873,7 +1904,26 @@
         if (!gameRunning && !startScreen.classList.contains('hidden')) {
           startGame();
         } else if (gameRunning) {
-          pointerDown({ clientX: W/2, clientY: H * 0.5 });
+          // Find nearest element to center of screen for keyboard catch
+          var nearestEl = null;
+          var nearestDist = Infinity;
+          var centerX = W / 2;
+          var centerY = H * 0.5;
+          for (var ki = 0; ki < elements.length; ki++) {
+            var ke = elements[ki];
+            if (!ke.alive) continue;
+            var kx = ke.x * W;
+            var ky = ke.y * H;
+            var kdx = kx - centerX;
+            var kdy = ky - centerY;
+            var kdist = kdx * kdx + kdy * kdy;
+            if (kdist < nearestDist) { nearestDist = kdist; nearestEl = ke; }
+          }
+          if (nearestEl) {
+            pointerDown({ clientX: nearestEl.x * W, clientY: nearestEl.y * H });
+          } else {
+            pointerDown({ clientX: centerX, clientY: centerY });
+          }
         }
       }
     });
