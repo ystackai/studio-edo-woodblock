@@ -34,6 +34,12 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
 .swatch{width:36px;height:8px;border-radius:8px;margin-bottom:12px}
 #veil{position:absolute;inset:auto 0 0 0;height:35vh;background:linear-gradient(0deg,rgba(23,19,15,.72),rgba(23,19,15,0));pointer-events:none}
 #death{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0);z-index:3;pointer-events:none;transition:background 1.2s}
+#victory{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0);z-index:3;pointer-events:none;transition:background 1.6s}
+#victory.show{background:linear-gradient(180deg,rgba(18,12,8,.88),rgba(30,20,15,.82));pointer-events:auto}
+#victory h2{font-size:clamp(28px,5vw,52px);color:#d7b66f;text-align:center;margin:0 0 8px;text-shadow:0 0 40px rgba(215,182,111,.35)}
+#victory p{font-size:14px;color:#d9c49e;text-align:center;margin:0 0 8px}
+#victory .sub{font-size:12px;color:#b9a88d;margin:0}
+#celebrate{position:absolute;inset:0;pointer-events:none;z-index:2}
 #death.show{background:rgba(0,0,0,.88);pointer-events:auto}
 #death h2{font-size:clamp(22px,4vw,42px);color:#f4ead8;text-align:center;margin:0 0 16px}
 #death p{font-size:14px;color:#cdbb9d;text-align:center;margin:0}
@@ -43,6 +49,7 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
 <body>
 <main id="game">
   <canvas id="world" aria-label="Over the shoulder Edo art and duel game"></canvas>
+  <div id="celebrate"></div>
   <div id="veil"></div>
   <section id="hud">
     <div id="stats" class="panel" aria-live="polite">
@@ -63,6 +70,9 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
     <section id="death">
     <div><h2>Defeated</h2><p style="font-size:16px;color:#d9c49e">The road claims another traveler. Press any key to return.</p></div>
   </section>
+    <section id="victory">
+    <div><h2>The Shore of Ganryu</h2><p style="font-size:16px;color:#d7b66f">Art and steel find peace together.</p><p class="sub">Press any key to walk the road again.</p></div>
+  </section>
 <section id="select">
     <div id="select-inner">
       <h1>Edo Inkblade: Road to Ganryu</h1>
@@ -78,7 +88,7 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
 <script>
 const canvas=document.getElementById("world");
 const ctx=canvas.getContext("2d");
-const ui={style:byId("style"),hp:byId("hp"),ink:byId("ink"),resolve:byId("resolve"),quest:byId("quest"),log:byId("log"),select:byId("select"),death:byId("death")};
+const ui={style:byId("style"),hp:byId("hp"),ink:byId("ink"),resolve:byId("resolve"),quest:byId("quest"),log:byId("log"),select:byId("select"),death:byId("death"),victory:byId("victory")};
 function byId(id){return document.getElementById(id)}
 const heroes={
   musashi:{label:"Musashi",color:"#d7b66f",hp:100,ink:5,speed:2.35,slash:24,block:.28,art:1},
@@ -86,6 +96,7 @@ const heroes={
   yoshino:{label:"Yoshino",color:"#d98986",hp:92,ink:7,speed:1.95,slash:17,block:.22,art:1.6}
 };
 let hero=heroes.musashi;
+let victoryParticles=[],victoryFanfare=false;
 // Audio
 let audioCtx=null,sfx={};
 function initAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||window.webkitAudioContext)();
@@ -130,10 +141,10 @@ const route=[{z:180,text:"Paint three waymarks on the road."},{z:520,text:"Cross
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
 function start(id){currentHeroKey=id;
   hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
-  marks=[];sparks=[];won=false;enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i]});
-  enemyDeathTimer=0;screenShake=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
+  marks=[];sparks=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i]});
+  screenShake=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
-addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
+addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false});
 addEventListener("touchstart",e=>{e.preventDefault();if(player.hp<=0)start(hero.label.toLowerCase()===hero.label?Object.keys(heroes).find(k=>heroes[k].label===hero.label):"musashi");else slash()});
 addEventListener("contextmenu",e=>e.preventDefault());
@@ -154,6 +165,7 @@ function step(dt){
     player.bobPhase+=dt*(.09*(keys.shift?1.55:1));
     screenShake*=.65;
     if(player.ink<hero.ink&&player.ink+.006*hero.art*dt>=player.ink+.005)initAudio(),sfx.inkRegen();player.ink=Math.min(hero.ink,player.ink+.006*hero.art*dt);
+    if(won)victoryParticles.push({x:player.x+(Math.random()-.5)*20,z:player.z+(Math.random()-.5)*20,a:1,vx:(Math.random()-.5)*.6,vy:Math.random()*2+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6"][Math.random()*4|0],d:Math.random()*3+1});
     player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
     if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show")}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0)ui.death.classList.remove("show")}
@@ -205,14 +217,17 @@ function updateQuest(){
   if(player.hp<=0){ui.quest.textContent="Defeated. Choose a style to restart.";return}
   if(!won&&player.z>980&&(painted>=3||alive===0)){
     won=true;
-    say("Ganryu shore opens. Art and steel are both quiet.");
+    say("Ganryu shore opens. Art and steel find peace.");
+    initAudio();sfx.victory();
     burst(player.x,player.z,"#f4ead8","#d7b66f");
+    ui.victory.classList.add("show");
   }
   if(won)ui.quest.textContent="Victory: the road holds your prints and the duel is ended.";
   else if(painted<3)ui.quest.textContent=`Paint ${3-painted} more waymark${3-painted===1?"":"s"} on the road ahead.`;
   else if(alive>0)ui.quest.textContent=`Reach the shore or pacify ${alive} remaining challenger${alive===1?"":"s"}.`;
   route.forEach(r=>{if(Math.abs(player.z-r.z)<18){say(r.text);milestonePopup={active:true,text:r.text,timer:60}}});
 }
+function drawVictoryParticles(){victoryParticles=victoryParticles.filter(p=>p.a>.02);victoryParticles.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.a*=.96;var proj=project(p.x,p.y*10+p.z,50);if(!proj)return;ctx.globalAlpha=p.a;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(proj.x,proj.y,Math.max(1,p.d)*3,0,7);ctx.fill();ctx.globalAlpha=1});victoryParticles=victoryParticles.slice(-80)}
 function say(text){if(messages[0]!==text){messages.unshift(text);messages=messages.slice(0,5)}}
 function updateUi(){ui.style.textContent=hero.label;
   var dispHp=Math.round(player.displayHp),dispInk=player.displayInk.toFixed(1);
@@ -236,11 +251,12 @@ function draw(){
   drawRoad(w,h,horizon);drawMist(w,horizon);drawLanterns(w,horizon);
   const visible=[];
   scenery.forEach(o=>{const p=project(o.x,o.z,o.h);if(p)visible.push({p,o,type:"scenery"})});
+  if(victoryParticles.length)drawVictoryParticles();
   marks.forEach(m=>{m.age++;const p=project(m.x,m.z,4);if(p)visible.push({p,o:m,type:"mark"})});
   enemies.filter(e=>e.hp>0).forEach(e=>{const p=project(e.x,e.z,54);if(p)visible.push({p,o:e,type:"enemy"})});
   visible.sort((a,b)=>b.p.d-a.p.d).forEach(v=>v.type==="enemy"?drawEnemy(v.o,v.p):v.type==="mark"?drawMark(v.o,v.p):drawScenery(v.o,v.p));
   drawPlayer();drawSparks();drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
-  if(milestonePopup.active&&milestonePopup.timer>0){ctx.save();ctx.globalAlpha=Math.min(1,milestonePopup.timer/20);ctx.fillStyle="#ead9bb";ctx.font="bold clamp(14px,2.4vw,28px) serif";ctx.textAlign="center";ctx.fillText(milestonePopup.text,w/2,h*.35);ctx.restore()}
+  if(milestonePopup.active&&milestonePopup.timer>0){ctx.save();ctx.globalAlpha=Math.min(1,milestonePopup.timer/20);ctx.strokeStyle="#d7b66f";ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(w/2-150,h*.35-32,300,50,10);ctx.stroke();ctx.globalAlpha=.1;ctx.fillStyle="#d7b66f";ctx.fillRect(w/2-150,h*.35-32,300,50);ctx.globalAlpha=1;ctx.fillStyle="#ead9bb";ctx.font="bold clamp(14px,2.4vw,28px) serif";ctx.textAlign="center";ctx.fillText(milestonePopup.text,w/2,h*.35);ctx.restore()}
 
 }
 function drawRoad(w,h,hor){
