@@ -61,7 +61,7 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
     <div id="controls" class="panel">WASD move, arrows turn, Space paint, mouse click slash, right click paint, K / Q block, Shift run</div>
   </section>
     <section id="death">
-    <div><h2>Defeated</h2><p>Press any key or tap to return to the road.</p></div>
+    <div><h2>Defeated</h2><p style="font-size:16px;color:#d9c49e">The road claims another traveler. Press any key to return.</p></div>
   </section>
 <section id="select">
     <div id="select-inner">
@@ -86,12 +86,37 @@ const heroes={
   yoshino:{label:"Yoshino",color:"#d98986",hp:92,ink:7,speed:1.95,slash:17,block:.22,art:1.6}
 };
 let hero=heroes.musashi;
+// Audio
+let audioCtx=null,sfx={};
+function initAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  function tone(f,d,t,g){var o=audioCtx.createOscillator();o.type=t;o.frequency.value=f;
+    var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
+    gn.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+d);
+    o.connect(gn);gn.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d)}
+  function noise(d,g){var n=audioCtx.createBufferSource(),b=audioCtx.createBuffer(1,44100*d,44100);
+    for(var i=0;i<b.length;i++)b.getChannelData(0)[i]=Math.random()*2-1;n.buffer=b;
+    var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
+    gn.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+d);
+    n.connect(gn);gn.connect(audioCtx.destination);n.start()}
+  sfx={slash:function(){tone(180,.1,"sawtooth",.25);noise(.05,.15)},
+    paint:function(){tone(440,.15,"sine",.15);tone(660,.1,"sine",.08)},
+    block:function(){tone(120,.08,"square",.18)},
+    hit:function(){tone(80,.12,"sawtooth",.3);noise(.08,.2)},
+    death:function(){tone(60,.4,"sawtooth",.35);tone(45,.6,"sine",.25);noise(.3,.8)},
+    inkRegen:function(){tone(520,.2,"sine",.06)},
+    mark:function(){tone(350,.1,"sine",.1);tone(440,.15,"triangle",.08);tone(550,.2,"sine",.06)},
+    victory:function(){tone(440,.3,"sine",.2);setTimeout(function(){tone(554,.3,"sine",.2)},80);
+      setTimeout(function(){tone(659,.4,"sine",.2)},160);setTimeout(function(){tone(880,.5,"sine",.25)},240)}
+  }}
+};
+let currentHeroKey="musashi";
+
 let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0};
 let keys={},last=0,won=false;
 let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
 let marks=[],sparks=[],screenShake=0;
-let enemyDeathTimer=0;let enemies=[
+let enemies=[
   {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:13,atkRange:46},
   {name:"cedar bandit",x:120,z:620,hp:68,max:68,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:16,atkRange:50},
   {name:"bridge challenger",x:-80,z:900,hp:84,max:84,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:19,atkRange:55}
@@ -103,12 +128,12 @@ for(let i=0;i<34;i++){
 }
 const route=[{z:180,text:"Paint three waymarks on the road."},{z:520,text:"Cross the bridge. Fight only if pressed."},{z:880,text:"Reach Ganryu shore with ink and resolve."}];
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
-function start(id){
+function start(id){currentHeroKey=id;
   hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
   marks=[];sparks=[];won=false;enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i]});
   enemyDeathTimer=0;screenShake=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
-addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){start(heroes[Object.keys(heroes).find(k=>heroes[k]===hero)]);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
+addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false});
 addEventListener("touchstart",e=>{e.preventDefault();if(player.hp<=0)start(hero.label.toLowerCase()===hero.label?Object.keys(heroes).find(k=>heroes[k].label===hero.label):"musashi");else slash()});
 addEventListener("contextmenu",e=>e.preventDefault());
@@ -128,7 +153,7 @@ function step(dt){
     player.x=Math.max(-180,Math.min(180,player.x));player.z=Math.max(-30,Math.min(1040,player.z));
     player.bobPhase+=dt*(.09*(keys.shift?1.55:1));
     screenShake*=.65;
-    player.ink=Math.min(hero.ink,player.ink+.006*hero.art*dt);
+    if(player.ink<hero.ink&&player.ink+.006*hero.art*dt>=player.ink+.005)initAudio(),sfx.inkRegen();player.ink=Math.min(hero.ink,player.ink+.006*hero.art*dt);
     player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
     if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show")}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0)ui.death.classList.remove("show")}
@@ -157,7 +182,7 @@ function updateEnemies(dt){
   });
   enemies.filter(e=>e.hp<=0).forEach(e=>{if(e.deathAge===undefined)e.deathAge=0;e.deathAge+=dt});
 }
-function paint(){
+function paint(){initAudio();
   if(!ui.select.classList.contains("hidden")||player.paintTimer>0)return;
   if(player.ink<1){say("The inkstone is dry. Keep moving and breathe.");return}
   player.ink-=1;player.paintTimer=20;
@@ -166,7 +191,7 @@ function paint(){
   enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{e.hp-=12*hero.art;player.resolve+=1;say(e.name+" hesitates before the fresh print.")});
   player.resolve+=1;burst(x,z,hero.color);inkSplatter(x,z,hero.color);say(hero.label+" lays a living ink mark.");
 }
-function slash(){
+function slash(){initAudio();
   if(!ui.select.classList.contains("hidden")||player.slashTimer>0)return;
   player.slashTimer=18;let hit=false;
   enemies.filter(e=>e.hp>0).forEach(e=>{
