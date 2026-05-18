@@ -1220,6 +1220,8 @@
       for (var bi = 0; bi < badges.length; bi++) {
             if (badges[bi].textContent === "✦ New High Score! ✦") badges[bi].remove();
       }
+      // Clean up stale petals from previous game-over
+      document.querySelectorAll('.petal').forEach(el => el.remove());
       level = 1;
       streak = 0;
       maxStreak = 0;
@@ -1422,6 +1424,7 @@
         const dur = 6 + Math.random() * 6;
         const delay = Math.random() * 3;
         p.style.cssText = 'position:fixed;pointer-events:none;z-index:5;font-size:' + sz + 'px;opacity:' + (0.04 + Math.random() * 0.06) + ';left:' + left + '%;top:-20px;animation:petalFall ' + dur + 's ease-in infinite;animation-delay:' + delay + 's;';
+        p.classList.add('petal');
         document.body.appendChild(p);
         setTimeout(() => p.remove(), 12000);
       }
@@ -1526,7 +1529,7 @@
       const btn = document.getElementById('mute-btn');
       btn.textContent = audioMuted ? '♫ Muted' : '♫ Sound';
       btn.classList.toggle('muted', audioMuted);
-      if (audioMuted) { stopAmbientDrone(); } else if (gameRunning) { startAmbientDrone(); }
+      if (audioMuted) { stopAmbientDrone(); } else if (!gameRunning) { startAmbientDrone(); }
     }
 
 
@@ -1843,7 +1846,16 @@
       if (e.key === 'Escape') {
         var cm = document.getElementById('controls-modal');
         if (cm.classList.contains('show')) {
-          cm.classList.remove('show'); e.preventDefault(); return;
+          cm.classList.remove('show');
+          e.preventDefault();
+          var pp = document.getElementById('pause-overlay');
+          if (pp && pp.classList.contains('show')) {
+            setTimeout(function() { document.getElementById('pause-controls-btn')?.focus(); }, 50);
+          } else {
+            var cb = document.getElementById('controls-btn');
+            if (cb) setTimeout(function() { cb.focus(); }, 50); else document.getElementById('start-btn')?.focus();
+          }
+          return;
         }
       }
       if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {

@@ -56,6 +56,13 @@ FactoryX-Factory: factory-edo-woodblock
 - **NEW: CSS-drawn blossom shapes** — decorative blossoms on game-over screen use CSS conic-gradient and radial-gradient instead of unicode emoji, rendering crisp vector flowers at any display resolution
 - **NEW: Focus-visible keyboard navigation styles** — gold outline + subtle glow on all buttons, canvas, and controls for keyboard users
 
+**NEW: Ambient drone restarts on unmute during game-over** — `toggleMute()` now restarts ambient drone when unmuting on game-over/start screen (uses `!gameRunning` instead of `gameRunning`), ensuring atmospheric audio returns correctly.
+
+**NEW: Escape key focus restoration** — Pressing Escape to close controls modal now restores focus to `pause-controls-btn` (if paused), `controls-btn` (on start screen), or `start-btn` (fallback), ensuring `:focus-visible` keyboard navigation styles appear consistently.
+
+**NEW: Petal cleanup on retry** — Sakura petals spawned on game-over are now cleaned up before starting a new game, preventing visual artifacts if the player retries within 12 seconds.
+
+
 **Accessibility:**
 - `aria-label` on all buttons and canvas
 - `aria-live="polite"` region for game state announcements (pause/resume)
