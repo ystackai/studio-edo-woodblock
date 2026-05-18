@@ -358,6 +358,32 @@ else
 fi
 if grep -q '? / H.*Show controls' "$FILE"; then
   echo "PASS: controls grid entry for ?/H shortcut"
+# --- Polish: aria-live pause announcements and titleAtmosphere background ---
+if grep -q 'ariaLive.textContent.*Game paused' "$FILE"; then
+  echo "PASS: aria-live announces Game paused"
+else
+  echo "FAIL: missing aria-live pause announcement"
+  exit 1
+fi
+if grep -q 'ariaLive.textContent.*Game resumed' "$FILE"; then
+  echo "PASS: aria-live announces Game resumed"
+else
+  echo "FAIL: missing aria-live resume announcement"
+  exit 1
+fi
+if grep -q 'titleAtmosphere' "$FILE"; then
+  echo "PASS: titleAtmosphere keyframe present (start-screen background drift)"
+else
+  echo "FAIL: missing titleAtmosphere keyframe"
+  exit 1
+fi
+if grep -q 'goldPulse' "$FILE"; then
+  echo "PASS: goldPulse keyframe present (combo meter pulse at streak milestones)"
+else
+  echo "FAIL: missing goldPulse keyframe"
+  exit 1
+fi
+
 else
   echo "FAIL: missing ?/H controls grid entry"
   exit 1
