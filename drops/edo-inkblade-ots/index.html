@@ -133,9 +133,9 @@ let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
 let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;
 let enemies=[
-  {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:13,atkRange:46},
-  {name:"cedar bandit",x:120,z:620,hp:68,max:68,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:16,atkRange:50},
-  {name:"bridge challenger",x:-80,z:900,hp:84,max:84,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:19,atkRange:55}
+  {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:13,atkRange:46,patrolX:-140,patrolZ:340,patrolRadius:60,patrolSpeed:.35,patrolAngle:0},
+  {name:"cedar bandit",x:120,z:620,hp:68,max:68,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:16,atkRange:50,patrolX:120,patrolZ:620,patrolRadius:90,patrolSpeed:.3,patrolAngle:1.8},
+  {name:"bridge challenger",x:-80,z:900,hp:84,max:84,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:19,atkRange:55,patrolX:-80,patrolZ:900,patrolRadius:70,patrolSpeed:.25,patrolAngle:3.2}
 ];
 let scenery=[];
 for(let i=0;i<48;i++){
@@ -151,7 +151,7 @@ for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
 function start(id){currentHeroKey=id;
   hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
-  marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i]});
+  marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i];e.patrolAngle=i*1.6;e.wind=0});
   screenShake=0;gameStartTime=Date.now();enemiesDefeated=0;inkUsedTotal=0;marksPlacedTotal=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
@@ -187,19 +187,37 @@ function updateEnemies(dt){
   enemies.filter(e=>e.hp>0).forEach(e=>{
     const dx=player.x-e.x,dz=player.z-e.z,dist=Math.hypot(dx,dz);
     e.phase+=.025*dt*e.atk/13;e.wind=Math.max(0,e.wind-dt);
-    if(e.type==="prowler"&&dist<260){e.x+=dx/dist*.55*dt;e.z+=dz/dist*.55*dt;e.x+=Math.cos(e.phase)*.3*dt}
-    else if(e.type==="duelist"){const face=Math.atan2(dx,dz);e.phase+=.025*dt;if(dist<240){e.x+=dx/dist*.5*dt;e.z+=dz/dist*.5*dt}else{e.z+=.35*dt}}
-    else if(e.type==="chaser"&&dist<240){e.x+=dx/dist*.75*dt;e.z+=dz/dist*.75*dt}
-    else{e.x+=Math.sin(e.phase)*.22*dt}
+    // Patrol behavior: move around patrol point when player is far
+    const patrolEngaged=dist<220;
+    if(!patrolEngaged){
+      e.patrolAngle+=.008*dt;
+      const px=e.patrolX+Math.cos(e.patrolAngle)*e.patrolRadius;
+      const pz=e.patrolZ+Math.sin(e.patrolAngle)*e.patrolRadius;
+      e.x+=((px-e.x)*.08)*dt;e.z+=((pz-e.z)*.08)*dt;
+    }
+    // Combat approach patterns per type
+    if(e.type==="prowler"&&patrolEngaged){e.x+=dx/dist*.55*dt;e.z+=dz/dist*.55*dt;e.x+=Math.cos(e.phase)*.3*dt}
+    else if(e.type==="duelist"){const face=Math.atan2(dx,dz);e.phase+=.025*dt;if(patrolEngaged&&dist<240){e.x+=dx/dist*.55*dt;e.z+=dz/dist*.55*dt}else{e.z+=.35*dt};if(dist<140){e.x-=dx/dist*.35*dt;e.z-=dz/dist*.35*dt}}
+    else if(e.type==="chaser"&&patrolEngaged){e.x+=dx/dist*.75*dt;e.z+=dz/dist*.75*dt}
+    // Telegraph and attack with longer wind
     if(dist<e.atkRange&&e.wind<=0){
       const dmg=player.blocking?Math.max(1,e.atk/3):e.atk;
-      player.hp=Math.max(0,player.hp-dmg);
-      player.damageFlash=player.invincible>0?0:10;
-      player.invincible=player.invincible>0?player.invincible:24;
-      screenShake=dmg>12?3:1.5;e.wind=Math.max(40,60-e.atk);
-      burst(player.x,player.z,player.blocking?"#d7b66f":"#c85d43");
-      say(player.blocking?"Parry catches the cut.":(dmg>15?"Bitter strike cuts deep.":"A blade slips through your guard."));
-      if(e.wind>20)burst(e.x,e.z,"#efe1c0");
+      // Longer telegraph: wind builds up before strike
+      e.wind=Math.max(50,70-e.atk);
+      burst(e.x,e.z,"#efe1c0");
+    }
+    if(e.wind>0&&e.wind<30&&dist<e.atkRange+20){
+      // Strike when wind is in the final window
+      if(Math.random()<.08*dt){
+        const dmg=player.blocking?Math.max(1,e.atk/3):e.atk;
+        player.hp=Math.max(0,player.hp-dmg);
+        player.damageFlash=player.invincible>0?0:10;
+        player.invincible=player.invincible>0?player.invincible:24;
+        screenShake=dmg>12?3:1.5;
+        burst(player.x,player.z,player.blocking?"#d7b66f":"#c85d43");
+        say(player.blocking?"Parry catches the cut.":(dmg>15?"Bitter strike cuts deep.":"A blade slips through your guard."));
+        e.wind=0;
+      }
     }
   });
   enemies.filter(e=>e.hp<=0).forEach(e=>{if(e.deathAge===undefined)e.deathAge=0;e.deathAge+=dt});
