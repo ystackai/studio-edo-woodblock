@@ -166,9 +166,11 @@ let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
 let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0;
 let enemies=[
-  {name:"dock ronin",x:-140,z:340,hp:48,max:48,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:12,atkRange:44,patrolX:-140,patrolZ:340,patrolRadius:55,patrolSpeed:.3,patrolAngle:0},
-  {name:"cedar bandit",x:120,z:620,hp:60,max:60,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:15,atkRange:48,patrolX:120,patrolZ:620,patrolRadius:80,patrolSpeed:.28,patrolAngle:1.8},
-  {name:"bridge challenger",x:-80,z:900,hp:72,max:72,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:18,atkRange:52,patrolX:-80,patrolZ:900,patrolRadius:65,patrolSpeed:.22,patrolAngle:3.2}
+  {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:14,atkRange:44,patrolX:-140,patrolZ:340,patrolRadius:55,patrolSpeed:.3,patrolAngle:0},
+  {name:"cedar bandit",x:120,z:620,hp:64,max:64,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:17,atkRange:48,patrolX:120,patrolZ:620,patrolRadius:80,patrolSpeed:.28,patrolAngle:1.8},
+  {name:"bridge duelist",x:-80,z:900,hp:80,max:80,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:20,atkRange:52,patrolX:-80,patrolZ:900,patrolRadius:65,patrolSpeed:.22,patrolAngle:3.2},
+  {name:"straw-hat vagrant",x:180,z:450,hp:44,max:44,phase:0.8,wind:0,color:"#5a4a38",type:"prowler",atk:11,atkRange:40,patrolX:180,patrolZ:450,patrolRadius:50,patrolSpeed:.35,patrolAngle:1.2},
+  {name:"river-bank monk",x:-160,z:700,hp:56,max:56,phase:1.8,wind:0,color:"#4a5a58",type:"chaser",atk:13,atkRange:42,patrolX:-160,patrolZ:700,patrolRadius:60,patrolSpeed:.32,patrolAngle:2.8}
 ];
 let scenery=[];
 for(let i=0;i<72;i++){
@@ -204,7 +206,7 @@ function step(dt){
     const tvx=(r/mag*cs+f/mag*sn)*spd,tvz=(f/mag*cs-r/mag*sn)*spd;
     player.mx+=((tvx-player.mx)*.18)*dt;player.mz+=((tvz-player.mz)*.18)*dt;
     player.x+=player.mx*dt;player.z+=player.mz*dt;
-    player.x=Math.max(-180,Math.min(180,player.x));player.z=Math.max(-30,Math.min(1040,player.z));
+    player.x=Math.max(-280,Math.min(280,player.x));player.z=Math.max(-30,Math.min(1080,player.z));
     player.bobPhase+=dt*(.09*(keys.shift?1.55:1));
     screenShake*=.65;
     player.inkTimer=(player.inkTimer||0)+dt;if(player.ink<hero.ink&&player.inkTimer>=18){initAudio();sfx.inkRegen();player.inkTimer=0}player.ink=Math.min(hero.ink,player.ink+.006*hero.art*dt);
@@ -277,8 +279,12 @@ function paint(){initAudio();
   player.ink-=1;inkUsedTotal+=1;player.paintTimer=20;
   const x=player.x+Math.sin(player.heading)*70,z=player.z+Math.cos(player.heading)*70;
   marks.push({x,z,age:0,color:hero.color,style:hero.label});
-  enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{e.hp-=12*hero.art;enemiesDefeated+=1;player.resolve+=1;say(e.name+" hesitates before the fresh print.")});
-  player.resolve+=1;marksPlacedTotal+=1;burst(x,z,hero.color);inkSplatter(x,z,hero.color);say(hero.label+" lays a living ink mark.");
+  // Sealing mark: enemies near the paint mark take art-aligned damage
+  enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{var dmg=Math.round(12*hero.art);e.hp-=dmg;if(e.hp<=0){enemiesDefeated+=1;player.resolve+=2;say(e.name+" unravels under the ink seal.")}else{player.resolve+=1;say("The ink mark binds "+e.name+".")}});
+  marksPlacedTotal+=1;player.resolve+=1;
+  // Sumi-e splash burst
+  for(var i=0;i<30;i++){var ang=Math.random()*7,dist=Math.random()*60;sparks.push({x:x+Math.cos(ang)*dist,z:z+Math.sin(ang)*dist,color:hero.color,a:.7+(Math.random()*.3),vx:(Math.random()-.5)*5,vz:(Math.random()-.5)*5,d:Math.random()*3+1})};
+  say(hero.label+" presses a living ink seal into the road.");
 }
 function slash(){initAudio();
   if(!ui.select.classList.contains("hidden")||player.slashTimer>0)return;
@@ -457,26 +463,47 @@ function drawEnemy(e,p){
   if(e.attackFlash>0&&e.attackFlash<8){ctx.strokeStyle="#efe1c0";ctx.lineWidth=6*s;ctx.beginPath();ctx.moveTo(p.x+50*s,base-62*s);ctx.lineTo(p.x+10*s,base-38*s);ctx.stroke()}
 }
 function drawMark(m,p){
-  const s=Math.min(p.s,5),r=18*s+Math.sin(m.age*.08)*3*s;
-  // stake post
-  ctx.fillStyle="#2a1f14";ctx.fillRect(p.x-2*s,p.y,4*s,28*s);
-  // banner
-  ctx.globalAlpha=.72;ctx.strokeStyle=m.color;ctx.lineWidth=4*s;ctx.beginPath();ctx.ellipse(p.x,p.y-r*.18,r,r*.32,0,0,7);ctx.stroke();
-  ctx.fillStyle=m.color;ctx.globalAlpha=.16;ctx.beginPath();ctx.ellipse(p.x,p.y-r*.18,r*1.2,r*.42,0,0,7);ctx.fill();ctx.globalAlpha=1;
-  ctx.globalAlpha=.28;ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(p.x,p.y-r*.18,3*s,0,7);ctx.fill();ctx.globalAlpha=1;
-  if(m.age<30){ctx.globalAlpha=.24;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y-r*.18,r*1.6,r*.52,0,0,7);ctx.fill();ctx.globalAlpha=1}
-  // ground glow
-  ctx.globalAlpha=.08;ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(p.x,p.y,16*s,0,7);ctx.fill();ctx.globalAlpha=1
+  const s=Math.min(p.s,5);
+  // Sumi-e brush stroke painted on road surface
+  ctx.globalAlpha=.6+Math.sin(m.age*.05)*.1;
+  ctx.strokeStyle=m.color;ctx.lineWidth=8*s;ctx.beginPath();
+  ctx.moveTo(p.x,p.y);
+  var waveAng=m.age*.04;
+  for(var i=0;i<5;i++){var ti=i/5;ctx.lineTo(p.x+Math.cos(waveAng+ti*3)*20*s-10*s, p.y-8*s*ti+Math.sin(waveAng+ti*2)*3*s)};
+  ctx.stroke();
+  // Ink bleed halo
+  ctx.globalAlpha=.12;ctx.beginPath();ctx.ellipse(p.x,p.y-4*s,28*s,10*s,0,0,7);ctx.fillStyle=m.color;ctx.fill();ctx.globalAlpha=1;
+  // Stamp seal impression
+  ctx.globalAlpha=.35;ctx.fillStyle=m.color;ctx.beginPath();ctx.rect(p.x-5*s,p.y-2*s,10*s,6*s);ctx.fill();ctx.globalAlpha=1;
+  // Fresh mark glow
+  if(m.age<30){ctx.globalAlpha=.2;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y-4*s,32*s,12*s,0,0,7);ctx.fill();ctx.globalAlpha=1}
+  // Ground glow pulse
+  ctx.globalAlpha=.06;ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(p.x,p.y+2*s,18*s,0,7);ctx.fill();ctx.globalAlpha=1
 }
 function drawPlayer(){
   const bob=Math.sin(player.bobPhase)*4,lean=-(player.mx/1.5)*6;
   const x=innerWidth/2+lean,y=innerHeight*.78+bob;ctx.save();ctx.translate(x,y);
   ctx.fillStyle="rgba(0,0,0,.25)";ctx.beginPath();ctx.ellipse(0,34,66,16,0,0,7);ctx.fill();
-  ctx.fillStyle=hero.color;ctx.fillRect(-18,-58,36,72);ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(0,-72,18,0,7);ctx.fill();
-  ctx.strokeStyle=player.blocking?"#f3d78e":"#e9e0cf";ctx.lineWidth=player.blocking?8:5;ctx.beginPath();ctx.moveTo(18,-48);ctx.lineTo(player.slashTimer?88:-46,player.slashTimer?-88:-28);ctx.stroke();
-  if(player.damageFlash>0){ctx.globalAlpha=.6*player.damageFlash;ctx.fillStyle="#c85d43";ctx.fillRect(-24,-72,48,42);ctx.globalAlpha=1}
-  if(player.slashTimer&&player.slashTimer<12){ctx.strokeStyle="#efe1c0";ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(18,-48);ctx.lineTo(120,-98);ctx.stroke()}
-  if(player.invincible>0){ctx.globalAlpha=.4;ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(0,-72,24,0,7);ctx.fill();ctx.globalAlpha=1}
+  // Kimono body - wider shoulders, tapering waist
+  ctx.fillStyle=hero.color;ctx.beginPath();ctx.moveTo(-20,-60);ctx.lineTo(-18,-10);ctx.lineTo(18,-10);ctx.lineTo(20,-60);ctx.closePath();ctx.fill();
+  // Haori (outer vest) layer
+  ctx.fillStyle="#1a120e";ctx.globalAlpha=.35;ctx.fillRect(-20,-58,40,20);ctx.globalAlpha=1;
+  // Obi sash at waist
+  ctx.fillStyle="#caa45f";ctx.fillRect(-16,-16,32,5);
+  // Head - topknot
+  ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(0,-74,18,0,7);ctx.fill();
+  ctx.fillStyle="#1a120e";ctx.fillRect(-3,-94,6,16);  // chonmage topknot
+  // Sword arm or blocking stance
+  if(player.blocking){
+    ctx.strokeStyle="#f3d78e";ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(18,-50);ctx.lineTo(48,-72);ctx.stroke();
+    ctx.strokeStyle="#e9e0cf";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(48,-72);ctx.lineTo(60,-94);ctx.stroke();
+  } else if(player.slashTimer&&player.slashTimer<12){
+    ctx.strokeStyle="#efe1c0";ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(18,-50);ctx.lineTo(120,-100);ctx.stroke();
+  } else {
+    ctx.strokeStyle="#e9e0cf";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(18,-50);ctx.lineTo(-46,-30);ctx.stroke();
+  }
+  if(player.damageFlash>0){ctx.globalAlpha=.6*player.damageFlash;ctx.fillStyle="#c85d43";ctx.fillRect(-24,-74,48,50);ctx.globalAlpha=1}
+  if(player.invincible>0){ctx.globalAlpha=.4;ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(0,-74,24,0,7);ctx.fill();ctx.globalAlpha=1}
   ctx.restore();
 }
 function burst(x,z,c1,c2){var c=c2||c1;for(var i=0;i<20;i++)sparks.push({x,z,color:i%3===0?c1:c,a:1,vx:(Math.random()-.5)*8,vz:(Math.random()-.5)*8,d:Math.random()*4})}
