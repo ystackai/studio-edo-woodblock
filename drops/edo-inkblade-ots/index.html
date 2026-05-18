@@ -21,11 +21,13 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background
 #hp-fill{background:#caa45f}
 #ink-fill{background:#8fc7d6}
 #resolve-fill{background:#d7b66f}
+#ink-glow{position:absolute;top:-2px;left:-2px;width:calc(100% + 4px);height:calc(100% + 4px);border-radius:3px;pointer-events:none;transition:opacity .3s}
 #log{width:300px;max-width:36vw;font-size:12px;line-height:1.35;color:#ead9bb}
 #log div{margin:0 0 4px}
 #objective{position:absolute;left:16px;bottom:16px;right:16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-end;pointer-events:none}
 #objective .panel{max-width:560px}
 #controls{font-size:12px;color:#d9c49e;text-align:right}
+#hint{font-size:12px;color:#ead9bb;text-align:center;background:rgba(15,12,10,.72);border:1px solid rgba(231,197,130,.25);border-radius:6px;padding:6px 10px;transition:opacity .3s;margin-top:4px;min-width:100px;max-width:280px;pointer-events:none}
 #select{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,rgba(12,10,9,.88),rgba(12,10,9,.72));z-index:3}
 #select.hidden{display:none}
 #select-inner{width:min(920px,calc(100vw - 32px));padding:22px}
@@ -60,9 +62,8 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
     <div id="stats" class="panel" aria-live="polite">
       <div class="stat"><div class="label">Style</div><div class="value" id="style">Musashi</div></div>
       <div class="stat"><div class="label">Health</div><div class="value" id="hp">100</div><div class="stat-bar"><div class="stat-fill" id="hp-fill"></div></div></div>
-      <div class="stat"><div class="label">Ink</div><div class="value" id="ink">5</div><div class="stat-bar"><div class="stat-fill" id="ink-fill"></div></div></div>
+      <div class="stat"><div class="label">Ink</div><div class="value" id="ink">5</div><div class="stat-bar"><div class="stat-fill" id="ink-fill"></div><div id="ink-glow"></div></div></div>
       <div class="stat"><div class="label">Resolve</div><div class="value" id="resolve">0</div><div class="stat-bar"><div class="stat-fill" id="resolve-fill"></div></div></div>
-      <div class="stat"><div class="label">Resolve</div><div class="value" id="resolve">0</div></div>
     </div>
     <div id="log" class="panel"></div>
   </section>
@@ -72,6 +73,7 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
       <div id="quest">Choose a traveler and walk the road toward Ganryu.</div>
     </div>
     <div id="controls" class="panel">WASD move, arrows turn, Space paint, mouse click slash, right click paint, K / Q block, Shift run</div>
+		<div id="hint" style="display:none">//</div>
   </section>
     <section id="death">
       <div class="overlay-inner">
@@ -164,9 +166,9 @@ let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
 let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0;
 let enemies=[
-  {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:13,atkRange:46,patrolX:-140,patrolZ:340,patrolRadius:60,patrolSpeed:.35,patrolAngle:0},
-  {name:"cedar bandit",x:120,z:620,hp:68,max:68,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:16,atkRange:50,patrolX:120,patrolZ:620,patrolRadius:90,patrolSpeed:.3,patrolAngle:1.8},
-  {name:"bridge challenger",x:-80,z:900,hp:84,max:84,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:19,atkRange:55,patrolX:-80,patrolZ:900,patrolRadius:70,patrolSpeed:.25,patrolAngle:3.2}
+  {name:"dock ronin",x:-140,z:340,hp:48,max:48,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:12,atkRange:44,patrolX:-140,patrolZ:340,patrolRadius:55,patrolSpeed:.3,patrolAngle:0},
+  {name:"cedar bandit",x:120,z:620,hp:60,max:60,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:15,atkRange:48,patrolX:120,patrolZ:620,patrolRadius:80,patrolSpeed:.28,patrolAngle:1.8},
+  {name:"bridge challenger",x:-80,z:900,hp:72,max:72,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:18,atkRange:52,patrolX:-80,patrolZ:900,patrolRadius:65,patrolSpeed:.22,patrolAngle:3.2}
 ];
 let scenery=[];
 for(let i=0;i<72;i++){
@@ -307,10 +309,26 @@ function say(text){if(messages[0]!==text){messages.unshift(text);messages=messag
 function updateUi(){ui.style.textContent=hero.label;
   var dispHp=Math.round(player.displayHp),dispInk=player.displayInk.toFixed(1);
   ui.hp.textContent=dispHp;ui.ink.textContent=dispInk;
-  var inkEl=ui.ink;if(player.ink<hero.ink&&player.ink>player.ink-.1){inkEl.style.transition="color .3s";inkEl.style.color="#b8d6b6";setTimeout(function(){inkEl.style.color=""},600)}
-  ui.resolve.textContent=player.resolve;ui.log.innerHTML=messages.map(m=>`<div>${m}</div>`).join("");
-  document.getElementById('hp-fill').style.width=(dispHp/hero.hp*100)+'%';
-  document.getElementById('ink-fill').style.width=(dispInk/hero.ink*100)+'%'}
+  var ig=document.getElementById("ink-glow");if(player.ink<hero.ink&&player.inkTimer<12){ig.style.opacity="0.6";ig.style.background="radial-gradient(50% 50%,rgba(140,200,180,0.35),transparent)";setTimeout(function(){ig.style.opacity="0"},200)}else{ig.style.opacity="0"};
+  ui.resolve.textContent=player.resolve;
+  document.getElementById("resolve-fill").style.width=(player.resolve/15*100)+"%";
+  ui.log.innerHTML=messages.map(m=>`<div>${m}</div>`).join("");
+  document.getElementById("hp-fill").style.width=(dispHp/hero.hp*100)+"%";
+  document.getElementById("ink-fill").style.width=(dispInk/hero.ink*100)+"%";
+  // Contextual hint
+  var hint=document.getElementById("hint"),hintText="";
+  var alive=enemies.filter(e=>e.hp>0).length;
+  var nearestEnemy=enemies.reduce(function(a,b){var da=Math.hypot(a.x-player.x,a.z-player.z),db=Math.hypot(b.x-player.x,b.z-player.z);return da<db?a:b});
+  var enemyDist=Math.hypot(nearestEnemy.x-player.x,nearestEnemy.z-player.z);
+  var painted=marks.length;
+  if(painted<3&&player.z<200&&Math.abs(player.z-180)<80)hintText="Press Space to paint a waymark on the road.";
+  else if(painted<3&&player.z>200&&player.z<520)hintText="Paint remaining waymarks with Space. Enemies prowl ahead.";
+  else if(player.blocking&&enemyDist<120)hintText="Hold block. Release K/Q to strike when the enemy winds up.";
+  else if(enemyDist<100&&!player.blocking&&player.slashTimer<=0)hintText="Enemy close! Press J/E to slash or K/Q to block.";
+  else if(enemyDist<100&&alive>0&&player.ink>0)hintText="Enemy near — press Space to paint a sealing mark, or J/E to duel.";
+  else if(painted<3&&player.ink<1)hintText="Ink is low. Keep moving to let it flow back.";
+  else if(alive>0&&player.z>880)hintText="Ganryu shore nears. Resolve your encounters.";
+  if(hintText){hint.textContent=hintText;hint.style.display=""}else{hint.style.display="none"}}
 function project(x,z,h=0){
   const dx=x-player.x,dz=z-player.z,cs=Math.cos(player.heading),sn=Math.sin(player.heading);
   const cx=dx*cs-dz*sn,cz=dx*sn+dz*cs;
@@ -341,7 +359,8 @@ function draw(){
   // Corner brush-dot ornaments
   [[-158,-36],[-158,22],[158,-36],[158,22]].forEach(c=>{ctx.fillStyle="#caa45f";ctx.globalAlpha=ma*.6;ctx.beginPath();ctx.arc(w/2+c[0],h*.35+c[1],4,0,7);ctx.fill()});ctx.globalAlpha=ma;
   // Filled background with ink-wash texture
-  ctx.globalAlpha=.1;ctx.fillStyle="#d7b66f";ctx.fillRect(w/2-156,h*.35-34,312,52);
+  // roadside cherry blossom trees - organic blossoms wrapping trunk
+  for(var bi=0;bi<5;bi++){var bt=hor+(bi+.2)*(h-hor)/5,bw=280*(bi/5)+50;ctx.fillStyle="#7a4a5a";ctx.fillRect(w*.5-bw-80-4,bi%2?0:10,8,bi%2?30:40);ctx.globalAlpha=.18;var bx=w*.5-bw-80,by=bi%2?20:30,bloomCol="#d98986";ctx.fillStyle=bloomCol;for(var pi=0;pi<3;pi++){var px=bx+(pi-1)*10+Math.sin(Date.now()*.002+bi)*4,py=by+Math.sin(Date.now()*.003+pi)*3;ctx.beginPath();ctx.arc(px,py,7+Math.sin(Date.now()*.002+bi+pi)*2,0,7);ctx.fill()};ctx.beginPath();ctx.arc(bx,by,11,0,7);ctx.fill();bx=w*.5+bw+60;for(var pi=0;pi<3;pi++){var px=bx+(pi-1)*10+Math.sin(Date.now()*.002+bi+5)*4,py=by+Math.sin(Date.now()*.003+pi+2)*3;ctx.beginPath();ctx.arc(px,py,7+Math.sin(Date.now()*.002+bi+pi+5)*2,0,7);ctx.fill()};ctx.beginPath();ctx.arc(bx,by,11,0,7);ctx.fill();ctx.globalAlpha=1}
   ctx.globalAlpha=ma;ctx.fillStyle="#ead9bb";ctx.font="bold clamp(14px,2.4vw,28px) serif";ctx.textAlign="center";
   // Tip: add decorative scroll mark
   const sw=ctx.measureText(milestonePopup.text).width;
