@@ -113,6 +113,14 @@ function initAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||windo
     var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
     gn.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+d);
     n.connect(gn);gn.connect(audioCtx.destination);n.start()}
+  var amb=window._amb||(window._amb={wind:{node:null,gain:null,lastPan:0},river:{node:null,gain:null},footstepTimer:0});
+  // Init ambient wind
+  if(!amb.wind.node){const bc=audioCtx.createBiquadFilter();bc.type="lowpass";bc.frequency.value=220;const wg=audioCtx.createGain();wg.gain.value=.018;const wb=audioCtx.createBuffer(1,audioCtx.sampleRate*4,audioCtx.sampleRate),wd=wb.getChannelData(0);for(let i=0;i<wd.length;i++)wd[i]=Math.random()*2-1;const ws=audioCtx.createBufferSource();ws.buffer=wb;ws.loop=true;ws.connect(bc);bc.connect(wg);wg.connect(audioCtx.destination);wg.gain.setValueAtTime(.018,audioCtx.currentTime);wg.gain.exponentialSmoothValueAtTime(.003,audioCtx.currentTime+3);amb.wind.node=ws;amb.wind.gain=wg;ws.start()
+  // River drone
+  const rg=audioCtx.createGain();rg.gain.value=0;const ro=audioCtx.createOscillator();ro.type="sine";ro.frequency.value=95;const rb2=audioCtx.createBiquadFilter();rb2.type="lowpass";rb2.frequency.value=300;ro.connect(rb2);rb2.connect(rg);rg.connect(audioCtx.destination);amb.river.node=ro;amb.river.gain=rg;ro.start()
+  // Footstep
+  amb.footstep=function(){const fb=audioCtx.createBuffer(1,audioCtx.sampleRate*.06,audioCtx.sampleRate),fd=fb.getChannelData(0);for(let i=0;i<fd.length;i++)fd[i]=Math.random()*2-1*(1-i/fd.length);const fs=audioCtx.createBufferSource(),fg=audioCtx.createGain();fs.buffer=fb;fg.gain.value=.028;fs.connect(fg);fg.connect(audioCtx.destination);fs.start()}
+  }
   sfx={slash:function(){tone(180,.1,"sawtooth",.25);noise(.05,.15)},
     paint:function(){tone(440,.15,"sine",.15);tone(660,.1,"sine",.08)},
     block:function(){tone(120,.08,"square",.18)},
@@ -175,6 +183,8 @@ function step(dt){
     player.bobPhase+=dt*(.09*(keys.shift?1.55:1));
     screenShake*=.65;
     if(player.ink<hero.ink&&player.ink+.006*hero.art*dt>=player.ink+.005)initAudio(),sfx.inkRegen();player.ink=Math.min(hero.ink,player.ink+.006*hero.art*dt);
+  // Ambient: footsteps, wind drift, river near bridge
+  initAudio();var amb=window._amb;amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);amb.river.gain.gain.exponentialSmoothValueAtTime(0,audioCtx.currentTime+.6)
     if(won)victoryParticles.push({x:player.x+(Math.random()-.5)*20,z:player.z+(Math.random()-.5)*20,a:1,vx:(Math.random()-.5)*.6,vy:Math.random()*2+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6"][Math.random()*4|0],d:Math.random()*3+1});
     player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
