@@ -16,6 +16,10 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background
 .stat{border-left:3px solid #caa45f;padding-left:8px}
 .label{font-size:10px;text-transform:uppercase;color:#b9a88d;letter-spacing:.08em}
 .value{font-size:18px;line-height:1.15;font-weight:700}
+.stat-bar{height:4px;background:rgba(231,197,130,.2);border-radius:3px;overflow:hidden;margin:4px 0 0}
+.stat-fill{height:100%;border-radius:3px;transition:width .3s ease}
+#hp-fill{background:#caa45f}
+#ink-fill{background:#8fc7d6}
 #log{width:300px;max-width:36vw;font-size:12px;line-height:1.35;color:#ead9bb}
 #log div{margin:0 0 4px}
 #objective{position:absolute;left:16px;bottom:16px;right:16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-end;pointer-events:none}
@@ -54,8 +58,8 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
   <section id="hud">
     <div id="stats" class="panel" aria-live="polite">
       <div class="stat"><div class="label">Style</div><div class="value" id="style">Musashi</div></div>
-      <div class="stat"><div class="label">Health</div><div class="value" id="hp">100</div></div>
-      <div class="stat"><div class="label">Ink</div><div class="value" id="ink">5</div></div>
+      <div class="stat"><div class="label">Health</div><div class="value" id="hp">100</div><div class="stat-bar"><div class="stat-fill" id="hp-fill"></div></div></div>
+      <div class="stat"><div class="label">Ink</div><div class="value" id="ink">5</div><div class="stat-bar"><div class="stat-fill" id="ink-fill"></div></div></div>
       <div class="stat"><div class="label">Resolve</div><div class="value" id="resolve">0</div></div>
     </div>
     <div id="log" class="panel"></div>
@@ -233,7 +237,9 @@ function updateUi(){ui.style.textContent=hero.label;
   var dispHp=Math.round(player.displayHp),dispInk=player.displayInk.toFixed(1);
   ui.hp.textContent=dispHp;ui.ink.textContent=dispInk;
   var inkEl=ui.ink;if(player.ink<hero.ink&&player.ink>player.ink-.1){inkEl.style.transition="color .3s";inkEl.style.color="#b8d6b6";setTimeout(function(){inkEl.style.color=""},600)}
-  ui.resolve.textContent=player.resolve;ui.log.innerHTML=messages.map(m=>`<div>${m}</div>`).join("")}
+  ui.resolve.textContent=player.resolve;ui.log.innerHTML=messages.map(m=>`<div>${m}</div>`).join("");
+  document.getElementById('hp-fill').style.width=(dispHp/hero.hp*100)+'%';
+  document.getElementById('ink-fill').style.width=(dispInk/hero.ink*100)+'%'}
 function project(x,z,h=0){
   const dx=x-player.x,dz=z-player.z,cs=Math.cos(player.heading),sn=Math.sin(player.heading);
   const cx=dx*cs-dz*sn,cz=dx*sn+dz*cs;
