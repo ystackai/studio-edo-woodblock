@@ -6,10 +6,21 @@ const htmlPath = path.join(root, "index.html");
 const previewPath = path.join(root, "preview.html");
 const html = fs.readFileSync(htmlPath, "utf8");
 const preview = fs.readFileSync(previewPath, "utf8");
+const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
 
 const checks = [
   ["index exists", fs.existsSync(htmlPath)],
   ["preview exists", fs.existsSync(previewPath)],
+  ["javascript syntax", (() => {
+    if (!scriptMatch) return false;
+    try {
+      new Function(scriptMatch[1]);
+      return true;
+    } catch (error) {
+      console.error(`JS syntax error: ${error.message}`);
+      return false;
+    }
+  })()],
   ["canvas renderer", html.includes("<canvas") && html.includes("getContext(\"2d\")")],
   ["over the shoulder language", /over[- ]the[- ]shoulder|perspective|horizon|depth/i.test(html)],
   ["projection function for depth", html.includes("function project") && html.includes("horizon")],
