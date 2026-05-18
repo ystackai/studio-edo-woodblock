@@ -130,22 +130,27 @@ let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0
 let keys={},last=0,won=false;
 let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
-let marks=[],sparks=[],screenShake=0;
+let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;
 let enemies=[
   {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:13,atkRange:46},
   {name:"cedar bandit",x:120,z:620,hp:68,max:68,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:16,atkRange:50},
   {name:"bridge challenger",x:-80,z:900,hp:84,max:84,phase:2.4,wind:0,color:"#3e4a68",type:"duelist",atk:19,atkRange:55}
 ];
 let scenery=[];
-for(let i=0;i<34;i++){
+for(let i=0;i<48;i++){
   const side=i%2?1:-1;
-  scenery.push({kind:i%5===0?"gate":i%3===0?"pine":i%7===0?"torii":i%11===0?"shrine":"house",x:side*(150+Math.random()*170),z:120+i*90,w:60+Math.random()*50,h:70+Math.random()*80});
+  const kinds=["gate","pine","torii","shrine","house","pagoda","teaHouse","bamboo","stoneMarker","ricePaddy","bridgeArch","stall"];
+  const kind=kinds[i%kinds.length];
+  scenery.push({kind,x:side*(140+Math.random()*200),z:80+i*100,w:50+Math.random()*60,h:60+Math.random()*90});
 }
 const route=[{z:180,text:"Paint three waymarks on the road."},{z:520,text:"Cross the bridge. Fight only if pressed."},{z:880,text:"Reach Ganryu shore with ink and resolve."}];
+// Atmosphere particles
+for(let i=0;i<30;i++){leaves.push({x:Math.random()*300-150,z:Math.random()*1200,s:2+Math.random()*3,sp:Math.random()*2+.5,phase:Math.random()*6,color:["#6b8d4a","#b88c45","#8e4f30"][i%3]})}
+for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()*1100,b:Math.random()*6+3,phase:Math.random()*8,speed:.3+Math.random()*.4})}
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
 function start(id){currentHeroKey=id;
   hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
-  marks=[];sparks=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i]});
+  marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i]});
   screenShake=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
@@ -262,14 +267,20 @@ function draw(){
   enemies.filter(e=>e.hp>0).forEach(e=>{const p=project(e.x,e.z,54);if(p)visible.push({p,o:e,type:"enemy"})});
   visible.sort((a,b)=>b.p.d-a.p.d).forEach(v=>v.type==="enemy"?drawEnemy(v.o,v.p):v.type==="mark"?drawMark(v.o,v.p):drawScenery(v.o,v.p));
   drawPlayer();drawSparks();drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
+  drawAtmosphere(w,h);
   if(milestonePopup.active&&milestonePopup.timer>0){ctx.save();ctx.globalAlpha=Math.min(1,milestonePopup.timer/20);ctx.strokeStyle="#d7b66f";ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(w/2-150,h*.35-32,300,50,10);ctx.stroke();ctx.globalAlpha=.1;ctx.fillStyle="#d7b66f";ctx.fillRect(w/2-150,h*.35-32,300,50);ctx.globalAlpha=1;ctx.fillStyle="#ead9bb";ctx.font="bold clamp(14px,2.4vw,28px) serif";ctx.textAlign="center";ctx.fillText(milestonePopup.text,w/2,h*.35);ctx.restore()}
 
 }
 function drawRoad(w,h,hor){
-  for(let i=0;i<18;i++){const y1=hor+i*(h-hor)/18,y2=hor+(i+1)*(h-hor)/18,t=i/18;ctx.fillStyle=i%2?"#403121":"#36291c";ctx.beginPath();ctx.moveTo(w*.5-28-260*t,y1);ctx.lineTo(w*.5+28+260*t,y1);ctx.lineTo(w*.5+42+285*(t+.04),y2);ctx.lineTo(w*.5-42-285*(t+.04),y2);ctx.closePath();ctx.fill()}
-  ctx.strokeStyle="rgba(231,197,130,.22)";ctx.lineWidth=2;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(w*.5+i*16,hor);ctx.lineTo(w*.5+i*120,h);ctx.stroke()}
-  // road edge marker poles
-  ctx.fillStyle="#3a2c1d";for(let i=0;i<5;i++){const mt=i/5;ctx.save();ctx.globalAlpha=.35;ctx.fillRect(w*.5-50-280*mt-4,y1+mt*(h-hor),6,18);ctx.fillRect(w*.5+50+280*mt-4,y1+mt*(h-hor),6,18);ctx.restore()}
+  for(let i=0;i<22;i++){const y1=hor+i*(h-hor)/22,y2=hor+(i+1)*(h-hor)/22,t=i/22;ctx.fillStyle=i%2?"#403121":"#36291c";ctx.beginPath();ctx.moveTo(w*.5-28-260*t,y1);ctx.lineTo(w*.5+28+260*t,y1);ctx.lineTo(w*.5+42+285*(t+.04),y2);ctx.lineTo(w*.5-42-285*(t+.04),y2);ctx.closePath();ctx.fill()}
+  // road center line markings
+  ctx.strokeStyle="rgba(231,197,130,.18)";ctx.setLineDash([12,18]);ctx.lineWidth=2;for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(w*.5+i*15,hor);ctx.lineTo(w*.5+i*110,h);ctx.stroke()};ctx.setLineDash([])
+  // road edge marker poles with lantern detail
+  ctx.fillStyle="#3a2c1d";for(let i=0;i<6;i++){const mt=i/6;ctx.save();ctx.globalAlpha=.35;ctx.fillRect(w*.5-50-280*mt-4,y1+mt*(h-hor),6,18);ctx.fillRect(w*.5+50+280*mt-4,y1+mt*(h-hor),6,18);ctx.globalAlpha=.12;ctx.fillStyle="#ff8333";ctx.beginPath();ctx.arc(w*.5-50-280*mt-1,y1+mt*(h-hor)-4,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+50+280*mt-1,y1+mt*(h-hor)-4,4,0,7);ctx.fill();ctx.restore()}
+  // roadside grass and flowers
+  for(let i=0;i<18;i++){const gy=hor+(i+.5)*(h-hor)/18,gt=i/18,gw=280*gt+30;ctx.fillStyle=i%7?"#2a3a1a":"#3a4b2a";ctx.fillRect(w*.5-gw-70,gy-3,30,6);ctx.fillRect(w*.5+gw+40,gy-3,30,6)};for(let i=0;i<12;i++){const fy=hor+(i+.3)*(h-hor)/12+Math.sin(last*.001+i)*3,ft=i/12,fw=282*ft+24;ctx.fillStyle=i%3?"#8a5a3a":"#c84a3a";ctx.globalAlpha=.25;ctx.beginPath();ctx.arc(w*.5-fw-80,fy,3,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+fw+50,fy,3,0,7);ctx.fill()};ctx.globalAlpha=1
+  // road shadow gradient
+  const sg=ctx.createLinearGradient(0,h*.72,0,h);sg.addColorStop(0,"rgba(0,0,0,0)");sg.addColorStop(1,"rgba(0,0,0,.25)");ctx.fillStyle=sg;ctx.fillRect(0,0,w,h)
 }
 function drawSun(w,hor){
   ctx.fillStyle="#f4a35a";ctx.beginPath();ctx.arc(w*.78,hor*.45,42,0,7);ctx.fill();
@@ -279,15 +290,17 @@ function drawSun(w,hor){
 function drawMountains(w,hor){ctx.fillStyle="#29333c";for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(i*w/5-80,hor);ctx.lineTo(i*w/5+80,hor*(.42+.12*(i%2)));ctx.lineTo(i*w/5+230,hor);ctx.fill()}}
 function drawMist(w,hor){ctx.strokeStyle="rgba(245,232,204,.06)";ctx.lineWidth=2;for(let i=0;i<14;i++){ctx.beginPath();ctx.moveTo(0,hor+10+i*16+Math.sin(last*.0008+i)*10);ctx.bezierCurveTo(w*.25,hor+i*12,w*.6,hor+50+i*10,w,hor+20+i*18);ctx.stroke()}}
 function drawLanterns(w,hor){
-  for(let i=0;i<5;i++){
-    const lx=w*.15+(w*.7/4)*i,ly=hor-30+Math.sin(last*.0006+i)*4;
-    if(i===2||i===4)continue;
+  for(let i=0;i<8;i++){
+    const lx=w*.1+(w*.8/7)*i,ly=hor-30+Math.sin(last*.00055+i)*5;
+    if(i===3||i===5||i===7)continue;
     ctx.fillStyle="#d96a1f";ctx.fillRect(lx-4,ly-28,8,28);
     ctx.fillStyle="#ff8333";ctx.beginPath();ctx.arc(lx,ly-34,6,0,7);ctx.fill();
     const g=ctx.createRadialGradient(lx,ly-34,2,lx,ly-34,28);
     g.addColorStop(0,"rgba(255,131,51,.28)");g.addColorStop(1,"rgba(255,131,51,0)");
     ctx.fillStyle=g;ctx.fillRect(lx-28,ly-62,56,56)
   }
+  // additional smaller road-side lanterns
+  ctx.fillStyle="#ff8333";for(let i=0;i<4;i++){const lx2=w*.05+(w*.9/3)*i*2,ly2=hor-40+Math.sin(last*.0007+i)*3;ctx.globalAlpha=.15;const g2=ctx.createRadialGradient(lx2,ly2,3,lx2,ly2,20);g2.addColorStop(0,"rgba(255,131,51,.18)");g2.addColorStop(1,"rgba(255,131,51,0)");ctx.fillStyle=g2;ctx.fillRect(lx2-20,ly2-20,40,40)};ctx.globalAlpha=1
 }
 function drawBloom(w,h){
   const g=ctx.createRadialGradient(w/2,h*.7,20,w/2,h*.7,Math.max(w,h)*.3);
@@ -309,6 +322,13 @@ function drawScenery(o,p){
   else if(o.kind==="pine"){ctx.fillStyle="#1e3328";ctx.beginPath();ctx.moveTo(p.x,base-90*s);ctx.lineTo(p.x-42*s,base-10*s);ctx.lineTo(p.x+42*s,base-10*s);ctx.fill();ctx.fillStyle="#5b3a23";ctx.fillRect(p.x-5*s,base-32*s,10*s,32*s)}
   else if(o.kind==="torii"){ctx.strokeStyle="#8e1c1c";ctx.lineWidth=10*s;ctx.beginPath();ctx.moveTo(p.x-28*s,base);ctx.lineTo(p.x-28*s,base-60*s);ctx.moveTo(p.x+28*s,base);ctx.lineTo(p.x+28*s,base-60*s);ctx.stroke();ctx.strokeStyle="#b82727";ctx.lineWidth=5*s;ctx.beginPath();ctx.moveTo(p.x-30*s,base-62*s);ctx.lineTo(p.x+30*s,base-62*s);ctx.moveTo(p.x-26*s,base-52*s);ctx.lineTo(p.x+26*s,base-52*s);ctx.stroke()}
   else if(o.kind==="shrine"){ctx.fillStyle="#6a3d30";ctx.beginPath();ctx.moveTo(p.x,base-72*s);ctx.lineTo(p.x-30*s,base-30*s);ctx.lineTo(p.x+30*s,base-30*s);ctx.closePath();ctx.fill();ctx.fillStyle="#9a5a45";ctx.fillRect(p.x-12*s,base-38*s,24*s,38*s);ctx.fillStyle="#4a3a20";ctx.beginPath();ctx.arc(p.x,base-72*s,10*s,Math.PI,0);ctx.fill()}
+  else if(o.kind==="pagoda"){ctx.fillStyle="#7a4530";ctx.fillRect(p.x-16*s,base-16*s,32*s,16*s);ctx.fillStyle="#8e5540";ctx.fillRect(p.x-18*s,base-32*s,36*s,16*s);ctx.fillStyle="#9a6548";ctx.fillRect(p.x-20*s,base-48*s,40*s,16*s);ctx.fillStyle="#2a1a10";ctx.fillRect(p.x-22*s,base-52*s,44*s,4*s)}
+  else if(o.kind==="teaHouse"){ctx.fillStyle="#5a3a22";ctx.fillRect(p.x-24*s,base-24*s,48*s,24*s);ctx.fillStyle="#6a4a30";ctx.fillRect(p.x-28*s,base-38*s,56*s,14*s);ctx.fillStyle="#3a2a18";ctx.fillRect(p.x-2*s,base-10*s,4*s,10*s);ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(p.x,base-44*s,4*s,0,7);ctx.fill()}
+  else if(o.kind==="bamboo"){ctx.strokeStyle="#5b8a48";ctx.lineWidth=3*s;for(let bi=0;bi<5;bi++){const off=(bi-2)*7;ctx.beginPath();ctx.moveTo(p.x+off,base);ctx.lineTo(p.x+off,base-70*s);ctx.stroke()};ctx.fillStyle="#4b7a38";for(let bi=0;bi<3;bi++){const bix=p.x+(bi-1)*10;ctx.beginPath();ctx.moveTo(bix,base,base-70*s);ctx.lineTo(bix+14*s,base-90*s);ctx.lineTo(bix-14*s,base-90*s);ctx.fill()}}
+  else if(o.kind==="stoneMarker"){ctx.fillStyle="#6a5a48";ctx.fillRect(p.x-8*s,base-48*s,16*s,48*s);ctx.fillStyle="#5a4a38";ctx.fillRect(p.x-12*s,base-52*s,24*s,4*s);ctx.fillStyle="#7a6a58";ctx.beginPath();ctx.arc(p.x,base-52*s,8*s,0,7);ctx.fill()}
+  else if(o.kind==="ricePaddy"){ctx.fillStyle="#4b6a38";ctx.fillRect(p.x-30*s,base-12*s,60*s,12*s);ctx.fillStyle="#6b8a48";ctx.fillRect(p.x-32*s,base-24*s,64*s,12*s);ctx.strokeStyle="#3a5a28";ctx.lineWidth=2*s;ctx.beginPath();ctx.moveTo(p.x-32*s,base-12*s);ctx.lineTo(p.x+32*s,base-12*s);ctx.stroke();ctx.fillStyle="rgba(155,200,130,.3)";ctx.fillRect(p.x-24*s,base-8*s,48*s,4*s)}
+  else if(o.kind==="bridgeArch"){ctx.strokeStyle="#5a3a28";ctx.lineWidth=6*s;ctx.beginPath();ctx.moveTo(p.x-40*s,base);ctx.quadraticCurveTo(p.x,base-48*s,p.x+40*s,base);ctx.stroke();ctx.strokeStyle="#4a2a18";ctx.lineWidth=4*s;ctx.beginPath();ctx.moveTo(p.x-36*s,base-18*s);ctx.quadraticCurveTo(p.x,base-58*s,p.x+36*s,base-18*s);ctx.stroke()}
+  else if(o.kind==="stall"){ctx.fillStyle="#4a3020";ctx.fillRect(p.x-28*s,base-32*s,56*s,32*s);ctx.fillStyle="#3a2a18";ctx.fillRect(p.x-2*s,base-36*s,4*s,38*s);ctx.lineWidth=3*s*4;ctx.strokeStyle="#6a5038";ctx.beginPath();ctx.moveTo(p.x-26*s,base-24*s);ctx.lineTo(p.x+26*s,base-24*s);ctx.stroke();ctx.fillStyle="#b83020";ctx.beginPath();ctx.arc(p.x,base-28*s,3*s,0,7);ctx.fill();ctx.fillStyle="#2a2018";ctx.beginPath();ctx.arc(p.x,base-20*s,3*s,0,7);ctx.fill()}
   else{ctx.fillStyle="#5b3828";ctx.fillRect(p.x-34*s,base-48*s,68*s,48*s);ctx.fillStyle="#2a211b";ctx.beginPath();ctx.moveTo(p.x-42*s,base-48*s);ctx.lineTo(p.x,base-82*s);ctx.lineTo(p.x+42*s,base-48*s);ctx.fill()}
 }
 function drawEnemy(e,p){
