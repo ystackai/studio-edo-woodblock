@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Floating Score — Pictures of the Floating World</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #1a1a2e;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #game-canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 10;
+      pointer-events: none;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    #hud > div {
+      pointer-events: auto;
+    }
+    .hud-left, .hud-center, .hud-right {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .hud-center {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: center;
+    }
+    .hud-small {
+      font-size: 16px;
+    }
+    .hud-label {
+      font-size: 10px;
+      color: #9C8E7D;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+    .hud-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #F2EDE6;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s ease, color 0.15s ease;
+    }
+    .hud-value.pop {
+      transform: scale(1.3);
+      color: #D4A657;
+    }
+    .hud-value.level-up {
+      animation: levelUp 0.4s ease-out;
+    }
+    @keyframes levelUp {
+      0% { transform: scale(1); color: #F2EDE6; }
+      50% { transform: scale(1.6); color: #D4A657; }
+      100% { transform: scale(1); color: #F2EDE6; }
+    }
+    /* --- Mute toggle --- */
+    #mute-btn {
+      position: fixed; top: 16px; right: 60px;
+      z-index: 11;
+      background: transparent;
+      border: 1px solid rgba(242,237,230,0.2);
+      color: #9C8E7D;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+      pointer-events: auto;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      transition: all 0.2s ease;
+    }
+    #mute-btn:hover { border-color: #D4A657; color: #F2EDE6; }
+    #mute-btn.muted { border-color: #BA2F22; color: #BA2F22; }
+    /* --- Pause overlay --- */
+    #pause-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 18;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(26,26,46,0.85);
+      backdrop-filter: blur(4px);
+      padding: 20px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #pause-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #pause-overlay h2 {
+      font-size: 24px;
+      color: #F2EDE6;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+    #pause-overlay p {
+      color: #9C8E7D;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    /* --- Element legend on start screen --- */
+    .element-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin: 8px 0;
+    }
+    .element-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      background: rgba(242,237,230,0.06);
+      color: #9C8E7D;
+      letter-spacing: 0.02em;
+    }
+    .element-legend-item .el-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .element-legend-item .el-pts {
+      color: #D4A657;
+      font-weight: 600;
+      margin-left: 2px;
+    }
+    #streak-bar {
+      position: fixed; bottom: 70px; left: 20px; right: 20px;
+      height: 4px;
+      background: rgba(242,237,230,0.1);
+      border-radius: 2px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #streak-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #D4A657, #BA2F22);
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+    #streak-label {
+      position: fixed; bottom: 82px; left: 20px;
+      font-size: 9px;
+      color: #9C8E7D;
+      letter-spacing: 0.06em;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    #level-announce {
+      position: fixed; top: 35%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 32px; font-weight: 700;
+      color: #F4C9C9;
+      text-shadow: 0 2px 20px rgba(244,201,201,0.6), 0 2px 4px rgba(0,0,0,0.8);
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease, top 0.6s ease;
+      letter-spacing: 0.15em;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+    #level-announce.show {
+      opacity: 1;
+      top: 32%;
+    }
+    #streak-unlock {
+      position: fixed; top: 42%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 18px;
+      color: #D4A657;
+      text-shadow: 0 1px 10px rgba(212,166,87,0.5), 0 1px 3px rgba(0,0,0,0.8);
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+    #streak-unlock.show {
+      opacity: 1;
+      top: 38%;
+    }
+    #start-screen, #over-screen {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(26,26,46,0.92);
+      backdrop-filter: blur(6px);
+      padding: 20px;
+      text-align: center;
+      transition: opacity 0.5s ease;
+    }
+    #start-screen.hidden, #over-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+    }
+    #start-screen.hidden *, #over-screen.hidden * {
+      pointer-events: none;
+    }
+    #start-screen.fade-out {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    #start-screen h1, #over-screen h1 {
+      font-size: 28px;
+      color: #F2EDE6;
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    #start-screen h1 span {
+      display: block;
+      font-size: 14px;
+      color: #D4A657;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+    #start-screen p, #over-screen p, .start-copy {
+      color: #9C8E7D;
+      font-size: 13px;
+      max-width: 300px;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+    .start-quote {
+      font-style: italic;
+      color: #D4A657;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      margin: 8px 0 16px;
+      padding: 8px 16px;
+      border-left: 2px solid rgba(212,166,87,0.3);
+      max-width: 320px;
+      line-height: 1.5;
+      opacity: 0.85;
+    }
+
+    .score-final {
+      font-size: 48px;
+      font-weight: 700;
+      color: #D4A657;
+      margin: 16px 0 8px;
+    }
+    .score-breakdown {
+      font-size: 13px;
+      color: #9C8E7D;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .score-breakdown strong {
+      color: #F2EDE6;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 36px;
+      background: transparent;
+      color: #F2EDE6;
+      border: 1px solid #D4A657;
+      border-radius: 30px;
+      font-size: 15px;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.25s ease;
+      margin-top: 16px;
+    }
+    .btn:hover {
+      background: #D4A657;
+      color: #1a1a2e;
+    }
+    .btn.secondary {
+      border-color: #9C8E7D;
+      color: #9C8E7D;
+      font-size: 12px;
+      padding: 10px 28px;
+      margin-top: 8px;
+    }
+    .btn.secondary:hover {
+      background: #9C8E7D;
+      color: #1a1a2e;
+    }
+    #pause-btn {
+      font-size: 10px;
+      padding: 6px 18px;
+      border-color: #9C8E7D;
+      color: #9C8E7D;
+      background: transparent;
+      border: 1px solid #9C8E7D;
+      border-radius: 24px;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.04em;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+    #pause-btn:hover {
+      background: #9C8E7D;
+      color: #1a1a2e;
+    }
+    .highscore-display {
+      font-size: 13px;
+      color: #5886A0;
+      margin-top: 10px;
+    }
+    #timer-bar {
+      position: fixed; bottom: 56px; left: 20px; right: 20px;
+      height: 2px;
+      background: rgba(242,237,230,0.08);
+      border-radius: 1px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #timer-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 1px;
+      background: #5886A0;
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+    .watermark {
+      position: fixed; bottom: 20px; right: 20px;
+      font-size: 8px;
+      color: rgba(242,237,230,0.15);
+      letter-spacing: 0.04em;
+      z-index: 5;
+      pointer-events: none;
+    }
+    #timer-text {
+      position: fixed; bottom: 50px; right: 20px;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 0px;
+    }
+    #timer-seconds {
+      font-size: 22px;
+      font-weight: 700;
+      color: #5886A0;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      transition: color 0.3s ease;
+    }
+    #timer-seconds.warning {
+      color: #D4A657;
+    }
+    #timer-seconds.danger {
+      color: #BA2F22;
+    }
+    .timer-unit {
+      font-size: 10px;
+      color: #9C8E7D;
+      letter-spacing: 0.04em;
+      margin-left: 2px;
+      opacity: 0.6;
+    }
+    @media (max-width: 600px) {
+      .hud-value { font-size: 18px; }
+      #start-screen h1 { font-size: 22px; }
+      .score-final { font-size: 38px; }
+      #streak-bar { bottom: 60px; }
+      #timer-bar { bottom: 48px; }
+    }
+          /* --- Miss feedback effects --- */
+    /* --- Miss ring animation --- */
+    .miss-ring {
+      position: fixed;
+      pointer-events: none;
+      z-index: 15;
+      border-radius: 50%;
+      border: 2px solid rgba(186,47,34,0.6);
+      opacity: 1;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+    .miss-ring.active {
+      opacity: 0;
+      transform: scale(2.5);
+    }
+
+
+
+    /* --- Woodblock grain texture overlay --- */
+    #woodblock-texture {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 3; pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpattern id='g' patternUnits='userSpaceOnUse' width='4' height='4'%3E%3Ccircle cx='1' cy='1' r='0.4' fill='%23F2EDE6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 100px 100px;
+    }
+
+    /* --- Combo meter --- */
+    #combo-meter {
+      position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+      z-index: 10; pointer-events: none;
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 0.08em;
+      opacity: 0;
+      transition: opacity 0.3s ease, bottom 0.3s ease;
+      text-shadow: 0 0 12px rgba(212,166,87,0.4);
+    }
+    #combo-meter.show {
+      opacity: 1;
+      bottom: 130px;
+    }
+    #combo-meter .combo-icon { color: #D4A657; }
+    #combo-meter .combo-label { color: #F2EDE6; margin-left: 4px; }
+    #combo-meter.combo-gold .combo-icon,
+    #combo-meter.combo-gold .combo-label { color: #FFD700; }
+    /* --- Level-up flash overlay --- */
+    .level-flash {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 13; pointer-events: none;
+      background: radial-gradient(circle, rgba(212,166,87,0.15), transparent 60%);
+      opacity: 0; transition: opacity 0.2s ease;
+    }
+    .level-flash.show { opacity: 1; }
+
+    /* --- Timer danger pulse --- */
+    #timer-seconds.danger-pulse {
+      animation: dangerPulse 0.6s ease-in-out infinite;
+    }
+    @keyframes dangerPulse {
+      0%, 100% { color: #BA2F22; transform: scale(1); opacity: 1; }
+      50% { color: #FF3B3B; transform: scale(1.15); opacity: 0.75; }
+    }
+
+    /* --- Miss flash overlay --- */
+    .miss-flash {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 14; pointer-events: none;
+      background: radial-gradient(circle, rgba(186,47,34,0.3), transparent 70%);
+      opacity: 0; transition: opacity 0.15s ease;
+    }
+    .miss-flash.show { opacity: 1; }
+
+    /* --- Sakura petal fall animation --- */
+@keyframes fadeIn {
+      from { opacity: 0; transform: translate(-50%, 10px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    @keyframes petalFall { 0% { transform: translate(0, -10px) rotate(0deg); opacity: 0; } 10% { opacity: 0.06; } 90% { opacity: 0.03; } 100% { transform: translate(0px, 100vh) rotate(360deg); opacity: 0; } }
+    /* --- Game-over decorative elements --- */
+    .over-blossom {
+      position: fixed;
+      pointer-events: none;
+      z-index: 4;
+      font-size: 32px;
+      opacity: 0.06;
+      animation: overBlossomDrift 8s ease-in-out infinite;
+    }
+    @keyframes overBlossomDrift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.06; }
+      50% { transform: translate(15px, -20px) rotate(180deg); opacity: 0.1; }
+    }
+
+/* --- Game-over stats breakdown --- */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      font-size: 13px;
+      color: #9C8E7D;
+      border-bottom: 1px solid rgba(242,237,230,0.06);
+    }
+    .stat-row:last-of-type { border-bottom: none; }
+    .stat-row-element { padding-left: 6px; margin-left: 0; font-size: 12px; border-bottom: 1px solid rgba(242,237,230,0.05); }
+    .stat-divider { height: 1px; background: rgba(242,237,230,0.1); margin: 6px 0; }
+    .stat-label { color: #9C8E7D; }
+    .stat-value { color: #F2EDE6; font-weight: 600; }
+        /* --- Difficulty indicator --- */
+    #diff-indicator {
+      position: fixed; top: 48px; left: 50%; transform: translateX(-50%);
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: #9C8E7D;
+      letter-spacing: 0.06em;
+    }
+    #diff-bar {
+      width: 60px; height: 2px;
+      background: rgba(242,237,230,0.1);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    #diff-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #5886A0, #D4A657, #BA2F22);
+      transition: width 0.5s ease;
+    }
+
+/* --- Streak count text --- */
+    #streak-count {
+      position: fixed; bottom: 82px; left: 60px;
+      font-size: 11px;
+      color: #D4A657;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    #streak-count.show { opacity: 1; }
+    /* --- HUD high score --- */
+    #hud-hs-display {
+      font-size: 14px;
+      color: #5886A0;
+      font-weight: 500;
+    }
+
+    /* --- Ambient start screen particles --- */
+    .ambient-particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 5;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    .ambient-particle.visible {
+      opacity: 0.15;
+    }
+    #start-screen:not(.hidden) ~ .ambient-particle,
+    #over-screen:not(.hidden) ~ .ambient-particle {
+      animation: none;
+    }
+    #start-screen.ambient-running ~ .ambient-particle {
+      animation: ambientDrift 12s ease-in-out infinite;
+    }
+    @keyframes ambientDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(20px, -15px); }
+      50% { transform: translate(-10px, -25px); }
+      75% { transform: translate(15px, -10px); }
+    }
+
+
+    /* --- Achievement unlock popup --- */
+    #ach-unlock {
+      position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 16px;
+      color: #D4A657;
+      text-shadow: 0 1px 10px rgba(212,166,87,0.6), 0 1px 3px rgba(0,0,0,0.8);
+      z-index: 26;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.6s ease, top 0.6s ease;
+      font-family: "IBM Plex Mono", "Courier New", monospace;
+      text-align: center;
+      line-height: 1.6;
+      background: rgba(26,26,46,0.7);
+      padding: 10px 20px;
+      border-radius: 24px;
+      border: 1px solid rgba(212,166,87,0.3);
+      max-width: 280px;
+    }
+    #ach-unlock.show {
+      opacity: 1;
+      top: 34%;
+    }
+    #ach-unlock .ach-icon { font-size: 22px; margin-right: 6px; }
+    #ach-unlock .ach-name { font-weight: 700; color: #F2EDE6; }
+    #ach-unlock .ach-desc { font-size: 11px; color: #9C8E7D; margin-top: 2px; }
+
+    /* --- Keyboard controls modal --- */
+    #controls-modal {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 28;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(26,26,46,0.92);
+      backdrop-filter: blur(6px);
+      padding: 20px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #controls-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #controls-modal h2 {
+      font-size: 20px;
+      color: #F2EDE6;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+    }
+    #controls-modal .controls-grid {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 8px 24px;
+      font-size: 13px;
+      color: #9C8E7D;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    #controls-modal .controls-grid .key-cell {
+      color: #D4A657;
+      font-weight: 600;
+      text-align: right;
+      font-family: "IBM Plex Mono", monospace;
+    }
+    #controls-modal .controls-grid .action-cell {
+      color: #F2EDE6;
+    }
+    #controls-modal .controls-note {
+      font-size: 11px;
+      color: #9C8E7D;
+      max-width: 300px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    #controls-modal .close-controls-btn {
+      font-size: 10px;
+      padding: 6px 18px;
+      border-color: #9C8E7D;
+      color: #9C8E7D;
+      background: transparent;
+      border: 1px solid #9C8E7D;
+      border-radius: 24px;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.04em;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+    #controls-modal .close-controls-btn:hover {
+      background: #9C8E7D;
+      color: #1a1a2e;
+    }
+
+    /* --- Seasonal tint overlay --- */
+    #seasonal-tint {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 4; pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.8s ease, background 1.2s ease;
+    }
+
+    /* --- Achievement summary on game-over --- */
+    #ach-summary {
+      font-size: 11px;
+      color: #8BA97A;
+      margin-top: 10px;
+      max-width: 300px;
+      line-height: 1.5;
+    }
+    #ach-summary .ach-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      margin: 2px;
+      border-radius: 10px;
+      background: rgba(139,169,122,0.1);
+      font-size: 10px;
+    }
+
+</style>
+</head>
+<body>
+  <canvas id="game-canvas" role="application" tabindex="0" aria-label="Floating Score game canvas"></canvas>
+  <div id="seasonal-tint"></div>
+
+  <!-- Ambient floating particles for start screen -->
+  <div class="ambient-particle" style="top:15%;left:10%;width:6px;height:6px;background:#D4A657;border-radius:50%;"></div>
+  <div class="ambient-particle" style="top:25%;left:85%;width:4px;height:4px;background:#F4C9C9;border-radius:50%;"></div>
+  <div class="ambient-particle" style="top:60%;left:5%;width:5px;height:5px;background:#5886A0;border-radius:50%;"></div>
+  <div class="ambient-particle" style="top:70%;left:75%;width:3px;height:3px;background:#8BA97A;border-radius:50%;"></div>
+  <div class="ambient-particle" style="top:85%;left:20%;width:7px;height:7px;background:#9C8E7D;border-radius:50%;"></div>
+
+
+  <div id="hud">
+    <div class="hud-left">
+      <div class="hud-label">Score</div>
+      <div class="hud-value" id="score-display">0</div>
+    </div>
+    <div class="hud-center">
+      <div class="hud-label">Multiplier</div>
+      <div class="hud-value hud-small" id="mult-display">×1</div>
+    </div>
+    <div class="hud-right" style="text-align:right">
+      <div class="hud-label">Level</div>
+      <div class="hud-value" id="level-display">1</div>
+      <div class="hud-label">Best</div>
+      <div class="hud-value hud-small" id="hud-hs-display">0</div>
+    </div>
+  </div>
+  <button id="mute-btn" aria-label="Toggle sound">♫ Sound</button>
+
+  <div id="streak-bar"><div id="streak-fill"></div></div>
+  <div id="streak-label">STREAK</div>
+    <div id="streak-count"></div>
+  <div id="timer-bar"><div id="timer-fill"></div></div>
+
+  <div id="timer-text"><span id="timer-seconds">60</span><span class="timer-unit">s</span></div>
+  <div id="diff-indicator">
+    <span>PACE</span>
+    <div id="diff-bar"><div id="diff-fill"></div></div>
+  </div>
+  <div class="watermark">浮世 · Floating Score</div>
+  <div id="miss-flash" class="miss-flash"></div>
+    <div id="combo-meter"><span class="combo-icon">&#x2727;</span><span class="combo-label">Combo</span></div>
+    <div class="level-flash" id="level-flash"></div>
+    <div id="woodblock-texture"></div>
+    <div id="pause-overlay">
+    <h2>⏸ Paused</h2>
+    <p>Press <kbd>P</kbd> or <kbd>Esc</kbd> to resume</p>
+    <button id="pause-btn" aria-label="Resume the game">Resume</button>
+    <button id="pause-controls-btn" aria-label="Show controls" style="margin-top:8px;font-size:11px;padding:4px 12px;border:1px solid #9C8E7D;border-radius:24px;color:#9C8E7D;background:transparent;cursor:pointer;font-family:inherit;letter-spacing:0.04em;transition:all 0.2s ease;">? Controls</button>
+  </div>
+
+  <div id="level-announce"></div>
+  <div id="streak-unlock"></div>
+  <div id="ach-unlock"><span class="ach-icon"></span><span class="ach-name"></span><div class="ach-desc"></div></div>
+    <div id="game-aria-live" aria-live="polite" aria-atomic="true" style="position:fixed;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap"></div>
+  <div id="start-screen">
+    <h1>Floating Score<span>Catch the floating world</span></h1>
+    <div class="start-quote">"The floating world is a world of fleeting beauty — catch what drifts before it fades."</div>
+    <p>Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
+    <p class="start-copy">Waves, blossoms, mountains, birds, clouds — each carry the spirit of ukiyo-e. Collect them all, build your streak, and chase the high score.</p>
+    <button class="btn" id="start-btn" aria-label="Begin the game">🎨 Begin</button>
+    <p class="controls-hint">Tap or press <kbd>Space</kbd> / <kbd>Enter</kbd> to catch</p>
+    <div class="element-legend" id="el-legend"></div>
+    <div class="highscore-display" id="start-hs"></div>
+  </div>
+  <div id="controls-modal">
+    <h2>⌨ Controls</h2>
+    <div class="controls-grid">
+      <span class="key-cell">Space / Enter</span><span class="action-cell">Catch element / Start</span>
+      <span class="key-cell">P / Esc</span><span class="action-cell">Pause / Resume</span>
+      <span class="key-cell">M</span><span class="action-cell">Toggle mute</span>
+      <span class="key-cell">Click / Tap</span><span class="action-cell">Catch element</span>
+      <span class="key-cell">? / H</span><span class="action-cell">Show controls</span>
+    </div>
+    <p class="controls-note">Tap or click ukiyo-e elements as they drift across the canvas. Build streaks for bonus points. Each caught element type scores different points.</p>
+    <button class="close-controls-btn" id="close-controls-btn" aria-label="Close controls">Close</button>
+    <div id="ach-summary"></div>
+  </div>
+
+  <div id="over-screen" class="hidden">
+    <h1>Float Complete</h1>
+    <div class="score-final" id="final-score">0</div>
+    <div class="score-breakdown" id="final-detail"></div>
+    <button class="btn" id="retry-btn" aria-label="Play again">☼ Play Again</button>
+    <button class="btn secondary" id="home-btn" aria-label="Return to drops catalog">Back to Drops</button>
+    <div class="highscore-display" id="over-hs"></div>
+    <!-- Decorative blossoms behind game-over -->
+    <div class="over-blossom" style="top:10%;left:5%;">🌸</div>
+    <div class="over-blossom" style="top:15%;left:85%;animation-delay:2s;">🌸</div>
+    <div class="over-blossom" style="top:75%;left:10%;animation-delay:4s;">🌸</div>
+    <div class="over-blossom" style="top:80%;left:80%;animation-delay:1s;">🌸</div>
+    <div class="over-blossom" style="top:50%;left:92%;animation-delay:3s;">🌸</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score-display');
+    const levelDisplay = document.getElementById('level-display');
+    const streakFill = document.getElementById('streak-fill');
+    const timerFill = document.getElementById('timer-fill');
+    const startScreen = document.getElementById('start-screen');
+    const overScreen = document.getElementById('over-screen');
+    const finalScore = document.getElementById('final-score');
+    const finalDetail = document.getElementById('final-detail');
+    const startHs = document.getElementById('start-hs');
+    const overHs = document.getElementById('over-hs');
+    const levelAnnounce = document.getElementById('level-announce');
+    const timerSeconds = document.getElementById('timer-seconds');
+    const streakUnlock = document.getElementById('streak-unlock');
+    const streakCount = document.getElementById('streak-count');
+    const hudHsDisplay = document.getElementById('hud-hs-display');
+    const ariaLive = document.getElementById('game-aria-live');
+
+    let W, H, dpr;
+    let gameRunning = false;
+    let score = 0;
+    let level = 1;
+    let streak = 0;
+    let maxStreak = 0;
+    let catches = 0;
+    let elementCounts = {};
+    let timeLeft = 60;
+    let timerInterval = null;
+    let animId = null;
+    let audioMuted = false;
+    let ambientDroneId = null;
+    let paused = false;
+  let currentSeason = 0;
+
+    // Ukiyo-e color palette
+    const COLORS = {
+      indigo:    '#213B5E',
+      vermilion: '#BA2F22',
+      bamboo:    '#497A5E',
+      willow:    '#8BA97A',
+      yellow:    '#D4A657',
+      charcoal:  '#2C2C2C',
+      paper:     '#F2EDE6',
+      sky:       '#D6CED8',
+      water:     '#5886A0'
+    };
+
+    // --- Element types with points ---
+    const ELEMENT_TYPES = [
+      { id: 'wave',    points: 10, color: COLORS.indigo, label: 'Wave' },
+      { id: 'blossom', points: 15, color: '#F4C9C9',    label: 'Blossom' },
+      { id: 'mountain',points: 20, color: COLORS.bamboo, label: 'Mountain' },
+      { id: 'bird',    points: 25, color: COLORS.charcoal,label: 'Bird' },
+      { id: 'cloud',   points: 12,  color: COLORS.water,  label: 'Cloud' },
+    ];
+
+    // --- Persistent achievements ---
+    const ACHIEVEMENTS = [
+      { id: "first_catch",   name: "First Catch",     icon: "🎋",  desc: "Catch your first element", check: function() { return catches >= 1; } },
+      { id: "streak_5",      name: "Flowing Streak",   icon: "🌊",  desc: "Reach a streak of 5", check: function() { return maxStreak >= 5; } },
+      { id: "streak_10",     name: "Autumn Gust",      icon: "🍂",  desc: "Reach a streak of 10", check: function() { return maxStreak >= 10; } },
+      { id: "streak_15",     name: "Master Streak",    icon: "🎨",  desc: "Reach a streak of 15", check: function() { return maxStreak >= 15; } },
+      { id: "level_3",       name: "Traveler",         icon: "⛰️",  desc: "Reach level 3", check: function() { return level >= 3; } },
+      { id: "level_5",       name: "Seasoned",         icon: "🌸",  desc: "Reach level 5", check: function() { return level >= 5; } },
+      { id: "level_8",       name: "Floating Master",  icon: "🏔️",  desc: "Reach level 8", check: function() { return level >= 8; } },
+      { id: "high_100",      name: "100 Points",       icon: "✨",  desc: "Score 100 in a game", check: function() { return score >= 100; } },
+      { id: "high_300",      name: "300 Points",       icon: "🌟",  desc: "Score 300 in a game", check: function() { return score >= 300; } },
+      { id: "high_500",      name: "500 Points",       icon: "🏆",  desc: "Score 500 in a game", check: function() { return score >= 500; } },
+      { id: "collect_all",   name: "World Collector",  icon: "🗾",  desc: "Catch all 5 element types in one game", check: function() { var ct = 0; for (var k in elementCounts) if (elementCounts[k] > 0) ct++; return ct >= 5; } },
+      { id: "speed_demon",   name: "Swift Catch",      icon: "💨",  desc: "Catch an element within 5 seconds", check: function() { return timeLeft >= 55; } },
+    ];
+    function getUnlockedAch() {
+      try { var stored = localStorage.getItem("floating-score-ach"); return stored ? JSON.parse(stored) : []; } catch(e) { return []; }
+    }
+    function isAchUnlocked(id) { return getUnlockedAch().includes(id); }
+    function unlockAch(id) {
+      var list = getUnlockedAch();
+      if (list.includes(id)) return false;
+      list.push(id);
+      try { localStorage.setItem("floating-score-ach", JSON.stringify(list)); } catch(e) { /* ignore */ }
+      return true;
+    }
+
+    // --- Seasonal palette evolution ---
+    const SEASONS = [
+      { name: "Spring", bg: "rgba(244,201,201,0.08)", tint: "rgba(139,169,122,0.04)", elementTint: "#F4C9C9", levelMin: 1, levelMax: 2 },
+      { name: "Summer", bg: "rgba(88,134,160,0.08)", tint: "rgba(212,166,87,0.04)", elementTint: "#5886A0", levelMin: 3, levelMax: 4 },
+      { name: "Autumn", bg: "rgba(186,47,34,0.08)", tint: "rgba(212,166,87,0.05)", elementTint: "#BA2F22", levelMin: 5, levelMax: 6 },
+      { name: "Winter", bg: "rgba(213,206,216,0.08)", tint: "rgba(242,237,230,0.05)", elementTint: "#D6CED8", levelMin: 7, levelMax: 8 },
+      { name: "Special", bg: "rgba(180,140,200,0.10)", tint: "rgba(212,166,87,0.06)", elementTint: "#D4A657", levelMin: 9, levelMax: 99 },
+    ];
+    function updateSeason() {
+      var sIdx = 0;
+      for (var i = 0; i < SEASONS.length; i++) {
+        if (level >= SEASONS[i].levelMin && level <= SEASONS[i].levelMax) { sIdx = i; break; }
+      }
+      if (sIdx !== currentSeason) {
+        currentSeason = sIdx;
+        var tintEl = document.getElementById("seasonal-tint");
+        if (tintEl) {
+          tintEl.style.background = "radial-gradient(ellipse at 50% 100%, " + SEASONS[sIdx].bg + ", transparent 70%)";
+          tintEl.style.opacity = "1";
+        }
+      }
+    }
+
+
+    // --- Audio (Web Audio synthesis) ---
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    function playTone(freq, duration, type) {
+      if (audioMuted) return;
+      try {
+        ensureAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) { /* audio not critical */ }
+    }
+    function playCatch(typeId) {
+      const CATCH_TONES = {
+        wave: { freq: 523, type: 'sine' },
+        blossom: { freq: 659, type: 'triangle' },
+        mountain: { freq: 392, type: 'sawtooth' },
+        bird: { freq: 784, type: 'sine' },
+        cloud: { freq: 440, type: 'triangle' }
+      };
+      const t = CATCH_TONES[typeId] || { freq: 523, type: 'sine' };
+      playTone(t.freq, 0.08, t.type);
+    }         /* C5 */
+    function playMiss()  { playTone(150, 0.15, 'sawtooth'); }    /* low buzz */
+    function playLevel() { playTone(659, 0.06, 'sine'); setTimeout(() => playTone(784, 0.06, 'sine'), 80); setTimeout(() => playTone(880, 0.06, 'sine'), 160); }
+    function playStreak() { playTone(392, 0.1, 'sine'); setTimeout(() => { playTone(523, 0.1, 'sine'); }, 100); setTimeout(() => { playTone(659, 0.1, 'sine'); }, 200); setTimeout(() => { playTone(784, 0.15, 'triangle'); }, 280); }
+    function playGameOver() { playTone(200, 0.3, 'sawtooth'); setTimeout(() => playTone(150, 0.4, 'sawtooth'), 150); setTimeout(() => playTone(120, 0.5, 'sine'), 300); setTimeout(() => playTone(90, 0.6, 'triangle'), 450); }
+    function startAmbientDrone() {
+      if (audioMuted || ambientDroneId) return;
+      try {
+        ensureAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 55;
+        gain.gain.value = 0.3;
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 60);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        ambientDroneId = { osc, gain };
+      } catch(e) { /* ignore */ }
+    }
+    function stopAmbientDrone() {
+      if (ambientDroneId) {
+        try {
+          ambientDroneId.gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
+          setTimeout(() => { ambientDroneId.osc.stop(); ambientDroneId = null; }, 1000);
+        } catch(e) { ambientDroneId = null; }
+      }
+    }
+
+
+
+    // --- Game objects ---
+    let elements = [];
+    let particles = [];
+    let cloudBg = null;
+
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      dpr = devicePixelRatio || 1;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // --- Draw helpers (ukiyo-e style) ---
+
+    function drawWave(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/80, size/80);
+      ctx.strokeStyle = COLORS.indigo;
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (let i = 0; i <= 20; i++) {
+        const p = i / 20;
+        const angle = p * Math.PI;
+        const r = 35 + p * 25 + 8 * Math.sin(t * 2 + p * 4);
+        const px = Math.cos(angle) * r;
+        const py = Math.sin(angle) * r * 0.6;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      for (let s = 0; s < 5; s++) {
+        const a = (s/5) * Math.PI;
+        const r = 44 + 12 * Math.sin(t * 3 + s);
+        ctx.beginPath();
+        ctx.arc(Math.cos(a)*r, Math.sin(a)*r*0.5 - 6, 1.5 + Math.sin(t+s)*1.2, 0, Math.PI*2);
+        ctx.fillStyle = COLORS.water;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawBlossom(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/50, size/50);
+      const petals = 5;
+      for (let p = 0; p < petals; p++) {
+        const a = p/petals * Math.PI * 2 + t * 0.3;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.translate(9, 0);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 7, 5, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#F4C9C9';
+        ctx.fill();
+        ctx.restore();
+      }
+      // Center
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#E8A8A8';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawMountain(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/70, size/70);
+      // Snow cap
+      ctx.beginPath();
+      ctx.moveTo(-30, 5);
+      ctx.lineTo(0, -35);
+      ctx.lineTo(30, 5);
+      ctx.closePath();
+      ctx.fillStyle = COLORS.bamboo;
+      ctx.globalAlpha = 0.7;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // Snow on top
+      ctx.beginPath();
+      ctx.moveTo(-10, -20);
+      ctx.lineTo(0, -35);
+      ctx.lineTo(10, -20);
+      ctx.closePath();
+      ctx.fillStyle = COLORS.paper;
+      ctx.fill();
+      // Base
+      ctx.beginPath();
+      ctx.moveTo(-40, 5);
+      ctx.lineTo(-30, 5);
+      ctx.lineTo(30, 5);
+      ctx.lineTo(40, 5);
+      ctx.strokeStyle = COLORS.charcoal;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawBird(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/30, size/30);
+      ctx.strokeStyle = COLORS.charcoal;
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      const wingAngle = Math.sin(t * 3) * 0.4;
+      // Body
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.quadraticCurveTo(0, -3, 8, 0);
+      ctx.quadraticCurveTo(0, 3, -8, 0);
+      ctx.stroke();
+      // Left wing
+      ctx.beginPath();
+      ctx.moveTo(-2, 0);
+      ctx.lineTo(-12, -6 + wingAngle * 3);
+      ctx.stroke();
+      // Right wing
+      ctx.beginPath();
+      ctx.moveTo(2, 0);
+      ctx.lineTo(12, -6 - wingAngle * 3);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCloud(ctx, x, y, t, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size/40, size/40);
+      ctx.fillStyle = COLORS.sky;
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.arc(-10, 0, 10, 0, Math.PI * 2);
+      ctx.arc(10, -4, 8, 0, Math.PI * 2);
+      ctx.arc(10, 4, 7, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    // --- Element spawning ---
+
+    function spawnElement() {
+      const maxLevel = Math.min(level, 5);
+      const available = ELEMENT_TYPES.slice(0, maxLevel);
+      const type = available[Math.floor(Math.random() * available.length)];
+      const size = 30 + Math.random() * 30 + level * 3;
+      const speed = 0.4 + Math.random() * 0.6 + level * 0.08;
+      const x = 0.1 + Math.random() * 0.8;
+      const y = -0.1;
+      const drift = (Math.random() - 0.5) * 0.03;
+      return {
+        type: type.id,
+        points: type.points,
+        x, y,
+        size: Math.min(size, 80),
+        speed: Math.min(speed, 2.0),
+        drift,
+        alive: true,
+        t: Math.random() * 100,
+        r: Math.random() * Math.PI * 2
+      };
+    }
+
+    function spawnParticles(x, y, count, color) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 20 + Math.random() * 40;
+        particles.push({
+          x: x, y: y,
+          dx: Math.cos(angle) * dist * 0.03,
+          dy: Math.sin(angle) * dist * 0.03,
+          life: 1,
+          decay: 0.02 + Math.random() * 0.02,
+          size: 1.5 + Math.random() * 2,
+          color
+        });
+      }
+    }
+
+    // --- Game logic ---
+
+    function startGame() {
+      score = 0;
+      level = 1;
+      streak = 0;
+      maxStreak = 0;
+      catches = 0;
+      elementCounts = {};
+      timeLeft = 60;
+      paused = false;
+      elements = [];
+      particles = [];
+      cloudBg = null;
+      // Auto-close controls modal when game starts to prevent overlap during play
+      document.getElementById('controls-modal').classList.remove('show');
+
+      startScreen.classList.add('fade-out');
+      setTimeout(() => { startScreen.classList.add('hidden'); startScreen.classList.remove('fade-out'); }, 400);
+      document.getElementById('pause-overlay').classList.remove('show');
+      overScreen.classList.add('hidden');
+      gameRunning = true;
+      canvas.focus();
+
+      scoreDisplay.textContent = '0';
+      const multDisplayMobile = document.getElementById('mult-display');
+      if (multDisplayMobile) multDisplayMobile.textContent = '×1';
+      levelDisplay.textContent = '1';
+      timerFill.style.width = '100%';
+      streakCount.textContent = '';
+      streakCount.classList.remove('show');
+      document.getElementById('diff-fill').style.width = '0%';
+
+      // Spawn initial elements
+      for (let i = 0; i < 3 + level; i++) {
+        const el = spawnElement();
+        el.y = Math.random() * 1.2;
+        elements.push(el);
+      }
+
+      // Timer
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft -= 1;
+        const pct = Math.max(0, (timeLeft / 60) * 100);
+        timerSeconds.textContent = String(timeLeft);
+        timerFill.style.width = pct + '%';
+        // Time warning flash
+        if (timeLeft <= 10) {
+        timerSeconds.classList.add('danger','danger-pulse'); timerSeconds.classList.remove('warning');
+          timerFill.style.background = '#BA2F22';
+        } else if (timeLeft <= 20) {
+        timerSeconds.classList.add('warning'); timerSeconds.classList.remove('danger');
+
+          timerFill.style.background = '#D4A657';
+        } else {
+          timerSeconds.classList.remove('warning','danger','danger-pulse');
+          timerFill.style.background = '#5886A0';
+        }
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+
+      // Loop
+      if (animId) cancelAnimationFrame(animId);
+      // Auto-close controls modal when game ends to prevent overlap with game-over screen
+      document.getElementById('controls-modal').classList.remove('show');
+      loop();
+    }
+
+    function animateCountUp(el, target, durationMs) {
+      const startVal = 0;
+      const startTime = performance.now();
+      const step = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        // Ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(startVal + (target - startVal) * eased);
+        el.textContent = current;
+        // Tick sound at every 50 points
+        if (current > 0 && current % 50 === 0) playTone(800 + (current % 100) * 2, 0.03, 'sine');
+        if (progress < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      };
+      requestAnimationFrame(step);
+    }
+
+
+    function endGame() {
+      stopAmbientDrone();
+      playGameOver();
+      gameRunning = false;
+      if (timerInterval) clearInterval(timerInterval);
+      if (animId) cancelAnimationFrame(animId);
+      // Auto-close controls modal when game ends to prevent overlap with game-over screen
+      document.getElementById('controls-modal').classList.remove('show');
+
+      const streakBonus = maxStreak * 5;
+      const total = score + streakBonus;
+
+      // Animate score count-up instead of setting instantly
+      animateCountUp(finalScore, total, 800);
+      finalDetail.innerHTML = '\
+        <div class="stat-row"><span class="stat-label">Base Score</span><span class="stat-value">' + score + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Streak Bonus</span><span class="stat-value">+' + streakBonus + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Total</span><span class="stat-value" style="color:#F4C9C9">' + (score + streakBonus) + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Catches</span><span class="stat-value">' + catches + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Max Streak</span><span class="stat-value">' + maxStreak + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Level Reached</span><span class="stat-value">' + level + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">Time Played</span><span class="stat-value">' + (60 - timeLeft) + 's</span></div>' +
+        '<div class="stat-divider"></div>' +
+        ELEMENT_TYPES.map(t => '<div class="stat-row stat-row-element" style="border-left:3px solid ' + t.color + '"><span class="stat-label">' + t.label + '</span><span class="stat-value">' + (elementCounts[t.id] || 0) + ' &times; ' + t.points + '</span></div>').join('') +
+        '<div class="stat-divider"></div>';
+
+      // High score
+      const saved = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
+      let isNew = false;
+      if (total > saved) {
+        localStorage.setItem('floating-score-hs', String(total));
+        isNew = true;
+        setTimeout(showNewHighScoreBadge, 200);
+
+    // Check achievements at game end (score-based, collect_all, speed_demon)
+    var endAchPopup = document.getElementById("ach-unlock");
+    for (var ei = 0; ei < ACHIEVEMENTS.length; ei++) {
+      var each = ACHIEVEMENTS[ei];
+      if (each.check() && !isAchUnlocked(each.id)) {
+        if (unlockAch(each.id)) {
+          endAchPopup.querySelector(".ach-icon").textContent = each.icon;
+          endAchPopup.querySelector(".ach-name").textContent = each.name;
+          endAchPopup.querySelector(".ach-desc").textContent = each.desc;
+          endAchPopup.classList.remove("show");
+          void endAchPopup.offsetHeight;
+          endAchPopup.classList.add("show");
+          setTimeout(function() { endAchPopup.classList.remove("show"); }, 2500);
+          // Play achievement sound
+          playTone(880, 0.05, "sine");
+          setTimeout(function() { playTone(1100, 0.06, "triangle"); }, 100);
+          setTimeout(function() { playTone(1320, 0.08, "sine"); }, 200);
+        }
+      }
+    }
+
+      }
+
+      const scoreDiff = Math.abs(total - saved);
+      let compareMsg;
+      if (isNew) compareMsg = '🎉 Beat previous record by ' + scoreDiff + ' points!';
+      else if (scoreDiff === 0) compareMsg = '🎯 Tied the high score!';
+      else compareMsg = '📈 ' + scoreDiff + ' points away from high score';
+      overHs.innerHTML += '<br><span style="font-size:13px;opacity:0.8">' + compareMsg + '</span>';
+      finalScore.classList.toggle('new-highscore', isNew);
+      hudHsDisplay.textContent = String(Math.max(total, saved));
+      ariaLive.textContent = 'Game over. Final score ' + total + '. ' + (isNew ? 'New high score!' : '');
+      // Ukiyo-e wisdom flavor text based on score
+      const flavorQuotes = [
+        { min: 0, text: '🌸 "Even a single petal reminds us — beauty drifts, catch what you can."' },
+        { min: 100, text: '🎋 "The wave that breaks upon the shore carries the memory of the open sea."' },
+        { min: 300, text: '🏔️ "A mountain seen through morning mist — impermanent, yet eternal."' },
+        { min: 500, text: '🕊️ "Like birds crossing the floating world, our moments scatter on the wind."' },
+        { min: 800, text: '✨ "You have touched the floating world\'s heart. Well caught, traveler."' }
+      ];
+      const flavor = flavorQuotes.slice().reverse().find(q => total >= q.min) || flavorQuotes[0];
+      const flavorEl = document.createElement('div');
+      flavorEl.id = 'game-over-flavor';
+      flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:25;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;pointer-events:none;';
+      flavorEl.textContent = flavor.text;
+      document.body.appendChild(flavorEl);
+      overScreen.classList.remove('hidden');
+
+    // Update achievement summary in controls modal
+    var unlockedList = getUnlockedAch();
+    var achSummaryEl = document.getElementById('ach-summary');
+    if (achSummaryEl && unlockedList.length > 0) {
+      achSummaryEl.innerHTML = '\u2727 Achievements: ' + unlockedList.map(function(id) {
+        var afound = ACHIEVEMENTS.find(function(a) { return a.id === id; });
+        return afound ? '<span class="ach-badge">' + afound.icon + ' ' + afound.name + '</span>' : '';
+      }).join(' ');
+    } else if (achSummaryEl) {
+      achSummaryEl.innerHTML = '';
+    }
+
+      streakCount.textContent = '';
+      streakCount.classList.remove('show');
+      paintFinalFrame();
+      // Sakura petal overlay
+      spawnPetals(12);
+      // Auto-focus retry button for keyboard users
+      setTimeout(() => { document.getElementById('retry-btn')?.focus(); }, 100);
+    }
+
+    
+    function spawnPetals(count) {
+      const petalChars = ['\u{1F338}','\u271D','\u25CC','.']; 
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.textContent = petalChars[i % petalChars.length];
+        const sz = 12 + Math.random() * 16;
+        const left = Math.random() * 100;
+        const dur = 6 + Math.random() * 6;
+        const delay = Math.random() * 3;
+        p.style.cssText = 'position:fixed;pointer-events:none;z-index:5;font-size:' + sz + 'px;opacity:' + (0.04 + Math.random() * 0.06) + ';left:' + left + '%;top:-20px;animation:petalFall ' + dur + 's ease-in infinite;animation-delay:' + delay + 's;';
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 12000);
+      }
+    }
+
+    function paintFinalFrame() {
+      // Smoothly fade out via overlay
+      let opacity = 0;
+      function fadeStep() {
+        opacity += 0.1;
+        ctx.fillStyle = 'rgba(26,26,46,' + opacity + ')';
+        ctx.fillRect(0, 0, W, H);
+        if (opacity < 1.0) {
+          requestAnimationFrame(fadeStep);
+        } else {
+          // Draw decorative ukiyo-e composition
+          ctx.save();
+          const layoutPositions = [
+            // Waves at bottom foreground
+            { type: 'wave', x: 0.15, y: 0.85, t: 0, size: 70 },
+            { type: 'wave', x: 0.40, y: 0.88, t: 2, size: 55 },
+            { type: 'wave', x: 0.70, y: 0.82, t: 4, size: 65 },
+            { type: 'wave', x: 0.90, y: 0.87, t: 1, size: 50 },
+            // Blossom trees middle distance
+            { type: 'blossom', x: 0.10, y: 0.50, t: 0, size: 45 },
+            { type: 'blossom', x: 0.35, y: 0.45, t: 3, size: 50 },
+            { type: 'blossom', x: 0.65, y: 0.40, t: 1, size: 55 },
+            { type: 'blossom', x: 0.90, y: 0.50, t: 2, size: 40 },
+            // Mountains far background
+            { type: 'mountain', x: 0.25, y: 0.35, t: 0, size: 60 },
+            { type: 'mountain', x: 0.75, y: 0.30, t: 1, size: 70 },
+            // Clouds sky layer
+            { type: 'cloud', x: 0.15, y: 0.20, t: 0, size: 35 },
+            { type: 'cloud', x: 0.50, y: 0.15, t: 1, size: 40 },
+            { type: 'cloud', x: 0.85, y: 0.25, t: 2, size: 30 },
+            // Birds above mountains
+            { type: 'bird', x: 0.40, y: 0.22, t: 0, size: 25 },
+            { type: 'bird', x: 0.55, y: 0.18, t: 3, size: 28 },
+            { type: 'bird', x: 0.30, y: 0.25, t: 5, size: 22 },
+            // Extra foreground blossoms
+            { type: 'blossom', x: 0.05, y: 0.75, t: 5, size: 35 },
+            { type: 'blossom', x: 0.95, y: 0.70, t: 4, size: 32 },
+            // Extra low clouds
+            { type: 'cloud', x: 0.05, y: 0.60, t: 3, size: 28 },
+            { type: 'cloud', x: 0.95, y: 0.55, t: 4, size: 25 },
+          ];
+          layoutPositions.forEach(function(lp) {
+            var lx = lp.x * W;
+            var ly = lp.y * H;
+            var ls = lp.size;
+            var drawFn = {
+              wave: drawWave,
+              blossom: drawBlossom,
+              mountain: drawMountain,
+              bird: drawBird,
+              cloud: drawCloud
+            }[lp.type];
+            if (drawFn) drawFn(ctx, lx, ly, lp.t, ls);
+          });
+          ctx.restore();
+        }
+      }
+      fadeStep();
+    }
+    // --- Pause controls ---
+    function togglePause() {
+      if (!gameRunning) return;
+      paused = !paused;
+      document.getElementById('pause-overlay').classList.toggle('show', paused);
+      if (paused) {
+        // Pause timer
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null;
+      } else {
+        // Resume timer
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          timeLeft -= 1;
+          const pct = Math.max(0, (timeLeft / 60) * 100);
+          timerSeconds.textContent = String(timeLeft);
+          timerFill.style.width = pct + '%';
+          if (timeLeft <= 10) {
+            timerSeconds.classList.add('danger','danger-pulse'); timerSeconds.classList.remove('warning');
+            timerFill.style.background = '#BA2F22';
+          } else if (timeLeft <= 20) {
+            timerSeconds.classList.add('warning'); timerSeconds.classList.remove('danger');
+            timerFill.style.background = '#D4A657';
+          } else {
+            timerSeconds.classList.remove('warning','danger','danger-pulse');
+            timerFill.style.background = '#5886A0';
+          }
+          if (timeLeft <= 0) endGame();
+        }, 1000);
+      }
+    }
+
+    // --- Mute toggle ---
+    function toggleMute() {
+      audioMuted = !audioMuted;
+      const btn = document.getElementById('mute-btn');
+      btn.textContent = audioMuted ? '♫ Muted' : '♫ Sound';
+      btn.classList.toggle('muted', audioMuted);
+      if (audioMuted) { stopAmbientDrone(); } else if (gameRunning) { startAmbientDrone(); }
+    }
+
+
+    function handleCatch(el) {
+      if (!gameRunning) return;
+      el.alive = false;
+
+      const typeInfo = ELEMENT_TYPES.find(t => t.id === el.type);
+      streak += 1;
+      if (streak > maxStreak) maxStreak = streak;
+      catches += 1;
+      elementCounts[typeInfo.id] = (elementCounts[typeInfo.id] || 0) + 1;
+
+      // Score: base points * streak multiplier
+      const multiplier = 1 + Math.floor(streak / 3);
+      document.getElementById('mult-display').textContent = '×' + multiplier;
+      playCatch(el.type);
+      const gained = el.points * multiplier;
+      score += gained;
+      // Particle burst on every catch using element color
+      spawnParticles(el.x * W, el.y * H, 10, typeInfo.color);
+
+      // Streak bar
+      // Streak unlock announcements
+      if (streak === 3 || streak === 5 || streak === 10 || streak === 15) {
+        // Special streak sound
+        var ut = streak === 3 ? "Gentle Breeze!" : streak === 5 ? "Flowing Streak!" : streak === 10 ? "Autumn Gust!" : "Master Streak!";
+        streakUnlock.textContent = ut;
+        streakUnlock.classList.remove("show");
+        void streakUnlock.offsetHeight;
+        streakUnlock.classList.add("show");
+        setTimeout(() => streakUnlock.classList.remove("show"), 1500);
+        playStreak();
+        // Star burst at streak milestone
+        spawnParticles(el.x * W, el.y * H, 20, '#D4A657');
+        spawnParticles(el.x * W + 30, el.y * H + 30, 15, '#F4C9C9');
+        spawnParticles(el.x * W - 30, el.y * H - 30, 15, '#F2EDE6');
+      }
+      const streakPct = Math.min(100, (streak / 15) * 100);
+      streakFill.style.width = streakPct + '%';
+      streakCount.textContent = String(streak);
+      streakCount.classList.add('show');
+
+      // Combo meter update
+      const comboMeter = document.getElementById('combo-meter');
+      if (comboMeter) {
+        if (streak >= 3) {
+          const comboLabels = { 3:'&#x2727; Combo', 5:'&#x2727; Flowing', 10:'&#x2727; Autumn', 15:'&#x2727; Master' };
+          const label = Object.keys(comboLabels).sort((a,b)=>parseInt(b)-parseInt(a)).find(k => streak >= parseInt(k));
+          comboMeter.innerHTML = '<span class="combo-icon">&#x2727;</span><span class="combo-label">' + (label ? comboLabels[label] : 'Combo') + ' x' + streak + '</span>';
+          comboMeter.classList.add('show');
+          if (streak >= 5) comboMeter.classList.add('combo-gold');
+        } else {
+          comboMeter.classList.remove('show','combo-gold');
+        }
+      }
+
+    // --- Check and show achievements ---
+    var achPopupEl = document.getElementById("ach-unlock");
+    for (var ai = 0; ai < ACHIEVEMENTS.length; ai++) {
+      var ach = ACHIEVEMENTS[ai];
+      if (ach.check() && !isAchUnlocked(ach.id)) {
+        if (unlockAch(ach.id)) {
+          achPopupEl.querySelector(".ach-icon").textContent = ach.icon;
+          achPopupEl.querySelector(".ach-name").textContent = ach.name;
+          achPopupEl.querySelector(".ach-desc").textContent = ach.desc;
+          achPopupEl.classList.remove("show");
+          void achPopupEl.offsetHeight;
+          achPopupEl.classList.add("show");
+          setTimeout(function() { achPopupEl.classList.remove("show"); }, 2500);
+        }
+      }
+    }
+
+      ariaLive.textContent = streak === 1 ? 'Streak ' + streak : 'Streak ' + streak + '!';
+
+      // Level check: every 10 catches
+      const newLevel = Math.floor(catches / 10) + 1;
+      if (newLevel > level) {
+        level = newLevel;
+        updateSeason();
+        levelDisplay.textContent = String(level);
+        levelDisplay.classList.remove('level-up');
+        void levelDisplay.offsetHeight;
+        playLevel();
+        // Update difficulty indicator
+        var diffPct = Math.min(100, ((level - 1) / 9) * 100);
+        document.getElementById('diff-fill').style.width = diffPct + '%';
+        // Celebration burst on level up
+        spawnParticles(W/2, H/2, 30, COLORS.yellow);
+        spawnParticles(W/2 - 40, H/2 - 40, 20, COLORS.paper);
+        spawnParticles(W/2 + 40, H/2 + 40, 20, COLORS.vermillion);
+        levelAnnounce.textContent = 'Level ' + level;
+        levelAnnounce.classList.remove('show');
+        void levelAnnounce.offsetHeight;
+        levelAnnounce.classList.add('show');
+        setTimeout(() => levelAnnounce.classList.remove('show'), 1200);
+        levelDisplay.classList.add('level-up');
+      }
+
+      // Score display
+      scoreDisplay.textContent = String(score);
+        // Animate score change
+        const popup = document.createElement('div');
+        const popX = el.x * W;
+        const popY = el.y * H;
+        popup.style.cssText = 'position:fixed;top:' + popY + 'px;left:' + popX + 'px;transform:translate(-50%,-50%);z-index:15;font-size:24px;font-weight:700;color:#D4A657;pointer-events:none;transition:all 0.6s ease;opacity:1;text-shadow:0 1px 6px rgba(0,0,0,0.6);';
+        popup.textContent = '+' + gained;
+        document.body.appendChild(popup);
+        requestAnimationFrame(() => {
+          popup.style.transform = 'translate(-50%,-80%)';
+          popup.style.opacity = '0';
+          setTimeout(() => popup.remove(), 700);
+        });
+      scoreDisplay.classList.remove('pop');
+      void scoreDisplay.offsetHeight;
+      scoreDisplay.classList.add('pop');
+
+      // Particles at catch
+      // Enhanced catch burst with combo color
+      var comboColor = multiplier > 1 ? '#D4A657' : (typeInfo ? typeInfo.color : COLORS.yellow);
+      spawnParticles(el.x * W, el.y * H, 10 + streak * 2, comboColor);
+      // Extra sparkle on combo
+      if (multiplier > 1) {
+        spawnParticles(el.x * W + 20, el.y * H + 20, 5, '#F2EDE6');
+      }
+      // Brief canvas flash overlay
+      const flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:12;pointer-events:none;background:radial-gradient(ellipse at ' + (el.x * W) + 'px ' + (el.y * H) + 'px, rgba(212,166,87,0.15), transparent 70%);transition:opacity 0.3s ease;opacity:1;';
+      document.body.appendChild(flash);
+      requestAnimationFrame(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 350); });
+
+      // Spawn a new element to replace
+      elements.push(spawnElement());
+
+      // Level up: add more elements
+      if (elements.length < 8 + level * 2) {
+        elements.push(spawnElement());
+      }
+    }
+
+    function checkHit(el, cx, cy) {
+      const ex = el.x * W;
+      const ey = el.y * H;
+      const dx = cx - ex;
+      const dy = cy - ey;
+      const r = Math.max(el.size * 0.6, 35); // larger hit area for mobile
+      return (dx * dx + dy * dy) < r * r;
+    }
+
+    let lastHitTime = 0;
+    function pointerDown(e) {
+      // Throttle to prevent double-register on fast taps
+      const now = performance.now();
+      if (now - lastHitTime < 100) return;
+      if (!gameRunning) return;
+      const rect = canvas.getBoundingClientRect();
+      const cx = ((e.clientX || e.touches?.[0]?.clientX || W/2) / rect.width) * W;
+      const cy = ((e.clientY || e.touches?.[0]?.clientY || H/2) / rect.height) * H;
+
+      // Check hits in reverse order (top-most)
+      let hit = false;
+      for (let i = elements.length - 1; i >= 0; i--) {
+        const el = elements[i];
+        if (!el.alive) continue;
+        // Only check if visible on screen
+        if (el.y < -0.1 || el.y > 1.1) continue;
+        if (checkHit(el, cx, cy)) {
+          handleCatch(el);
+          hit = true;
+          lastHitTime = now;
+          break;
+        }
+      }
+      if (!hit) {
+        playMiss();
+        // Miss ripple effect
+        const ring = document.createElement('div');
+        ring.className = 'miss-ring';
+        ring.style.cssText = 'left:' + (cx/W*100) + '%;top:' + (cy/H*100) + '%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;border:2px solid rgba(186,47,34,0.6);position:fixed;pointer-events:none;z-index:15;opacity:1;transition:transform 0.4s ease, opacity 0.4s ease;';
+        document.body.appendChild(ring);
+        requestAnimationFrame(() => {
+          ring.style.transform = 'scale(2.5)';
+          ring.style.opacity = '0';
+          setTimeout(() => ring.remove(), 450);
+        });
+        // Screen shake
+        const shakeIntensity = 6;
+        document.body.style.transform = 'translate(' + (Math.random()*2-1)*shakeIntensity + 'px,' + (Math.random()*2-1)*shakeIntensity + 'px)';
+        // Miss flash
+        const flash = document.getElementById('miss-flash');
+        if (flash) { flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 150); }
+        setTimeout(() => { document.body.style.transform = ''; }, 200);
+        streakFill.style.background = "linear-gradient(90deg, #BA2F22, #BA2F22)";
+        streakFill.style.width = '0%';
+        streak = 0;
+        streakCount.textContent = '';
+        // Reset combo meter
+        const comboMeter = document.getElementById('combo-meter');
+        if (comboMeter) {
+          comboMeter.classList.remove('show','combo-gold');
+        }
+        document.getElementById('mult-display').textContent = '×1';
+        streakCount.classList.remove('show');
+        setTimeout(() => {
+          streakFill.style.background = "linear-gradient(90deg, #D4A657, #BA2F22)";
+        }, 200);
+        // Announce miss
+        ariaLive.textContent = 'Miss';
+    }
+    }
+
+    // --- Main render ---
+
+    function loop() {
+      if (!gameRunning && animId === null) return;
+      if (paused) {
+        animId = requestAnimationFrame(loop);
+        return;
+      }
+
+      const now = performance.now() / 1000;
+
+      // Clear
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, W, H);
+
+      // Draw subtle background particles
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 0.025 * W + Math.sin(now * 0.05 + i)) % W;
+        const y = (i * 37 + now * 3) % H;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.8, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.sky;
+        ctx.globalAlpha = 0.08;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // Update and draw elements
+      const toRemove = [];
+      for (const el of elements) {
+        if (!el.alive) {
+          toRemove.push(el);
+          continue;
+        }
+        el.y += el.speed * (1 / 60) * 2;
+        el.x += el.drift;
+        el.t += 0.05;
+
+        // Wrap x
+        if (el.x < -0.1) el.x = 1.1;
+        if (el.x > 1.1) el.x = -0.1;
+
+        // Remove if off bottom
+        if (el.y > 1.3) {
+          if (streak > 0) playMiss();
+          streak = 0;
+          streakFill.style.width = '0%';
+          streakCount.textContent = '';
+          streakCount.classList.remove('show');
+          toRemove.push(el);
+          continue;
+        }
+
+        // Draw
+        const ex = el.x * W;
+        const ey = el.y * H;
+        const driftX = 10 * Math.sin(now * 0.08 + el.r);
+        switch (el.type) {
+          case 'wave':    drawWave(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'blossom': drawBlossom(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'mountain':drawMountain(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'bird':    drawBird(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'cloud':   drawCloud(ctx, ex + driftX, ey, el.t, el.size); break;
+        }
+      }
+
+      // Remove dead elements
+      elements = elements.filter(el => el.alive && el.y <= 1.3);
+
+      // Keep enough elements on screen
+      if (elements.length < 3) {
+        elements.push(spawnElement());
+      }
+
+      // Draw particles
+      for (const p of particles) {
+        p.x += p.dx;
+        p.y += p.dy;
+        p.life -= p.decay;
+        if (p.life <= 0) continue;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life * 0.8;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      particles = particles.filter(p => p.life > 0);
+
+      animId = requestAnimationFrame(loop);
+    }
+
+    // --- Input ---
+    canvas.addEventListener('click', pointerDown);
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      pointerDown(e);
+    }, { passive: false });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+        if (gameRunning) { togglePause(); return; }
+      }
+
+      // M key toggles mute (listed in controls modal)
+      if (e.key === 'm' || e.key === 'M') {
+        toggleMute();
+        return;
+      }
+      if (e.key === ' ' || e.key === 'Enter') {
+        // Don't trigger start while controls modal is visible
+        if (document.getElementById('controls-modal').classList.contains('show')) return;
+        if (!gameRunning && !startScreen.classList.contains('hidden')) {
+          startGame();
+        } else if (gameRunning) {
+          pointerDown({ clientX: W/2, clientY: H * 0.5 });
+        }
+      }
+    });
+
+    // --- Start/Retry ---
+
+    // --- Controls modal ---
+    document.getElementById('close-controls-btn').addEventListener('click', function() {
+      document.getElementById('controls-modal').classList.remove('show');
+      // Return focus based on context: paused or start screen
+      var pausedPanel = document.getElementById('pause-overlay');
+      var pauseControlsBtn = document.getElementById('pause-controls-btn');
+      if (pausedPanel && pausedPanel.classList.contains('show') && pauseControlsBtn) {
+        setTimeout(function() { pauseControlsBtn.focus(); }, 50);
+      } else {
+        var cb = document.getElementById('controls-btn');
+        if (cb) setTimeout(function() { cb.focus(); }, 50);
+        else document.getElementById('start-btn')?.focus();
+      }
+    });
+    // Show controls modal on '?' or 'h' key, or from a button on start screen
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '?' || e.key === 'h' || e.key === 'H') {
+        var modal = document.getElementById('controls-modal');
+        var isOpen = modal.classList.contains('show');
+        modal.classList.toggle('show');
+        if (!isOpen) {
+          setTimeout(function() { document.getElementById('close-controls-btn')?.focus(); }, 50);
+        } else {
+          var pausedPanel = document.getElementById('pause-overlay');
+          var pauseControlsBtn = document.getElementById('pause-controls-btn');
+          if (pausedPanel && pausedPanel.classList.contains('show') && pauseControlsBtn) {
+            setTimeout(function() { pauseControlsBtn.focus(); }, 50);
+          } else {
+            var cb = document.getElementById('controls-btn');
+            if (cb) setTimeout(function() { cb.focus(); }, 50);
+            else document.getElementById('start-btn')?.focus();
+          }
+        }
+      }
+    });
+    // Add controls toggle button to start screen
+    var controlsBtn = document.createElement('button');
+    controlsBtn.id = 'controls-btn';
+    controlsBtn.textContent = '? Controls';
+    controlsBtn.style.cssText = 'position:absolute;bottom:12px;right:12px;z-index:20;font-size:11px;padding:4px 12px;border:1px solid #9C8E7D;border-radius:24px;color:#9C8E7D;background:transparent;cursor:pointer;font-family:inherit;letter-spacing:0.04em;transition:all 0.2s ease;';
+    controlsBtn.addEventListener('click', function() {
+      document.getElementById('controls-modal').classList.add('show');
+      setTimeout(function() { document.getElementById('close-controls-btn')?.focus(); }, 50);
+    });
+    document.getElementById('start-screen').appendChild(controlsBtn);
+
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    document.getElementById('retry-btn').addEventListener('click', startGame);
+    document.getElementById('home-btn').addEventListener('click', () => {
+      window.location.href = '../../drops/';
+    });
+    document.getElementById('mute-btn').addEventListener('click', toggleMute);
+    document.getElementById('pause-btn').addEventListener('click', togglePause);
+    document.getElementById('pause-controls-btn').addEventListener('click', function() {
+      document.getElementById('controls-modal').classList.add('show');
+      setTimeout(function() { document.getElementById('close-controls-btn')?.focus(); }, 50);
+    });
+    // --- Show saved high score ---
+    const savedHs = parseInt(localStorage.getItem('floating-score-hs') || '0', 10);
+    // Build element legend from ELEMENT_TYPES
+    const legendEl = document.getElementById('el-legend');
+    if (legendEl) {
+      legendEl.innerHTML = ELEMENT_TYPES.map(t => 
+        '<span class="element-legend-item"><span class="el-dot" style="background:' + t.color + '"></span> ' + t.label + ' <span class="el-pts">' + t.points + '</span></span>'
+      ).join('');
+    }
+    if (savedHs > 0) {
+      startHs.textContent = 'Best: ' + savedHs;
+      hudHsDisplay.textContent = String(savedHs);
+    }
+
+
+    // --- Ambient start screen particles ---
+    const ambientParticles = document.querySelectorAll('.ambient-particle');
+    let ambientAnimId = null;
+    let ambientTime = 0;
+
+    function animateAmbient() {
+      if (startScreen.classList.contains('hidden') && overScreen.classList.contains('hidden')) {
+        ambientParticles.forEach(p => p.classList.remove('visible'));
+        ambientAnimId = requestAnimationFrame(animateAmbient);
+        return;
+      }
+      ambientTime += 0.02;
+      ambientParticles.forEach((p, idx) => {
+        p.classList.add('visible');
+        const baseX = parseFloat(p.style.left);
+        const baseY = parseFloat(p.style.top);
+        const offsetX = Math.sin(ambientTime * 0.5 + idx * 1.7) * 15;
+        const offsetY = Math.cos(ambientTime * 0.4 + idx * 2.3) * 10;
+        p.style.transform = 'translate(' + offsetX.toFixed(1) + 'px, ' + offsetY.toFixed(1) + 'px)';
+        // Subtle pulsing opacity
+        p.style.opacity = 0.08 + 0.07 * (1 + Math.sin(ambientTime * 0.3 + idx * 1.1));
+      });
+      ambientAnimId = requestAnimationFrame(animateAmbient);
+    }
+    animateAmbient();
+
+    // --- New high score badge animation ---
+    function showNewHighScoreBadge() {
+      const badge = document.createElement('div');
+      badge.style.cssText = 'position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);z-index:30;font-size:22px;font-weight:700;color:#D4A657;text-shadow:0 0 20px rgba(212,166,87,0.8),0 2px 4px rgba(0,0,0,0.8);letter-spacing:0.1em;opacity:0;transition:opacity 0.6s ease,top 0.6s ease;pointer-events:none;';
+      badge.textContent = '✦ New High Score! ✦';
+      document.body.appendChild(badge);
+      requestAnimationFrame(() => {
+        badge.style.opacity = '1';
+        badge.style.top = '28%';
+      });
+      setTimeout(() => {
+        badge.style.opacity = '0';
+        badge.style.top = '26%';
+        setTimeout(() => badge.remove(), 700);
+      }, 3000);
+    }
+
+    // --- Ukiyo-e decorative border on start screen ---
+    function drawStartDecor() {
+      const decor = document.createElement('div');
+      decor.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:19;pointer-events:none;opacity:0.04;background:radial-gradient(ellipse at 20% 20%, rgba(212,166,87,0.1), transparent 70%), radial-gradient(ellipse at 80% 80%, rgba(133,133,133,0.1), transparent 70%);';
+      decor.id = 'start-decor';
+      document.body.appendChild(decor);
+    }
+    drawStartDecor();
+
+    console.log('Floating Score loaded. Catch ukiyo-e elements to score!');
+  </script>
+</body>
+</html>
