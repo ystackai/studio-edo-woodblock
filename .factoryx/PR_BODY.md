@@ -52,6 +52,8 @@ FactoryX-Factory: factory-edo-woodblock
 - Combo meter gold pulse animation at streak ≥ 5
 - Fade transitions on start/game-over screens
 - **NEW: Ambient animation stops during gameplay** — `requestAnimationFrame` loop is cancelled when game starts and resumed when game ends, reducing unnecessary CPU work
+- **NEW: Game-over DOM cleanup on retry** — stale flavor text and high-score badge elements are removed before starting a new game, preventing visual artifacts from previous rounds
+- **NEW: CSS-drawn blossom shapes** — decorative blossoms on game-over screen use CSS conic-gradient and radial-gradient instead of unicode emoji, rendering crisp vector flowers at any display resolution
 - **NEW: Focus-visible keyboard navigation styles** — gold outline + subtle glow on all buttons, canvas, and controls for keyboard users
 
 **Accessibility:**
@@ -86,8 +88,7 @@ FactoryX-Factory: factory-edo-woodblock
 **Verification output (latest):**
 ```
 === Verification: Floating Score ===
-All regression checks passed (27 assertions)
-All structural checks passed (42 checks)
+27 regression checks + 42 structural checks pass (69 total)
 === All verifications passed ===
 ```
 

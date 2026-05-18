@@ -514,7 +514,24 @@
       position: fixed;
       pointer-events: none;
       z-index: 4;
-      font-size: 32px;
+      width: 40px;
+      height: 40px;
+      margin: -20px 0 0 -20px;
+      border-radius: 50%;
+      background:
+        conic-gradient(
+          rgba(244,201,201,0.45) 0deg 55deg,
+          transparent 55deg 72deg,
+          rgba(244,201,201,0.45) 72deg 127deg,
+          transparent 127deg 144deg,
+          rgba(244,201,201,0.45) 144deg 199deg,
+          transparent 199deg 216deg,
+          rgba(244,201,201,0.45) 216deg 271deg,
+          transparent 271deg 288deg,
+          rgba(244,201,201,0.45) 288deg 343deg,
+          transparent 343deg 360deg
+        ),
+        radial-gradient(circle at 50% 50%, rgba(244,201,201,0.35) 0%, transparent 70%);
       opacity: 0.06;
       animation: overBlossomDrift 8s ease-in-out infinite;
     }
@@ -822,11 +839,11 @@
     <button class="btn secondary" id="home-btn" aria-label="Return to drops catalog">Back to Drops</button>
     <div class="highscore-display" id="over-hs"></div>
     <!-- Decorative blossoms behind game-over -->
-    <div class="over-blossom" style="top:10%;left:5%;">🌸</div>
-    <div class="over-blossom" style="top:15%;left:85%;animation-delay:2s;">🌸</div>
-    <div class="over-blossom" style="top:75%;left:10%;animation-delay:4s;">🌸</div>
-    <div class="over-blossom" style="top:80%;left:80%;animation-delay:1s;">🌸</div>
-    <div class="over-blossom" style="top:50%;left:92%;animation-delay:3s;">🌸</div>
+    <div class="over-blossom" style="top:10%;left:5%;"></div>
+    <div class="over-blossom" style="top:15%;left:85%;animation-delay:2s;"></div>
+    <div class="over-blossom" style="top:75%;left:10%;animation-delay:4s;"></div>
+    <div class="over-blossom" style="top:80%;left:80%;animation-delay:1s;"></div>
+    <div class="over-blossom" style="top:50%;left:92%;animation-delay:3s;"></div>
   </div>
 
   <script>
@@ -1196,6 +1213,13 @@
 
     function startGame() {
       score = 0;
+      // Clean up stale game-over DOM from previous game
+      var staleEl = document.getElementById("game-over-flavor");
+      if (staleEl) staleEl.remove();
+      var badges = document.querySelectorAll("div:not([id]):not([class])");
+      for (var bi = 0; bi < badges.length; bi++) {
+            if (badges[bi].textContent === "✦ New High Score! ✦") badges[bi].remove();
+      }
       level = 1;
       streak = 0;
       maxStreak = 0;
