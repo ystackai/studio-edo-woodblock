@@ -72,10 +72,10 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
     <div id="controls" class="panel">WASD move, arrows turn, Space paint, mouse click slash, right click paint, K / Q block, Shift run</div>
   </section>
     <section id="death">
-    <div><h2>Defeated</h2><p style="font-size:16px;color:#d9c49e">The road claims another traveler. Press any key to return.</p></div>
+    <div><h2>Defeated</h2><p style="font-size:16px;color:#d9c49e" id="death-stats"></p><p style="font-size:13px;color:#b9a88d;margin:8px 0 0">Press any key to return.</p></div>
   </section>
     <section id="victory">
-    <div><h2>The Shore of Ganryu</h2><p style="font-size:16px;color:#d7b66f">Art and steel find peace together.</p><p class="sub">Press any key to walk the road again.</p></div>
+    <div><h2>The Shore of Ganryu</h2><p style="font-size:16px;color:#d7b66f">Art and steel find peace together.</p><p style="font-size:13px;color:#ead9bb;margin:8px 0 0" id="victory-stats"></p><p class="sub">Press any key to walk the road again.</p></div>
   </section>
 <section id="select">
     <div id="select-inner">
@@ -128,6 +128,7 @@ let currentHeroKey="musashi";
 
 let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0};
 let keys={},last=0,won=false;
+let gameStartTime=0,enemiesDefeated=0,inkUsedTotal=0,marksPlacedTotal=0;
 let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
 let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;
@@ -151,7 +152,7 @@ document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=
 function start(id){currentHeroKey=id;
   hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
   marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i]});
-  screenShake=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
+  screenShake=0;gameStartTime=Date.now();enemiesDefeated=0;inkUsedTotal=0;marksPlacedTotal=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false});
@@ -177,7 +178,7 @@ function step(dt){
     if(won)victoryParticles.push({x:player.x+(Math.random()-.5)*20,z:player.z+(Math.random()-.5)*20,a:1,vx:(Math.random()-.5)*.6,vy:Math.random()*2+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6"][Math.random()*4|0],d:Math.random()*3+1});
     player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
-    if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show")}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0)ui.death.classList.remove("show")}
+    if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show");var e=Math.floor((Date.now()-gameStartTime)/1000);document.getElementById("death-stats").textContent="Time: "+Math.floor(e/60)+"m "+(e%60)+"s | Defeated: "+enemiesDefeated+" | Ink: "+inkUsedTotal+" | Resolve: "+player.resolve}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0)ui.death.classList.remove("show")}
     milestonePopup.timer=Math.max(0,milestonePopup.timer-dt);
     updateEnemies(dt);updateQuest();updateUi();
   }
@@ -206,25 +207,25 @@ function updateEnemies(dt){
 function paint(){initAudio();
   if(!ui.select.classList.contains("hidden")||player.paintTimer>0)return;
   if(player.ink<1){say("The inkstone is dry. Keep moving and breathe.");return}
-  player.ink-=1;player.paintTimer=20;
+  player.ink-=1;inkUsedTotal+=1;player.paintTimer=20;
   const x=player.x+Math.sin(player.heading)*70,z=player.z+Math.cos(player.heading)*70;
   marks.push({x,z,age:0,color:hero.color,style:hero.label});
-  enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{e.hp-=12*hero.art;player.resolve+=1;say(e.name+" hesitates before the fresh print.")});
-  player.resolve+=1;burst(x,z,hero.color);inkSplatter(x,z,hero.color);say(hero.label+" lays a living ink mark.");
+  enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{e.hp-=12*hero.art;enemiesDefeated+=1;player.resolve+=1;say(e.name+" hesitates before the fresh print.")});
+  player.resolve+=1;marksPlacedTotal+=1;burst(x,z,hero.color);inkSplatter(x,z,hero.color);say(hero.label+" lays a living ink mark.");
 }
 function slash(){initAudio();
   if(!ui.select.classList.contains("hidden")||player.slashTimer>0)return;
   player.slashTimer=18;let hit=false;
   enemies.filter(e=>e.hp>0).forEach(e=>{
     const dx=e.x-player.x,dz=e.z-player.z,dist=Math.hypot(dx,dz),ang=Math.atan2(dx,dz)-player.heading;
-    if(dist<82&&Math.abs(Math.atan2(Math.sin(ang),Math.cos(ang)))<.72){e.hp-=hero.slash;hit=true;screenShake=2;burst(e.x,e.z,"#efe1c0","#fff");say("Inkblade strikes "+e.name+".");if(e.hp<=0){player.resolve+=3;screenShake=4;say(e.name+" scatters like mist under the blade.");burst(e.x,e.z,"#fff","#d7b66f")}}
+    if(dist<82&&Math.abs(Math.atan2(Math.sin(ang),Math.cos(ang)))<.72){e.hp-=hero.slash;hit=true;screenShake=2;burst(e.x,e.z,"#efe1c0","#fff");say("Inkblade strikes "+e.name+".");if(e.hp<=0){enemiesDefeated+=1;player.resolve+=3;screenShake=4;say(e.name+" scatters like mist under the blade.");burst(e.x,e.z,"#fff","#d7b66f")}}
   });
   if(!hit){say("The blade cuts only mist.");screenShake=.5}
 }
 function updateQuest(){
   const alive=enemies.filter(e=>e.hp>0).length,painted=marks.length;
   if(player.hp<=0){ui.quest.textContent="Defeated. Choose a style to restart.";return}
-  if(!won&&player.z>980&&(painted>=3||alive===0)){
+  if(!won&&player.z>980&&(painted>=3||alive===0)){var e=Math.floor((Date.now()-gameStartTime)/1000);document.getElementById("victory-stats").textContent="Time: "+Math.floor(e/60)+"m "+(e%60)+"s | Defeated: "+enemiesDefeated+" | Ink: "+inkUsedTotal+" | Marks: "+painted+" | Resolve: "+player.resolve;
     won=true;
     say("Ganryu shore opens. Art and steel find peace.");
     initAudio();sfx.victory();
