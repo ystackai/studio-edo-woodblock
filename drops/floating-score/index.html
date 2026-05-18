@@ -341,6 +341,19 @@
       background: #9C8E7D;
       color: #1a1a2e;
     }
+    /* --- Keyboard focus styles --- */
+    #start-btn:focus-visible, #retry-btn:focus-visible, #home-btn:focus-visible,
+    #pause-btn:focus-visible, #mute-btn:focus-visible,
+    #close-controls-btn:focus-visible, #pause-controls-btn:focus-visible,
+    #controls-btn:focus-visible {
+      outline: 2px solid #D4A657;
+      outline-offset: 2px;
+      box-shadow: 0 0 12px rgba(212,166,87,0.3);
+    }
+    #game-canvas:focus-visible {
+      outline: 2px solid #D4A657;
+      outline-offset: -2px;
+    }
     .highscore-display {
       font-size: 13px;
       color: #5886A0;
@@ -1193,6 +1206,8 @@
       elements = [];
       particles = [];
       cloudBg = null;
+      // Cancel ambient animation during gameplay
+      if (ambientAnimId) cancelAnimationFrame(ambientAnimId); ambientAnimId = null;
       // Auto-close controls modal when game starts to prevent overlap during play
       document.getElementById('controls-modal').classList.remove('show');
 
@@ -1273,6 +1288,8 @@
       gameRunning = false;
       if (timerInterval) clearInterval(timerInterval);
       if (animId) cancelAnimationFrame(animId);
+      // Restart ambient particles when game ends
+      if (!ambientAnimId) animateAmbient();
       // Auto-close controls modal when game ends to prevent overlap with game-over screen
       document.getElementById('controls-modal').classList.remove('show');
 
@@ -1344,7 +1361,7 @@
       const flavor = flavorQuotes.slice().reverse().find(q => total >= q.min) || flavorQuotes[0];
       const flavorEl = document.createElement('div');
       flavorEl.id = 'game-over-flavor';
-      flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:25;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;pointer-events:none;';
+      flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:26;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;pointer-events:none;';
       flavorEl.textContent = flavor.text;
       document.body.appendChild(flavorEl);
       overScreen.classList.remove('hidden');
@@ -1798,6 +1815,13 @@
     }, { passive: false });
 
     document.addEventListener('keydown', (e) => {
+      // Escape closes controls modal first if open
+      if (e.key === 'Escape') {
+        var cm = document.getElementById('controls-modal');
+        if (cm.classList.contains('show')) {
+          cm.classList.remove('show'); e.preventDefault(); return;
+        }
+      }
       if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
         if (gameRunning) { togglePause(); return; }
       }

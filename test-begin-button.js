@@ -136,6 +136,26 @@ async function main() {
   if (!pauseStillShown) throw new Error('Pause overlay should still be shown after closing controls modal');
   console.log('PASS: Controls modal closes, pause state preserved');
 
+  // --- 13.5. Escape key closes controls modal while paused ---
+  await page.keyboard.press('p');
+  await page.waitForTimeout(200);
+  // Re-open controls modal during pause
+  const pauseControlsBtn2 = await page.$('#pause-controls-btn');
+  if (!pauseControlsBtn2) throw new Error('Pause controls button missing');
+  await pauseControlsBtn2.click({ force: true });
+  await page.waitForTimeout(250);
+  // Press Escape to close controls modal
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(250);
+  const controlsModal2 = await page.$('#controls-modal');
+  const controlsHiddenEscape = await controlsModal2.evaluate(el => el.classList.contains('show'));
+  if (controlsHiddenEscape) throw new Error('Controls modal should be hidden after Escape key');
+  // Pause overlay should still be visible
+  const pauseOverlay2 = await page.$('#pause-overlay');
+  const pauseStillShown2 = await pauseOverlay2.evaluate(el => el.classList.contains('show'));
+  if (!pauseStillShown2) throw new Error('Pause overlay should still be shown after closing controls modal with Escape');
+  console.log('PASS: Escape key closes controls modal, pause state preserved');
+
   // --- 14. Escape key also resumes game ---
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
