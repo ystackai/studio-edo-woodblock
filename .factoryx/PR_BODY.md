@@ -1,53 +1,50 @@
 ## Edo Inkblade: Road to Ganryu
 
-FactoryX-WorkOrder: work-order-1779110113149-ots-polish
+FactoryX-WorkOrder: work-order-1779143195423-18
 FactoryX-Factory: factory-edo-woodblock
 
 ### Scope
-Polish the existing first/over-the-shoulder Edo art-and-duel bootstrap at `drops/edo-inkblade-ots/index.html` into a stronger vertical slice. Not Floating Score, not a top-down toy, not a landing page.
+Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shoulder Edo-era art-and-duel game. Character selection, road travel, ink mark-making, evasion/duel combat, milestone progression, and arrival at Ganryu.
+
+### Planning Gates (committed)
+
+**Strategy** — `.factoryx/GOAL_EXECUTION_STRATEGY.md`
+- Player fantasy, mood & references (UKyo-e prints, sumi-e ink wash), core interaction loop, art/audio direction, engine & verification plan, non-goals, process milestones.
+
+**Technical Design** — `.factoryx/TECHNICAL_SYSTEM_DESIGN.md`
+- Files/module layout, data flow, game-state layout, controls, rendering layer order & projection, audio plan, procedural asset plan, verification strategy, risks, rollout, implementation order.
 
 ### Preview
-`drops/edo-inkblade-ots/index.html`
+`drops/edo-inkblade-ots/index.html` — opens directly to the game canvas. Preview root: `drops/edo-inkblade-ots/preview.html`.
 
-### Changes (4 passes)
-
-**Pass 1 — Art direction**: Sky gradient with Edo sunset tones, sun glow halos, road lanterns with warm radial glow, denser mist, woodblock grain texture overlay, bloom post-effect, low-HP enemy danger glow, enemy attack flash, mark glow core, fresh-mark halo, player damage flash and invincible aura, ink splatter particles.
-
-**Pass 2 — Combat feel & enemy AI**:
-- Fixed missing player.damageFlash and player.invincible fields
-- Enemy AI types: chaser (aggressive rush), prowler (flanking), duelist (patient, high damage)
-- Attack telegraphing with wind glow on enemy weapon before swing
-- Screen shake on hit/death for impact feel
-- Enemy death dissolve animation
-- Richer burst particles with two-color variation
-- Player damage flash + invincibility frames after hit
-- Block damage reduction varies by enemy type
-
-**Pass 3 — Art & objective progression**:
-- Waymark stakes with wooden post and ground glow for clearer road placement
-- Road edge marker poles for distance/depth cues
-- Paint action triggers inkSplatter particles for richer feedback
-- Ink regen visual feedback (green tint pulse when ink recovers)
-- Refined miss message with micro screen shake
-- Improved quest text phrasing
-
-**Pass 4 — Controls & movement feel** (current):
-- Mouse click left = slash, right click = paint; touch support added
-- Smooth acceleration/deceleration via velocity lerp (0.18 factor)
-- Head bob when running (sine wave on player Y height)
-- Camera lean when strafing (X offset based on lateral velocity)
-- Updated controls hint UI text
+### Current Artifact State
+- 518-line single HTML game with 2D canvas pseudo-3D rendering
+- Hero roster: Miyamoto Musashi, Koeda, Yoshino
+- Road travel with WASD/arrow/mouse/touch controls
+- Ink paint system (right-click/hold → brush marks on world)
+- 3 enemy types: chaser, prowler, duelist with telegraph attacks
+- 3 quest milestones: paint waymarks → cross bridge → reach Ganryu
+- Ambient particles (leaves, fireflies, river mist)
+- Audio: wind drone, river, footsteps, ink/combat SFX
+- HUD: HP, ink, resolve bars with animated fill
+- Death & victory screens with journey stats
+- Woodblock grain overlay, bloom, vignette, screen shake
 
 ### Verification
-- `node drops/edo-inkblade-ots/test.js` passes
-- JS syntax check OK
+- `node drops/edo-inkblade-ots/test.js` — 15+ syntax, structure, and negative checks (passes)
+- JS syntax validated via `new Function()`
 
-### Known Gaps / Next Polish
-- No audio yet
-- Road scenery variety could improve
-- Enemy types limited (3)
-- Death screen is functional but minimal
-- Ink regen visual has tautological condition
+### Known Gaps / Next Passes
+1. Character-select screen with ink-brush frame and unique silhouettes
+2. Deeper road scenery (temple gate, flooded rice, bamboo grove, etc.)
+3. Paint mark persistence and terrain-responsive appearance
+4. Combat depth (duelist second attack, tighter block timing)
+5. Ganryu arrival zone with layered mist, island silhouette, closing ceremony
+6. Audio polish (temple bell, rain, balanced silence)
+7. Mobile UX verification at small viewports
+8. Final verification, screenshots, PR body update, review invitation
 
 ### FactoryX WorkOrder Context
-Full prompt and constraints preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`. Target repo: `ystackai/studio-edo-woodblock`. Deadline: 2026-05-19T06:15:13Z. Finish policy: polish_until_deadline.
+Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
+Target repo: `ystackai/studio-edo-woodblock`. Canonical PR: #107.
+Deadline: 2026-05-25T22:13:34Z. Finish policy: polish_until_deadline.
