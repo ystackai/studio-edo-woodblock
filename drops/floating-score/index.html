@@ -325,6 +325,15 @@
       background: #9C8E7D;
       color: #1a1a2e;
     }
+    /* --- Begin button pulse to draw eye in first 5 seconds --- */
+    .btn.begin-pulse {
+      animation: beginPulse 2.2s ease-in-out infinite;
+    }
+    @keyframes beginPulse {
+      0% { box-shadow: 0 0 0 rgba(212,166,87,0); filter: brightness(1); }
+      50% { box-shadow: 0 0 18px rgba(212,166,87,0.35); filter: brightness(1.08); }
+      100% { box-shadow: 0 0 0 rgba(212,166,87,0); filter: brightness(1); }
+    }
     #pause-btn {
       font-size: 10px;
       padding: 6px 18px;
@@ -816,7 +825,7 @@
 
   <div id="streak-bar"><div id="streak-fill"></div></div>
   <div id="streak-label">STREAK</div>
-    <div id="streak-count"></div>
+    <div id="streak-count" aria-label="Current streak"></div>
   <div id="timer-bar"><div id="timer-fill"></div></div>
 
   <div id="timer-text"><span id="timer-seconds">60</span><span class="timer-unit">s</span></div>
@@ -841,12 +850,12 @@
   <div id="streak-unlock"></div>
   <div id="ach-unlock"><span class="ach-icon"></span><span class="ach-name"></span><div class="ach-desc"></div></div>
     <div id="game-aria-live" aria-live="polite" aria-atomic="true" style="position:fixed;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap"></div>
-  <div id="start-screen">
+  <div id="start-screen" aria-describedby="start-instructions" role="region">
     <h1>Floating Score<span>Catch the floating world</span></h1>
-    <div class="start-quote">"The floating world is a world of fleeting beauty — catch what drifts before it fades."</div>
-    <p>Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
+    <div class="start-quote">"Ukiyo-e: the floating world. Each moment drifts like a petal on the wind — catch it before it vanishes."</div>
+    <p id="start-instructions">Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
     <p class="start-copy">Waves, blossoms, mountains, birds, clouds — each carry the spirit of ukiyo-e. Collect them all, build your streak, and chase the high score.</p>
-    <button class="btn" id="start-btn" aria-label="Begin the game">🎨 Begin</button>
+    <button class="btn begin-pulse" id="start-btn" aria-label="Begin the game">🎨 Begin</button>
     <p class="controls-hint">Tap or press <kbd>Space</kbd> / <kbd>Enter</kbd> to catch</p>
     <div class="element-legend" id="el-legend"></div>
     <div class="highscore-display" id="start-hs"></div>
@@ -908,6 +917,8 @@
     let maxStreak = 0;
     let catches = 0;
     let elementCounts = {};
+    let guideTarget = null;
+    let guideFadeTimeout = 0;
     let timeLeft = 60;
     let timerInterval = null;
     let animId = null;
@@ -1318,6 +1329,10 @@
         const el = spawnElement();
         el.y = Math.random() * 1.2;
         elements.push(el);
+
+      // Set guide target to first spawned element for visual hint (Polish L)
+      guideTarget = elements[0];
+      guideFadeTimeout = performance.now() + 3200;
       }
 
       // Timer
@@ -1393,7 +1408,7 @@
         '<div class="stat-row"><span class="stat-label">Level Reached</span><span class="stat-value">' + level + '</span></div>' +
         '<div class="stat-row"><span class="stat-label">Time Played</span><span class="stat-value">' + (60 - timeLeft) + 's</span></div>' +
         '<div class="stat-divider"></div>' +
-        ELEMENT_TYPES.map(t => '<div class="stat-row stat-row-element" style="border-left:3px solid ' + t.color + '"><span class="stat-label">' + t.label + '</span><span class="stat-value">' + (elementCounts[t.id] || 0) + ' &times; ' + t.points + '</span></div>').join('') +
+        ELEMENT_TYPES.map(t => '<div class="stat-row stat-row-element" style="border-left:3px solid ' + t.color + '"><span class="stat-label">' + ({wave:'🌊',blossom:'🌸',mountain:'🏔️',bird:'🕊️',cloud:'☁️'}[t.id] || '') + ' ' + t.label + '</span><span class="stat-value">' + (elementCounts[t.id] || 0) + ' &times; ' + t.points + '</span></div>').join('') +
         '<div class="stat-divider"></div>';
 
       // High score
@@ -1436,15 +1451,47 @@
       finalScore.classList.toggle('new-highscore', isNew);
       hudHsDisplay.textContent = String(Math.max(total, saved));
       ariaLive.textContent = 'Game over. Final score ' + total + '. ' + (isNew ? 'New high score!' : '');
-      // Ukiyo-e wisdom flavor text based on score
-      const flavorQuotes = [
-        { min: 0, text: '🌸 "Even a single petal reminds us — beauty drifts, catch what you can."' },
-        { min: 100, text: '🎋 "The wave that breaks upon the shore carries the memory of the open sea."' },
-        { min: 300, text: '🏔️ "A mountain seen through morning mist — impermanent, yet eternal."' },
-        { min: 500, text: '🕊️ "Like birds crossing the floating world, our moments scatter on the wind."' },
-        { min: 800, text: '✨ "You have touched the floating world\'s heart. Well caught, traveler."' }
+      // Ukiyo-e wisdom flavor text — season-specific variants
+      const flavorBySeason = [
+        [ // Spring
+          { min: 0, text: '🌸 "Cherry blossoms scatter on the breeze — even a single petal holds a moment\'s grace."' },
+          { min: 100, text: '🌊 "A spring wave curls upon the shore, leaving lace upon the sand — catch its echo."' },
+          { min: 300, text: '🏔️ "Mist veils the vernal peak; what fades from sight remains in memory\'s temple."' },
+          { min: 500, text: '🕊️ "Warblers dart through cherry mist — the floating world sings its fleeting song."' },
+          { min: 800, text: '✨ "You caught the spirit of spring itself — the floating world bows to your grace."' }
+        ],
+        [ // Summer
+          { min: 0, text: '🌅 "Summer haze wraps the shore in gold — each moment shimmers and is gone."' },
+          { min: 100, text: '🎋 "A bamboo grove rustles in the heat — the wind carries stories to the sea."' },
+          { min: 300, text: '🏔️ "The summer mountain wears a crown of clouds — eternal, yet ever-changing."' },
+          { min: 500, text: '🕊️ "Swifts cut the evening sky — the floating world passes on swift wings."' },
+          { min: 800, text: '✨ "You gathered summer\'s brilliance — the floating world remembers your name."' }
+        ],
+        [ // Autumn
+          { min: 0, text: '🍁 "A crimson leaf twists in the autumn wind — beauty in every descent."' },
+          { min: 100, text: '🌊 "Autumn waves crash with amber foam — the tide pulls the year toward rest."' },
+          { min: 300, text: '🏔️ "The mountain dons a coat of rust and gold — impermanence painted in splendor."' },
+          { min: 500, text: '🕊️ "Geese trace the fading sun — their cry echoes through the floating world."' },
+          { min: 800, text: '✨ "You danced with autumn\'s farewell — the floating world applauds your spirit."' }
+        ],
+        [ // Winter
+          { min: 0, text: '❄️ "A single snowflake rests on the branch — the floating world hushed in white."' },
+          { min: 100, text: '🌊 "Winter waves carve ice upon the stone — the shore remembers summer\'s touch."' },
+          { min: 300, text: '🏔️ "The mountain sleeps beneath a silver veil — patient, eternal, dreaming."' },
+          { min: 500, text: '🕊️ "Snow cranes trace the grey sky — their song is the silence before spring."' },
+          { min: 800, text: '✨ "You captured winter\'s stillness — the floating world whispers its gratitude."' }
+        ],
+        [ // Special
+          { min: 0, text: '🌈 "The floating world bends with color — every drift a brushstroke on the wind."' },
+          { min: 100, text: '🎋 "A thousand waves, each one unique — you rode the tide of the floating world."' },
+          { min: 300, text: '🏔️ "Beyond the mist lies a realm of spirit — you glimpsed the eternal horizon."' },
+          { min: 500, text: '🕊️ "Birds of a thousand colors cross the sky — you caught the essence of flight."' },
+          { min: 800, text: '✨ "Master of the floating world — the heavens and the earth celebrate your journey."' }
+        ]
       ];
-      const flavor = flavorQuotes.slice().reverse().find(q => total >= q.min) || flavorQuotes[0];
+      const seasonIdx = Math.min(currentSeason, flavorBySeason.length - 1);
+      const seasonQuotes = flavorBySeason[seasonIdx];
+      const flavor = seasonQuotes.slice().reverse().find(q => total >= q.min) || seasonQuotes[0];
       const flavorEl = document.createElement('div');
       flavorEl.id = 'game-over-flavor';
       flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:26;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;pointer-events:none;';
@@ -1596,6 +1643,7 @@
     function handleCatch(el) {
       if (!gameRunning) return;
       el.alive = false;
+      if (guideTarget === el) guideTarget = null;
 
       const typeInfo = ELEMENT_TYPES.find(t => t.id === el.type);
       streak += 1;
@@ -1694,6 +1742,7 @@
       scoreDisplay.textContent = String(score);
         // Animate score change
         const popup = document.createElement('div');
+        popup.setAttribute("role", "status");
         const popX = el.x * W;
         const popY = el.y * H;
         popup.style.cssText = 'position:fixed;top:' + popY + 'px;left:' + popX + 'px;transform:translate(-50%,-50%);z-index:15;font-size:24px;font-weight:700;color:#D4A657;pointer-events:none;transition:all 0.6s ease;opacity:1;text-shadow:0 1px 6px rgba(0,0,0,0.6);';
@@ -1872,6 +1921,33 @@
 
       // Remove dead elements
       elements = elements.filter(el => el.alive && el.y <= 1.3);
+      // Draw guide ring around first spawned element (Polish L)
+      if (guideTarget && guideTarget.alive) {
+          const remaining = guideFadeTimeout - performance.now();
+          if (remaining > 0) {
+              const fadeOpacity = Math.min(1, remaining / 1000);
+              const pulse = Math.sin(performance.now() * 0.008) * 0.3 + 0.4;
+              const gx = guideTarget.x * W + 10 * Math.sin(performance.now() * 0.0008 + guideTarget.r);
+              const gy = guideTarget.y * H;
+              const r = guideTarget.size * 0.8 + 16 + Math.sin(performance.now() * 0.006) * 4;
+              ctx.save();
+              ctx.shadowColor = "rgba(212,166,87,0.6)";
+              ctx.shadowBlur = 22;
+              ctx.beginPath();
+              ctx.arc(gx, gy, r, 0, Math.PI * 2);
+              ctx.strokeStyle = "rgba(212,166,87," + (fadeOpacity * pulse * 0.9) + ")";
+              ctx.lineWidth = 3;
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(gx, gy, r * 0.85, 0, Math.PI * 2);
+              ctx.strokeStyle = "rgba(255,255,255," + (fadeOpacity * pulse * 0.3) + ")";
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+              ctx.restore();
+          } else {
+              guideTarget = null;
+          }
+      }
 
       // Keep enough elements on screen
       if (elements.length < 3) {
@@ -2108,6 +2184,25 @@
       }
     }
 
+    // --- Extra start-screen decorative elements for richer first impression ---
+    function drawAmbientExtra() {
+      // Extra drifting blossoms in a radial pattern
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2 + ambientPreviewTime * 0.02;
+        const rx = 0.5 + 0.35 * Math.cos(angle);
+        const ry = 0.08 + 0.03 * Math.sin(angle * 2);
+        const sz = 16 + Math.sin(ambientPreviewTime + i * 1.3) * 8;
+        const ft = ambientPreviewTime * 0.15 + i * 0.7;
+        drawBlossom(ctx, rx * W, ry * H, ft, sz);
+      }
+      // Two small birds drifting overhead
+      drawBird(ctx, 0.3 * W + Math.sin(ambientPreviewTime * 0.05) * 40, 0.06 * H, ambientPreviewTime, 18);
+      drawBird(ctx, 0.7 * W + Math.cos(ambientPreviewTime * 0.04) * 30, 0.04 * H, ambientPreviewTime + 2, 22);
+      // Subtle misty mountain silhouette
+      drawMountain(ctx, 0.5 * W, 0.12 * H, ambientPreviewTime * 0.1, 35);
+    }
+
+
     function animateAmbient() {
       if (startScreen.classList.contains('hidden') && overScreen.classList.contains('hidden')) {
         ambientParticles.forEach(p => p.classList.remove('visible'));
@@ -2118,6 +2213,7 @@
       ambientPreviewTime += 0.016;
       // Draw ukiyo-e preview elements on canvas
       drawAmbientPreview();
+      drawAmbientExtra();
       ambientParticles.forEach((p, idx) => {
         p.classList.add('visible');
         const baseX = parseFloat(p.style.left);
