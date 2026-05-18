@@ -1928,6 +1928,16 @@
       }
     });
 
+    
+    // --- Tab visibility: auto-pause when user switches away ---
+    document.addEventListener('visibilitychange', function() {
+      if (!gameRunning || paused) return;
+      if (document.hidden) {
+        // Auto-pause when tab loses focus; aria-live announces reason
+        ariaLive.textContent = 'Auto-paused: tab hidden';
+        togglePause();
+      }
+    });
     // --- Start/Retry ---
 
     // --- Controls modal ---
