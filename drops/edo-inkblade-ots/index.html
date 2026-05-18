@@ -54,7 +54,7 @@ h1{font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 10px;font-weight:80
       <div class="label">Current objective</div>
       <div id="quest">Choose a traveler and walk the road toward Ganryu.</div>
     </div>
-    <div id="controls" class="panel">WASD move, arrows turn, Space paint, J or E slash, K or Q block, Shift run</div>
+    <div id="controls" class="panel">WASD move, arrows turn, Space paint, mouse click slash, right click paint, K / Q block, Shift run</div>
   </section>
   <section id="select">
     <div id="select-inner">
@@ -79,7 +79,7 @@ const heroes={
   yoshino:{label:"Yoshino",color:"#d98986",hp:92,ink:7,speed:1.95,slash:17,block:.22,art:1.6}
 };
 let hero=heroes.musashi;
-let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0};
+let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0};
 let keys={},last=0,won=false;
 let messages=["Choose a style, then begin the road."];
 let marks=[],sparks=[],screenShake=0;
@@ -96,23 +96,30 @@ for(let i=0;i<34;i++){
 const route=[{z:180,text:"Paint three waymarks on the road."},{z:520,text:"Cross the bridge. Fight only if pressed."},{z:880,text:"Reach Ganryu shore with ink and resolve."}];
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
 function start(id){
-  hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0};
+  hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0};
   marks=[];sparks=[];won=false;enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i]});
   enemyDeathTimer=0;screenShake=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase()))player.blocking=true});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false});
+addEventListener("touchstart",e=>{e.preventDefault();slash()});
+addEventListener("contextmenu",e=>e.preventDefault());
+addEventListener("mousedown",e=>{if(e.button===0)slash();if(e.button===2)paint()});
 addEventListener("resize",resize);resize();requestAnimationFrame(loop);
 function resize(){const dpr=Math.min(devicePixelRatio||1,2);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
 function loop(t){const dt=Math.min(40,t-last||16)/16.67;last=t;step(dt);draw();requestAnimationFrame(loop)}
 function step(dt){
   if(ui.select.classList.contains("hidden")){
-    const run=keys.shift?1.55:1,spd=hero.speed*run*dt;
+    const run=keys.shift?1.55:1,spd=hero.speed*run;
     if(keys.arrowleft)player.heading-=.04*dt;if(keys.arrowright)player.heading+=.04*dt;
     let f=(keys.w?1:0)-(keys.s?1:0),r=(keys.d?1:0)-(keys.a?1:0);
     const mag=Math.hypot(f,r)||1,cs=Math.cos(player.heading),sn=Math.sin(player.heading);
-    player.x+=(r/mag*cs+f/mag*sn)*spd;player.z+=(f/mag*cs-r/mag*sn)*spd;
-    player.x=Math.max(-180,Math.min(180,player.x));player.z=Math.max(-30,Math.min(1040,player.z));screenShake*=.65;
+    const tvx=(r/mag*cs+f/mag*sn)*spd,tvz=(f/mag*cs-r/mag*sn)*spd;
+    player.mx+=((tvx-player.mx)*.18)*dt;player.mz+=((tvz-player.mz)*.18)*dt;
+    player.x+=player.mx*dt;player.z+=player.mz*dt;
+    player.x=Math.max(-180,Math.min(180,player.x));player.z=Math.max(-30,Math.min(1040,player.z));
+    player.bobPhase+=dt*(.09*(keys.shift?1.55:1));
+    screenShake*=.65;
     player.ink=Math.min(hero.ink,player.ink+.006*hero.art*dt);
     player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
     updateEnemies(dt);updateQuest();updateUi();
@@ -265,7 +272,8 @@ function drawMark(m,p){
   ctx.globalAlpha=.08;ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(p.x,p.y,16*s,0,7);ctx.fill();ctx.globalAlpha=1
 }
 function drawPlayer(){
-  const x=innerWidth/2,y=innerHeight*.78;ctx.save();ctx.translate(x,y);
+  const bob=Math.sin(player.bobPhase)*4,lean=-(player.mx/1.5)*6;
+  const x=innerWidth/2+lean,y=innerHeight*.78+bob;ctx.save();ctx.translate(x,y);
   ctx.fillStyle="rgba(0,0,0,.25)";ctx.beginPath();ctx.ellipse(0,34,66,16,0,0,7);ctx.fill();
   ctx.fillStyle=hero.color;ctx.fillRect(-18,-58,36,72);ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(0,-72,18,0,7);ctx.fill();
   ctx.strokeStyle=player.blocking?"#f3d78e":"#e9e0cf";ctx.lineWidth=player.blocking?8:5;ctx.beginPath();ctx.moveTo(18,-48);ctx.lineTo(player.slashTimer?88:-46,player.slashTimer?-88:-28);ctx.stroke();
