@@ -144,7 +144,7 @@ for(let i=0;i<48;i++){
   const kind=kinds[i%kinds.length];
   scenery.push({kind,x:side*(140+Math.random()*200),z:80+i*100,w:50+Math.random()*60,h:60+Math.random()*90});
 }
-const route=[{z:180,text:"Paint three waymarks on the road."},{z:520,text:"Cross the bridge. Fight only if pressed."},{z:880,text:"Reach Ganryu shore with ink and resolve."}];
+const route=[{z:180,text:"Paint three waymarks on the road.",triggered:false},{z:520,text:"Cross the bridge. Fight only if pressed.",triggered:false},{z:880,text:"Reach Ganryu shore with ink and resolve.",triggered:false}];
 // Atmosphere particles
 for(let i=0;i<30;i++){leaves.push({x:Math.random()*300-150,z:Math.random()*1200,s:2+Math.random()*3,sp:Math.random()*2+.5,phase:Math.random()*6,color:["#6b8d4a","#b88c45","#8e4f30"][i%3]})}
 for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()*1100,b:Math.random()*6+3,phase:Math.random()*8,speed:.3+Math.random()*.4})}
@@ -251,9 +251,9 @@ function updateQuest(){
     ui.victory.classList.add("show");
   }
   if(won)ui.quest.textContent="Victory: the road holds your prints and the duel is ended.";
-  else if(painted<3)ui.quest.textContent=`Paint ${3-painted} more waymark${3-painted===1?"":"s"} on the road ahead.`;
+  else if(painted<3){const remaining=3-painted;if(player.z<200)ui.quest.textContent=`Paint ${remaining} more waymark${remaining===1?"":"s"} near the road. Ink flows as you walk.`;else if(player.z<520)ui.quest.textContent=`The bridge looms ahead. Paint ${remaining} waymark${remaining===1?"":"s"} to make your passage known.`;else ui.quest.textContent=`The road narrows toward Ganryu. Paint ${remaining} more waymark${remaining===1?"":"s"} to honor the journey.`;}
   else if(alive>0)ui.quest.textContent=`Reach the shore or pacify ${alive} remaining challenger${alive===1?"":"s"}.`;
-  route.forEach(r=>{if(Math.abs(player.z-r.z)<18){say(r.text);milestonePopup={active:true,text:r.text,timer:60}}});
+  route.forEach(r=>{if(Math.abs(player.z-r.z)<18&&!r.triggered){say(r.text);milestonePopup={active:true,text:r.text,timer:80};r.triggered=true}else if(Math.abs(player.z-r.z)>=30)r.triggered=false});
 }
 function drawVictoryParticles(){victoryParticles=victoryParticles.filter(p=>p.a>.02);victoryParticles.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.a*=.96;var proj=project(p.x,p.y*10+p.z,50);if(!proj)return;ctx.globalAlpha=p.a;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(proj.x,proj.y,Math.max(1,p.d)*3,0,7);ctx.fill();ctx.globalAlpha=1});victoryParticles=victoryParticles.slice(-80)}
 function say(text){if(messages[0]!==text){messages.unshift(text);messages=messages.slice(0,5)}}
@@ -287,7 +287,19 @@ function draw(){
   visible.sort((a,b)=>b.p.d-a.p.d).forEach(v=>v.type==="enemy"?drawEnemy(v.o,v.p):v.type==="mark"?drawMark(v.o,v.p):drawScenery(v.o,v.p));
   drawPlayer();drawSparks();drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
   drawAtmosphere(w,h);
-  if(milestonePopup.active&&milestonePopup.timer>0){ctx.save();ctx.globalAlpha=Math.min(1,milestonePopup.timer/20);ctx.strokeStyle="#d7b66f";ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(w/2-150,h*.35-32,300,50,10);ctx.stroke();ctx.globalAlpha=.1;ctx.fillStyle="#d7b66f";ctx.fillRect(w/2-150,h*.35-32,300,50);ctx.globalAlpha=1;ctx.fillStyle="#ead9bb";ctx.font="bold clamp(14px,2.4vw,28px) serif";ctx.textAlign="center";ctx.fillText(milestonePopup.text,w/2,h*.35);ctx.restore()}
+  if(milestonePopup.active&&milestonePopup.timer>0){ctx.save();const ma=Math.min(1,milestonePopup.timer/20);ctx.globalAlpha=ma;
+  // Decorative ink-brush outer frame with corner ornaments
+  ctx.strokeStyle="#caa45f";ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(w/2-160,h*.35-38,320,60,12);ctx.stroke();
+  ctx.strokeStyle="#d7b66f";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(w/2-156,h*.35-34,312,52,10);ctx.stroke();
+  // Corner brush-dot ornaments
+  [[-158,-36],[-158,22],[158,-36],[158,22]].forEach(c=>{ctx.fillStyle="#caa45f";ctx.globalAlpha=ma*.6;ctx.beginPath();ctx.arc(w/2+c[0],h*.35+c[1],4,0,7);ctx.fill()});ctx.globalAlpha=ma;
+  // Filled background with ink-wash texture
+  ctx.globalAlpha=.1;ctx.fillStyle="#d7b66f";ctx.fillRect(w/2-156,h*.35-34,312,52);
+  ctx.globalAlpha=ma;ctx.fillStyle="#ead9bb";ctx.font="bold clamp(14px,2.4vw,28px) serif";ctx.textAlign="center";
+  // Tip: add decorative scroll mark
+  const sw=ctx.measureText(milestonePopup.text).width;
+  ctx.globalAlpha=ma*.15;ctx.fillStyle="#2a1f14";ctx.fillRect(w/2-sw/2-8,h*.35-4,sw+16,26);
+  ctx.globalAlpha=ma;ctx.fillStyle="#f4ead8";ctx.fillText(milestonePopup.text,w/2,h*.35);ctx.restore()}
 
 }
 function drawRoad(w,h,hor){
@@ -308,6 +320,9 @@ function drawSun(w,hor){
 }
 function drawMountains(w,hor){ctx.fillStyle="#29333c";for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(i*w/5-80,hor);ctx.lineTo(i*w/5+80,hor*(.42+.12*(i%2)));ctx.lineTo(i*w/5+230,hor);ctx.fill()}}
 function drawMist(w,hor){ctx.strokeStyle="rgba(245,232,204,.06)";ctx.lineWidth=2;for(let i=0;i<14;i++){ctx.beginPath();ctx.moveTo(0,hor+10+i*16+Math.sin(last*.0008+i)*10);ctx.bezierCurveTo(w*.25,hor+i*12,w*.6,hor+50+i*10,w,hor+20+i*18);ctx.stroke()}}
+function drawMilestoneGlow(w,hor){
+  // Glow rings near each route milestone zone
+  route.forEach(r=>{const dz=Math.abs(player.z-r.z);if(dz<40&&dz<60){const ga=Math.max(0,1-dz/40)*.12;ctx.globalAlpha=ga;const g=ctx.createRadialGradient(w/2,hor+60,10,w/2,hor+60,80);g.addColorStop(0,"rgba(215,182,111,.08)");g.addColorStop(1,"rgba(215,182,111,0)");ctx.fillStyle=g;ctx.fillRect(w/2-80,hor+20,160,120);ctx.globalAlpha=1}})}
 function drawLanterns(w,hor){
   for(let i=0;i<8;i++){
     const lx=w*.1+(w*.8/7)*i,ly=hor-30+Math.sin(last*.00055+i)*5;
