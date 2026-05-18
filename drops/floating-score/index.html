@@ -419,6 +419,23 @@
       #streak-bar { bottom: 60px; }
       #timer-bar { bottom: 48px; }
     }
+    @media (max-width: 360px) {
+      .hud-value { font-size: 14px; }
+      #start-screen h1 { font-size: 18px; }
+      .score-final { font-size: 32px; }
+      #start-screen p, #start-screen .start-copy { font-size: 11px; }
+      #controls-modal { padding: 16px; }
+      #controls-modal h2 { font-size: 18px; }
+      #hud { padding: 10px 12px; }
+      #combo-meter { font-size: 11px; }
+    }
+    @media (min-width: 1200px) {
+      .hud-value { font-size: 22px; }
+      #start-screen h1 { font-size: 32px; }
+      .score-final { font-size: 52px; }
+      #controls-modal { max-width: 500px; }
+      #controls-modal h2 { font-size: 26px; }
+    }
           /* --- Miss feedback effects --- */
     /* --- Miss ring animation --- */
     .miss-ring {
@@ -446,6 +463,13 @@
       background-repeat: repeat;
       background-size: 100px 100px;
     }
+    /* --- Vignette overlay for atmosphere depth --- */
+    #vignette-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 4; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(26,26,46,0.4) 80%, rgba(26,26,46,0.6) 100%);
+    }
+
 
     /* --- Combo meter --- */
     #combo-meter {
@@ -805,6 +829,7 @@
     <div id="combo-meter"><span class="combo-icon">&#x2727;</span><span class="combo-label">Combo</span></div>
     <div class="level-flash" id="level-flash"></div>
     <div id="woodblock-texture"></div>
+    <div id="vignette-overlay"></div>
     <div id="pause-overlay">
     <h2>⏸ Paused</h2>
     <p>Press <kbd>P</kbd> or <kbd>Esc</kbd> to resume</p>
@@ -1036,16 +1061,22 @@
     let particles = [];
     let cloudBg = null;
 
+    let resizePending = false;
     function resize() {
-      W = window.innerWidth;
-      H = window.innerHeight;
-      dpr = devicePixelRatio || 1;
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
-      canvas.style.width = W + 'px';
-      canvas.style.height = H + 'px';
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
+      if (resizePending) return;
+      resizePending = true;
+      requestAnimationFrame(function() {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        dpr = devicePixelRatio || 1;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        resizePending = false;
+      });
     }
     window.addEventListener('resize', resize);
     resize();
@@ -2017,6 +2048,66 @@
     let ambientAnimId = null;
     let ambientTime = 0;
 
+    // --- Ambient start-screen elements drawn on canvas ---
+    let ambientPreviewElements = [];
+    let ambientPreviewTime = 0;
+    function spawnAmbientPreview() {
+      const types = ['wave', 'blossom', 'mountain', 'bird', 'cloud'];
+      return {
+        type: types[Math.floor(Math.random() * types.length)],
+        x: Math.random(),
+        y: -0.2 - Math.random() * 0.3,
+        t: Math.random() * Math.PI * 2,
+        size: 0.06 + Math.random() * 0.04,
+        speed: 0.002 + Math.random() * 0.004,
+        drift: (Math.random() - 0.5) * 0.003,
+        alive: true
+      };
+    }
+
+    function drawAmbientPreview() {
+      // Clear canvas with dark bg
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle background particles
+      for (let i = 0; i < 30; i++) {
+        const x = (i * 0.03 * W + Math.sin(ambientPreviewTime * 0.04 + i)) % W;
+        const y = (i * 29 + ambientPreviewTime * 2) % H;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.sky;
+        ctx.globalAlpha = 0.06;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // Draw preview elements
+      ambientPreviewElements = ambientPreviewElements.filter(el => el.alive && el.y < 1.3);
+      if (ambientPreviewElements.length < 4) {
+        ambientPreviewElements.push(spawnAmbientPreview());
+      }
+      const now = ambientPreviewTime;
+      for (const el of ambientPreviewElements) {
+        el.y += el.speed;
+        el.x += el.drift;
+        el.t += 0.05;
+        if (el.x < -0.1) el.x = 1.1;
+        if (el.x > 1.1) el.x = -0.1;
+        if (el.y > 1.3) { el.alive = false; continue; }
+        const ex = el.x * W;
+        const ey = el.y * H;
+        const driftX = 10 * Math.sin(now * 0.06 + el.r);
+        switch (el.type) {
+          case 'wave':    drawWave(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'blossom': drawBlossom(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'mountain':drawMountain(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'bird':    drawBird(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'cloud':   drawCloud(ctx, ex + driftX, ey, el.t, el.size); break;
+        }
+      }
+    }
+
     function animateAmbient() {
       if (startScreen.classList.contains('hidden') && overScreen.classList.contains('hidden')) {
         ambientParticles.forEach(p => p.classList.remove('visible'));
@@ -2024,6 +2115,9 @@
         return;
       }
       ambientTime += 0.02;
+      ambientPreviewTime += 0.016;
+      // Draw ukiyo-e preview elements on canvas
+      drawAmbientPreview();
       ambientParticles.forEach((p, idx) => {
         p.classList.add('visible');
         const baseX = parseFloat(p.style.left);
@@ -2031,7 +2125,6 @@
         const offsetX = Math.sin(ambientTime * 0.5 + idx * 1.7) * 15;
         const offsetY = Math.cos(ambientTime * 0.4 + idx * 2.3) * 10;
         p.style.transform = 'translate(' + offsetX.toFixed(1) + 'px, ' + offsetY.toFixed(1) + 'px)';
-        // Subtle pulsing opacity
         p.style.opacity = 0.08 + 0.07 * (1 + Math.sin(ambientTime * 0.3 + idx * 1.1));
       });
       ambientAnimId = requestAnimationFrame(animateAmbient);
