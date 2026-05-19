@@ -1,7 +1,7 @@
 # Edo Inkblade: Road to Ganryu — WORKLOG
 
 ## Artifact
-`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (864 lines)
+`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (960 lines)
 
 ## Completed Passes
 
@@ -23,6 +23,19 @@
 - Duelist second attack pattern: after hit sets `attackCount=2/3` → follow-up thrust at lower wind threshold
 - Block timing parry: `parryWindow` when wind 45-65 AND blocking → parry gives resolve+3, `parryBonus=3`
 - Parry bonus feeds into damage calculation
+
+### Pass 15 — Yo-scale melody audio depth
+- Replaced oscillator scaffolding with **D-based Yo-scale pentatonic audio system**:
+  - Bass drone (73.4Hz D2, lowpass filtered)
+  - Harmony pad (D3/A3/C4/G3, zone-triggered gain)
+  - Melody flute cycling Yo pentatonic motifs: ascending, wandering, descending, Ganryu hopeful
+  - River drone (95Hz sine, filtered)
+  - Duel tension drone (55Hz sawtooth, filtered)
+  - Ganryu bright theme (440/554/659/880 triangle, highpass)
+- **Melody note scheduler** in step(dt): timer-driven note sequencing through yoMotif1/yoMotif2/yoPhrase/yoMotif3 arrays, zone-based motif selection, gain envelope per note
+- SFX rebuilt: slash (bandpass ring), paint (noise+triangle), block (square+resonance), hit, death (Dm7 chord), inkRegen, mark, victory (rising fanfare)
+- All preserves window._amb state for zone modulation
+- Melody oscillators are driven by the scheduler — previously silent, now playing
 
 ### Pass 14 — Weather & scenery depth
 - Fog layer (`drawFog`) with density scaling by z (200→800 range, two-phase fade)
@@ -51,9 +64,11 @@
 
 ## Known Issues
 - PR body needs screenshot integration (screenshots from preview not yet taken)
-- Scenery variety could still benefit from more kinds
+- Balance tuning: enemy damage values, ink economy, travel pacing need tuning pass
+- Character selection silhouettes are primitive — could use richer procedural ink-wash shapes
 - Drizzle particles are simple dots — could be richer with rain streaks
-- Audio could benefit from composed music rather than procedural tones
+- Death flow and victory ceremony timeline could be smoother
+- Melody scheduler could use more motif variety and dynamic tempo
 
 ## Delivery Branch
 `factoryx/factory-edo-woodblock/edo-inkblade-ots`
