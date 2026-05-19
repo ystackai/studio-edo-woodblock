@@ -324,12 +324,18 @@
 - **Pause menu**: Escape key pauses with overlay showing controls, ability to restart journey. Game logic halts when paused.
 - **125 smoke checks pass** (was 115 — added 8 checks for NPCs, pause, block spark, parry flash, slash trail, enhanced death dissolve)
 
+## Pass 42 — Repeatable NPCs, pause menu settings, richer zone transition VFX
+
+### What changed
+- **Repeatable NPCs with dialogue variants**: road-side NPCs (Teahouse Keeper, Traveling Merchant, Wandering Poet) now repeatable — each visit cycles through 4 dialogue texts. NPCs always visible and interactable.
+- **Pause menu settings**: added volume sliders (Master, SFX, Music) and mouse sensitivity slider within pause overlay. Audio master gain node routes all audio through `window._masterGain` for real-time volume control. Mouse look sensitivity scales via `window._mouseSensitivity`.
+- **Richer zone transition VFX**: enhanced zone-boundary burst from 18 to 36 particles, wind swirl lines from 6 to 10, plus a new zone-name banner overlay (dark pill with zone name) that fades in briefly when entering a new territory.
+- **Screenshots captured fresh** after all changes.
+- **133 smoke checks pass** (was 125 — added 6 checks for NPC repeatability, dialogue variants, volume sliders, mouse sensitivity, zone banner, enhanced burst).
+
 ## Known Issues (updated)
-- Screenshots need fresh captures after Pass 40 — DONE
-- Zone transition particles could be more dramatic at boundary crossings
+- Screenshots need fresh captures after Pass 42 — DONE
+- Zone transition particles are more dramatic now
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
 - Hero ability cooldowns could be fine-tuned for balance
-- Haiku moments are one-shot per playthrough — could be extended with replay or zone-specific haiku sets
-- Road-side NPCs are one-use per playthrough — could be extended with repeatable interactions or more NPC dialogue
-- Pause menu is minimal — future passes could add volume controls, settings
-- Block spark and parry flash are visual only — no gameplay impact beyond existing block/parry mechanics
+- Pause menu settings now include volume controls and sensitivity

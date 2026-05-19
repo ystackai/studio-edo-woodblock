@@ -110,7 +110,7 @@ checks.push(["ganryuDefeated flag", html.includes("ganryuDefeated")]);
 checks.push(["victory requires Ganryu", /ganryuDefeated/.test(html)]);
 
 // Pass 37: Zone-boundary particle burst, enhanced paint splatter, seasonal road blooms
-checks.push(["zone-transition particle burst", /burstCount=18/.test(html) && html.includes('color:burstColor')]);
+checks.push(["zone-transition particle burst", /burstCount=36/.test(html) && html.includes('color:burstColor')]);
 checks.push(["wind swirl lines at zone entry", html.includes("color:'#ead9bb'") && html.includes("vx:(Math.random()-.5)*2")]);
 checks.push(["brush-stroke arc trails on paint", /arcCount=4\+player\.paintChain\*2/.test(html) && html.includes('Brush-stroke')]);
 checks.push(["ink drip trails after paint", html.includes('Ink drip') || html.includes('ink drip')]);
@@ -157,6 +157,14 @@ checks.push(["block spark burst effect", html.includes("Block spark burst") && h
 checks.push(["parry flash burst effect", html.includes("Parry flash") && html.includes("pfAng")]);
 checks.push(["slash trail arc effect", html.includes("Slash trail arc") && html.includes("sti<8")]);
 checks.push(["enhanced enemy death dissolve", html.includes("Enhanced enemy death dissolve") && html.includes("edi<30")]);
+
+// Pass 42: Repeatable NPCs, pause menu settings, richer zone transition VFX
+checks.push(["repeatable NPCs with visitCount", html.includes("visitCount") && html.includes("visitCount++") && html.includes("texts[textIdx]")]);
+checks.push(["NPC dialogue variants", html.includes("texts:[") && html.includes("4") && html.includes("The keeper refills your cup")]);
+checks.push(["pause volume sliders", html.includes("vol-master") && html.includes("vol-sfx") && html.includes("vol-music") && html.includes("range")]);
+checks.push(["mouse sensitivity slider", html.includes("sens-mouse") && html.includes("_mouseSensitivity")]);
+checks.push(["zone banner overlay", html.includes("zoneBanner") && html.includes("zoneBanner.active") && html.includes("roundRect")]);
+checks.push(["enhanced zone burst 36", html.includes("burstCount=36")]);
 
 let failed = 0;
 for (const [name, ok] of checks) {

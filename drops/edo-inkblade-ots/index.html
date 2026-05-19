@@ -88,13 +88,22 @@ h1{font-family:serif;font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 4
   <div id="celebrate"></div>
   <div id="veil"></div>
   <section id="pause">
-    <div style="text-align:center;padding:24px">
+    <div style="text-align:center;padding:24px;max-width:420px">
       <h2>Journey paused</h2>
       <div id="pause-brush"></div>
-      <p>WASD move, arrows turn, Space paint, mouse click slash, right click paint, K/Q block, Shift run</p>
-      <p>1-3 paint mode, R pray, M hero ability, E interact</p>
-      <p style="font-size:11px;color:#b9a88d;margin-top:12px">Press Escape to resume</p>
-      <p><button id="pause-restart" style="appearance:none;border:1px solid rgba(231,197,130,.3);background:#241b13;color:#f4ead8;border-radius:6px;padding:6px 14px;cursor:pointer;margin-top:16px;font-size:12px">Restart journey</button></p>
+      <p style="font-size:12px">WASD move, arrows turn, Space paint, mouse click slash, right click paint, K/Q block, Shift run</p>
+      <p style="font-size:11px;color:#cdbb9d">1-3 paint mode, R pray, M hero ability, E interact</p>
+      <div style="margin:14px 0 10px;border-top:1px solid rgba(215,182,111,.15);padding-top:12px">
+        <p style="font-size:11px;color:#b9a88d;margin:0 0 8px">— Settings —</p>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:6px;font-size:11px;color:#cdbb9d;text-align:left;margin:0 auto;max-width:260px">
+          <span>Master</span><input type="range" id="vol-master" min="0" max="100" value="100" style="width:100%;height:3px;appearance:none;background:rgba(215,182,111,.2);border-radius:2px;outline:none;cursor:pointer" oninput="window._audioVolMaster=this.value/100">
+          <span>SFX</span><input type="range" id="vol-sfx" min="0" max="100" value="100" style="width:100%;height:3px;appearance:none;background:rgba(215,182,111,.2);border-radius:2px;outline:none;cursor:pointer" oninput="window._audioVolSfx=this.value/100">
+          <span>Music</span><input type="range" id="vol-music" min="0" max="100" value="100" style="width:100%;height:3px;appearance:none;background:rgba(215,182,111,.2);border-radius:2px;outline:none;cursor:pointer" oninput="window._audioVolMusic=this.value/100">
+          <span>Sensitivity</span><input type="range" id="sens-mouse" min="10" max="200" value="100" style="width:100%;height:3px;appearance:none;background:rgba(215,182,111,.2);border-radius:2px;outline:none;cursor:pointer" oninput="window._mouseSensitivity=this.value/100">
+        </div>
+      </div>
+      <p style="font-size:11px;color:#b9a88d;margin-top:8px">Press Escape to resume</p>
+      <p><button id="pause-restart" style="appearance:none;border:1px solid rgba(231,197,130,.3);background:#241b13;color:#f4ead8;border-radius:6px;padding:6px 14px;cursor:pointer;margin-top:12px;font-size:12px">Restart journey</button></p>
     </div>
   </section>
   <section id="hud">
@@ -237,10 +246,20 @@ const ENEMY_SPRITE_KEY={"dock ronin":"chaser","cedar bandit":"prowler","bridge d
 const noopAudio=function(){};
 let audioCtx=null,sfx={tone:noopAudio,slash:noopAudio,paint:noopAudio,block:noopAudio,hit:noopAudio,mark:noopAudio,death:noopAudio,inkRegen:noopAudio,victory:noopAudio};
 function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return};
+  // Volume settings: master gain node chained before destination
+  window._audioVolMaster=window._audioVolMaster||1;
+  window._audioVolSfx=window._audioVolSfx||1;
+  window._audioVolMusic=window._audioVolMusic||1;
+  if(!window._masterGain){window._masterGain=audioCtx.createGain();window._masterGain.gain.value=window._audioVolMaster;
+    window._masterGain.connect(window._masterGain)}
+  // Master gain updates from slider
+  if(window._audioVolMaster!==window._masterGain.gain.value)
+    window._masterGain.gain.setValueAtTime(window._audioVolMaster,audioCtx.currentTime);
+
   function tone(f,d,t,g){var o=audioCtx.createOscillator();o.type=t;o.frequency.value=f;
-    var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
+    var gn=audioCtx.createGain();gn.gain.value=g||.3;var volSfx=window._audioVolSfx||1;gn.gain.setValueAtTime((g||.3)*volSfx,audioCtx.currentTime);
     gn.gain.linearRampToValueAtTime(0,audioCtx.currentTime+d);
-    o.connect(gn);gn.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d)}
+    o.connect(gn);gn.connect(window._masterGain);o.start();o.stop(audioCtx.currentTime+d)}
   sfx.tone=tone;
   function noiseBuffer(dur){var b=audioCtx.createBuffer(1,44100*dur,44100),d2=b.getChannelData(0);for(var i=0;i<d2.length;i++)d2[i]=Math.random()*2-1;return b}
   // Shakuhachi-like flute: bandpass-filtered sine with vibrato, breath attack
@@ -250,7 +269,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     var sg=audioCtx.createGain();sg.gain.setValueAtTime(gain,audioCtx.currentTime);
     sg.gain.linearRampToValueAtTime(gain*.6,audioCtx.currentTime+.03);
     sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+dur*.8);
-    s.connect(sf);sf.connect(sg);sg.connect(audioCtx.destination);
+    s.connect(sf);sf.connect(sg);sg.connect(window._masterGain);
     s.start();s.stop(audioCtx.currentTime+dur);
     // Vibrato LFO
     var v=audioCtx.createOscillator();v.type="sine";v.frequency.value=5;
@@ -266,7 +285,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     kg.gain.linearRampToValueAtTime(gain*.3,audioCtx.currentTime+.004);
     kg.gain.linearRampToValueAtTime(gain*.5,audioCtx.currentTime+.02);
     kg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+dur);
-    k.connect(kf);kf.connect(kg);kg.connect(audioCtx.destination);
+    k.connect(kf);kf.connect(kg);kg.connect(window._masterGain);
     k.start();k.stop(audioCtx.currentTime+dur);
     return k
   }
@@ -277,7 +296,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     var tmf=audioCtx.createBiquadFilter();tmf.type="bandpass";tmf.frequency.value=80;tmf.Q.value=6;
     var tg=audioCtx.createGain();tg.gain.setValueAtTime(gain,audioCtx.currentTime);
     tg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+dur*.4);
-    t.connect(tf);tf.connect(tmf);tmf.connect(tg);tg.connect(audioCtx.destination);
+    t.connect(tf);tf.connect(tmf);tmf.connect(tg);tg.connect(window._masterGain);
     t.start();t.stop(audioCtx.currentTime+dur);
     return t
   }
@@ -291,14 +310,14 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     var dd=audioCtx.createOscillator();dd.type="sine";dd.frequency.value=73.4;
     var dg=audioCtx.createGain();dg.gain.value=.012;
     var df=audioCtx.createBiquadFilter();df.type="lowpass";df.frequency.value=120;
-    dd.connect(df);df.connect(dg);dg.connect(audioCtx.destination);
+    dd.connect(df);df.connect(dg);dg.connect(window._masterGain);
     dd.start();amb.drone.node=dd;amb.drone.gain=dg;
   }
   // AMBIENT WIND
-  if(!amb.wind.node){const bc=audioCtx.createBiquadFilter();bc.type="lowpass";bc.frequency.value=220;const wg=audioCtx.createGain();wg.gain.value=.018;const wb=audioCtx.createBuffer(1,audioCtx.sampleRate*4,audioCtx.sampleRate),wd=wb.getChannelData(0);for(let i=0;i<wd.length;i++)wd[i]=Math.random()*2-1;const ws=audioCtx.createBufferSource();ws.buffer=wb;ws.loop=true;ws.connect(bc);bc.connect(wg);wg.connect(audioCtx.destination);wg.gain.setValueAtTime(.018,audioCtx.currentTime);wg.gain.linearRampToValueAtTime(.003,audioCtx.currentTime+3);amb.wind.node=ws;amb.wind.gain=wg;ws.start()
+  if(!amb.wind.node){const bc=audioCtx.createBiquadFilter();bc.type="lowpass";bc.frequency.value=220;const wg=audioCtx.createGain();wg.gain.value=.018;const wb=audioCtx.createBuffer(1,audioCtx.sampleRate*4,audioCtx.sampleRate),wd=wb.getChannelData(0);for(let i=0;i<wd.length;i++)wd[i]=Math.random()*2-1;const ws=audioCtx.createBufferSource();ws.buffer=wb;ws.loop=true;ws.connect(bc);bc.connect(wg);wg.connect(window._masterGain);wg.gain.setValueAtTime(.018,audioCtx.currentTime);wg.gain.linearRampToValueAtTime(.003,audioCtx.currentTime+3);amb.wind.node=ws;amb.wind.gain=wg;ws.start()
   }
   // RAIN AMBIENCE — filtered noise for drizzle zone
-  if(!amb.rain){const rb=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate),rd=rb.getChannelData(0);for(let ri=0;ri<rd.length;ri++)rd[ri]=Math.random()*2-1;const rs=audioCtx.createBufferSource();rs.buffer=rb;rs.loop=true;const rg=audioCtx.createGain();rg.gain.value=0;const rf=audioCtx.createBiquadFilter();rf.type="lowpass";rf.frequency.value=600;const rf2=audioCtx.createBiquadFilter();rf2.type="highpass";rf2.frequency.value=120;rs.connect(rf);rf.connect(rf2);rf2.connect(rg);rg.connect(audioCtx.destination);rs.start();amb.rain={source:rs,gain:rg}}
+  if(!amb.rain){const rb=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate),rd=rb.getChannelData(0);for(let ri=0;ri<rd.length;ri++)rd[ri]=Math.random()*2-1;const rs=audioCtx.createBufferSource();rs.buffer=rb;rs.loop=true;const rg=audioCtx.createGain();rg.gain.value=0;const rf=audioCtx.createBiquadFilter();rf.type="lowpass";rf.frequency.value=600;const rf2=audioCtx.createBiquadFilter();rf2.type="highpass";rf2.frequency.value=120;rs.connect(rf);rf.connect(rf2);rf2.connect(rg);rg.connect(window._masterGain);rs.start();amb.rain={source:rs,gain:rg}}
   // HARMONY PAD — Yo-scale open chords zone-triggered
   if(!amb.pad.node){
     var pg=audioCtx.createGain();pg.gain.value=0;amb.pad.padGain=pg;
@@ -308,14 +327,14 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
       var pf=audioCtx.createBiquadFilter();pf.type="lowpass";pf.frequency.value=400;
       po.connect(pf);pf.connect(pg);po.start();
     });
-    pg.connect(audioCtx.destination);amb.pad.node=pg;
+    pg.connect(window._masterGain);amb.pad.node=pg;
   }
   // SHAKUHACHI bamboo flute — dedicated shakuhachi voice for melodies
   if(!amb.shaku.o){
     var sg2=audioCtx.createGain();sg2.gain.value=0;
     var so2=audioCtx.createOscillator();so2.type="sawtooth";so2.frequency.value=293.7;
     var sf2=audioCtx.createBiquadFilter();sf2.type="bandpass";sf2.frequency.value=440;sf2.Q.value=6;
-    so2.connect(sf2);sf2.connect(sg2);sg2.connect(audioCtx.destination);so2.start();
+    so2.connect(sf2);sf2.connect(sg2);sg2.connect(window._masterGain);so2.start();
     amb.shaku={o:so2,g:sg2,f:sf2};
   }
   // KOTO string instrument — harmony and resonance layer
@@ -323,7 +342,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     var kg2=audioCtx.createGain();kg2.gain.value=0;
     var ko2=audioCtx.createOscillator();ko2.type="triangle";ko2.frequency.value=196;
     var kf2=audioCtx.createBiquadFilter();kf2.type="bandpass";kf2.frequency.value=392;kf2.Q.value=10;
-    ko2.connect(kf2);kf2.connect(kg2);kg2.connect(audioCtx.destination);ko2.start();
+    ko2.connect(kf2);kf2.connect(kg2);kg2.connect(window._masterGain);ko2.start();
     amb.koto={o:ko2,g:kg2,f:kf2};
   }
   // MELODY FLUTE — Yo-scale pentatonic motifs cycling (legacy, replaced by shaku/koto)
@@ -331,7 +350,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     var mg=audioCtx.createGain();mg.gain.value=0;
     var mo=audioCtx.createOscillator();mo.type="sine";mo.frequency.value=293.7;
     var mf=audioCtx.createBiquadFilter();mf.type="lowpass";mf.frequency.value=1200;
-    mo.connect(mf);mf.connect(mg);mg.connect(audioCtx.destination);
+    mo.connect(mf);mf.connect(mg);mg.connect(window._masterGain);
     mo.start();
     amb.melody={o:mo,g:mg,f:mf,nextNote:0,phrase:0,noteIdx:0,timer:0};
   }
@@ -340,17 +359,17 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     var zf=audioCtx.createBiquadFilter();zf.type="lowpass";zf.frequency.value=300;
     var zf2=audioCtx.createBiquadFilter();zf2.type="highpass";zf2.frequency.value=80;
     var zg2=audioCtx.createGain();zg2.gain.value=0;
-    zas.connect(zf);zf.connect(zf2);zf2.connect(zg2);zg2.connect(audioCtx.destination);zas.start();
+    zas.connect(zf);zf.connect(zf2);zf2.connect(zg2);zg2.connect(window._masterGain);zas.start();
     amb.zoneAmbient={source:zas,gain:zg2}
   }
   // RIVER DRONE
-  const rg=audioCtx.createGain();rg.gain.value=0;const ro=audioCtx.createOscillator();ro.type="sine";ro.frequency.value=95;const rb2=audioCtx.createBiquadFilter();rb2.type="lowpass";rb2.frequency.value=300;ro.connect(rb2);rb2.connect(rg);rg.connect(audioCtx.destination);amb.river.node=ro;amb.river.gain=rg;ro.start()
+  const rg=audioCtx.createGain();rg.gain.value=0;const ro=audioCtx.createOscillator();ro.type="sine";ro.frequency.value=95;const rb2=audioCtx.createBiquadFilter();rb2.type="lowpass";rb2.frequency.value=300;ro.connect(rb2);rb2.connect(rg);rg.connect(window._masterGain);amb.river.node=ro;amb.river.gain=rg;ro.start()
   // FOOTSTEP
-  amb.footstep=function(){const fb=audioCtx.createBuffer(1,audioCtx.sampleRate*.06,audioCtx.sampleRate),fd=fb.getChannelData(0);for(let i=0;i<fd.length;i++)fd[i]=Math.random()*2-1*(1-i/fd.length);const fs=audioCtx.createBufferSource(),fg=audioCtx.createGain();fs.buffer=fb;fg.gain.value=.028;fs.connect(fg);fg.connect(audioCtx.destination);fs.start()}
+  amb.footstep=function(){const fb=audioCtx.createBuffer(1,audioCtx.sampleRate*.06,audioCtx.sampleRate),fd=fb.getChannelData(0);for(let i=0;i<fd.length;i++)fd[i]=Math.random()*2-1*(1-i/fd.length);const fs=audioCtx.createBufferSource(),fg=audioCtx.createGain();fs.buffer=fb;fg.gain.value=.028;fs.connect(fg);fg.connect(window._masterGain);fs.start()}
   // DUEL TENSION DRONE — gain ramps with enemy proximity
-  if(!amb.tension.node){var tg=audioCtx.createGain();tg.gain.value=0;var to=audioCtx.createOscillator();to.type="sawtooth";to.frequency.value=55;var tf=audioCtx.createBiquadFilter();tf.type="lowpass";tf.frequency.value=120;to.connect(tf);tf.connect(tg);tg.connect(audioCtx.destination);amb.tension={node:to,gain:tg};to.start()}
+  if(!amb.tension.node){var tg=audioCtx.createGain();tg.gain.value=0;var to=audioCtx.createOscillator();to.type="sawtooth";to.frequency.value=55;var tf=audioCtx.createBiquadFilter();tf.type="lowpass";tf.frequency.value=120;to.connect(tf);tf.connect(tg);tg.connect(window._masterGain);amb.tension={node:to,gain:tg};to.start()}
   // GANRYU APPROACH DRONE — deep bass builds as player nears Ganryu shoreline
-  if(!amb.ganryuDrone){var gdo=audioCtx.createOscillator();gdo.type="sine";gdo.frequency.value=60;var gdg=audioCtx.createGain();gdg.gain.value=0;var gdf=audioCtx.createBiquadFilter();gdf.type="lowpass";gdf.frequency.value=80;gdo.connect(gdf);gdf.connect(gdg);gdg.connect(audioCtx.destination);amb.ganryuDrone={node:gdo,gain:gdg,frequency:gdo.frequency};gdo.start()}
+  if(!amb.ganryuDrone){var gdo=audioCtx.createOscillator();gdo.type="sine";gdo.frequency.value=60;var gdg=audioCtx.createGain();gdg.gain.value=0;var gdf=audioCtx.createBiquadFilter();gdf.type="lowpass";gdf.frequency.value=80;gdo.connect(gdf);gdf.connect(gdg);gdg.connect(window._masterGain);amb.ganryuDrone={node:gdo,gain:gdg,frequency:gdo.frequency};gdo.start()}
   // GANRYU BRIGHT THEME — higher register triangle chords
   if(!amb.ganryu.g){
     var gg=audioCtx.createGain();gg.gain.value=0;
@@ -359,7 +378,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
       var ghf=audioCtx.createBiquadFilter();ghf.type="highpass";ghf.frequency.value=200;
       gd.connect(ghf);ghf.connect(gg);gd.start();
     });
-    gg.connect(audioCtx.destination);amb.ganryu.g=gg;
+    gg.connect(window._masterGain);amb.ganryu.g=gg;
   }
   // SFX — enriched Edo instrument palette
   sfx={tone:tone
@@ -368,21 +387,21 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
       var sbn=audioCtx.createBufferSource();sbn.buffer=noiseBuffer(.06);
       var sbf=audioCtx.createBiquadFilter();sbf.type="bandpass";sbf.frequency.value=3000;sbf.Q.value=30;
       var sbg=audioCtx.createGain();sbg.gain.setValueAtTime(.06,audioCtx.currentTime);sbg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.06);
-      sbn.connect(sbf);sbf.connect(sbg);sbg.connect(audioCtx.destination);sbn.start();sbn.stop(audioCtx.currentTime+.06);
+      sbn.connect(sbf);sbf.connect(sbg);sbg.connect(window._masterGain);sbn.start();sbn.stop(audioCtx.currentTime+.06);
       // Metal ring
-      var sr=audioCtx.createOscillator();sr.type="sine";sr.frequency.value=1800;var srg=audioCtx.createGain();srg.gain.setValueAtTime(.08,audioCtx.currentTime);srg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.08);var srf=audioCtx.createBiquadFilter();srf.type="bandpass";srf.frequency.value=1800;srf.Q.value=60;sr.connect(srf);srf.connect(srg);srg.connect(audioCtx.destination);sr.start();sr.stop(audioCtx.currentTime+.08);
+      var sr=audioCtx.createOscillator();sr.type="sine";sr.frequency.value=1800;var srg=audioCtx.createGain();srg.gain.setValueAtTime(.08,audioCtx.currentTime);srg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.08);var srf=audioCtx.createBiquadFilter();srf.type="bandpass";srf.frequency.value=1800;srf.Q.value=60;sr.connect(srf);srf.connect(srg);srg.connect(window._masterGain);sr.start();sr.stop(audioCtx.currentTime+.08);
       // Body resonance
-      var sbo=audioCtx.createOscillator();sbo.type="sawtooth";sbo.frequency.value=120;var sbog=audioCtx.createGain();sbog.gain.setValueAtTime(.04,audioCtx.currentTime);sbog.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.1);var sbof=audioCtx.createBiquadFilter();sbof.type="lowpass";sbof.frequency.value=200;sbo.connect(sbof);sbof.connect(sbog);sbog.connect(audioCtx.destination);sbo.start();sbo.stop(audioCtx.currentTime+.1)}
-    ,paint:function(){var pn=audioCtx.createBufferSource();var pb=audioCtx.createBuffer(1,44100*.15,44100),pd=pb.getChannelData(0);for(let i=0;i<pd.length;i++)pd[i]=Math.random()*2-1*(1-i/pd.length);pn.buffer=pb;var pg2=audioCtx.createGain();pg2.gain.setValueAtTime(.1,audioCtx.currentTime);pg2.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var pf2=audioCtx.createBiquadFilter();pf2.type="bandpass";pf2.frequency.value=1200;pf2.Q.value=3;pn.connect(pf2);pf2.connect(pg2);pg2.connect(audioCtx.destination);pn.start();
+      var sbo=audioCtx.createOscillator();sbo.type="sawtooth";sbo.frequency.value=120;var sbog=audioCtx.createGain();sbog.gain.setValueAtTime(.04,audioCtx.currentTime);sbog.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.1);var sbof=audioCtx.createBiquadFilter();sbof.type="lowpass";sbof.frequency.value=200;sbo.connect(sbof);sbof.connect(sbog);sbog.connect(window._masterGain);sbo.start();sbo.stop(audioCtx.currentTime+.1)}
+    ,paint:function(){var pn=audioCtx.createBufferSource();var pb=audioCtx.createBuffer(1,44100*.15,44100),pd=pb.getChannelData(0);for(let i=0;i<pd.length;i++)pd[i]=Math.random()*2-1*(1-i/pd.length);pn.buffer=pb;var pg2=audioCtx.createGain();pg2.gain.setValueAtTime(.1,audioCtx.currentTime);pg2.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var pf2=audioCtx.createBiquadFilter();pf2.type="bandpass";pf2.frequency.value=1200;pf2.Q.value=3;pn.connect(pf2);pf2.connect(pg2);pg2.connect(window._masterGain);pn.start();
       // Koto pluck accent
       koto(440,.2,.04)}
     ,block:function(){taiko(.08,.18);
       // Wood resonance ring
-      var bw=audioCtx.createOscillator();bw.type="sine";bw.frequency.value=360;var bwg=audioCtx.createGain();bwg.gain.setValueAtTime(.06,audioCtx.currentTime);bwg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);bw.connect(bwg);bwg.connect(audioCtx.destination);bw.start();bw.stop(audioCtx.currentTime+.15)}
+      var bw=audioCtx.createOscillator();bw.type="sine";bw.frequency.value=360;var bwg=audioCtx.createGain();bwg.gain.setValueAtTime(.06,audioCtx.currentTime);bwg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);bw.connect(bwg);bwg.connect(window._masterGain);bw.start();bw.stop(audioCtx.currentTime+.15)}
     ,hit:function(){taiko(.12,.22);
       // Low thud
-      var ho=audioCtx.createOscillator();ho.type="sawtooth";ho.frequency.value=80;var hg=audioCtx.createGain();hg.gain.setValueAtTime(.15,audioCtx.currentTime);hg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var hf=audioCtx.createBiquadFilter();hf.type="lowpass";hf.frequency.value=200;ho.connect(hf);hf.connect(hg);hg.connect(audioCtx.destination);ho.start();ho.stop(audioCtx.currentTime+.15);
-      var hn=audioCtx.createBufferSource();var hnb=audioCtx.createBuffer(1,44100*.1,44100),hnd=hnb.getChannelData(0);for(let i=0;i<hnd.length;i++)hnd[i]=Math.random()*2-1*(1-i/hnd.length);hn.buffer=hnb;var hng=audioCtx.createGain();hng.gain.setValueAtTime(.1,audioCtx.currentTime);hng.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.1);var hnf=audioCtx.createBiquadFilter();hnf.type="lowpass";hnf.frequency.value=300;hn.connect(hnf);hnf.connect(hng);hng.connect(audioCtx.destination);hn.start()}
+      var ho=audioCtx.createOscillator();ho.type="sawtooth";ho.frequency.value=80;var hg=audioCtx.createGain();hg.gain.setValueAtTime(.15,audioCtx.currentTime);hg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var hf=audioCtx.createBiquadFilter();hf.type="lowpass";hf.frequency.value=200;ho.connect(hf);hf.connect(hg);hg.connect(window._masterGain);ho.start();ho.stop(audioCtx.currentTime+.15);
+      var hn=audioCtx.createBufferSource();var hnb=audioCtx.createBuffer(1,44100*.1,44100),hnd=hnb.getChannelData(0);for(let i=0;i<hnd.length;i++)hnd[i]=Math.random()*2-1*(1-i/hnd.length);hn.buffer=hnb;var hng=audioCtx.createGain();hng.gain.setValueAtTime(.1,audioCtx.currentTime);hng.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.1);var hnf=audioCtx.createBiquadFilter();hnf.type="lowpass";hnf.frequency.value=300;hn.connect(hnf);hnf.connect(hng);hng.connect(window._masterGain);hn.start()}
     ,death:function(){shakuhachi(294,1.2,.12);
       setTimeout(function(){shakuhachi(349,1,.08)},300);
       setTimeout(function(){shakuhachi(440,.8,.06)},600);
@@ -406,9 +425,9 @@ let currentHeroKey="musashi";
 let paintMode="waymark"; // "waymark", "barrier", "blossom"
 let shrineEvents=[]; // clickable road-side shrines
 // Road-side NPCs: teahouse, merchant, poet
-let roadNPCs=[{z:220,type:"teahouse",name:"Teahouse Keeper",used:false,text:"The teahouse keeper offers you tea. You rest and regain strength."},
-  {z:550,type:"merchant",name:"Traveling Merchant",used:false,text:"The merchant trades ink for resolve. Your brush is replenished."},
-  {z:900,type:"poet",name:"Wandering Poet",used:false,text:"The poet recites a verse about the road ahead. Your spirits lift."}];
+let roadNPCs=[{z:220,type:"teahouse",name:"Teahouse Keeper",visitCount:0,texts:["The teahouse keeper offers tea. You rest and regain strength.","The keeper refills your cup. Warmth spreads through the journey.","A quiet nod — tea shared, road remembered.","You pause for tea once more. The steam carries a poem."]},
+  {z:550,type:"merchant",name:"Traveling Merchant",visitCount:0,texts:["The merchant trades ink for resolve. Your brush is replenished.","The merchant offers wares from distant provinces. Ink flows.","A handful of precious ink sticks — the merchant smiles.","The merchant nods — another fair trade along the road."]},
+  {z:900,type:"poet",name:"Wandering Poet",visitCount:0,texts:["The poet recites a verse about the road ahead. Your spirits lift.","The poet speaks of autumn rivers and spring winds.","A new haiku drifts from the poet's scroll — the road listens.","The poet's voice carries the tone of distant shores."]}];
 
 let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0,inkTimer:0,sprintDrainTimer:0,abilityReady:true,abilityCooldown:0,abilityEffectTimer:0};
 let keys={},last=0,won=false,ganryuDefeated=false,hitStop=0,paused=false,touch={id:0,sx:0,sy:0,startTime:0,hold:false,moving:false};let damageNumbers=[],drizzle=[],drizzleActive=0,bellRung=0,parryBonus=0,duelFocus={name:"",timer:0};
@@ -437,7 +456,7 @@ const journeyZones=[
   {start:1000,end:1420,name:"coastal",roadEdge:'#5a4a38',roadEdge2:'#6a5a48',lanternColor:'#d7b66f',lanternGlow:'rgba(215,182,111,0.18)',flowers:['#8a7a68','#6a8a9a'],pollenColor:'#c4b88a'}
 ];
 function getZone(z){for(var zi=0;zi<journeyZones.length;zi++)if(z>=journeyZones[zi].start&&z<journeyZones[zi].end)return journeyZones[zi];return journeyZones[0]}
-let currentZone=getZone(0),prevZone=getZone(0),zoneCrossTimer=0;
+let currentZone=getZone(0),prevZone=getZone(0),zoneCrossTimer=0,zoneBanner={active:false,name:"",timer:0};
 let enemies=[
   {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:14,atkRange:44,patrolX:-140,patrolZ:340,patrolRadius:55,patrolSpeed:.3,patrolAngle:0},
   {name:"straw-hat vagrant",x:180,z:450,hp:44,max:44,phase:0.8,wind:0,color:"#5a4a38",type:"prowler",atk:11,atkRange:40,patrolX:180,patrolZ:450,patrolRadius:50,patrolSpeed:.35,patrolAngle:1.2},
@@ -718,10 +737,10 @@ addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){i
   if(e.key==="r"||e.key==="R"){shrineEvents.forEach(function(s){if(!s.used&&Math.abs(player.z-s.z)<30){s.used=true;player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+2);initAudio();sfx.inkRegen();say(s.text);burst(player.x,player.z,"#d7b66f");screenShake=1}})}
   // Hero ability: press M to activate unique hero power
   if((e.key==="m"||e.key==="M")&&player.abilityReady&&player.abilityCooldown<=0){useHeroAbility()}
-  // Road-side NPC interaction: press E to talk to teahouse/merchant/poet
-  if(e.key==="e"||e.key==="E"){roadNPCs.forEach(function(n){if(!n.used&&Math.abs(player.z-n.z)<30){n.used=true;initAudio();var npcEffect=function(npc){if(npc.type==="teahouse"){player.hp=Math.min(hero.hp,player.hp+15);player.resolve=Math.min(15,player.resolve+2);screenShake=1;say(npc.text);burst(player.x,player.z,"#caa45f","#ead9bb")}else if(npc.type==="merchant"){player.ink=Math.min(hero.ink,player.ink+3);player.resolve=Math.max(0,player.resolve-2);screenShake=1;say(npc.text);burst(player.x,player.z,"#8fc7d6","#fff")}else if(npc.type==="poet"){player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+1);screenShake=1;say(npc.text);burst(player.x,player.z,"#d98986","#ead9bb")}};npcEffect(n)}})}
+  // Road-side NPC interaction: press E to talk to teahouse/merchant/poet (repeatable, cycle through dialogue variants)
+  if(e.key==="e"||e.key==="E"){roadNPCs.forEach(function(n){if(Math.abs(player.z-n.z)<30){n.visitCount=(n.visitCount||0);var textIdx=Math.min(n.visitCount,n.texts.length-1);initAudio();var npcEffect=function(npc){if(npc.type==="teahouse"){player.hp=Math.min(hero.hp,player.hp+15);player.resolve=Math.min(15,player.resolve+2);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#caa45f","#ead9bb")}else if(npc.type==="merchant"){player.ink=Math.min(hero.ink,player.ink+3);player.resolve=Math.max(0,player.resolve-2);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#8fc7d6","#fff")}else if(npc.type==="poet"){player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+1);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#d98986","#ead9bb")}};npcEffect(n);n.visitCount++}})}
   // Road-side NPC drawing hints (E key prompt near NPC)
-  roadNPCs.forEach(function(n){if(!n.used&&Math.abs(player.z-n.z)<30){var nLabel=n.type==="teahouse"?"Teahouse":n.type==="merchant"?"Merchant":"Poet";say("[E] "+nLabel+" nearby")}});});
+  roadNPCs.forEach(function(n){if(Math.abs(player.z-n.z)<30){var nLabel=n.type==="teahouse"?"Teahouse":n.type==="merchant"?"Merchant":"Poet";say("[E] "+nLabel+" nearby")}});});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false;if(e.key===" "&&paintPressTime){var held=Date.now()-paintPressTime;player.paintHoldTime=Math.min(99,held/250);paintPressTime=0}});
 // Pause restart button handler
 document.getElementById("pause-restart").addEventListener("click",function(){paused=false;ui.pause.classList.remove("show");start(currentHeroKey)});
@@ -734,8 +753,9 @@ addEventListener("mousedown",e=>{if(e.button===0)slash();if(e.button===2){paintP
 addEventListener("mouseup",e=>{if(e.button===2&&paintPressTime){var held=Date.now()-paintPressTime;player.paintHoldTime=Math.min(99,held/250);paintPressTime=0}});
 // Mouse drag camera look
 var mouseLook={active:false,lastX:0};
+window._mouseSensitivity=window._mouseSensitivity||1;
 addEventListener("mousedown",function(e){if(e.button===1||(e.button===0&&!ui.select.classList.contains("hidden"))){mouseLook.active=true;mouseLook.lastX=e.clientX}});
-addEventListener("mousemove",function(e){if(mouseLook.active&&!ui.select.classList.contains("hidden")){var dx=e.clientX-mouseLook.lastX;player.heading+=dx*.004;mouseLook.lastX=e.clientX}});
+addEventListener("mousemove",function(e){if(mouseLook.active&&!ui.select.classList.contains("hidden")){var dx=e.clientX-mouseLook.lastX;player.heading+=dx*.004*(window._mouseSensitivity||1);mouseLook.lastX=e.clientX}});
 addEventListener("mouseup",function(e){mouseLook.active=false});
 addEventListener("resize",resize);resize();if(screen.orientation)screen.orientation.addEventListener("change",resize);requestAnimationFrame(loop);
 function resize(){const dpr=Math.min(devicePixelRatio||1,2);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);var tc=ui.titleCanvas;if(tc){tc.width=innerWidth;tc.height=innerHeight;drawTitleBg(titleAnimTime||0)}}
@@ -773,16 +793,18 @@ function step(dt){
     // Zone-entry screen shake AND dramatic particle burst for crossing
     if(currentZone!==prevZone&&player.hp>0){
       screenShake=Math.max(screenShake,3);
-      // Zone-specific particle burst — wind gust of zone-flavor particles
-      var burstCount=18;
+      // Zone-specific particle burst — wind gust of zone-flavor particles (enhanced: 36 particles)
+      var burstCount=36;
       var zName=currentZone.name;
       var burstColor=zName==="meadow"?currentZone.pollenColor:zName==="forest"?'#b88c45':zName==="mountain"?'#8a9aaa':'#cdd6e0';
       for(var zb=0;zb<burstCount;zb++){
         var za=Math.random()*7,zDist=20+Math.random()*60;
         sparks.push({x:player.x+Math.cos(za)*zDist,z:player.z+Math.sin(za)*zDist-10,color:burstColor,a:.5,vx:(Math.random()-.5)*1.5,vz:(Math.random()-.5)*1.5-1,d:Math.random()*3+2});
       }
-      // Wind swirl lines near camera
-      for(var ws=0;ws<6;ws++){sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:'#ead9bb',a:.3,vx:(Math.random()-.5)*2,vz:-2+Math.random()*.5,d:-1})};
+      // Wind swirl lines near camera (enhanced: 10 lines instead of 6)
+      for(var ws=0;ws<10;ws++){sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:'#ead9bb',a:.3,vx:(Math.random()-.5)*2,vz:-2+Math.random()*.5,d:-1})};
+      // Zone-name banner overlay — brief fade-in name of new territory
+      zoneBanner.active=true;zoneBanner.name=currentZone.name;zoneBanner.timer=120;
     }
     if(currentZone.name!=="meadow"&&Math.random()<.01*dt&&sparks.length<30){var zc='#b9a88d';sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:zc,a:.25,vx:(Math.random()-.5)*.15,vz:(Math.random()-.5)*.15-.1,d:Math.random()*3+3})};
     // Meadow: light pollen particles
@@ -933,6 +955,8 @@ if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
     if(haikuMoment.active){haikuMoment.timer=Math.max(0,haikuMoment.timer-dt);
       haikuMoment.age=Math.min(haikuMoment.timer,120-haikuMoment.timer);
       if(haikuMoment.timer<=0)haikuMoment.active=false;}
+    // Zone banner decay
+    if(zoneBanner.active){zoneBanner.timer=Math.max(0,zoneBanner.timer-dt);if(zoneBanner.timer<=0)zoneBanner.active=false}
     updateEnemies(dt);updateQuest();updateUi();
   }
 }
@@ -1292,9 +1316,8 @@ function draw(){
         ctx.fillText("[R] Pray",shP.x,shP.y-55*shP.s-8)}
     }
   });
-  // Road-side NPC drawing — teahouse, merchant, poet at road positions
-  roadNPCs.forEach(function(npc){if(npc.used)return;
-    var ndz=Math.abs(player.z-npc.z);
+  // Road-side NPC drawing — teahouse, merchant, poet at road positions (repeatable, always visible)
+  roadNPCs.forEach(function(npc){var ndz=Math.abs(player.z-npc.z);
     if(ndz<60){var np=project(10,npc.z,40);if(!np)return;var nAlpha=Math.max(0,1-ndz/60)*.6;
       ctx.globalAlpha=nAlpha;
       if(npc.type==="teahouse"){
@@ -1335,6 +1358,14 @@ function draw(){
   visible.sort((a,b)=>b.p.d-a.p.d).forEach(v=>v.type==="enemy"?drawEnemy(v.o,v.p):v.type==="mark"?drawMark(v.o,v.p):drawScenery(v.o,v.p));
   drawDamageNumbers();drawPlayer();drawSparks();drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
   drawAtmosphere(w,h);
+  // Zone-name banner — brief overlay on zone entry
+  if(zoneBanner.active&&zoneBanner.timer>0){ctx.save();
+    var zbFade=Math.min(1,zoneBanner.timer/30,zoneBanner.timer<30?zoneBanner.timer/30:1);
+    ctx.globalAlpha=zbFade*.85;
+    ctx.fillStyle="#2a1f14";ctx.beginPath();ctx.roundRect(w/2-140,h*.15-14,280,28,6);ctx.fill();
+    ctx.fillStyle="#ead9bb";ctx.font="bold 16px serif";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(zoneBanner.name,w/2,h*.15);
+    ctx.restore()}
   // Road-side haiku moment — ambient poetry overlay at scenic points
   if(haikuMoment.active&&haikuMoment.timer>0){ctx.save();
     var ha=Math.min(1,haikuMoment.age/30,haikuMoment.timer/30);

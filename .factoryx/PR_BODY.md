@@ -13,59 +13,39 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 38 — Death/ceremony enhancement, HUD polish, zone-aware hints, Ganryu approach audio)
-- **~1560-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 42 — Repeatable NPCs, pause settings, richer zone VFX)
+- **~1914-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
-- Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), and card clicks/taps wired into game start
-- Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look (middle-click or left-click drag rotates camera heading)
+- Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), card clicks/taps wired into game start, hero ability descriptions
+- Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look with sensitivity slider
+- **4 journey atmosphere zones**: Meadow (z 0-300), Forest (z 300-600), Mountain (z 600-1000), Coastal (z 1000-1420) with zone-specific road colors, lantern palettes, particles, creatures, audio, and torii gate markers
+- **Death screen ink-wash ceremony**: character-specific death haiku, ink dissolving particle burst, brush divider
+- **Victory ceremony**: expanded 8-color palette, ink-wash victory mist particles after defeating Ganryu
+- **HUD ink-wash decoration**: Edo scroll-style gold-tinged borders, ink stone indicator
+- **Zone-aware contextual hints**: hints mention current zone name
+- **Ganryu approach audio drone**: deep sine bass 60→24Hz builds tension approaching boss
+- Ink paint system: brush marks with chain-paint widening, paint modes (waymark/barrier/blossom), hold-duration brush sizing
+- **7 enemies over 5 types** plus Ganryu boss with multi-phase fight (nodachi slash/ink wave/ground pound), berserk duelist mode
+- Enemy telegraph, duel focus cues, parry/block system, death ink-dissolve
+- **5 quest milestones** with ink-wash vignettes and Edo haiku
+- **Audio depth**: D-based Yo-scale pentatonic music — shakuhachi bamboo flute, koto harmony, bass drone, zone ambient noise, duel tension drone with proximity gain, dynamic melody tempo
+- **Hero-specific abilities**: Musashi Resolve Strike (2x slash), Koeda Wind Step (invincible dash), Yoshino Ink Blessing (faster regen) with visual auras and cooldown UI
+- **Road-side haiku moments**: ambient poetry at scenic positions
+- **Road-side NPCs** (Teahouse Keeper, Traveling Merchant, Wandering Poet) — repeatable with 4 dialogue variants each
+- **Road-side shrines**: 5 prayer nodes granting resolve+ink
+- **Road-side fox spirits**: animated silhouettes dashing across road
+- **Pause menu** with settings: Master/SFX/Music volume sliders, mouse sensitivity slider
+- **Sprint with resolve economy**, **mouse drag camera look**
+- **Zone-adaptive paint marks**, **rain puddle reflections**, **rain drop-ripple interaction**, **extended mark persistence**
+- **Seasonal road blooms**, **zone-boundary particle burst (36 particles + wind swirl)**, **zone-name banner overlay**
+- **Combat VFX**: slash trail arcs, block spark burst, parry flash
 - **22 scenery kinds**: gate, pine, torii, shrine, pagoda, teaHouse, bamboo, stoneMarker, ricePaddy, bridgeArch, stall, cedar, monument, boatDock, well, lanternPost, waterfall, oldTree, stoneWall, lanternRow, crypt, willow
-- **4 journey atmosphere zones** (Pass 30): Meadow (z 0-300) green grass edges/warm amber lanterns/pollen particles; Forest (z 300-600) brown earth/golden lanterns/thicker leaf fall; Mountain (z 600-1000) gray stone/cool blue-white lanterns/drifting mist wisps; Coastal (z 1000-1420) white sand/gold lanterns/sea spray. Torii gate markers at each boundary with wind-shift audio cues.
-- **Death screen ceremony** (Pass 38): ink dissolving particle burst on defeat, character-specific death haiku, decorative brush divider — death feels like a poetic Edo conclusion
-- **Victory ceremony enhancement** (Pass 38): expanded 8-color palette, ink-wash victory mist particles for deeper ceremony depth after defeating Ganryu
-- **HUD ink-wash decoration** (Pass 38): `::before`/`::after` Edo scroll-style gold-tinged borders on stats panel, ink stone indicator near ink stat
-- **Zone-aware contextual hints** (Pass 38): hints mention current zone name ("meadow/forest/mountain/coastal") reinforcing territory progression
-- **Ganryu approach audio drone** (Pass 38): deep sine bass 60→24Hz with lowpass filter builds tension approaching the final boss
-- Ink paint system: brush marks with chain-paint widening, rendered waymark seals, stamp seal, milestone glow, ink resource with slow regen
-- **Paint depth**: brush size varies by hold duration (Space/right-click/touch long-press); holdBonus and ink check
-- **7 enemies over 5 types**: chaser (aggressive), prowler (circles + retreats), duelist (retreat + combo follow-up with thrust), plus mountain ascetic (chaser at z=1050) and ganryu sentinel (duelist at z=1180) for a richer journey
-- Enemy telegraph wind glow, patrol patterns, HP bars, low-HP danger glow
-- Duel readability checkpoint: `duelFocus` hints, blade-breath arcs, ground rings, and slash curves make enemy windups easier to understand
-- Restart flow restores all enemies from patrol anchors
-- **Parry/block system**: blocking reduces damage; sustained block decay; parry window gives resolve+3 and parryBonus
-- **5 quest milestones**: paint waymarks -> cross bridge -> reach Ganryu shore -> mountain pass -> Ganryu pier (extended road for longer journey)
-- Milestone popup with ink-brush frame and cherry blossoms
-- Ganryu arrival ceremony: layered ocean waves, mist-shrouded island, pier, 120 victory particles, character haiku
-- **Weather depth**: fog layer (two-phase density scaling by z), **rain streaks** (angled falling lines with ground splash, replacing simple dots), drizzle particles active z=300-900 zone (extended for longer road), fade-in/out, **rain puddle reflections** (elliptical pools mirroring sky gradient with shimmering ripple animation during drizzle)
-- **Zone audio**: temple bell at bridge (3-note chord), ambient bird chirps at shrines, wind drift, river drone near bridge, **rain ambience** (filtered noise driven by drizzle zone gain)
-- **Audio depth** (Pass 15): D-based Yo-scale pentatonic music system — bass drone, harmony pad, melody flute cycling Yo motifs by road zone, river drone, duel tension drone, Ganryu bright theme
-- **Melody scheduler**: flute cycles ascending/wandering/descending/Ganryu hopeful motifs based on player z-position; **dynamic tempo** speeds up when enemies are close (tempoFactor 1.5-2.5x), creating tension-responsive audio
-- **Sprint with resolve economy**: Shift key drains resolve (1 per 3 frames) for 1.55x speed; at low resolve sprint slows to 1.1x. Sprinting reduces ink regen when resolve is low. Ties sprint usage into blocking/parry/ink economy decisions
-- **Combat SFX** rebuilt with musical character
-- Ambient particles: falling leaves, fireflies, river mist, drizzle
-- HUD: HP, ink, resolve bars with animated fill
-- Death screen: journey stats (time, defeated, ink used, resolve)
-- Victory screen: full stats grid, haiku, style label
-- Woodblock grain overlay, vignette, bloom, screen shake, damage flash, invincibility flash
-- Mobile touch zones: walk/turn/slash/paint/block buttons auto-detect
-- **Ink-wash procedural silhouettes** (Pass 23): character-specific Edo silhouettes for Musashi (kasa hat, topknot, katana), Koeda (scarf, lean build), Yoshino (hooded robe, staff) — used as fallback before sprite PNGs load. Enemy silhouettes per type. Ganryu imposing samurai silhouette.
-- **Character sprite ink-wash outline** (Pass 22): dark sumi-e edge around bitmap sprites, walking ink particle trail at player feet
-- **Atmosphere progression** (Pass 19): sky gradient shifts from cool dawn to warm sunset as player travels toward Ganryu
-- **Rain drop-ripple interaction** (Pass 29): when drizzle streaks land near active puddles, expanding ripple rings appear — visual interaction between rain and puddle systems (`drawRipples()`)
-- **Milestone vignettes with haiku** (Pass 29): each of the 5 route milestones shows a rich ink-wash illustration (bridge arch, shrine bird silhouettes, valley mountains, mountain pass wind lines, Ganryu ocean waves) plus a seasonal Edo haiku — deepens journey narrative
-- **Pass 34 additions**:
-  - **3 paint modes** via keys 1/2/3: Waymark (damages enemies near mark), Barrier (2 ink cost, slows enemies within radius), Blossom (heals player near mark)
-  - **Duelist berserk mode**: when duelist HP < 50%, enters berserk stance with faster telegraph, brighter glow, longer duel focus timer
-  - **Road-side shrines**: 5 clickable shrine nodes at road intervals — press R to pray, gaining resolve+3 and ink+2. Glowing shrine indicators visible on road
-  - **Enemy death ink-dissolve**: defeated enemies burst into ink particles and light sparks for satisfying defeat feedback
-  - **Barrier mark rendering**: pulsing protective ring with dashed circle glow
-  - **Blossom mark rendering**: cherry blossom petals orbiting the mark
-  - **Paint mode HUD indicator**: color-coded paint mode label in stats panel
-  - Controls updated: 1-3 switch paint mode, R pray at shrines
+- Mobile touch zones auto-detect
 
 ### Verification
-- Browser runtime: Web Audio API calls use valid linearRampToValueAtTime fallbacks; invalid exponentialSmoothValueAtTime and zero-target exponential ramps are regression-checked. Public/manual browser playthrough verifies title click, character card click, movement, painting, and no hard page errors.
-- `node drops/edo-inkblade-ots/test.js` — 93 checks: all previous checks plus death haiku, death ink burst, victory ink-wash mist, HUD decorative borders, zone-aware hints, Ganryu approach audio drone
-- **All 93 checks pass**
+- Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
+- `node drops/edo-inkblade-ots/test.js` — **133 checks**: all previous plus NPC repeatability, dialogue variants, volume sliders, mouse sensitivity, zone banner, enhanced burst
+- **All 133 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -79,22 +59,26 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 20** — Title screen with ink-wash key art
 **Pass 21** — Animated title screen with drifting mist and ink particles
 **Pass 22** — Character sprite ink-wash outline and walking ink particles
-**Pass 23** — Ink-wash procedural silhouettes retire vector blob fallbacks per character
-**Pass 24** — Rain streaks (angled falling lines with ground splash) replace simple dot drizzle; rain ambience (filtered noise) in drizzle zone
-**Pass 25** — Rain puddle reflections on road surface during drizzle (sky-mirroring elliptical pools with ripple shimmer); orientation change listener for title canvas redraw
-**Pass 26** — Sprint resolve economy (Shift drains resolve for 1.55x speed); extended road to 1400 units for longer journey; 2 new enemies (mountain ascetic, ganryu sentinel); 5 route milestones (was 3); ink regen rate improved; dynamic melody tempo based on enemy proximity; mouse drag camera look
-**Pass 27** — Character art asset generation: detailed Playwright-rendered Edo ink-wash sprite sheets for all 9 characters (heroes, enemies, ganryu). New sheet art with kimono folds, weapons, hats, woodblock grain background, ink-splash backdrop per frame.
-**Pass 28** — Dedicated sprite PNGs for mountain ascetic (weathered hermit, straw hat, staff) and ganryu sentinel (jingasa helmet, yoroi armor, wakizashi). Updated ENEMY_SPRITE_KEY mapping. Fresh screenshots captured.
-**Pass 29** — Rain drop-ripple interaction: expanding ripple rings when drizzle hits active puddles. Milestone vignettes with ink-wash illustrations (bridge, shrine, valley, mountain pass, Ganryu shore) and Edo haiku at each route waypoint. 43 smoke checks pass (was 41).
-**Pass 30** — Journey atmosphere zones: 4 distinct zones (meadow/forest/mountain/coastal) with zone-specific road edge colors, lantern color palettes, ambient particle spawning, and zone-boundary torii gate markers. Zone transition audio cues (wind-shift chords) and zone-entry narration. All 50 smoke checks pass.
-**Pass 31** — Ink-wash brush character sprite art pass with sumi-e overlays, regenerated character sheets, and richer fallback silhouettes.
-**Pass 32** — Character card clicks/taps now call the hero start flow so the title/select front page can enter gameplay.
-**Pass 33** — Painted waymark renderer restored; Space/right-click paint no longer throws `drawMark is not defined`; local browser playthrough covers title -> hero select -> movement -> painting.
-**Pass 34** — Combat depth: duelist berserk mode (berserk telegraph, brighter glow, longer focus timer), enemy death ink-dissolve. Paint mode variety: 3 mark types (waymark/barrier/blossom) with distinct visual rendering. Road-side shrines: 5 clickable prayer nodes granting resolve+ink, glowing indicators. Paint mode HUD indicator.
-**Pass 35** — Zone-adaptive paint marks (color shifts by zone), road-side fox spirits (animated dashed silhouettes), duel tension audio depth (gain ramps with proximity), zone-entry screen shake, extended mark persistence (1200-1760 frames), tension drone startup fix.
-**Pass 36** — Ganryu boss duel: multi-phase fight (nodachi slash/ink wave/ground pound) before victory. 3 phases with escalating difficulty. Victory requires ganryuDefeated flag. 74 checks pass.
-**Pass 37** — Zone-boundary particle burst (18 zone-specific particles + wind swirl at crossings), enhanced paint ink-splatter (brush-stroke arc trails + ink drip trails), seasonal road-side flower blooms (yellow/red/pale/blue by zone). 79 checks pass.
-**Pass 38** — Death screen ink-wash ceremony (character-specific death haiku, ink dissolving particle burst, brush divider), victory ceremony enhancement (wider palette, ink-wash mist), HUD decorative ink-wash borders (::before/::after gold frames, ink stone indicator), zone-aware contextual hints (mentions current zone name), Ganryu approach audio drone (deep bass 60→24Hz, gain 0→0.06). 93 checks pass.
+**Pass 23** — Ink-wash procedural silhouettes retire vector blob fallbacks
+**Pass 24** — Rain streaks replace simple dot drizzle; rain ambience
+**Pass 25** — Rain puddle reflections; orientation change listener
+**Pass 26** — Sprint resolve economy; extended road to 1400; 2 new enemies; dynamic melody tempo; mouse drag look
+**Pass 27** — Detailed Playwright-rendered Edo ink-wash sprite sheets for all 9 characters
+**Pass 28** — Dedicated sprite PNGs for mountain ascetic and ganryu sentinel
+**Pass 29** — Rain drop-ripple interaction; milestone vignettes with Edo haiku
+**Pass 30** — Journey atmosphere zones (4 zones with distinct visual/audio/particle identity)
+**Pass 31** — Ink-wash brush character sprite art pass with sumi-e overlays
+**Pass 32** — Character card click/start flow repaired
+**Pass 33** — Painted waymark renderer restored
+**Pass 34** — Combat depth (berserk duelist, 3 paint modes, road-side shrines, death ink-dissolve)
+**Pass 35** — Zone-adaptive paint marks, fox spirits, duel tension audio, zone-entry shake, extended marks
+**Pass 36** — Ganryu boss duel: multi-phase fight before victory
+**Pass 37** — Zone-boundary particle burst, enhanced paint splatter, seasonal road blooms
+**Pass 38** — Death/ceremony enhancement, HUD polish, zone-aware hints, Ganryu approach drone
+**Pass 39** — Rich Edo audio identity (shakuhachi/koto/taiko), zone ambient creatures, atmosphere colors
+**Pass 40** — Hero-specific abilities (resolveStrike/windStep/inkBlessing), road-side haiku moments
+**Pass 41** — Road-side NPCs, combat VFX depth (slash trail/block spark/parry flash), pause menu
+**Pass 42** — Repeatable NPCs with dialogue variants, pause volume/sensitivity settings, richer zone transition VFX (36 particles, 10 wind swirl lines, zone-name banner), master gain audio routing
 
 ### Known Issues
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
