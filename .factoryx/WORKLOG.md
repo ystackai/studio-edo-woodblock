@@ -1,7 +1,7 @@
 # Edo Inkblade: Road to Ganryu — WORKLOG
 
 ## Artifact
-`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (946 lines)
+`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (~1013 lines)
 
 ## Completed Passes
 
@@ -69,6 +69,9 @@
 - Drizzle particles are simple dots — could be richer with rain streaks
 - Death flow and victory ceremony timeline could be smoother
 - Melody scheduler could use more motif variety and dynamic tempo
+- Existing screenshots (01-character-select.jpg, 02-journey.jpg) are from previous pass — need fresh captures
+- Title screen is static — could add animated mist/ink particles on title canvas
+- Title-canvas redraws on resize but not on window orientation change on mobile
 
 ## Delivery Branch
 `factoryx/factory-edo-woodblock/edo-inkblade-ots`
@@ -80,15 +83,6 @@
 - **`drawGanryu(w,hor)`** uses `SPRITES.ganryu` with procedural island-shape fallback
 - Generated PNG assets committed: 9 character sprites + contact sheet + manifest + capture.js + screenshots
 - All 15 smoke checks pass after sprite integration
-
-## Known Issues
-- PR body needs screenshot integration (screenshots from preview not yet taken)
-- Balance tuning: enemy damage values, ink economy, travel pacing need tuning pass
-- Character selection silhouettes are primitive — could use richer procedural ink-wash shapes
-- Drizzle particles are simple dots — could be richer with rain streaks
-- Death flow and victory ceremony timeline could be smoother
-- Melody scheduler could use more motif variety and dynamic tempo
-- Existing screenshots (01-character-select.jpg, 02-journey.jpg) are from previous pass — need fresh captures
 
 ### Operator-seeded Pass 17 — Edo character sprite art checkpoint
 - Replaced the tiny block-like character PNGs with transparent Edo ink-wash sprite sheets for Musashi, Koeda, Yoshino, five road enemies, and Ganryu.
@@ -108,3 +102,12 @@
 - Ink painting burst doubled: 20→20+chain*20 splats, wider spread, dark ink mist clouds for deeper sumi-e feel
 - Duel cue enhanced: dashed ellipse ring, brighter blade-telegraph glow, larger ground ring, pulsing arc bolus for more readable telegraph when enemies wind up
 - All 19 smoke checks pass
+
+### Pass 20 — Title screen with ink-wash key art
+- Added `#title` overlay section with dramatic ink-wash landscape background drawn on dedicated canvas
+- Landscape: mountain silhouettes, road receding into distance, pine tree brush strokes, mist layers, ink splatter texture, vignette
+- Title text "Edo Inkblade" in large serif, subtitle "Road to Ganryu", brush divider, opening poem, pulsing "Press any key to begin"
+- Title shown initially; character select hidden. On any key/click/touch, title fades and select appears
+- `drawTitleBg()` paints the static ink-wash key art; `dismissTitle()` transitions to character select
+- Resize handler recalculates title canvas dimensions and redraws background
+- All 20 smoke checks pass
