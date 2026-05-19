@@ -126,3 +126,19 @@
 - Added ink-brush outline around enemy sprites using the same dark ink stroke, unifying the character art direction
 - Enhanced card portrait rendering with ink-wash overlay on sprite (semi-transparent dark rect) for deeper Edo scroll aesthetic
 - All 20 smoke checks pass
+
+### Pass 23 — Character-art asset: ink-wash procedural silhouettes retire vector blob fallbacks
+- **Primary change**: replaced throwaway polygon/rect fallbacks in `drawPlayer()`, `drawEnemy()`, and `drawGanryu()` with deliberately designed ink-wash/woodblock silhouettes per character, so the game looks like intentional character art even before sprite PNGs load
+- **`drawPlayer()` fallback** — three hero-specific silhouettes:
+  - **Musashi**: wide kasa hat (curved sweep), topknot, face, haori coat, hakama trousers, katana at hip. Frame-aware weapon poses: idle (sheathed), slash (extended thrust), block (raised overhead)
+  - **Koeda**: smaller lean build, face, long scarf trailing behind, no visible weapon. Frame-aware with scarf detail layer
+  - **Yoshino**: wide hooded robe, face, staff held. Frame-aware: slash (staff swung), block (staff raised), idle (staff upright). Sleeve wave accents
+- **`drawEnemy()` fallback** — five enemy-type-specific silhouettes:
+  - Chaser/prowler: hunched ronin body with curved weapon stroke
+  - Duelist: broad-shouldered formal silhouette with shoulder armor detail and extended blade
+  - Vagrant: straw-hat wanderer with wide hat brim and cloak body
+  - Monk: robe-clad silhouette with staff
+  - Default fallback for unhandled types
+- **`drawGanryu()` fallback** — imposing samurai silhouette with wide kasa hat, topknot, broad body, katana drawn in guard position
+- All assets use intentional ink-wash color palette (#1a1512 dark silhouette, #2a1f14 body, #2a1f18 face, #3a2a1a weapon lines), matching the Edo woodblock ink aesthetic
+- All 20 smoke checks pass
