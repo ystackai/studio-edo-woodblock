@@ -315,7 +315,7 @@ let yoMotif1=[0,2,3,1,4];  // ascending playful
 let yoMotif2=[4,3,2,0,1];  // descending contemplative
 let yoPhrase=[0,1,3,4,2,0,4]; // wandering
 let yoMotif3=[0,0,2,2,4,4,3,1]; // Ganryu hopeful ascent
-let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[];
+let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[];
 let enemies=[
   {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:14,atkRange:44,patrolX:-140,patrolZ:340,patrolRadius:55,patrolSpeed:.3,patrolAngle:0},
   {name:"straw-hat vagrant",x:180,z:450,hp:44,max:44,phase:0.8,wind:0,color:"#5a4a38",type:"prowler",atk:11,atkRange:40,patrolX:180,patrolZ:450,patrolRadius:50,patrolSpeed:.35,patrolAngle:1.2},
@@ -332,7 +332,7 @@ for(let i=0;i<96;i++){
   const kind=kinds[i%15];
   scenery.push({kind,x:side*(140+Math.random()*200),z:80+i*100,w:50+Math.random()*60,h:60+Math.random()*90});
 }
-const route=[{z:180,text:"Paint three waymarks on the road.",triggered:false},{z:520,text:"Cross the bridge. Fight only if pressed.",triggered:false},{z:880,text:"Reach Ganryu shore with ink and resolve.",triggered:false},{z:1100,text:"The mountain pass steepens. Stay present.",triggered:false},{z:1280,text:"Ganryu pier ahead. Make your final marks.",triggered:false}];
+const route=[{z:180,text:"Paint three waymarks on the road.",triggered:false,vignette:"shrine",haiku:"morning mist lifts\noff the road's long spine —\nfirst brush, first breath"},{z:520,text:"Cross the bridge. Fight only if pressed.",triggered:false,vignette:"bridge",haiku:"river below\ncarries the day's last light —\nbridge, ink, and steel"},{z:880,text:"Reach Ganryu shore with ink and resolve.",triggered:false,vignette:"valley",haiku:"valley widens\nbetween mountain and tide —\nwind moves the brush"},{z:1100,text:"The mountain pass steepens. Stay present.",triggered:false,vignette:"mountain",haiku:"pine wind cuts stone\nfootsteps slow on the old road —\nGanryu grows close"},{z:1280,text:"Ganryu pier ahead. Make your final marks.",triggered:false,vignette:"ganryu",haiku:"sea opens wide\na dark shore waits —\nbrush and blade, one"}];
 // Atmosphere particles
 for(let i=0;i<30;i++){leaves.push({x:Math.random()*300-150,z:Math.random()*1200,s:2+Math.random()*3,sp:Math.random()*2+.5,phase:Math.random()*6,color:["#6b8d4a","#b88c45","#8e4f30"][i%3]})}
 for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()*1100,b:Math.random()*6+3,phase:Math.random()*8,speed:.3+Math.random()*.4})}
@@ -571,6 +571,8 @@ function step(dt){
     riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});drizzleActive=Math.max(0,drizzleActive+(player.z>300&&player.z<900?.004:-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
     // Rain puddles on road surface during drizzle
     if(drizzleActive>.15&&Math.random()<.008*dt&&puddles.length<20){var pw=10+Math.random()*30,ph=4+Math.random()*10;puddles.push({x:player.x+(Math.random()-.5)*120,z:player.z-20+Math.random()*80,w:pw,h:ph,alpha:0,maxAlpha:.25+Math.random()*.15,age:0,maxAge:200+Math.random()*300,ripplePhase:Math.random()*7})};puddles=puddles.filter(p=>p.age<p.maxAge);puddles.forEach(p=>{p.age+=dt;if(p.age<20)p.alpha=Math.min(p.maxAlpha,p.age/20*.25);else if(p.age>p.maxAge-60)p.alpha=Math.max(0,p.alpha-(p.age-(p.maxAge-60))/60);p.ripplePhase+=.02*dt});
+    // Rain drop impact ripples on puddles — drizzle landing near active puddles spawns ripple rings
+    if(drizzleActive>.15&&Math.random()<.01*dt&&ripples.length<30){puddles.filter(p=>p.alpha>0.1).forEach(function(p){if(Math.random()<.3){ripples.push({x:p.x+Math.random()*20,z:p.z+Math.random()*20,age:0,maxAge:40+Math.random()*20,radius:2+Math.random()*4})}})};ripples=ripples.filter(r=>r.age<r.maxAge);ripples.forEach(r=>{r.age+=dt});
   // Ambient: footsteps, wind drift, river near bridge
   initAudio();var amb=window._amb;
   if(audioCtx&&amb&&amb.footstep&&amb.wind&&amb.river&&amb.melody&&amb.rain){
@@ -707,7 +709,7 @@ function updateQuest(){
   if(won)ui.quest.textContent="Ganryu: the shore holds your prints and the journey is written in ink and steel.";
   else if(painted<4){const remaining=4-painted;if(player.z<200)ui.quest.textContent=`Paint ${remaining} more waymark${remaining===1?"":"s"} near the road. Ink flows as you walk.`;else if(player.z<520)ui.quest.textContent=`The bridge looms ahead. Paint ${remaining} waymark${remaining===1?"":"s"} to make your passage known.`;else if(player.z<1100)ui.quest.textContent=`The road narrows toward Ganryu. Paint ${remaining} waymark${remaining===1?"":"s"} to honor the journey.`;else ui.quest.textContent=`The mountain pass sharpens. Paint ${remaining} final waymark${remaining===1?"":"s"} for Ganryu.`;}
   else if(alive>0)ui.quest.textContent=`Reach the shore or pacify ${alive} remaining challenger${alive===1?"":"s"}.`;
-  route.forEach(r=>{if(Math.abs(player.z-r.z)<18&&!r.triggered){say(r.text);milestonePopup={active:true,text:r.text,timer:80};r.triggered=true}else if(Math.abs(player.z-r.z)>=30)r.triggered=false});
+  route.forEach(r=>{if(Math.abs(player.z-r.z)<18&&!r.triggered){say(r.text);milestonePopup={active:true,text:r.text,timer:80,vignette:r.vignette,haiku:r.haiku};r.triggered=true}else if(Math.abs(player.z-r.z)>=30)r.triggered=false});
 }
 function drawVictoryParticles(){victoryParticles=victoryParticles.filter(p=>p.a>.02);victoryParticles.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.a*=.96;var proj=project(p.x,p.y*10+p.z,50);if(!proj)return;ctx.globalAlpha=p.a;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(proj.x,proj.y,Math.max(1,p.d)*3,0,7);ctx.fill();ctx.globalAlpha=1});victoryParticles=victoryParticles.slice(-80)}
 function say(text){if(messages[0]!==text){messages.unshift(text);messages=messages.slice(0,5)}}
@@ -757,7 +759,7 @@ function draw(){
   const skyR2=Math.round(sky2[0]+(sky3[0]-sky2[0])*gp),skyG2=Math.round(sky2[1]+(sky3[1]-sky2[1])*gp),skyB2=Math.round(sky2[2]+(sky3[2]-sky2[2])*gp);
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
-  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawLeaves();drawFireflies();drawRiverMist();drawDrizzle();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFireflies();drawRiverMist();drawDrizzle();
   const visible=[];
   scenery.forEach(o=>{const p=project(o.x,o.z,o.h);if(p)visible.push({p,o,type:"scenery"})});
   if(victoryParticles.length)drawVictoryParticles();
@@ -767,6 +769,41 @@ function draw(){
   drawDamageNumbers();drawPlayer();drawSparks();drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
   drawAtmosphere(w,h);
   if(milestonePopup.active&&milestonePopup.timer>0){ctx.save();const ma=Math.min(1,milestonePopup.timer/20);ctx.globalAlpha=ma;
+  // Rich ink-wash vignette illustration based on milestone zone
+  var vignetteKind=milestonePopup.vignette||"bridge";
+  if(vignetteKind==="bridge"){ctx.fillStyle="rgba(25,20,15,.25)";ctx.fillRect(w/2-220,h*.32-50,440,120);
+    // Ink-wash bridge arch illustration
+    ctx.strokeStyle="#caa45f";ctx.lineWidth=2*ma;ctx.beginPath();ctx.moveTo(w/2-100,h*.35+10);ctx.quadraticCurveTo(w/2,h*.35-30,w/2+100,h*.35+10);ctx.stroke();
+    ctx.strokeStyle="#d7b66f";ctx.lineWidth=1*ma;ctx.beginPath();ctx.moveTo(w/2-90,h*.35+5);ctx.quadraticCurveTo(w/2,h*.35-20,w/2+90,h*.35+5);ctx.stroke();
+    // Lantern glow on bridge
+    ctx.fillStyle="#ff8333";ctx.globalAlpha=ma*.2;ctx.beginPath();ctx.arc(w/2-60,h*.35-10,6,0,7);ctx.fill();ctx.beginPath();ctx.arc(w/2+60,h*.35-10,6,0,7);ctx.fill();ctx.globalAlpha=ma;
+    // River mist lines
+    ctx.strokeStyle="rgba(200,220,230,.15)";ctx.lineWidth=1;for(var ri=0;ri<3;ri++){ctx.beginPath();ctx.moveTo(w/2-140+Math.sin(Date.now()*.002+ri)*10,h*.35+20+ri*10);ctx.lineTo(w/2+140+Math.sin(Date.now()*.002+ri)*10,h*.35+20+ri*10);ctx.stroke()}}
+  else if(vignetteKind==="shrine"){ctx.fillStyle="rgba(25,20,15,.25)";ctx.fillRect(w/2-220,h*.32-50,440,120);
+    ctx.fillStyle="#8a5a45";ctx.globalAlpha=ma*.35;ctx.beginPath();ctx.moveTo(w/2-60,h*.35-20);ctx.lineTo(w/2,h*.35-50);ctx.lineTo(w/2+60,h*.35-20);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#9a6a55";ctx.globalAlpha=ma*.25;ctx.fillRect(w/2-40,h*.35-15,80,25);
+    ctx.strokeStyle="#caa45f";ctx.lineWidth=1.5*ma;ctx.beginPath();ctx.moveTo(w/2-40,h*.35-15);ctx.lineTo(w/2+40,h*.35-15);ctx.stroke();
+    // Bird silhouettes
+    ctx.fillStyle="#1a1512";ctx.globalAlpha=ma*.15;for(var bi=0;bi<3;bi++){ctx.beginPath();ctx.moveTo(w/2-80+bi*50,h*.35-40);ctx.lineTo(w/2-80+bi*50+10,h*.35-50);ctx.lineTo(w/2-80+bi*50+20,h*.35-40);ctx.fill()};ctx.globalAlpha=ma}
+  else if(vignetteKind==="valley"){ctx.fillStyle="rgba(25,20,15,.25)";ctx.fillRect(w/2-220,h*.32-50,440,120);
+    // Distant mountain silhouettes
+    ctx.fillStyle="#2a3532";ctx.globalAlpha=ma*.3;ctx.beginPath();ctx.moveTo(w/2-200,h*.35+10);for(var mx=w/2-200;mx<w/2+200;mx+=20){ctx.lineTo(mx,h*.35-10+Math.sin(mx*.03)*20)};ctx.lineTo(w/2+200,h*.35+10);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#3a4542";ctx.globalAlpha=ma*.2;ctx.beginPath();ctx.moveTo(w/2-160,h*.35+10);for(var mx=w/2-160;mx<w/2+160;mx+=20){ctx.lineTo(mx,h*.35-5+Math.sin(mx*.04+1)*15)};ctx.lineTo(w/2+160,h*.35+10);ctx.closePath();ctx.fill();
+    // Pine tree silhouettes
+    ctx.fillStyle="#1a2520";ctx.globalAlpha=ma*.25;for(var pi=0;pi<3;pi++){var px=w/2-140+pi*100;ctx.beginPath();ctx.moveTo(px,h*.35+5);ctx.lineTo(px-15,h*.35-20);ctx.lineTo(px+15,h*.35-20);ctx.closePath();ctx.fill()};ctx.globalAlpha=ma}
+  else if(vignetteKind==="mountain"){ctx.fillStyle="rgba(25,20,15,.25)";ctx.fillRect(w/2-220,h*.32-50,440,120);
+    // Steep mountain pass
+    ctx.fillStyle="#2a3528";ctx.globalAlpha=ma*.35;ctx.beginPath();ctx.moveTo(w/2-200,h*.35+10);ctx.lineTo(w/2-80,h*.35-25);ctx.lineTo(w/2+80,h*.35-25);ctx.lineTo(w/2+200,h*.35+10);ctx.closePath();ctx.fill();
+    ctx.strokeStyle="#3a4538";ctx.lineWidth=2*ma;ctx.beginPath();ctx.moveTo(w/2-80,h*.35-25);ctx.lineTo(w/2+80,h*.35-25);ctx.stroke();
+    // Wind lines
+    ctx.strokeStyle="rgba(200,220,230,.12)";ctx.lineWidth=1;for(var wi=0;wi<3;wi++){ctx.beginPath();ctx.moveTo(w/2-180+Math.sin(Date.now()*.001+wi)*15,h*.35+5+wi*8);ctx.lineTo(w/2+180+Math.sin(Date.now()*.001+wi)*15,h*.35+5+wi*8);ctx.stroke()};ctx.globalAlpha=ma}
+  else if(vignetteKind==="ganryu"){ctx.fillStyle="rgba(25,20,15,.25)";ctx.fillRect(w/2-220,h*.32-50,440,120);
+    // Ocean waves
+    ctx.strokeStyle="rgba(140,180,200,.25)";ctx.lineWidth=1.5*ma;for(var wi=0;wi<5;wi++){ctx.beginPath();ctx.moveTo(w/2-200,h*.35-10+wi*10+Math.sin(Date.now()*.003+wi)*4);for(var wx=w/2-200;wx<w/2+200;wx+=20){ctx.lineTo(wx,h*.35-10+wi*10+Math.sin(Date.now()*.003+wi)*4+Math.sin(wx*.015+Date.now()*.002)*3)};ctx.stroke()};
+    // Island silhouette
+    ctx.fillStyle="#2a4038";ctx.globalAlpha=ma*.35;ctx.beginPath();ctx.moveTo(w/2-50,h*.35+5);ctx.lineTo(w/2-30,h*.35-15);ctx.lineTo(w/2+30,h*.35-15);ctx.lineTo(w/2+50,h*.35+5);ctx.closePath();ctx.fill();
+    // Pier line
+    ctx.strokeStyle="#3a5048";ctx.lineWidth=2*ma;ctx.beginPath();ctx.moveTo(w/2-20,h*.35+5);ctx.lineTo(w/2-20,h*.35-5);ctx.lineTo(w/2+20,h*.35-5);ctx.lineTo(w/2+20,h*.35+5);ctx.stroke();ctx.globalAlpha=ma}
   // Decorative ink-brush outer frame with corner ornaments
   ctx.strokeStyle="#caa45f";ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(w/2-160,h*.35-38,320,60,12);ctx.stroke();
   ctx.strokeStyle="#d7b66f";ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(w/2-156,h*.35-34,312,52,10);ctx.stroke();
@@ -779,7 +816,9 @@ function draw(){
   // Tip: add decorative scroll mark
   const sw=ctx.measureText(milestonePopup.text).width;
   ctx.globalAlpha=ma*.15;ctx.fillStyle="#2a1f14";ctx.fillRect(w/2-sw/2-8,h*.35-4,sw+16,26);
-  ctx.globalAlpha=ma;ctx.fillStyle="#f4ead8";ctx.fillText(milestonePopup.text,w/2,h*.35);ctx.restore()}
+  ctx.globalAlpha=ma;ctx.fillStyle="#f4ead8";ctx.fillText(milestonePopup.text,w/2,h*.35);
+  // Haiku poem below milestone text
+  if(milestonePopup.haiku){ctx.globalAlpha=ma*.85;ctx.fillStyle="#b9a88d";ctx.font="clamp(11px,1.6vw,16px) serif";ctx.textAlign="center";var haikuLines=milestonePopup.haiku.split("\n");haikuLines.forEach(function(line,i){ctx.fillStyle="#b9a88d";ctx.fillText(line,w/2,h*.35+26+i*18)})};ctx.globalAlpha=1;ctx.restore()}
 
 }
 function drawRoad(w,h,hor){
@@ -1127,6 +1166,8 @@ function drawPuddles(){puddles.forEach(p=>{const proj=project(p.x,p.z,0);if(!pro
     // Ripple shimmer
     ctx.globalAlpha=alpha*.2*Math.sin(p.ripplePhase);ctx.fillStyle="#f4ead8";
     ctx.beginPath();ctx.ellipse(px,py,pw/3,ph/3,0,0,7);ctx.fill();ctx.globalAlpha=1})}
+// Rain drop impact ripples — expanding rings where droplets hit puddle surfaces
+function drawRipples(){ripples.forEach(r=>{const proj=project(r.x,r.z,0);if(!proj)return;var s=Math.min(proj.s,3);if(s<.3)return;var ageFade=Math.max(0,1-r.age/r.maxAge);var rad=r.radius*s*(.3+ageFade*1.2);var px=proj.x,py=proj.y;ctx.globalAlpha=ageFade*.35;ctx.strokeStyle="#f4ead8";ctx.lineWidth=1.2*s*(.5+ageFade*.5);ctx.beginPath();ctx.ellipse(px,py,rad,rad*.3,0,0,7);ctx.stroke();ctx.globalAlpha=ageFade*.15;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(px,py,rad*.6,rad*.2,0,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawRiverMist(){riverMist.forEach(m=>{const p=project(m.x,m.z,20);if(!p)return;ctx.globalAlpha=m.alpha*.25;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y,6+Math.sin(m.z*.02)*3,3,0,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawVignette(w,h){const g=ctx.createRadialGradient(w/2,h/2,80,w/2,h/2,Math.max(w,h)*.7);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.55)");ctx.fillStyle=g;ctx.fillRect(0,0,w,h)}
 function drawDamageNumbers(){damageNumbers=damageNumbers.filter(function(n){return n.age<60});damageNumbers.forEach(function(n){n.age++;var p=project(n.x,n.z,50);if(!p)return;var f=Math.max(0,1-n.age/60);ctx.globalAlpha=f*.9;ctx.fillStyle=n.color;ctx.font="bold "+(10+Math.floor(f*8))+"px monospace";ctx.textAlign="center";var txt=n.dmg>0?"-"+Math.abs(n.dmg):"+"+Math.abs(n.dmg);ctx.fillText(txt,p.x,p.y-f*40);ctx.globalAlpha=1})}

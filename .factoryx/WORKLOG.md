@@ -149,7 +149,12 @@
 - **Contact sheet regenerated** at `assets/characters/_contact_sheet.png`
 - All existing 27 smoke checks pass (no HTML changes needed — sprite loading uses existing img.onload paths)
 
-## Pass 28 — Dedicated sprite PNGs for mountain ascetic and ganryu sentinel; screenshot refresh; PR body update
+## Pass 29 — Rain drop ripple interaction on puddles; milestone vignettes with ink-wash illustrations and haiku
+- **Rain drop impact ripples**: when drizzle streaks land near active puddles, expanding ripple rings spawn with elliptical fade — visual interaction between rain and puddle systems (`ripples[]`, `drawRipples()`)
+- **Milestone vignettes**: each of the 5 route milestones now shows a rich ink-wash illustration (bridge arch with lantern glow, shrine with bird silhouettes, valley with distant mountains, mountain pass with wind lines, Ganryu shore with ocean waves)
+- **Haiku narration**: each milestone carries a seasonal Edo haiku that fades in below the objective text, deepening journey narrative
+- **New milestone data**: `route[]` entries include `vignette` kind and `haiku` text; `milestonePopup` passes both to drawing
+- All 43 smoke checks pass (was 41 — added 2 checks for ripple interaction + vignette haiku)
 - **Added two new enemy character definitions** to the sprite generator (`generate-sprites.js`):
   - `mountain-ascetic` — weathered mountain hermit, wide straw hat, rough robe, walking staff
   - `ganryu-sentinel` — disciplined samurai retainer, jingasa helmet, yoroi shoulder armor, wakizashi sword

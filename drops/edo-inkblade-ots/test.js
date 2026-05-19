@@ -47,7 +47,10 @@ const checks = [
   ["mouse drag camera look", html.includes("mouseLook") && html.includes("mouseLook.active") && html.includes("mouseLook.lastX")],
   ["dynamic melody tempo", html.includes("tempoFactor") && html.includes("tensionCount") && html.includes("melodyInt")],
   ["extended road length", html.includes("Math.min(1420") && html.includes("player.z>1380")],
-  ["7 enemies defined", html.includes("ganryu sentinel") && html.includes("mountain ascetic")]
+  ["7 enemies defined", html.includes("ganryu sentinel") && html.includes("mountain ascetic")],
+  ["rain ripple puddle interaction", html.includes("function drawRipples") && html.includes("ripples.push") && html.includes("ripples.filter")],
+  ["milestone vignette haiku", html.includes("vignette:") && html.includes("haiku:") && html.includes("milestonePopup.haiku") && html.includes("haikuLines.forEach")],
+  ["5 route milestones with vignettes", (()=>{const routes= [...html.matchAll(/z:(\d+)/g)]; return routes.length>=5})()]
 ];
 
 // Sprite dimension validation

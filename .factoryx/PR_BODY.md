@@ -13,7 +13,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 28 — Dedicated sprite PNGs for mountain ascetic and ganryu sentinel; screenshot refresh)
+### Current Artifact State (Pass 29 — Rain ripple puddle interaction; milestone vignettes with ink-wash illustrations and haiku)
 - **~1145-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino)
@@ -44,10 +44,12 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Ink-wash procedural silhouettes** (Pass 23): character-specific Edo silhouettes for Musashi (kasa hat, topknot, katana), Koeda (scarf, lean build), Yoshino (hooded robe, staff) — used as fallback before sprite PNGs load. Enemy silhouettes per type. Ganryu imposing samurai silhouette.
 - **Character sprite ink-wash outline** (Pass 22): dark sumi-e edge around bitmap sprites, walking ink particle trail at player feet
 - **Atmosphere progression** (Pass 19): sky gradient shifts from cool dawn to warm sunset as player travels toward Ganryu
+- **Rain drop-ripple interaction** (Pass 29): when drizzle streaks land near active puddles, expanding ripple rings appear — visual interaction between rain and puddle systems (`drawRipples()`)
+- **Milestone vignettes with haiku** (Pass 29): each of the 5 route milestones shows a rich ink-wash illustration (bridge arch, shrine bird silhouettes, valley mountains, mountain pass wind lines, Ganryu ocean waves) plus a seasonal Edo haiku — deepens journey narrative
 
 ### Verification
-- `node drops/edo-inkblade-ots/test.js` — 41 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, sprint mechanic, mouse drag camera look, dynamic melody tempo, extended road length, 7 enemies defined, negative checks (not Floating Score, not falling-object), 11 sprite PNGs >= 10KB, manifest validation, generator existence
-- **All 41 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — 43 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, sprint mechanic, mouse drag camera look, dynamic melody tempo, extended road length, 7 enemies defined, negative checks, 11 sprite PNGs >= 10KB, manifest validation, generator existence, rain ripple interaction, milestone vignette haiku, 5 route milestones with vignettes
+- **All 43 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -67,10 +69,11 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 26** — Sprint resolve economy (Shift drains resolve for 1.55x speed); extended road to 1400 units for longer journey; 2 new enemies (mountain ascetic, ganryu sentinel); 5 route milestones (was 3); ink regen rate improved; dynamic melody tempo based on enemy proximity; mouse drag camera look
 **Pass 27** — Character art asset generation: detailed Playwright-rendered Edo ink-wash sprite sheets for all 9 characters (heroes, enemies, ganryu). New sheet art with kimono folds, weapons, hats, woodblock grain background, ink-splash backdrop per frame.
 **Pass 28** — Dedicated sprite PNGs for mountain ascetic (weathered hermit, straw hat, staff) and ganryu sentinel (jingasa helmet, yoroi armor, wakizashi). Updated ENEMY_SPRITE_KEY mapping. Fresh screenshots captured.
+**Pass 29** — Rain drop-ripple interaction: expanding ripple rings when drizzle hits active puddles. Milestone vignettes with ink-wash illustrations (bridge, shrine, valley, mountain pass, Ganryu shore) and Edo haiku at each route waypoint. 43 smoke checks pass (was 41).
 
 ### Known Issues
-- Puddle reflections could further add rain drop-ripple interaction
 - Mountain ascetic and ganryu sentinel sprite art could be further refined with richer detail
+- Rain ripple ring expansion could be more dramatic in heavier drizzle
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
