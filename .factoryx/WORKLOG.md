@@ -111,3 +111,11 @@
 - `drawTitleBg()` paints the static ink-wash key art; `dismissTitle()` transitions to character select
 - Resize handler recalculates title canvas dimensions and redraws background
 - All 20 smoke checks pass
+
+### Pass 21 — Animated title screen with drifting mist and ink particles
+- Replaced static title background with live animation loop: `requestAnimationFrame` drives `drawTitleBg(t)` continuously while title is shown
+- Added 24 drifting mist/fog bands and ink splatter particles that slowly float across the landscape, creating a moody living Edo scroll feel
+- Mist bands drift horizontally via `titleMistDrift` sin wave offset, ink dots pulse in size with time
+- Particles are recycled on expiry (200-600 frames), ensuring infinite subtle motion
+- `cancelAnimationFrame` on dismiss stops the loop cleanly; resize passes current animation time to preserve continuity
+- All 21 smoke checks pass

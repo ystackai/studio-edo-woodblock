@@ -39,7 +39,8 @@ const checks = [
   ["animation loop", html.includes("requestAnimationFrame(loop)")],
   ["preview redirect", preview.includes("window.location.replace")],
   ["not Floating Score", !html.includes("Floating Score") && !html.includes("floating-score-hs")],
-  ["not falling object game", !/falling|catch drifting|score-display/.test(html)]
+  ["not falling object game", !/falling|catch drifting|score-display/.test(html)],
+  ["title screen animation", html.includes("requestAnimationFrame(titleAnimLoop)") && html.includes("titleMistDrift") && html.includes("cancelAnimationFrame")]
 ];
 
 let failed = 0;
