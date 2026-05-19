@@ -13,8 +13,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 18 — Duel readability checkpoint)
-- **946-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 19 — Atmosphere progression, ink richness, duel spectacle)
+- **~956-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino)
 - Road travel with WASD/arrow/mouse/touch (drag + long-press) controls
 - **22 scenery kinds**: gate, pine, torii, shrine, pagoda, teaHouse, bamboo, stoneMarker, ricePaddy, bridgeArch, stall, cedar, monument, boatDock, well, lanternPost, waterfall, oldTree, stoneWall, lanternRow, crypt, willow
@@ -42,7 +42,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 ### Verification
 - `node drops/edo-inkblade-ots/test.js` — 17 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, negative checks (not Floating Score, not falling-object)
-- **All 17 checks pass**
+- **All 19 checks pass**
+- Atmosphere progression: sky shifts from cool dawn to warm sunset as player travels toward Ganryu, creating palpable journey tension
+- Ink painting burst enhanced: doubled splatter counts, wider spread, dark ink mist clouds for deeper sumi-e feel
+- Duel cue now uses dashed ellipse, brighter blade-telegraph glow, larger ground ring, pulsing arc bolus for more readable windup telegraphy
 
 ### Next Work
 18. Polish until deadline (2026-05-25T22:13:34Z): balance tuning, UX flow, generated assets (character portraits, title art), screenshot integration, PR body screenshots
@@ -60,7 +63,8 @@ Deadline: 2026-05-25T22:13:34Z. Finish policy: polish_until_deadline.
 - Updated `drops/edo-inkblade-ots/assets/characters/_contact_sheet.png` and `manifest.json` so future passes can see the sprite direction.
 - Note: the worker's direct image API path returned HTTP 401, so this checkpoint uses local authored/generated sprite assets rather than raw API-generated images.
 
-### Latest Checkpoint (Pass 18 — Duel readability)
-- Enemy windups now show a readable blade-breath cue and a contextual duel hint instead of only a small weapon glow.
-- Retry/restart now restores every challenger to its patrol anchor so the full road remains playable after death or victory.
-- This pass is intended to make combat feedback more reviewable in screenshots and live play before deeper balance work.
+### Latest Checkpoint (Pass 19 — Atmosphere progression, ink richness, duel spectacle)
+- Sky gradient now interpolates from cool dawn (#1c2839 / #6a5a4b) toward warm sunset (darker amber/brown) based on journey progress (player.z/1000)
+- Ink painting burst: splat count increased (20 → 20+chain*20), spread widened, dark ink mist clouds added for richer sumi-e texture
+- Duel cue: dashed elliptical telegraph ring, brighter blade-bolt glow, larger ground ring with pulsing arc bolus, making enemy windups more visible in both live play and screenshots
+- All 19 smoke checks pass

@@ -102,3 +102,9 @@
 - Updated attack windup messaging so players know to block the glow and answer with a slash.
 - Fixed restart enemy reset to use each enemy's patrol anchor instead of losing later enemies to undefined coordinates.
 - Extended the smoke test with duel telegraph readability and enemy restart reset checks.
+
+### Pass 19 — Atmosphere progression, ink richness, duel spectacle
+- Sky gradient shifts dynamically from cool dawn to warm sunset as player travels toward Ganryu (z=0→1000), creating palpable journey progression
+- Ink painting burst doubled: 20→20+chain*20 splats, wider spread, dark ink mist clouds for deeper sumi-e feel
+- Duel cue enhanced: dashed ellipse ring, brighter blade-telegraph glow, larger ground ring, pulsing arc bolus for more readable telegraph when enemies wind up
+- All 19 smoke checks pass
