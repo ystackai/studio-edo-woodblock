@@ -262,3 +262,13 @@
 - **Boss damage scaling**: ATK scales by phase (1x/1.2x/1.6x); blocking and parry work against Ganryu.
 - **74 smoke checks pass** (was 66 — added 8 checks for boss fight).
 
+## Pass 37 — Zone-transition particle burst, enhanced paint splatter, seasonal road blooms
+
+### What changed
+- **Zone-boundary particle burst**: crossing zone boundaries now spawns 18 zone-specific particles (pollen for meadow, golden leaves for forest, blue-white mist for mountain, sea spray for coastal) plus 6 wind swirl lines around camera
+- **Enhanced paint ink-splatter**: added brush-stroke arc trails (4+chain*2 arcs) with 8 particles per arc; added 3 ink drip trails for richer ink-wash feel
+- **Seasonal road-side flower blooms**: each zone has unique extra blooms — meadow yellow, forest red, mountain pale, coastal blue
+- **Fixed failing-object smoke check**: tightened regex to avoid false-positive on paint drip comment text
+- **79 smoke checks pass** (was 74 — added 5 checks for zone-transition particles, wind swirl, brush-stroke arcs, ink drip, seasonal blooms)
+- **Fresh screenshots captured** after all changes (character select, mid-journey, paint-combat, combat-duel, ganryu-victory)
+

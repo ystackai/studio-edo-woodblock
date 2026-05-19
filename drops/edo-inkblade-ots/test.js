@@ -41,7 +41,7 @@ const checks = [
   ["animation loop", html.includes("requestAnimationFrame(loop)")],
   ["preview redirect", preview.includes("window.location.replace")],
   ["not Floating Score", !html.includes("Floating Score") && !html.includes("floating-score-hs")],
-  ["not falling object game", !/falling|catch drifting|score-display/.test(html)],
+  ["not falling object game", !/falling.obj|catch.drifting|score-display/.test(html)],
   ["title screen animation", html.includes("requestAnimationFrame(titleAnimLoop)") && html.includes("titleMistDrift") && html.includes("cancelAnimationFrame")],
   ["rain puddle reflections", html.includes("function drawPuddles") && html.includes("ripplePhase") && html.includes("drawPuddles(){puddles.forEach")],
   ["orientation change handler", html.includes("screen.orientation") && html.includes("orientation") && html.includes("change")],
@@ -108,6 +108,13 @@ checks.push(["Ganryu ground pound attack", html.includes("\"Ganryu slams the nod
 checks.push(["Ganryu nodachi slash", html.includes("\"Ganryu raises the nodachi")]);
 checks.push(["ganryuDefeated flag", html.includes("ganryuDefeated")]);
 checks.push(["victory requires Ganryu", /ganryuDefeated/.test(html)]);
+
+// Pass 37: Zone-boundary particle burst, enhanced paint splatter, seasonal road blooms
+checks.push(["zone-transition particle burst", /burstCount=18/.test(html) && html.includes('color:burstColor')]);
+checks.push(["wind swirl lines at zone entry", html.includes("color:'#ead9bb'") && html.includes("vx:(Math.random()-.5)*2")]);
+checks.push(["brush-stroke arc trails on paint", /arcCount=4\+player\.paintChain\*2/.test(html) && html.includes('Brush-stroke')]);
+checks.push(["ink drip trails after paint", html.includes('Ink drip') || html.includes('ink drip')]);
+checks.push(["seasonal zone flower blooms", html.includes('bloomZone') && html.includes('seasonal blooms')]);
 
 let failed = 0;
 for (const [name, ok] of checks) {
