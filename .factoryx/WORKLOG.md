@@ -312,9 +312,24 @@
 - **115 smoke checks pass** (was 106 — added 9 checks: hero abilities defined per character, hero ability key binding M, useHeroAbility function, ability cooldown mechanic, ability visual aura, ability status UI, road-side haiku moments, haiku moment drawing, haiku moment fade rendering)
 - **Fresh screenshots captured** after all changes (01-character-select, 02-mid-journey, 03-paint-combat, 04-combat-duel, 05-ganryu-victory)
 
+## Pass 41 — Road-side NPCs, combat VFX depth, pause menu
+
+### What changed
+- **Road-side NPCs**: 3 interactive NPC nodes along the road — Teahouse Keeper (restores HP+resolve at z=220), Traveling Merchant (trades resolve for ink at z=550), Wandering Poet (grants resolve+ink at z=900). Press E to interact. Each NPC has a distinct visual (teahouse structure, merchant tent, poet figure with scroll) and warm glow indicator.
+- **Combat VFX upgrade**: 
+  - Slash trail arcs: ink-brush arc trails across hit point on successful slash
+  - Block spark burst: bright steel sparks fly from guard contact when blocking enemy attacks
+  - Parry flash: golden ring burst on perfect parry timing
+  - Enhanced enemy death dissolve: 30 ink particle burst + 15 light spark burst on enemy defeat (richer than previous 20-particle dissolve)
+- **Pause menu**: Escape key pauses with overlay showing controls, ability to restart journey. Game logic halts when paused.
+- **125 smoke checks pass** (was 115 — added 8 checks for NPCs, pause, block spark, parry flash, slash trail, enhanced death dissolve)
+
 ## Known Issues (updated)
 - Screenshots need fresh captures after Pass 40 — DONE
 - Zone transition particles could be more dramatic at boundary crossings
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
 - Hero ability cooldowns could be fine-tuned for balance
 - Haiku moments are one-shot per playthrough — could be extended with replay or zone-specific haiku sets
+- Road-side NPCs are one-use per playthrough — could be extended with repeatable interactions or more NPC dialogue
+- Pause menu is minimal — future passes could add volume controls, settings
+- Block spark and parry flash are visual only — no gameplay impact beyond existing block/parry mechanics

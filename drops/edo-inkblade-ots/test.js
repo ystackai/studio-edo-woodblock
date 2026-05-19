@@ -148,6 +148,16 @@ checks.push(["road-side haiku moments", html.includes("haikuMoments") && html.in
 checks.push(["haiku moment drawing", html.includes("haikuMoment.active") && html.includes("haikuMoment.text")]);
 checks.push(["haiku moment fade rendering", html.includes("haikuMoment.timer") && html.includes("haikuMoment.age")]);
 
+// Pass 41: Road-side NPCs, combat VFX, pause menu
+checks.push(["road-side NPCs defined", html.includes("roadNPCs") && html.includes("teahouse") && html.includes("merchant") && html.includes("poet")]);
+checks.push(["NPC interaction key E", html.includes('key==="e"') && html.includes("npcEffect")]);
+checks.push(["pause menu overlay", html.includes("pause") && html.includes("Journey paused") && html.includes("Escape")]);
+checks.push(["pause toggle key", html.includes('key==="Escape"') && html.includes("paused=!paused")]);
+checks.push(["block spark burst effect", html.includes("Block spark burst") && html.includes("bsAng")]);
+checks.push(["parry flash burst effect", html.includes("Parry flash") && html.includes("pfAng")]);
+checks.push(["slash trail arc effect", html.includes("Slash trail arc") && html.includes("sti<8")]);
+checks.push(["enhanced enemy death dissolve", html.includes("Enhanced enemy death dissolve") && html.includes("edi<30")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);
