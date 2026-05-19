@@ -127,7 +127,11 @@
 - Enhanced card portrait rendering with ink-wash overlay on sprite (semi-transparent dark rect) for deeper Edo scroll aesthetic
 - All 20 smoke checks pass
 
-### Pass 23 — Character-art asset: ink-wash procedural silhouettes retire vector blob fallbacks
+### Pass 24 — Rain streaks and rain ambience
+- **Drizzle particle improvement**: replaced simple dot drizzle with angled rain streaks (`len` property, angled by `vx`, drawn as falling lines with ground splash spots)
+- **Rain ambience**: added filtered noise generator (`amb.rain`) with lowpass+highpass, gain driven by `drizzleActive` in step function
+- **PR body updated** to Pass 24 state with rain streaks, rain ambience, and ink-wash silhouettes
+- All 20 smoke checks pass
 - **Primary change**: replaced throwaway polygon/rect fallbacks in `drawPlayer()`, `drawEnemy()`, and `drawGanryu()` with deliberately designed ink-wash/woodblock silhouettes per character, so the game looks like intentional character art even before sprite PNGs load
 - **`drawPlayer()` fallback** — three hero-specific silhouettes:
   - **Musashi**: wide kasa hat (curved sweep), topknot, face, haori coat, hakama trousers, katana at hip. Frame-aware weapon poses: idle (sheathed), slash (extended thrust), block (raised overhead)
