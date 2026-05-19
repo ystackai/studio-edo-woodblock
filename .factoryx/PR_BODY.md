@@ -13,8 +13,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 21 — Animated title screen)
-- **~1031-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 24 — Rain streaks + rain ambience + ink-wash silhouettes)
+- **~1105-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino)
 - Road travel with WASD/arrow/mouse/touch (drag + long-press) controls
@@ -29,8 +29,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **3 quest milestones**: paint waymarks -> cross bridge -> reach Ganryu shore
 - Milestone popup with ink-brush frame and cherry blossoms
 - Ganryu arrival ceremony: layered ocean waves, mist-shrouded island, pier, 120 victory particles, character haiku
-- **Weather depth**: fog layer (two-phase density scaling by z), drizzle particles (z=300-700 zone, fade-in/out)
-- **Zone audio**: temple bell at bridge (3-note chord), ambient bird chirps at shrines, wind drift, river drone near bridge
+- **Weather depth**: fog layer (two-phase density scaling by z), **rain streaks** (angled falling lines with ground splash, replacing simple dots), drizzle particles active z=300-700 zone, fade-in/out
+- **Zone audio**: temple bell at bridge (3-note chord), ambient bird chirps at shrines, wind drift, river drone near bridge, **rain ambience** (filtered noise driven by drizzle zone gain)
 - **Audio depth** (Pass 15): D-based Yo-scale pentatonic music system — bass drone, harmony pad, melody flute cycling Yo motifs by road zone, river drone, duel tension drone, Ganryu bright theme
 - **Melody scheduler**: flute cycles ascending/wandering/descending/Ganryu hopeful motifs based on player z-position
 - **Combat SFX** rebuilt with musical character
@@ -40,31 +40,35 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Victory screen: full stats grid, haiku, style label
 - Woodblock grain overlay, vignette, bloom, screen shake, damage flash, invincibility flash
 - Mobile touch zones: walk/turn/slash/paint/block buttons auto-detect
+- **Ink-wash procedural silhouettes** (Pass 23): character-specific Edo silhouettes for Musashi (kasa hat, topknot, katana), Koeda (scarf, lean build), Yoshino (hooded robe, staff) — used as fallback before sprite PNGs load. Enemy silhouettes per type. Ganryu imposing samurai silhouette.
 
 ### Verification
-- `node drops/edo-inkblade-ots/test.js` — 18 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, negative checks (not Floating Score, not falling-object)
-- **All 21 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — 20 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, negative checks (not Floating Score, not falling-object)
+- **All 20 checks pass**
 
-### Next Work
-- Character art asset pass: retire temporary vector/blob player, enemy, and boss models with ink-wash/woodblock PNG sprites under `assets/characters/`
-- Balance tuning, UX flow, screenshot integration
+### Screenshots
+`drops/edo-inkblade-ots/screenshots/`:
+- `01-character-select.jpg` — character select screen with ink-brush frame
+- `02-mid-journey.jpg` — road travel with scenery and sky gradient
+- `03-paint-combat.jpg` — painting ink marks with enemy encounter
+- `04-combat-duel.jpg` — duel telegraph and combat
+- `05-ganryu-victory.jpg` — Ganryu arrival victory screen
+
+### Recent Passes
+**Pass 20** — Title screen with ink-wash key art
+**Pass 21** — Animated title screen with drifting mist and ink particles
+**Pass 22** — Character sprite ink-wash outline and walking ink particles
+**Pass 23** — Ink-wash procedural silhouettes retire vector blob fallbacks per character
+**Pass 24** — Rain streaks (angled falling lines with ground splash) replace simple dot drizzle; rain ambience (filtered noise) in drizzle zone
 
 ### Known Issues
-- Central character/enemy models still use procedural silhouettes — sprite assets exist (Pass 17) but need richer ink-wash portraits
-- PR body screenshots need refresh after recent visual passes
-- Drizzle particles are simple dots — could be richer rain streaks
+- Sprite asset quality: PNGs are local-authored placeholder quality — richer ink-wash sprite sheets desirable
+- Balance tuning: enemy damage values, ink economy, travel pacing
+- Drizzle particles upgraded to streaks; could further add rain puddle reflections
 - Melody scheduler could use more motif variety and dynamic tempo
+- Screenshots are from current game state
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
 Target repo: `ystackai/studio-edo-woodblock`. Canonical PR: #107.
 Deadline: 2026-05-25T22:13:34Z. Finish policy: polish_until_deadline.
-
-### Latest Checkpoints
-**Pass 20** — Title screen with ink-wash key art: mountain silhouettes, road, pine brush strokes, mist layers, ink splatter, vignette. Title fades on key/click/touch to character select.
-
-**Pass 21** — Animated title screen: 24 drifting mist bands and ink particles on `requestAnimationFrame` loop while title is shown. Clean `cancelAnimationFrame` on dismiss. All 21 smoke checks pass.
-
-**Pass 19** — Atmosphere progression: sky gradient shifts cool dawn→warm sunset by journey progress. Ink painting burst doubled with dark ink mist clouds. Enhanced duel cue telegraph. All 19 smoke checks pass.
-
-**Pass 17 (sprite art)** — Replaced block PNGs with richer Edo ink-wash sprite sheets for all characters and enemies. Updated contact sheet and manifest. Note: image API returned 401, assets are local-authored.
