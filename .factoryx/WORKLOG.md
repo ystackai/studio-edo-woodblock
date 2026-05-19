@@ -205,3 +205,16 @@
 - **Dynamic melody tempo**...
 - **Mouse drag camera look**...
 - All 27 smoke checks pass
+
+## Operator repair: Pass 32 — Character card click/start flow
+- Confirmed the deployed title click dismissed the front overlay, but character selection cards were not wired to `start(id)`, leaving players stranded on the front page.
+- Added `chooseHero(card,e)` and click/touch handlers for `.card` buttons so Musashi/Koeda/Yoshino selection enters gameplay.
+- Added a smoke check for character-card start wiring.
+- Verified locally with browser automation: title click -> card click -> game starts.
+
+## Operator repair: Pass 33 — Painted waymark runtime renderer
+- Public/browser playthrough after Pass 32 found a real runtime error after gameplay input: `drawMark is not defined`.
+- Added `drawMark(m,p)` to render perspective ink seals/waymarks with fade, shadow, brush stroke, and ink speckles.
+- Added a smoke check that the mark renderer exists and is used by the sorted draw loop.
+- Verified locally with browser automation: title click -> character card -> move -> paint; no page errors or failed requests.
+- `node drops/edo-inkblade-ots/test.js`, `scripts/verify.sh`, and `git diff --check` pass.
