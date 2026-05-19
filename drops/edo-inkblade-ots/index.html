@@ -281,7 +281,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
 let currentHeroKey="musashi";
 
 let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0,inkTimer:0};
-let keys={},last=0,won=false,hitStop=0,touch={id:0,sx:0,sy:0,startTime:0,hold:false,moving:false};let damageNumbers=[],drizzle=[],drizzleActive=0,bellRung=0,parryBonus=0;
+let keys={},last=0,won=false,hitStop=0,touch={id:0,sx:0,sy:0,startTime:0,hold:false,moving:false};let damageNumbers=[],drizzle=[],drizzleActive=0,bellRung=0,parryBonus=0,duelFocus={name:"",timer:0};
 let gameStartTime=0,enemiesDefeated=0,inkUsedTotal=0,marksPlacedTotal=0;
 let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
@@ -433,7 +433,7 @@ drawSelectArt();
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
 function start(id){currentHeroKey=id;
   hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,blockDecay:0,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
-  marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i];e.patrolAngle=i*1.6;e.wind=0});
+  marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;duelFocus={name:"",timer:0};ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=e.patrolX;e.z=e.patrolZ;e.patrolAngle=i*1.6;e.wind=0;e.attackWindUp=0;e.attackCount=0;e.deathAge=undefined});
   screenShake=0;gameStartTime=Date.now();enemiesDefeated=0;inkUsedTotal=0;marksPlacedTotal=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
 let paintPressTime=0;
@@ -493,7 +493,9 @@ if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
 }
 }
     if(won)victoryParticles.push({x:player.x+(Math.random()-.5)*30,z:player.z+(Math.random()-.5)*30,a:1,vx:(Math.random()-.5)*.8,vy:Math.random()*3+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb"][Math.random()*5|0],d:Math.random()*4+1});
-    player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);if(player.paintTimer<=0)player.paintChain=0;player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);if(player.blocking){player.blockDecay+=dt*3}else{player.blockDecay=Math.max(0,player.blockDecay-dt*5)}
+    player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);if(player.paintTimer<=0)player.paintChain=0;player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
+    duelFocus.timer=Math.max(0,duelFocus.timer-dt);
+    if(player.blocking){player.blockDecay+=dt*3}else{player.blockDecay=Math.max(0,player.blockDecay-dt*5)}
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
     if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show");var e=Math.floor((Date.now()-gameStartTime)/1000);var tm=Math.floor(e/60)+"m "+(e%60)+"s";document.getElementById("death-time").textContent=tm;document.getElementById("death-defeated").textContent=enemiesDefeated;document.getElementById("death-ink").textContent=inkUsedTotal;document.getElementById("death-resolve").textContent=player.resolve}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0)ui.death.classList.remove("show")}
     milestonePopup.timer=Math.max(0,milestonePopup.timer-dt);
@@ -530,6 +532,8 @@ if(e.attackCount>0){e.attackCount--;if(dist<e.atkRange+25){e.wind=e.attackCount=
     if(dist<e.atkRange&&e.wind<=0){
       const windLen=e.type==="duelist"?78:68;
       e.wind=windLen;e.attackWindUp=0;
+      duelFocus={name:e.name,timer:100};
+      say(e.name+" draws a blade line. Block the glow, then answer.");
       burst(e.x,e.z,"#efe1c0");
     }
     e.attackWindUp=(e.attackWindUp||0)+dt;
@@ -616,7 +620,8 @@ function updateUi(){ui.style.textContent=hero.label;
   var nearestEnemy=enemies.reduce(function(a,b){var da=Math.hypot(a.x-player.x,a.z-player.z),db=Math.hypot(b.x-player.x,b.z-player.z);return da<db?a:b});
   var enemyDist=Math.hypot(nearestEnemy.x-player.x,nearestEnemy.z-player.z);
   var painted=marks.length;
-  if(painted<3&&player.z<200&&Math.abs(player.z-180)<80)hintText="Press Space to paint a waymark on the road.";
+  if(duelFocus.timer>0)hintText="Duel focus: "+duelFocus.name+" is breathing for a strike. Block the glow, then slash.";
+  else if(painted<3&&player.z<200&&Math.abs(player.z-180)<80)hintText="Press Space to paint a waymark on the road.";
   else if(painted<3&&player.z>200&&player.z<520)hintText="Paint remaining waymarks with Space. Enemies prowl ahead.";
   else if(player.blocking&&enemyDist<120)hintText="Hold block. Release K/Q to strike when the enemy winds up.";
   else if(enemyDist<100&&!player.blocking&&player.slashTimer<=0)hintText="Enemy close! Press J/E to slash or K/Q to block.";
@@ -902,7 +907,8 @@ function drawScenery(o,p){
   else{ctx.fillStyle="#5b3828";ctx.fillRect(p.x-34*s,base-48*s,68*s,48*s);ctx.fillStyle="#2a211b";ctx.beginPath();ctx.moveTo(p.x-42*s,base-48*s);ctx.lineTo(p.x,base-82*s);ctx.lineTo(p.x+42*s,base-48*s);ctx.fill()}
 }
 
-function drawEnemy(e,p){var s=Math.min(p.s,5.4),base=p.y;var sk=ENEMY_SPRITE_KEY[e.name]||e.type;var img=SPRITES[sk];var fw=60,fh=100;var frame=0;if(e.wind>0&&e.hp>0)frame=1;else if(e.type==="duelist"&&e.attackCount>0)frame=2;if(e.hp<=0&&e.deathAge){ctx.globalAlpha=Math.max(0,.85-e.deathAge*.025);if(img&&img.complete){ctx.drawImage(img,frame*fw,0,fw,fh,p.x-30*s,base-fh*s,fw*s,fh*s)};ctx.globalAlpha=1;return};ctx.fillStyle="rgba(0,0,0,.2)";ctx.beginPath();ctx.ellipse(p.x,base+2,30*s,6*s,0,0,7);ctx.fill();if(img&&img.complete){ctx.drawImage(img,frame*fw,0,fw,fh,p.x-30*s,base-fh*s,fw*s,fh*s)}else{ctx.fillStyle=e.color;ctx.fillRect(p.x-13*s,base-48*s,26*s,42*s);ctx.fillStyle="#d6c2a0";ctx.beginPath();ctx.arc(p.x,base-58*s,12*s,0,7);ctx.fill();ctx.strokeStyle="#d8d0bd";ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x+10*s,base-38*s);ctx.lineTo(p.x+34*s,base-62*s);ctx.stroke()};ctx.fillStyle="#1a120e";ctx.fillRect(p.x-20*s,base-72*s,40*s,7*s);ctx.fillStyle="#b84132";ctx.fillRect(p.x-24*s,base-88*s,48*s*Math.max(0,e.hp/e.max),5*s);if(e.wind>0&&e.hp>0){ctx.globalAlpha=.2+e.wind/50;ctx.fillStyle="#efe1c0";ctx.beginPath();ctx.arc(p.x+20*s,base-52*s,5*s+Math.sin(last*.012)*3*s,0,7);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle="#f4ead8";ctx.lineWidth=4*s;ctx.beginPath();ctx.moveTo(p.x+10*s,base-38*s);ctx.lineTo(p.x+34*s,base-62*s);ctx.stroke();ctx.strokeStyle="#efe1c0";ctx.lineWidth=8*s;ctx.beginPath();ctx.moveTo(p.x+12*s,base-42*s);ctx.lineTo(p.x+40*s,base-66*s);ctx.stroke()};if(e.hp<=e.max*.3){ctx.globalAlpha=.12+Math.sin(last*.008)*.1;ctx.fillStyle="#d96a1f";ctx.beginPath();ctx.arc(p.x,base-58*s,18*s,0,7);ctx.fill();ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.arc(p.x,base-58*s,10*s+Math.sin(last*.01)*3*s,0,7);ctx.fill();ctx.globalAlpha=1};if(e.attackFlash>0&&e.attackFlash<8){ctx.strokeStyle="#efe1c0";ctx.lineWidth=6*s;ctx.beginPath();ctx.moveTo(p.x+50*s,base-62*s);ctx.lineTo(p.x+10*s,base-38*s);ctx.stroke()}}
+function drawDuelCue(e,p,s,base){var pulse=.45+.25*Math.sin(last*.015);ctx.save();ctx.globalAlpha=pulse;ctx.strokeStyle="#f4ead8";ctx.lineWidth=Math.max(1.5,2.5*s);ctx.beginPath();ctx.ellipse(p.x,base-34*s,34*s,46*s,0,Math.PI*.15,Math.PI*1.35);ctx.stroke();ctx.globalAlpha=.28;ctx.fillStyle="#d7b66f";ctx.beginPath();ctx.ellipse(p.x,base-18*s,50*s,13*s,0,0,7);ctx.fill();ctx.globalAlpha=.7;ctx.strokeStyle="#d7b66f";ctx.lineWidth=Math.max(2,3*s);ctx.beginPath();ctx.moveTo(p.x-28*s,base-76*s);ctx.quadraticCurveTo(p.x+18*s,base-95*s,p.x+46*s,base-46*s);ctx.stroke();ctx.restore()}
+function drawEnemy(e,p){var s=Math.min(p.s,5.4),base=p.y;var sk=ENEMY_SPRITE_KEY[e.name]||e.type;var img=SPRITES[sk];var fw=60,fh=100;var frame=0;if(e.wind>0&&e.hp>0)frame=1;else if(e.type==="duelist"&&e.attackCount>0)frame=2;if(e.hp<=0&&e.deathAge){ctx.globalAlpha=Math.max(0,.85-e.deathAge*.025);if(img&&img.complete){ctx.drawImage(img,frame*fw,0,fw,fh,p.x-30*s,base-fh*s,fw*s,fh*s)};ctx.globalAlpha=1;return};ctx.fillStyle="rgba(0,0,0,.2)";ctx.beginPath();ctx.ellipse(p.x,base+2,30*s,6*s,0,0,7);ctx.fill();if(img&&img.complete){ctx.drawImage(img,frame*fw,0,fw,fh,p.x-30*s,base-fh*s,fw*s,fh*s)}else{ctx.fillStyle=e.color;ctx.fillRect(p.x-13*s,base-48*s,26*s,42*s);ctx.fillStyle="#d6c2a0";ctx.beginPath();ctx.arc(p.x,base-58*s,12*s,0,7);ctx.fill();ctx.strokeStyle="#d8d0bd";ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x+10*s,base-38*s);ctx.lineTo(p.x+34*s,base-62*s);ctx.stroke()};ctx.fillStyle="#1a120e";ctx.fillRect(p.x-20*s,base-72*s,40*s,7*s);ctx.fillStyle="#b84132";ctx.fillRect(p.x-24*s,base-88*s,48*s*Math.max(0,e.hp/e.max),5*s);if(e.wind>0&&e.hp>0){drawDuelCue(e,p,s,base);ctx.globalAlpha=.2+e.wind/50;ctx.fillStyle="#efe1c0";ctx.beginPath();ctx.arc(p.x+20*s,base-52*s,5*s+Math.sin(last*.012)*3*s,0,7);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle="#f4ead8";ctx.lineWidth=4*s;ctx.beginPath();ctx.moveTo(p.x+10*s,base-38*s);ctx.lineTo(p.x+34*s,base-62*s);ctx.stroke();ctx.strokeStyle="#efe1c0";ctx.lineWidth=8*s;ctx.beginPath();ctx.moveTo(p.x+12*s,base-42*s);ctx.lineTo(p.x+40*s,base-66*s);ctx.stroke()};if(e.hp<=e.max*.3){ctx.globalAlpha=.12+Math.sin(last*.008)*.1;ctx.fillStyle="#d96a1f";ctx.beginPath();ctx.arc(p.x,base-58*s,18*s,0,7);ctx.fill();ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.arc(p.x,base-58*s,10*s+Math.sin(last*.01)*3*s,0,7);ctx.fill();ctx.globalAlpha=1};if(e.attackFlash>0&&e.attackFlash<8){ctx.strokeStyle="#efe1c0";ctx.lineWidth=6*s;ctx.beginPath();ctx.moveTo(p.x+50*s,base-62*s);ctx.lineTo(p.x+10*s,base-38*s);ctx.stroke()}}
 function drawMark(m,p){
   const s=Math.min(p.s,5)*(m.brushSize||1);
   var ageDecay=1;if(m.age>m.maxAge)ageDecay=Math.max(0.06,1-(m.age-m.maxAge)/300);

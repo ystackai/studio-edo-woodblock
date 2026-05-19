@@ -33,6 +33,8 @@ const checks = [
   ["movement controls", html.includes("keys.w") && html.includes("arrowleft") && html.includes("arrowright")],
   ["art creation loop", html.includes("function paint") && html.includes("ink") && html.includes("marks")],
   ["duel loop", html.includes("function slash") && html.includes("blocking") && html.includes("enemies")],
+  ["duel telegraph readability", html.includes("duelFocus") && html.includes("function drawDuelCue") && html.includes("Block the glow")],
+  ["enemy restart reset", html.includes("e.x=e.patrolX") && html.includes("e.z=e.patrolZ")],
   ["objective progression", html.includes("function updateQuest") && html.includes("Ganryu")],
   ["animation loop", html.includes("requestAnimationFrame(loop)")],
   ["preview redirect", preview.includes("window.location.replace")],

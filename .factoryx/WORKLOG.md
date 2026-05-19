@@ -1,7 +1,7 @@
 # Edo Inkblade: Road to Ganryu — WORKLOG
 
 ## Artifact
-`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (960 lines)
+`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (946 lines)
 
 ## Completed Passes
 
@@ -95,3 +95,10 @@
 - Each hero sheet keeps the existing 4x80x120 frame layout; enemy sheets keep the 4x60x100 layout expected by `drawPlayer()` and `drawEnemy()`.
 - Added kimono folds, hats/topknots, weapon poses, slash/block frames, rough woodblock outlines, and an updated `_contact_sheet.png`/`manifest.json` for future art passes.
 - This is a local authored asset checkpoint because the worker image-generation path returned HTTP 401; future agents should build on these assets or report the missing image pipeline as a blocker, not retry raw image API calls.
+
+### Operator-seeded Pass 18 — Duel readability checkpoint
+- Added `duelFocus` state so enemy windups create a short-lived duel hint instead of relying only on tiny sprite motion.
+- Added `drawDuelCue()` to render a bright blade-breath arc, ground ring, and slash curve around enemies during telegraphed strikes.
+- Updated attack windup messaging so players know to block the glow and answer with a slash.
+- Fixed restart enemy reset to use each enemy's patrol anchor instead of losing later enemies to undefined coordinates.
+- Extended the smoke test with duel telegraph readability and enemy restart reset checks.
