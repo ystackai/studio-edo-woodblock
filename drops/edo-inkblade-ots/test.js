@@ -52,7 +52,7 @@ const checks = [
 
 // Sprite dimension validation
 const spriteDir = path.join(root, 'assets', 'characters');
-const expectedSprites = ['musashi.png','koeda.png','yoshino.png','chaser.png','prowler.png','duelist.png','vagrant.png','monk.png','ganryu.png'];
+const expectedSprites = ['musashi.png','koeda.png','yoshino.png','chaser.png','prowler.png','duelist.png','vagrant.png','monk.png','ganryu.png','mountain-ascetic.png','ganryu-sentinel.png'];
 expectedSprites.forEach(f => {
   const fpath = path.join(spriteDir, f);
   const ok = fs.existsSync(fpath) && fs.statSync(fpath).size > 10000;
@@ -65,7 +65,7 @@ checks.push(["sprite manifest exists", fs.existsSync(manifestPath)]);
 if (fs.existsSync(manifestPath)) {
   try {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    checks.push(["manifest has characters", typeof manifest.characters === 'object' && Object.keys(manifest.characters).length >= 9]);
+    checks.push(["manifest has characters", typeof manifest.characters === 'object' && Object.keys(manifest.characters).length >= 11]);
   } catch(e) {
     checks.push(["manifest valid JSON", false]);
   }

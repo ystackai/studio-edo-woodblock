@@ -206,9 +206,9 @@ let hero=heroes.musashi;
 let victoryParticles=[],victoryFanfare=false;
 // Sprite preloading
 let SPRITES={};
-const SPRITE_KEYS=["musashi","koeda","yoshino","chaser","prowler","duelist","vagrant","monk","ganryu"];
+const SPRITE_KEYS=["musashi","koeda","yoshino","chaser","prowler","duelist","vagrant","monk","ganryu","mountain-ascetic","ganryu-sentinel"];
 SPRITE_KEYS.forEach(function(k){var img=new Image();img.onload=function(){if(k==="musashi"||k==="koeda"||k==="yoshino")drawSelectArt()};img.src="assets/characters/"+k+".png";SPRITES[k]=img});
-const ENEMY_SPRITE_KEY={"dock ronin":"chaser","cedar bandit":"prowler","bridge duelist":"duelist","straw-hat vagrant":"vagrant","river-bank monk":"monk","mountain ascetic":"monk","ganryu sentinel":"duelist"};
+const ENEMY_SPRITE_KEY={"dock ronin":"chaser","cedar bandit":"prowler","bridge duelist":"duelist","straw-hat vagrant":"vagrant","river-bank monk":"monk","mountain ascetic":"mountain-ascetic","ganryu sentinel":"ganryu-sentinel"};
 // Audio
 const noopAudio=function(){};
 let audioCtx=null,sfx={tone:noopAudio,slash:noopAudio,paint:noopAudio,block:noopAudio,hit:noopAudio,mark:noopAudio,death:noopAudio,inkRegen:noopAudio,victory:noopAudio};

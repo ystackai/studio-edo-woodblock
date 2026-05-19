@@ -149,6 +149,17 @@
 - **Contact sheet regenerated** at `assets/characters/_contact_sheet.png`
 - All existing 27 smoke checks pass (no HTML changes needed — sprite loading uses existing img.onload paths)
 
+## Pass 28 — Dedicated sprite PNGs for mountain ascetic and ganryu sentinel; screenshot refresh; PR body update
+- **Added two new enemy character definitions** to the sprite generator (`generate-sprites.js`):
+  - `mountain-ascetic` — weathered mountain hermit, wide straw hat, rough robe, walking staff
+  - `ganryu-sentinel` — disciplined samurai retainer, jingasa helmet, yoroi shoulder armor, wakizashi sword
+- **Generated dedicated sprite PNGs** for both new enemies via Playwright-based headless Chromium renderer
+- **Updated `ENEMY_SPRITE_KEY` mapping** in index.html: "mountain ascetic" → `mountain-ascetic.png`, "ganryu sentinel" → `ganryu-sentinel.png` (no longer reusing monk/duelist sprites)
+- **Updated manifest.json** with new character entries, palette, and descriptions
+- **Regenerated contact sheet** at `assets/characters/_contact_sheet.png`
+- **Fresh screenshots captured** with `capture.js` after Pass 27 sprite generation and Pass 26 balance changes
+- All 41 smoke checks pass (was 39 — added 2 sprite checks + updated manifest count)
+
 ## Pass 26 — Sprint resolve economy, extended road, dynamic melody, mouse look
 - **Sprint mechanic with resolve drain**: Shift key drains resolve...
 - **Balance tuning — extended road to 1400 units**...

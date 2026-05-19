@@ -1,5 +1,5 @@
 {
-  "version": "pass-27-2026-05-19",
+  "version": "pass-28-2026-05-19",
   "style": "Playwright-generated Edo ink-wash sprite sheets — detailed canvas-rendered character art with kimono folds, weapons, hats, and woodblock grain background",
   "generation": "drops/edo-inkblade-ots/generate-sprites.js via Playwright headless Chromium",
   "frame_layout": {
@@ -106,6 +106,28 @@
       "frames": 4,
       "role": "boss",
       "description": "Ganryu — imposing samurai, wide dark hat, yoroi shoulder armor, large nodachi sword."
+    },
+    "mountain-ascetic": {
+      "file": "mountain-ascetic.png",
+      "palette": {
+        "body": "#4a3a28",
+        "trim": "#9a7a58",
+        "belt": "#6a5a3a"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "Mountain ascetic — weathered mountain hermit with wide straw hat, rough robe, walking staff."
+    },
+    "ganryu-sentinel": {
+      "file": "ganryu-sentinel.png",
+      "palette": {
+        "body": "#2a2038",
+        "trim": "#b2bad8",
+        "belt": "#6a7a9a"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "Ganryu sentinel — disciplined samurai retainer with jingasa helmet, yoroi shoulder armor, wakizashi sword."
     }
   }
 }

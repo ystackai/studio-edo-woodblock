@@ -17,6 +17,8 @@ const CHARACTERS = {
   duelist: { w: 60, h: 100, frames: 4, palette: { body: '#273048', trim: '#b2bad8', belt: '#6a7a9a' } },
   vagrant: { w: 60, h: 100, frames: 4, palette: { body: '#514233', trim: '#b89358', belt: '#8a6a48' } },
   monk: { w: 60, h: 100, frames: 4, palette: { body: '#3e4542', trim: '#a6b7a7', belt: '#6a7a6a' } },
+  'mountain-ascetic': { w: 60, h: 100, frames: 4, palette: { body: '#4a3a28', trim: '#9a7a58', belt: '#6a5a3a' } },
+  'ganryu-sentinel': { w: 60, h: 100, frames: 4, palette: { body: '#2a2038', trim: '#b2bad8', belt: '#6a7a9a' } },
   ganryu: { w: 80, h: 120, frames: 4, palette: { body: '#161616', trim: '#efe1c0', belt: '#caa45f' } }
 };
 
@@ -37,6 +39,8 @@ function drawCharacter(ctx, key, frame, w, h, pal) {
   else if (key === 'duelist') drawDuelist(ctx, frame, w, h, pal);
   else if (key === 'vagrant') drawVagrant(ctx, frame, w, h, pal);
   else if (key === 'monk') drawMonk(ctx, frame, w, h, pal);
+  else if (key === 'mountain-ascetic') drawMountainAscetic(ctx, frame, w, h, pal);
+  else if (key === 'ganryu-sentinel') drawGanryuSentinel(ctx, frame, w, h, pal);
 }
 
 function inkBrush(ctx, x, y, size, color, alpha) {
@@ -296,6 +300,8 @@ function drawProwler(ctx, frame, w, h, pal) { drawGenericEnemy(ctx, frame, w, h,
 function drawDuelist(ctx, frame, w, h, pal) { drawGenericEnemy(ctx, frame, w, h, pal, 'duelist'); }
 function drawVagrant(ctx, frame, w, h, pal) { drawGenericEnemy(ctx, frame, w, h, pal, 'vagrant'); }
 function drawMonk(ctx, frame, w, h, pal) { drawGenericEnemy(ctx, frame, w, h, pal, 'monk'); }
+function drawMountainAscetic(ctx, frame, w, h, pal) { drawGenericEnemy(ctx, frame, w, h, pal, 'mountain-ascetic'); }
+function drawGanryuSentinel(ctx, frame, w, h, pal) { drawGenericEnemy(ctx, frame, w, h, pal, 'ganryu-sentinel'); }
 
 function drawGenericHero(ctx, frame, w, h, pal, type) {
   const cx = w/2, ground = h;
@@ -415,6 +421,47 @@ function drawGenericEnemy(ctx, frame, w, h, pal, type) {
     ctx.beginPath(); ctx.moveTo(cx-16, ground-28); ctx.lineTo(cx-24, ground-6); ctx.stroke();
     ctx.strokeStyle = '#5a4a3a'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(cx-24, ground-6); ctx.lineTo(cx-28, ground-2); ctx.stroke();
+  } else if (type === 'mountain-ascetic') {
+    // Wide mountain straw hat — larger than vagrant straw hat
+    inkFill(ctx, (c) => { c.moveTo(cx-20, ground-50); c.quadraticCurveTo(cx, ground-60, cx+20, ground-50); c.lineTo(cx+18, ground-44); c.lineTo(cx-18, ground-44); c.closePath(); }, '#7a6a48', 0.6);
+    inkFill(ctx, (c) => { c.moveTo(cx-18, ground-50); c.quadraticCurveTo(cx, ground-56, cx+18, ground-50); c.lineTo(cx+16, ground-48); c.lineTo(cx-16, ground-48); c.closePath(); }, '#8a7a58', 0.4);
+    // Face — weathered mountain hermit
+    inkFill(ctx, (c) => { c.moveTo(cx-5, ground-44); c.quadraticCurveTo(cx, ground-48, cx+5, ground-44); c.quadraticCurveTo(cx+3, ground-38, cx-3, ground-38); c.closePath(); }, '#4a3828', 1);
+    // Rough robe body
+    inkFill(ctx, (c) => { c.moveTo(cx-14, ground-16); c.quadraticCurveTo(cx-16, ground-4, cx-8, ground); c.lineTo(cx-10, ground-16); c.closePath(); }, pal.body, 1);
+    inkFill(ctx, (c) => { c.moveTo(cx+14, ground-16); c.quadraticCurveTo(cx+16, ground-4, cx+8, ground); c.lineTo(cx+10, ground-16); c.closePath(); }, pal.body, 1);
+    // Walking staff
+    ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx-14, ground-28); ctx.lineTo(cx-20, ground-4); ctx.stroke();
+    ctx.strokeStyle = '#5a4a3a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx-20, ground-4); ctx.lineTo(cx-24, ground-2); ctx.stroke();
+    // Belt/sash
+    ctx.fillStyle = pal.belt; ctx.globalAlpha = 0.35;
+    ctx.fillRect(cx-14, ground-18, 28, 3);
+    ctx.globalAlpha = 1;
+  } else if (type === 'ganryu-sentinel') {
+    // Samurai helmet (jingasa) — small formal hat
+    inkFill(ctx, (c) => { c.moveTo(cx-12, ground-48); c.quadraticCurveTo(cx, ground-54, cx+12, ground-48); c.lineTo(cx+10, ground-44); c.lineTo(cx-10, ground-44); c.closePath(); }, '#1a1512', 1);
+    // Crest/ridge on helmet
+    ctx.strokeStyle = '#b2bad8'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.3;
+    ctx.beginPath(); ctx.moveTo(cx-6, ground-46); ctx.lineTo(cx+6, ground-46); ctx.stroke();
+    ctx.globalAlpha = 1;
+    // Face
+    inkFill(ctx, (c) => { c.moveTo(cx-5, ground-44); c.quadraticCurveTo(cx, ground-48, cx+5, ground-44); c.quadraticCurveTo(cx+3, ground-38, cx-3, ground-38); c.closePath(); }, '#2a1f18', 1);
+    // Armor shoulder plates (simple yoroi)
+    ctx.fillStyle = '#2a1f14'; ctx.globalAlpha = 0.2;
+    ctx.fillRect(cx-18, ground-44, 8, 6);
+    ctx.fillRect(cx+10, ground-44, 8, 6);
+    ctx.globalAlpha = 1;
+    // Straight sword (wakizashi)
+    ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx+10, ground-30); ctx.lineTo(cx+18, ground-12); ctx.stroke();
+    ctx.strokeStyle = '#5a4a3a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx+18, ground-12); ctx.lineTo(cx+22, ground-4); ctx.stroke();
+    // Belt
+    ctx.fillStyle = pal.belt; ctx.globalAlpha = 0.35;
+    ctx.fillRect(cx-14, ground-18, 28, 3);
+    ctx.globalAlpha = 1;
   }
   // Belt
   ctx.fillStyle = pal.belt; ctx.globalAlpha = 0.35;

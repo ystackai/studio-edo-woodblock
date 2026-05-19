@@ -13,8 +13,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 26 — Sprint resolve economy, extended road, dynamic melody, mouse look)
-- **~1140-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 28 — Dedicated sprite PNGs for mountain ascetic and ganryu sentinel; screenshot refresh)
+- **~1145-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino)
 - Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look (middle-click or left-click drag rotates camera heading)
@@ -46,8 +46,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Atmosphere progression** (Pass 19): sky gradient shifts from cool dawn to warm sunset as player travels toward Ganryu
 
 ### Verification
-- `node drops/edo-inkblade-ots/test.js` — 27 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, sprint mechanic, mouse drag camera look, dynamic melody tempo, extended road length, 7 enemies defined, negative checks (not Floating Score, not falling-object)
-- **All 27 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — 41 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, sprint mechanic, mouse drag camera look, dynamic melody tempo, extended road length, 7 enemies defined, negative checks (not Floating Score, not falling-object), 11 sprite PNGs >= 10KB, manifest validation, generator existence
+- **All 41 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -65,12 +65,12 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 24** — Rain streaks (angled falling lines with ground splash) replace simple dot drizzle; rain ambience (filtered noise) in drizzle zone
 **Pass 25** — Rain puddle reflections on road surface during drizzle (sky-mirroring elliptical pools with ripple shimmer); orientation change listener for title canvas redraw
 **Pass 26** — Sprint resolve economy (Shift drains resolve for 1.55x speed); extended road to 1400 units for longer journey; 2 new enemies (mountain ascetic, ganryu sentinel); 5 route milestones (was 3); ink regen rate improved; dynamic melody tempo based on enemy proximity; mouse drag camera look
+**Pass 27** — Character art asset generation: detailed Playwright-rendered Edo ink-wash sprite sheets for all 9 characters (heroes, enemies, ganryu). New sheet art with kimono folds, weapons, hats, woodblock grain background, ink-splash backdrop per frame.
+**Pass 28** — Dedicated sprite PNGs for mountain ascetic (weathered hermit, straw hat, staff) and ganryu sentinel (jingasa helmet, yoroi armor, wakizashi). Updated ENEMY_SPRITE_KEY mapping. Fresh screenshots captured.
 
 ### Known Issues
-- Sprite asset quality: PNGs are local-authored placeholder quality — richer ink-wash sprite sheets desirable
 - Puddle reflections could further add rain drop-ripple interaction
-- Screenshots could use fresh captures after Pass 26 balance changes
-- New enemies use existing sprite keys — dedicated mountain ascetic and sentinel PNGs would improve visual variety
+- Mountain ascetic and ganryu sentinel sprite art could be further refined with richer detail
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
