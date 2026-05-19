@@ -1,100 +1,111 @@
 {
-  "version": "operator-seeded-2026-05-19",
-  "style": "transparent PNG sprite sheets, Edo ink-wash silhouettes with kimono folds, topknots/hats, weapon poses, and rough woodblock outlines",
+  "version": "pass-27-2026-05-19",
+  "style": "Playwright-generated Edo ink-wash sprite sheets — detailed canvas-rendered character art with kimono folds, weapons, hats, and woodblock grain background",
+  "generation": "drops/edo-inkblade-ots/generate-sprites.js via Playwright headless Chromium",
   "frame_layout": {
-    "heroes": "4 frames, 80x120 each",
-    "enemies": "4 frames, 60x100 each"
+    "heroes": "4 frames, 80x120 each — idle/slash/block/damage",
+    "enemies": "4 frames, 60x100 each — idle/slash/block/damage",
+    "ganryu": "4 frames, 80x120 each — idle/slash/block/damage"
   },
   "characters": {
     "musashi": {
       "file": "musashi.png",
       "palette": {
-        "body": "3b2d1f",
-        "trim": "d7b66f",
-        "accent": "d7b66f"
+        "body": "#3b2d1f",
+        "trim": "#d7b66f",
+        "sash": "#caa45f"
       },
       "frames": 4,
-      "role": "hero/boss"
+      "role": "hero",
+      "description": "Miyamoto Musashi — wide-brimmed kasa hat, topknot, haori jacket, katana at hip, hakama pants. Idle hand-on-katana pose, diagonal slash sweep, raised block, damage stagger."
     },
     "koeda": {
       "file": "koeda.png",
       "palette": {
-        "body": "263840",
-        "trim": "8fc7d6",
-        "accent": "8fc7d6"
+        "body": "#263840",
+        "trim": "#8fc7d6",
+        "sash": "#4a7a8a"
       },
       "frames": 4,
-      "role": "hero/boss"
+      "role": "hero",
+      "description": "Koeda, runner of bridges — lean build, short hair, long trailing scarf, ink brush at hip. Arm-sweep slash, arms-crossed block."
     },
     "yoshino": {
       "file": "yoshino.png",
       "palette": {
-        "body": "3d2732",
-        "trim": "d98986",
-        "accent": "d98986"
+        "body": "#3d2732",
+        "trim": "#d98986",
+        "sash": "#b86a6a"
       },
       "frames": 4,
-      "role": "hero/boss"
+      "role": "hero",
+      "description": "Yoshino, carver of rain — hooded sage robe, staff, wide silhouette. Staff sweep slash, staff block."
     },
     "chaser": {
       "file": "chaser.png",
       "palette": {
-        "body": "4a2d28",
-        "trim": "8f5a3f",
-        "accent": "c05b3f"
+        "body": "#4a2d28",
+        "trim": "#8f5a3f",
+        "belt": "#6a3a2a"
       },
       "frames": 4,
-      "role": "enemy"
+      "role": "enemy",
+      "description": "Dock ronin (chaser) — monk-like hat, simple robe, staff weapon."
     },
     "prowler": {
       "file": "prowler.png",
       "palette": {
-        "body": "25392f",
-        "trim": "9dbb7d",
-        "accent": "80b070"
+        "body": "#25392f",
+        "trim": "#9dbb7d",
+        "belt": "#4a7a38"
       },
       "frames": 4,
-      "role": "enemy"
+      "role": "enemy",
+      "description": "Cedar bandit (prowler) — bandit hat, rough robe, hatchet blade."
     },
     "duelist": {
       "file": "duelist.png",
       "palette": {
-        "body": "273048",
-        "trim": "b2bad8",
-        "accent": "c7d5ff"
+        "body": "#273048",
+        "trim": "#b2bad8",
+        "belt": "#6a7a9a"
       },
       "frames": 4,
-      "role": "enemy"
+      "role": "enemy",
+      "description": "Bridge duelist (duelist) — red headband, armor-like shoulders, long sword."
     },
     "vagrant": {
       "file": "vagrant.png",
       "palette": {
-        "body": "514233",
-        "trim": "b89358",
-        "accent": "c5a468"
+        "body": "#514233",
+        "trim": "#b89358",
+        "belt": "#8a6a48"
       },
       "frames": 4,
-      "role": "enemy"
+      "role": "enemy",
+      "description": "Straw-hat vagrant — wide straw hat, wanderer's robe, simple sword."
     },
     "monk": {
       "file": "monk.png",
       "palette": {
-        "body": "3e4542",
-        "trim": "a6b7a7",
-        "accent": "86d6bc"
+        "body": "#3e4542",
+        "trim": "#a6b7a7",
+        "belt": "#6a7a6a"
       },
       "frames": 4,
-      "role": "enemy"
+      "role": "enemy",
+      "description": "River-bank monk — grey cowl, robe, naginata polearm."
     },
     "ganryu": {
       "file": "ganryu.png",
       "palette": {
-        "body": "161616",
-        "trim": "efe1c0",
-        "accent": "ff8333"
+        "body": "#161616",
+        "trim": "#efe1c0",
+        "belt": "#caa45f"
       },
       "frames": 4,
-      "role": "hero/boss"
+      "role": "boss",
+      "description": "Ganryu — imposing samurai, wide dark hat, yoroi shoulder armor, large nodachi sword."
     }
   }
 }

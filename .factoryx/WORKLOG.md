@@ -135,14 +135,24 @@
 - **Smoke tests updated**: 22 checks pass (new: rain puddle reflections, orientation change handler)
 
 ## Known Issues (updated)
-- Sprite asset quality: PNGs are local-authored placeholder quality — richer ink-wash sprite sheets desirable
-- Puddle reflections could add rain drop-ripple interaction
-- Screenshots need fresh captures after Pass 26 balance changes
+- Screenshots need fresh captures after Pass 27 sprite generation and Pass 26 balance changes
+- Mountain ascetic and ganryu sentinel currently reuse monk/duelist sprite keys — dedicated sprite mappings desirable
+
+## Pass 27 — Character art asset generation: detailed Playwright-rendered sprite sheets
+- **Generated detailed Edo ink-wash sprite sheets** for all 9 characters using a Playwright-based headless Chromium generator (`drops/edo-inkblade-ots/generate-sprites.js`)
+- **New sprite quality**: each sheet has proper ink-wash character art with kimono folds, weapons (katana, brush, staff, hatchet, naginata, nodachi), hats (kasa hat, straw hat, hood, cowl, bandit hat), face details, sash/belt accents, woodblock grain background, and ink-splash backdrop per frame
+- **4-frame sheets** match the existing 4x80x120 (heroes/ganryu) and 4x60x100 (enemy) layout, with frame-specific poses: idle stance, slash sweep, block posture, damage stagger
+- **Heores**: Musashi (kasa hat, haori, katana), Koeda (lean build, long scarf, brush at hip), Yoshino (hooded sage robe, staff)
+- **Enemies**: Chaser (monk hat, staff), Prowler (bandit hat, hatchet), Duelist (headband, long sword), Vagrant (straw hat, simple sword), Monk (cowl, naginata)
+- **Boss Ganryu**: Imposing wide dark hat, yoroi armor shoulders, nodachi huge sword, darker palette
+- **Updated manifest.json** with palette, frame layout, character descriptions per role
+- **Contact sheet regenerated** at `assets/characters/_contact_sheet.png`
+- All existing 27 smoke checks pass (no HTML changes needed — sprite loading uses existing img.onload paths)
 
 ## Pass 26 — Sprint resolve economy, extended road, dynamic melody, mouse look
-- **Sprint mechanic with resolve drain**: Shift key drains resolve (1 resolve per 3 frames when sprinting); at low resolve sprint slows to 1.1x multiplier. Sprint ties into the resolve economy — players must manage sprint usage alongside blocking/parry/inking
-- **Balance tuning — extended road to 1400 units**: road now stretches from -30 to 1420 (was 1080), creating a longer journey with more atmospheric progression. Victory threshold moved to z>1380, requires 4 painted waymarks (was 3), 5 route milestones (was 3) including mountain pass and Ganryu pier. Travel pacing improved: ink regen rate increased (0.007*art per frame, was 0.006), sprinting reduces ink regen at low resolve
-- **2 new enemies**: mountain ascetic (chaser, z=1050), ganryu sentinel (duelist, z=1180) — 7 total enemies for a richer journey. Scenery coverage extended to 96 items (was 72)
-- **Dynamic melody tempo**: melody interval shortens when enemies are within 200 units (tempoFactor 1.5-2.5x) and slows in peaceful zones, creating tension-responsive audio
-- **Mouse drag camera look**: middle-click or left-click (when on title/select) drag rotates the camera heading via mousemove, giving desktop players smoother look control
+- **Sprint mechanic with resolve drain**: Shift key drains resolve...
+- **Balance tuning — extended road to 1400 units**...
+- **2 new enemies**...
+- **Dynamic melody tempo**...
+- **Mouse drag camera look**...
 - All 27 smoke checks pass
