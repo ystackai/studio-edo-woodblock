@@ -341,5 +341,9 @@
 - **Ganryu arrival epilogue**: after defeating Ganryu and winning, an epilogue scroll overlay appears with poetic text: "The journey ends at Ganryu shore. Ink flows back into the tide. The brush rests. The blade sleeps. What was written on the road stays on the road." Epilogue persists briefly before the diary stays open.
 - **146 smoke checks pass** (was 133 — added 8 checks for diary entries, J key toggle, drawDiary, road events defined, proximity hint, event interaction, epilogue flag, epilogue rendering).
 
+## Pass 43 fix — drawVignette runtime error
+- Added `drawVignette(w,h)` function: radial gradient darkening edges of game canvas to create ink-wash paper vignette effect. This was called from the draw loop but was never defined, causing a `ReferenceError: drawVignette is not defined` browser runtime failure.
+- All 146 smoke checks continue to pass after the fix.
+
 ## Known Issues (updated)
 - Screenshots need fresh captures after Pass 43

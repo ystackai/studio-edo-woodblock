@@ -1618,6 +1618,11 @@ function drawWoodblockTexture(w,h){
   }
   ctx.restore()
 }
+function drawVignette(w,h){
+  var vg=ctx.createRadialGradient(w/2,h/2,w*0.25,w/2,h/2,w*0.55);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(.6,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(20,15,10,.35)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,w,h)
+}
 
 function drawAtmosphere(w,h){
   ctx.save();
