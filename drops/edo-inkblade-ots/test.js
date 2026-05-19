@@ -99,6 +99,16 @@ if (fs.existsSync(manifestPath)) {
 const genPath = path.join(root, 'generate-sprites.js');
 checks.push(["sprite generator exists", fs.existsSync(genPath)]);
 
+// Pass 36: Ganryu boss fight checks
+checks.push(["Ganryu boss enemy defined", html.includes("name:\"Ganryu\"") && html.includes("type:\"boss\"")]);
+checks.push(["Ganryu boss stats", html.includes("hp:140") && html.includes("atk:28")]);
+checks.push(["Ganryu multi-phase", html.includes("bossPhase") && html.includes("e.bossPhase!==3")]);
+checks.push(["Ganryu ink wave attack", html.includes("\"Ganryu sweeps an ink wave")]);
+checks.push(["Ganryu ground pound attack", html.includes("\"Ganryu slams the nodachi")]);
+checks.push(["Ganryu nodachi slash", html.includes("\"Ganryu raises the nodachi")]);
+checks.push(["ganryuDefeated flag", html.includes("ganryuDefeated")]);
+checks.push(["victory requires Ganryu", /ganryuDefeated/.test(html)]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

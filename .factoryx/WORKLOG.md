@@ -245,3 +245,20 @@
 - **Pre-existing tension drone fix**: changed `initAudio()` tension node creation from `!amb.tension` to `!amb.tension.node` so the tension oscillator actually starts (previously blocked by truthy stub object).
 - **Screenshots captured fresh** after all changes.
 - **66 smoke checks pass** (was 60 — added 6 checks for new features).
+
+## Pass 36 — Ganryu boss duel: multi-phase fight before victory
+
+### What changed
+- **Ganryu boss enemy** added at z=1380 (140 HP, 28 ATK, type:"boss") — a proper final boss that must be defeated before victory triggers.
+- **Multi-phase boss fight** with 3 phases:
+  - Phase 1 (100%-60% HP): Standard nodachi slash telegraph, moderate wind-up (60 frames). Basic patrol approach.
+  - Phase 2 (60%-30% HP): "Meditation stance" — ink wave projectile attack every 60 frames. Faster slashes (50-frame wind-up). Says "Ganryu enters meditation stance — ink flows like a river around him."
+  - Phase 3 (30%-0% HP): "Resolve ignited" — ground pound area tremor every 90 frames (18 area damage, 6 screen shake). Very fast slashes (35-frame wind-up). Ink wave continues. Says "Ganryu's resolve ignites! The nodachi howls with ink-light."
+- **Ink wave attack** (phase 2+): sweeping ink projectile that damages if player is close. Visual: 15 dark ink particles burst from Ganryu. Hints player to paint barrier seal to counter.
+- **Ground pound attack** (phase 3): nodachi slam into earth — area damage within 120 units, massive screen shake (6), hit-stop.
+- **Victory condition change**: `updateQuest()` now requires `ganryuDefeated` flag in addition to z>1380 and painted marks — the player must defeat Ganryu to reach the victory screen.
+- **ganryuDefeated flag** set on Ganryu death: generates dramatic ink dissolve burst, post-defeat message, screen shake.
+- **Reset integration**: `start()` resets `ganryuDefeated=false` and reinitializes boss phase timers.
+- **Boss damage scaling**: ATK scales by phase (1x/1.2x/1.6x); blocking and parry work against Ganryu.
+- **74 smoke checks pass** (was 66 — added 8 checks for boss fight).
+
