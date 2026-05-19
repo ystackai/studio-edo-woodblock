@@ -437,6 +437,14 @@ let milestonePopup={active:false,text:"",timer:0};
 // Yo-scale pentatonic note frequencies (D E G A C)
 let yoNotes=[293.7,329.6,392,440,523.3];
 let yoMotif1=[0,2,3,1,4];  // ascending playful — meadow
+let diaryEntries=[],diaryOpen=false,diaryEntryCount=0;
+let roadEvents=[
+  {z:160,type:"spirit",used:false,text:"An old road spirit drifts from the pine — it whispers courage. Press E to receive a blessing.",effect:{resolve:2}},
+  {z:420,type:"flowerSeller",used:false,text:"A child by the road holds a wildflower — it smells of the meadow. Press E to accept.",effect:{hp:10}},
+  {z:760,type:"calligrapher",used:false,text:"A wandering calligrapher offers the brush-tip of a master. Press E to receive ink wisdom.",effect:{ink:3}}
+];
+let roadEventHintTimer=0;
+let epilogueActive=false,epilogueTimer=0,epiloguePage=0;
 let yoMotif2=[4,3,2,0,1];  // descending contemplative — forest
 let yoPhrase=[0,1,3,4,2,0,4]; // wandering — mountain
 let yoMotif3=[0,0,2,2,4,4,3,1]; // Ganryu hopeful ascent — coastal
@@ -728,17 +736,35 @@ function useHeroAbility(){initAudio();if(player.abilityCooldown>0){say("Ability 
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}
   // Pause toggle
   if(e.key==="Escape"){paused=!paused;ui.pause.classList.toggle("show",paused);if(paused)document.getElementById("pause-restart").onclick=function(){paused=false;ui.pause.classList.remove("show");start(currentHeroKey)};return}if(paused)return;
-  if(e.key===" "){paintPressTime=Date.now();paint()}if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase())){player.blocking=true;player.blockDecay=0}
+  if(e.key===" "){paintPressTime=Date.now();paint()}if(["j","e"].includes(e.key.toLowerCase())){if(e.key.toLowerCase()==="j"){diaryOpen=!diaryOpen;if(!diaryOpen)epilogueActive=false;return}slash()};if(["k","q"].includes(e.key.toLowerCase())){player.blocking=true;player.blockDecay=0}
   // Paint mode toggle: 1=waymark, 2=barrier, 3=blossom
   if(e.key==="1"){paintMode="waymark";say("Paint mode: waymark seal")}
   if(e.key==="2"){paintMode="barrier";say("Paint mode: ink barrier — slows enemies near the mark")}
   if(e.key==="3"){paintMode="blossom";say("Paint mode: ink blossom — gentle healing near the mark")}
   // Shrine interaction: press R near a shrine to pray
-  if(e.key==="r"||e.key==="R"){shrineEvents.forEach(function(s){if(!s.used&&Math.abs(player.z-s.z)<30){s.used=true;player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+2);initAudio();sfx.inkRegen();say(s.text);burst(player.x,player.z,"#d7b66f");screenShake=1}})}
+  if(e.key==="r"||e.key==="R"){shrineEvents.forEach(function(s){if(!s.used&&Math.abs(player.z-s.z)<30){s.used=true;player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+2);initAudio();sfx.inkRegen();say(s.text);burst(player.x,player.z,"#d7b66f");screenShake=1;diaryEntries.push({type:"shrine",text:"Found a roadside shrine — prayed for strength."})}})}
   // Hero ability: press M to activate unique hero power
   if((e.key==="m"||e.key==="M")&&player.abilityReady&&player.abilityCooldown<=0){useHeroAbility()}
   // Road-side NPC interaction: press E to talk to teahouse/merchant/poet (repeatable, cycle through dialogue variants)
-  if(e.key==="e"||e.key==="E"){roadNPCs.forEach(function(n){if(Math.abs(player.z-n.z)<30){n.visitCount=(n.visitCount||0);var textIdx=Math.min(n.visitCount,n.texts.length-1);initAudio();var npcEffect=function(npc){if(npc.type==="teahouse"){player.hp=Math.min(hero.hp,player.hp+15);player.resolve=Math.min(15,player.resolve+2);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#caa45f","#ead9bb")}else if(npc.type==="merchant"){player.ink=Math.min(hero.ink,player.ink+3);player.resolve=Math.max(0,player.resolve-2);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#8fc7d6","#fff")}else if(npc.type==="poet"){player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+1);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#d98986","#ead9bb")}};npcEffect(n);n.visitCount++}})}
+  if(e.key==="e"||e.key==="E"){roadNPCs.forEach(function(n){if(Math.abs(player.z-n.z)<30){n.visitCount=(n.visitCount||0);var textIdx=Math.min(n.visitCount,n.texts.length-1);initAudio();var npcEffect=function(npc){if(npc.type==="teahouse"){player.hp=Math.min(hero.hp,player.hp+15);player.resolve=Math.min(15,player.resolve+2);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#caa45f","#ead9bb");diaryEntries.push({type:"npc",npc:"teahouse",text:"Visited the teahouse keeper on the road."})}else if(npc.type==="merchant"){player.ink=Math.min(hero.ink,player.ink+3);player.resolve=Math.max(0,player.resolve-2);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#8fc7d6","#fff");diaryEntries.push({type:"npc",npc:"merchant",text:"Traded with the traveling merchant by the roadside."})}else if(npc.type==="poet"){player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+1);screenShake=1;say(npc.texts[textIdx]);burst(player.x,player.z,"#d98986","#ead9bb");diaryEntries.push({type:"npc",npc:"poet",text:"Heard a poem from the wandering poet on the road."})}};npcEffect(n);n.visitCount++}});
+  // Road-side event interaction: press E near spirit/flowerSeller/calligrapher
+  roadEvents.forEach(function(re){
+    if(Math.abs(player.z-re.z)<30&&!re.used){
+      re.used=true;
+      initAudio();sfx.inkRegen();
+      if(re.type==="spirit"){player.resolve=Math.min(15,player.resolve+(re.effect.resolve||2));screenShake=1;say(re.text);burst(player.x,player.z,"#d9c84a","#ead9bb")}
+      else if(re.type==="flowerSeller"){player.hp=Math.min(hero.hp,player.hp+(re.effect.hp||10));screenShake=1;say(re.text);burst(player.x,player.z,"#d98986","#ead9bb")}
+      else if(re.type==="calligrapher"){player.ink=Math.min(hero.ink,player.ink+(re.effect.ink||3));screenShake=1;say(re.text);burst(player.x,player.z,"#8fc7d6","#ead9bb")}
+      diaryEntries.push({type:"event",event:re.type,text:"Encountered a "+re.type+" on the road."});
+    }});
+  // Road-side event proximity hint
+  roadEventHintTimer=Math.max(0,roadEventHintTimer-dt);
+  roadEvents.forEach(function(re){
+    if(re.used)return;
+    if(Math.abs(player.z-re.z)<40){
+      var reLabel=re.type==="spirit"?"Spirit":re.type==="flowerSeller"?"Flower":"Calligrapher";
+      if(roadEventHintTimer<=0){say("[E] "+reLabel+" nearby");roadEventHintTimer=120}
+    }});}
   // Road-side NPC drawing hints (E key prompt near NPC)
   roadNPCs.forEach(function(n){if(Math.abs(player.z-n.z)<30){var nLabel=n.type==="teahouse"?"Teahouse":n.type==="merchant"?"Merchant":"Poet";say("[E] "+nLabel+" nearby")}});});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false;if(e.key===" "&&paintPressTime){var held=Date.now()-paintPressTime;player.paintHoldTime=Math.min(99,held/250);paintPressTime=0}});
@@ -805,6 +831,10 @@ function step(dt){
       for(var ws=0;ws<10;ws++){sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:'#ead9bb',a:.3,vx:(Math.random()-.5)*2,vz:-2+Math.random()*.5,d:-1})};
       // Zone-name banner overlay — brief fade-in name of new territory
       zoneBanner.active=true;zoneBanner.name=currentZone.name;zoneBanner.timer=120;
+    }
+    // Diary: record zone entry milestone (first time only)
+    if(currentZone!==prevZone&&player.hp>0){
+      diaryEntries.push({type:"zone",zone:currentZone.name,text:"The road enters "+currentZone.name+"..."});
     }
     if(currentZone.name!=="meadow"&&Math.random()<.01*dt&&sparks.length<30){var zc='#b9a88d';sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:zc,a:.25,vx:(Math.random()-.5)*.15,vz:(Math.random()-.5)*.15-.1,d:Math.random()*3+3})};
     // Meadow: light pollen particles
@@ -949,6 +979,7 @@ if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
       if(!h.shown&&Math.abs(haikuZ-h.z)<15){
         h.shown=true;
         haikuMoment.active=true;haikuMoment.text=h.haiku;haikuMoment.timer=120;haikuMoment.age=0;
+        diaryEntries.push({type:"haiku",text:h.haiku});
         break;
       }
     }
@@ -1086,7 +1117,7 @@ if(e.attackCount>0){e.attackCount--;if(dist<e.atkRange+25){e.wind=e.attackCount=
      // Ink dissolve burst on death
      for(var di=0;di<20;di++){var da=Math.random()*7,dd=Math.random()*30+5;sparks.push({x:e.x+Math.cos(da)*dd,z:e.z+Math.sin(da)*dd,color:e.color||"#1a120e",a:.8,vx:(Math.random()-.5)*4,vz:(Math.random()-.5)*4-2,d:Math.random()*6+3})}
      for(var di=0;di<10;di++){sparks.push({x:e.x+(Math.random()-.5)*20,z:e.z+(Math.random()-.5)*20,color:"#f4ead8",a:.5,vx:(Math.random()-.5)*3,vz:(Math.random()-.5)*3,d:Math.random()*3})}
-     if(e.type==="boss"){ganryuDefeated=true;say("Ganryu's ink dissolves into the shore breeze. The nodachi sinks into the sand.");screenShake=6;hitStop=8;burst(e.x,e.z,"#f4ead8","#d7b66f")}
+      if(e.type==="boss"){ganryuDefeated=true;say("Ganryu's ink dissolves into the shore breeze. The nodachi sinks into the sand.");screenShake=6;hitStop=8;burst(e.x,e.z,"#f4ead8","#d7b66f");diaryEntries.push({type:"ganryu",text:"Defeated Ganryu at the shore — the nodachi falls into the sand."})}
    }e.deathAge+=dt});
 }
 function paint(){initAudio();
@@ -1174,13 +1205,16 @@ function updateQuest(){
     for(var ci=0;ci<120;ci++){var ca=Math.random()*7,cd=Math.random()*80+20;victoryParticles.push({x:player.x+Math.cos(ca)*cd,z:player.z+Math.sin(ca)*cd,a:1,vx:(Math.random()-.5)*.6,vy:Math.random()*2+.3,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb","#caa45f","#eca5a0","#d4c8a0"][Math.random()*8|0],d:Math.random()*4+2})}
     // Journey haiku per character
     var haikuEl=document.getElementById("v-haiku");
-    if(haikuEl){var haikus={musashi:"the ink on the road becomes the river carrying the boat",koeda:"running the long bridge with brush in the belt arrive dry",yoshino:"rain on the road carved into tide arrive wet"};haikuEl.textContent=haikus[currentHeroKey]||"the road ends and begins with ink";}
+    if(haikuEl){var haikus={musashi:"the ink on the road becomes the river carrying the boat",koeda:"running the long bridge with brush in the belt arrive dry",yoshino:"rain on the road carved into tide arrive wet"};      haikuEl.textContent=haikus[currentHeroKey]||"the road ends and begins with ink";}
     ui.victory.classList.add("show");
+    // Ganryu epilogue — journey scroll overlay after victory
+    epilogueActive=true;epilogueTimer=240;epiloguePage=0;
+    diaryEntries.push({type:"victory",text:"Arrived at Ganryu shore — the journey ends in ink and peace."});
   }
   if(won)ui.quest.textContent="Ganryu: the shore holds your prints and the journey is written in ink and steel.";
   else if(painted<4){const remaining=4-painted;if(player.z<200)ui.quest.textContent=`Paint ${remaining} more waymark${remaining===1?"":"s"} near the road. Ink flows as you walk.`;else if(player.z<520)ui.quest.textContent=`The bridge looms ahead. Paint ${remaining} waymark${remaining===1?"":"s"} to make your passage known.`;else if(player.z<1100)ui.quest.textContent=`The road narrows toward Ganryu. Paint ${remaining} waymark${remaining===1?"":"s"} to honor the journey.`;else ui.quest.textContent=`The mountain pass sharpens. Paint ${remaining} final waymark${remaining===1?"":"s"} for Ganryu.`;}
   else if(alive>0)ui.quest.textContent=`Reach the shore or pacify ${alive} remaining challenger${alive===1?"":"s"}.`;
-  route.forEach(r=>{if(Math.abs(player.z-r.z)<18&&!r.triggered){say(r.text);milestonePopup={active:true,text:r.text,timer:80,vignette:r.vignette,haiku:r.haiku};r.triggered=true}else if(Math.abs(player.z-r.z)>=30)r.triggered=false});
+  route.forEach(r=>{if(Math.abs(player.z-r.z)<18&&!r.triggered){say(r.text);milestonePopup={active:true,text:r.text,timer:80,vignette:r.vignette,haiku:r.haiku};r.triggered=true;diaryEntries.push({type:"milestone",text:r.text,milestoneZ:r.z})}else if(Math.abs(player.z-r.z)>=30)r.triggered=false});
 }
 function drawVictoryParticles(){victoryParticles=victoryParticles.filter(p=>p.a>.02);victoryParticles.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.a*=.96;var proj=project(p.x,p.y*10+p.z,50);if(!proj)return;ctx.globalAlpha=p.a;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(proj.x,proj.y,Math.max(1,p.d)*3,0,7);ctx.fill();ctx.globalAlpha=1});victoryParticles=victoryParticles.slice(-80)}
 function say(text){if(messages[0]!==text){messages.unshift(text);messages=messages.slice(0,5)}}
@@ -1316,6 +1350,69 @@ function draw(){
         ctx.fillText("[R] Pray",shP.x,shP.y-55*shP.s-8)}
     }
   });
+  // Road-side event encounters — spirit, flower seller, calligrapher
+  roadEvents.forEach(function(re){
+    if(re.used)return;
+    var rdz=Math.abs(player.z-re.z);
+    if(rdz<60){var rp=project(re.type==="spirit"?-10:0,re.z,re.type==="flowerSeller"?20:re.type==="spirit"?30:25);if(!rp)return;var rAlpha=Math.max(0,1-rdz/60)*.55;
+      ctx.globalAlpha=rAlpha;
+      if(re.type==="spirit"){
+        // Spirit — translucent silhouette with drifting mist
+        ctx.fillStyle="#d9c84a";ctx.globalAlpha=rAlpha*.35;
+        ctx.beginPath();ctx.arc(rp.x,rp.y-30*rp.s,10*rp.s,0,7);ctx.fill();
+        ctx.fillStyle="#ead9bb";ctx.globalAlpha=rAlpha*.25;
+        ctx.beginPath();ctx.moveTo(rp.x-6*rp.s,rp.y-20*rp.s);ctx.bezierCurveTo(rp.x-18*rp.s,rp.y-36*rp.s,rp.x+18*rp.s,rp.y-36*rp.s,rp.x+6*rp.s,rp.y-20*rp.s);ctx.stroke();
+        ctx.fillStyle="#f4ead8";ctx.globalAlpha=rAlpha*.1;
+        ctx.beginPath();ctx.arc(rp.x,rp.y-20*rp.s,14*rp.s,0,7);ctx.fill()
+      }else if(re.type==="flowerSeller"){
+        // Child with wildflower
+        ctx.fillStyle="#3a2a1a";ctx.globalAlpha=rAlpha*.6;
+        ctx.beginPath();ctx.moveTo(rp.x-4*rp.s,rp.y-24*rp.s);ctx.lineTo(rp.x+4*rp.s,rp.y-24*rp.s);ctx.lineTo(rp.x,rp.y);ctx.closePath();ctx.fill();
+        ctx.fillStyle="#2a1f18";ctx.beginPath();ctx.arc(rp.x,rp.y-28*rp.s,6*rp.s,0,7);ctx.fill();
+        // Flower
+        ctx.fillStyle="#d98986";ctx.globalAlpha=rAlpha*.5;
+        ctx.beginPath();ctx.arc(rp.x+6*rp.s,rp.y-32*rp.s,3*rp.s,0,7);ctx.fill();
+        ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(rp.x+7*rp.s,rp.y-34*rp.s,1.5*rp.s,0,7);ctx.fill()
+      }else if(re.type==="calligrapher"){
+        // Calligrapher seated with brush
+        ctx.fillStyle="#4a3a28";ctx.globalAlpha=rAlpha*.6;
+        ctx.beginPath();ctx.moveTo(rp.x-6*rp.s,rp.y-28*rp.s);ctx.lineTo(rp.x+6*rp.s,rp.y-28*rp.s);ctx.lineTo(rp.x+2*rp.s,rp.y);ctx.lineTo(rp.x-2*rp.s,rp.y);ctx.closePath();ctx.fill();
+        ctx.fillStyle="#3a2a1a";ctx.beginPath();ctx.arc(rp.x,rp.y-34*rp.s,7*rp.s,0,7);ctx.fill();
+        ctx.strokeStyle="#d7b66f";ctx.lineWidth=1.5*rp.s;
+        ctx.beginPath();ctx.moveTo(rp.x+4*rp.s,rp.y-24*rp.s);ctx.lineTo(rp.x+12*rp.s,rp.y-18*rp.s);ctx.stroke();
+        ctx.strokeStyle="#ead9bb";ctx.lineWidth=1*rp.s;
+        ctx.beginPath();ctx.moveTo(rp.x+12*rp.s,rp.y-18*rp.s);ctx.lineTo(rp.x+12*rp.s,rp.y-22*rp.s);ctx.stroke();
+        ctx.fillStyle="#8fc7d6";ctx.globalAlpha=rAlpha*.15;
+        ctx.beginPath();ctx.arc(rp.x+8*rp.s,rp.y-30*rp.s,4*rp.s,0,7);ctx.fill()
+      }
+      ctx.globalAlpha=1;
+      // Warm glow
+      ctx.globalAlpha=rAlpha*.15;ctx.fillStyle="#d7b66f";
+      ctx.beginPath();ctx.arc(rp.x,rp.y,16*rp.s,0,7);ctx.fill();ctx.globalAlpha=1;
+      // Hint
+      if(rdz<30){ctx.fillStyle="#ead9bb";ctx.font="bold 11px serif";ctx.textAlign="center";
+        var reLabel=re.type==="spirit"?"Spirit":re.type==="flowerSeller"?"Flower":"Calligrapher";
+        ctx.fillText("[E] "+reLabel,rp.x,rp.y-42*rp.s-8)}
+    }
+  });
+  // Ganryu epilogue scroll overlay
+  if(epilogueActive&&epilogueTimer>0){diaryOpen=true;drawDiary();
+    ctx.save();var ew=innerWidth,eh=innerHeight;
+    var epFade=Math.min(1,epilogueTimer/60);
+    ctx.globalAlpha=epFade*.9;
+    ctx.fillStyle="#d7b66f";ctx.font="italic clamp(16px,2.2vw,24px) serif";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText("The journey ends at Ganryu shore.",ew/2,eh*.22);
+    ctx.fillStyle="#ead9bb";ctx.font="clamp(12px,1.6vw,17px) serif";
+    var epilogueLines=[
+      "Ink flows back into the tide.",
+      "The brush rests. The blade sleeps.",
+      "What was written on the road",
+      "stays on the road."
+    ];
+    epilogueLines.forEach(function(line,i){
+      ctx.globalAlpha=epFade*(.6+.1*i);
+      ctx.fillStyle="#b9a88d";ctx.fillText(line,ew/2,eh*.28+i*22)});
+    ctx.restore()}
   // Road-side NPC drawing — teahouse, merchant, poet at road positions (repeatable, always visible)
   roadNPCs.forEach(function(npc){var ndz=Math.abs(player.z-npc.z);
     if(ndz<60){var np=project(10,npc.z,40);if(!np)return;var nAlpha=Math.max(0,1-ndz/60)*.6;
@@ -1907,7 +2004,62 @@ function drawButterflies(){butterflies.forEach(b=>{const p=project(b.x,b.z,15);i
 function drawCrows(){crows.forEach(c=>{const p=project(c.x,c.z,25);if(!p)return;var fade=Math.max(0,1-c.age/c.maxAge),s=Math.min(p.s,3);ctx.globalAlpha=fade*.45*s;ctx.fillStyle=c.color;ctx.beginPath();ctx.moveTo(p.x-6*s,p.y-3*s);ctx.lineTo(p.x-2*s,p.y-8*s);ctx.lineTo(p.x+4*s,p.y-6*s);ctx.lineTo(p.x+8*s,p.y-2*s);ctx.closePath();ctx.fill();ctx.globalAlpha=1})}
 function drawEagles(){eagles.forEach(e=>{const p=project(e.x,e.z,40);if(!p)return;var fade=Math.max(0,1-e.age/e.maxAge),s=Math.min(p.s,3);ctx.globalAlpha=fade*.4*s;ctx.fillStyle=e.color;ctx.beginPath();ctx.moveTo(p.x-10*s,p.y-2*s);ctx.lineTo(p.x-4*s,p.y-10*s);ctx.lineTo(p.x+4*s,p.y-10*s);ctx.lineTo(p.x+10*s,p.y-2*s);ctx.closePath();ctx.fill();ctx.strokeStyle="#3a2a1a";ctx.lineWidth=1*s;ctx.beginPath();ctx.moveTo(p.x-2*s,p.y-4*s);ctx.lineTo(p.x+2*s,p.y-4*s);ctx.stroke();ctx.globalAlpha=1})}
 function drawSeabirds(){seabirds.forEach(s=>{const p=project(s.x,s.z,30);if(!p)return;var fade=Math.max(0,1-s.age/s.maxAge),sp=Math.min(p.s,3);ctx.globalAlpha=fade*.45*sp;ctx.fillStyle=s.color;ctx.beginPath();ctx.moveTo(p.x-8*sp,p.y-2*sp);ctx.lineTo(p.x-3*sp,p.y-8*sp);ctx.lineTo(p.x+5*sp,p.y-6*sp);ctx.lineTo(p.x+10*sp,p.y-2*sp);ctx.closePath();ctx.fill();ctx.globalAlpha=1})}
-function drawVignette(w,h){const g=ctx.createRadialGradient(w/2,h/2,80,w/2,h/2,Math.max(w,h)*.7);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.55)");ctx.fillStyle=g;ctx.fillRect(0,0,w,h)}
+function drawDiary(){
+  if(!diaryOpen)return;
+  var w=innerWidth,h=innerHeight;
+  ctx.save();
+  // Semi-transparent dark overlay
+  ctx.fillStyle="rgba(15,12,10,.85)";ctx.fillRect(0,0,w,h);
+  // Ink-wash scroll frame
+  var scrollW=Math.min(480,w-40),scrollH=Math.min(400,h-40);
+  var sx=(w-scrollW)/2,sy=(h-scrollH)/2;
+  ctx.fillStyle="#2a1f14";ctx.beginPath();ctx.roundRect(sx,sy,scrollW,scrollH,16);ctx.fill();
+  ctx.strokeStyle="#caa45f";ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.roundRect(sx+4,sy+4,scrollW-8,scrollH-8,12);ctx.stroke();
+  ctx.strokeStyle="#d7b66f";ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(sx+8,sy+8,scrollW-16,scrollH-16,10);ctx.stroke();
+  // Scroll corner ornaments
+  [[-8,-6],[-8,scrollH-8+6],[scrollW-8,-6],[scrollW-8,scrollH-8+6]].forEach(c=>{
+    ctx.fillStyle="#caa45f";ctx.globalAlpha=.5;
+    ctx.beginPath();ctx.arc(sx+c[0],sy+c[1],5,0,7);ctx.fill()});
+  ctx.globalAlpha=1;
+  // Title
+  ctx.fillStyle="#ead9bb";ctx.font="bold 18px serif";ctx.textAlign="center";ctx.textBaseline="top";
+  ctx.fillText("Journey Diary",w/2,sy+24);
+  ctx.fillStyle="#b9a88d";ctx.font="italic 12px serif";
+  ctx.fillText("— the road remembers —",w/2,sy+48);
+  // Divider
+  ctx.fillStyle="#caa45f";ctx.globalAlpha=.35;
+  ctx.fillRect(sx+20,sy+62,scrollW-40,1);
+  ctx.globalAlpha=1;
+  // Entries list
+  var yy=sy+80,maxY=sy+scrollH-20,lineH=22;
+  var entries=diaryEntries.slice(-24);
+  ctx.font="13px serif";ctx.textBaseline="top";
+  entries.forEach(function(en,i){
+    if(yy>maxY)return;
+    var icon=en.type==="milestone"?"✧":en.type==="haiku"?"◈":en.type==="shrine"?"◇":en.type==="zone"?"◉":en.type==="npc"?"☀":en.type==="ganryu"?"⚔":en.type==="victory"?"✦":en.type==="event"?"◆":"·";
+    var entryText="";
+    if(en.type==="milestone")entryText=icon+" "+en.text;
+    else if(en.type==="zone")entryText=icon+" "+en.text;
+    else if(en.type==="haiku")entryText=icon+" Poem: "+en.text.split("\n").join(" | ");
+    else if(en.type==="shrine")entryText=icon+" "+en.text;
+    else if(en.type==="npc")entryText=icon+" "+en.text;
+    else if(en.type==="ganryu")entryText=icon+" "+en.text;
+    else if(en.type==="victory")entryText=icon+" "+en.text;
+    else if(en.type==="event")entryText=icon+" "+en.text;
+    else entryText=icon+" "+en.text;
+    ctx.fillStyle=en.type==="victory"?"#d7b66f":en.type==="ganryu"?"#d98986":"#ead9bb";
+    ctx.globalAlpha=.65+.35*(1-yy/(maxY));
+    ctx.fillText(entryText,w/2,yy);
+    ctx.globalAlpha=1;
+    yy+=lineH;
+  });
+  // Hint to close
+  ctx.fillStyle="#b9a88d";ctx.font="italic 11px serif";ctx.textAlign="center";ctx.textBaseline="bottom";
+  ctx.fillText("Press J to close the diary.",w/2,sy+scrollH-10);
+  ctx.restore();
+}
 function drawDamageNumbers(){damageNumbers=damageNumbers.filter(function(n){return n.age<60});damageNumbers.forEach(function(n){n.age++;var p=project(n.x,n.z,50);if(!p)return;var f=Math.max(0,1-n.age/60);ctx.globalAlpha=f*.9;ctx.fillStyle=n.color;ctx.font="bold "+(10+Math.floor(f*8))+"px monospace";ctx.textAlign="center";var txt=n.dmg>0?"-"+Math.abs(n.dmg):"+"+Math.abs(n.dmg);ctx.fillText(txt,p.x,p.y-f*40);ctx.globalAlpha=1})}
 </script>
 </body>

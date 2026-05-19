@@ -166,6 +166,15 @@ checks.push(["mouse sensitivity slider", html.includes("sens-mouse") && html.inc
 checks.push(["zone banner overlay", html.includes("zoneBanner") && html.includes("zoneBanner.active") && html.includes("roundRect")]);
 checks.push(["enhanced zone burst 36", html.includes("burstCount=36")]);
 
+// Pass 43: Journey diary, road-side events, Ganryu epilogue
+checks.push(["journey diary J key toggle", html.includes('diaryOpen=!diaryOpen') && html.includes('key.toLowerCase()==="j"')]);
+checks.push(["journey diary draw function", html.includes("function drawDiary") && html.includes("Journey Diary")]);
+checks.push(["road-side events defined", html.includes("roadEvents") && html.includes("spirit") && html.includes("flowerSeller") && html.includes("calligrapher")]);
+checks.push(["road event proximity hint", html.includes("roadEventHintTimer") && html.includes("reLabel")]);
+checks.push(["road event E interaction", html.includes('re.type==="spirit"') && html.includes('re.type==="flowerSeller"') && html.includes('re.type==="calligrapher"')]);
+checks.push(["Ganryu epilogue after victory", html.includes("epilogueActive") && html.includes("epilogueTimer")]);
+checks.push(["epilogue scroll rendering", html.includes("The journey ends at Ganryu shore") && html.includes("Ink flows back into the tide")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

@@ -13,7 +13,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 42 — Repeatable NPCs, pause settings, richer zone VFX)
+### Current Artifact State (Pass 43 — Journey diary, road-side events, Ganryu epilogue)
 - **~1914-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), card clicks/taps wired into game start, hero ability descriptions
@@ -35,6 +35,9 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Road-side shrines**: 5 prayer nodes granting resolve+ink
 - **Road-side fox spirits**: animated silhouettes dashing across road
 - **Pause menu** with settings: Master/SFX/Music volume sliders, mouse sensitivity slider
+- **Journey diary scroll (J key)**: press J to view ink-wash scroll of journey milestones, haiku, shrine visits, zone entries, NPC encounters, Ganryu defeat, and victory
+- **Road-side events**: 3 atmospheric encounters (Spirit of the Old Road, Flower Seller, Calligrapher) with visual indicators and E-key interaction
+- **Ganryu arrival epilogue**: poetic scroll overlay after victory — "Ink flows back into the tide. The brush rests. The blade sleeps."
 - **Sprint with resolve economy**, **mouse drag camera look**
 - **Zone-adaptive paint marks**, **rain puddle reflections**, **rain drop-ripple interaction**, **extended mark persistence**
 - **Seasonal road blooms**, **zone-boundary particle burst (36 particles + wind swirl)**, **zone-name banner overlay**
@@ -44,8 +47,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 ### Verification
 - Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
-- `node drops/edo-inkblade-ots/test.js` — **133 checks**: all previous plus NPC repeatability, dialogue variants, volume sliders, mouse sensitivity, zone banner, enhanced burst
-- **All 133 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **146 checks**: all previous plus journey diary, road-side events, Ganryu epilogue, enhanced zone VFX
+- **All 146 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -79,6 +82,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 40** — Hero-specific abilities (resolveStrike/windStep/inkBlessing), road-side haiku moments
 **Pass 41** — Road-side NPCs, combat VFX depth (slash trail/block spark/parry flash), pause menu
 **Pass 42** — Repeatable NPCs with dialogue variants, pause volume/sensitivity settings, richer zone transition VFX (36 particles, 10 wind swirl lines, zone-name banner), master gain audio routing
+**Pass 43** — Journey diary scroll (J key), road-side event encounters (Spirit/Flower Seller/Calligrapher), Ganryu arrival epilogue, enhanced journey tracking
 
 ### Known Issues
 - Zone audio cues are oscillator-based — real zone ambience files would be richer

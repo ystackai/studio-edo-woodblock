@@ -333,9 +333,13 @@
 - **Screenshots captured fresh** after all changes.
 - **133 smoke checks pass** (was 125 — added 6 checks for NPC repeatability, dialogue variants, volume sliders, mouse sensitivity, zone banner, enhanced burst).
 
+## Pass 43 — Journey diary scroll, road-side events, Ganryu epilogue
+
+### What changed
+- **Journey diary scroll (J key)**: press J to open an ink-wash scroll overlay showing journey entries — milestones reached, haiku moments encountered, shrine prayers, zone entries, NPC visits, road events, Ganryu defeat, and victory. Diary auto-opens with epilogue after Ganryu victory. Entries are recorded throughout gameplay.
+- **Road-side event encounters**: 3 new atmospheric events along the road — Spirit of the Old Road (blessing, grant resolve), Flower Seller (wildflower, heal HP), Calligrapher (ink wisdom, grant ink). Each has a unique visual indicator (translucent spirit, child with flower, seated scribe with brush) and E-key interaction. Proximity hints notify the player.
+- **Ganryu arrival epilogue**: after defeating Ganryu and winning, an epilogue scroll overlay appears with poetic text: "The journey ends at Ganryu shore. Ink flows back into the tide. The brush rests. The blade sleeps. What was written on the road stays on the road." Epilogue persists briefly before the diary stays open.
+- **146 smoke checks pass** (was 133 — added 8 checks for diary entries, J key toggle, drawDiary, road events defined, proximity hint, event interaction, epilogue flag, epilogue rendering).
+
 ## Known Issues (updated)
-- Screenshots need fresh captures after Pass 42 — DONE
-- Zone transition particles are more dramatic now
-- Zone audio cues are oscillator-based — real zone ambience files would be richer
-- Hero ability cooldowns could be fine-tuned for balance
-- Pause menu settings now include volume controls and sensitivity
+- Screenshots need fresh captures after Pass 43
