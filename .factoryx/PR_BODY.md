@@ -47,6 +47,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 ### Verification
 - Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
+- Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - `node drops/edo-inkblade-ots/test.js` — **146 checks**: all previous plus journey diary, road-side events, Ganryu epilogue, enhanced zone VFX
 - **All 146 checks pass**
 
