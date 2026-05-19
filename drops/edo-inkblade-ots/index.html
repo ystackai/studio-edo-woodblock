@@ -532,6 +532,12 @@ function start(id){currentHeroKey=id;
   marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;duelFocus={name:"",timer:0};ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=e.patrolX;e.z=e.patrolZ;e.patrolAngle=i*1.6;e.wind=0;e.attackWindUp=0;e.attackCount=0;e.deathAge=undefined});
   screenShake=0;gameStartTime=Date.now();enemiesDefeated=0;inkUsedTotal=0;marksPlacedTotal=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
+function chooseHero(card,e){if(e){e.preventDefault();e.stopPropagation()}var id=card.dataset.hero;if(!id||!heroes[id])return;initAudio();start(id)}
+document.querySelectorAll(".card").forEach(function(card){
+  card.addEventListener("mousedown",function(e){e.stopPropagation()});
+  card.addEventListener("click",function(e){chooseHero(card,e)});
+  card.addEventListener("touchstart",function(e){chooseHero(card,e)});
+});
 let paintPressTime=0;
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" "){paintPressTime=Date.now();paint()}if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase())){player.blocking=true;player.blockDecay=0}});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false;if(e.key===" "&&paintPressTime){var held=Date.now()-paintPressTime;player.paintHoldTime=Math.min(99,held/250);paintPressTime=0}});

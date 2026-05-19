@@ -28,6 +28,7 @@ const checks = [
   ["over the shoulder language", /over[- ]the[- ]shoulder|perspective|horizon|depth/i.test(html)],
   ["projection function for depth", html.includes("function project") && html.includes("horizon")],
   ["character selection", html.includes("Miyamoto Musashi") && html.includes("Koeda") && html.includes("Yoshino")],
+  ["character cards start game", html.includes('document.querySelectorAll(".card")') && html.includes("chooseHero(card,e)") && html.includes("start(id)")],
   ["select cards use sprite assets", html.includes("function drawSelectArt") && html.includes("card-canvas") && html.includes("drawImage(img,0,0,fw,fh")],
   ["select redraws after hero sprites load", html.includes("img.onload") && html.includes("drawSelectArt()")],
   ["movement controls", html.includes("keys.w") && html.includes("arrowleft") && html.includes("arrowright")],
