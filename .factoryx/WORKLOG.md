@@ -233,3 +233,15 @@
 - Updated `drawMark()` to render barrier ring and blossom petals per mark kind
 - 60 smoke checks pass (was 54 — added 6 new checks)
 - Screenshots captured fresh after Pass 34
+
+## Pass 35 — Zone-adaptive paint marks, road-side fox spirits, duel tension audio depth, zone-entry shake
+
+### What changed
+- **Zone-adaptive paint marks**: waymark seals absorb road zone color flavor — meadow (green-tinted), forest (golden ochre), mountain (cool blue-white), coastal (sandy taupe). Each zone reflects terrain in paint mark color.
+- **Road-side fox spirits**: small animated silhouettes (fox body, sweeping tail, dash motion blur) spawn ahead and dash across the road at random intervals. Up to 3 concurrent spirits with 120-frame lifespan.
+- **Duel tension audio depth**: sawtooth tension drone gain dynamically ramps based on enemy proximity (0-0.12 gain within 160 units), creating palpable audio tension when enemies are near.
+- **Zone-entry screen shake**: crossing a zone boundary triggers a brief camera shake (screenShake=3), making atmospheric zone transitions more dramatic.
+- **Extended mark persistence**: paint marks now last 1200-1760 frames (was 800-920), letting waymarks survive longer.
+- **Pre-existing tension drone fix**: changed `initAudio()` tension node creation from `!amb.tension` to `!amb.tension.node` so the tension oscillator actually starts (previously blocked by truthy stub object).
+- **Screenshots captured fresh** after all changes.
+- **66 smoke checks pass** (was 60 — added 6 checks for new features).

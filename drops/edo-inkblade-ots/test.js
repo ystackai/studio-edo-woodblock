@@ -67,6 +67,11 @@ const checks = [
   ["road-side shrine events", html.includes("shrines") && html.includes("Pray") && html.includes("shrineEvents.forEach")],
   ["duelist berserk mode", html.includes("berserk") && html.includes("e.berserk") && html.includes("berserk stance")],
   ["enemy death ink dissolve", html.includes("Ink dissolve") && html.includes("di=0;di<20") && html.includes("deathAge===undefined")],
+  ["zone-adaptive paint marks", html.includes("zoneTint") && html.includes("zoneColors") && html.includes("markColor")],
+  ["road-side fox spirits", html.includes("foxSpirits") && html.includes("drawFoxSpirits") && html.includes("fade*.7")],
+  ["zone-entry screen shake", html.includes("screenShake=Math.max(screenShake,3)")],
+  ["duel tension drone proximity gain", html.includes("tensionGain") && html.includes("amb.tension.gain.gain.setValueAtTime")],
+  ["extended mark persistence", html.includes("maxAge=1200")],
 ];
 
 // Sprite dimension validation

@@ -265,8 +265,8 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
   const rg=audioCtx.createGain();rg.gain.value=0;const ro=audioCtx.createOscillator();ro.type="sine";ro.frequency.value=95;const rb2=audioCtx.createBiquadFilter();rb2.type="lowpass";rb2.frequency.value=300;ro.connect(rb2);rb2.connect(rg);rg.connect(audioCtx.destination);amb.river.node=ro;amb.river.gain=rg;ro.start()
   // FOOTSTEP
   amb.footstep=function(){const fb=audioCtx.createBuffer(1,audioCtx.sampleRate*.06,audioCtx.sampleRate),fd=fb.getChannelData(0);for(let i=0;i<fd.length;i++)fd[i]=Math.random()*2-1*(1-i/fd.length);const fs=audioCtx.createBufferSource(),fg=audioCtx.createGain();fs.buffer=fb;fg.gain.value=.028;fs.connect(fg);fg.connect(audioCtx.destination);fs.start()}
-  // DUEL TENSION DRONE
-  if(!amb.tension){var tg=audioCtx.createGain();tg.gain.value=0;var to=audioCtx.createOscillator();to.type="sawtooth";to.frequency.value=55;var tf=audioCtx.createBiquadFilter();tf.type="lowpass";tf.frequency.value=120;to.connect(tf);tf.connect(tg);tg.connect(audioCtx.destination);amb.tension={node:to,gain:tg};to.start()}
+  // DUEL TENSION DRONE — gain ramps with enemy proximity
+  if(!amb.tension.node){var tg=audioCtx.createGain();tg.gain.value=0;var to=audioCtx.createOscillator();to.type="sawtooth";to.frequency.value=55;var tf=audioCtx.createBiquadFilter();tf.type="lowpass";tf.frequency.value=120;to.connect(tf);tf.connect(tg);tg.connect(audioCtx.destination);amb.tension={node:to,gain:tg};to.start()}
   // GANRYU BRIGHT THEME — higher register triangle chords
   if(!amb.ganryu.g){
     var gg=audioCtx.createGain();gg.gain.value=0;
@@ -318,7 +318,7 @@ let yoMotif1=[0,2,3,1,4];  // ascending playful
 let yoMotif2=[4,3,2,0,1];  // descending contemplative
 let yoPhrase=[0,1,3,4,2,0,4]; // wandering
 let yoMotif3=[0,0,2,2,4,4,3,1]; // Ganryu hopeful ascent
-let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[];
+let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[],foxSpirits=[];
 // Journey atmosphere zones for visual/audio progression
 const journeyZones=[
   {start:0,end:300,name:"meadow",roadEdge:'#2a3a1a',roadEdge2:'#3a4b2a',lanternColor:'#ff8333',lanternGlow:'rgba(255,131,51,0.2)',flowers:['#c84a3a','#8a5a3a'],pollenColor:'#d9c84a'},
@@ -602,6 +602,8 @@ function step(dt){
     if(Math.random()<.015*dt&&riverMist.length<12)riverMist.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.2,vz:Math.random()*.3+.1,alpha:.6});
     // Journey zone tracking — spawn zone-specific ambient particles
     prevZone=currentZone;currentZone=getZone(player.z);zoneCrossTimer=currentZone===prevZone?Math.min(80,zoneCrossTimer+dt):0;
+    // Zone-entry screen shake for dramatic crossing
+    if(currentZone!==prevZone&&player.hp>0){screenShake=Math.max(screenShake,3);}
     if(currentZone.name!=="meadow"&&Math.random()<.01*dt&&sparks.length<30){var zc='#b9a88d';sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:zc,a:.25,vx:(Math.random()-.5)*.15,vz:(Math.random()-.5)*.15-.1,d:Math.random()*3+3})};
     // Meadow: light pollen particles
     if(currentZone.name==="meadow"&&Math.random()<.03*dt&&sparks.length<25){sparks.push({x:player.x+(Math.random()-.5)*60,z:player.z-20+Math.random()*40,color:currentZone.pollenColor,a:.18,vx:(Math.random()-.5)*.06,vz:(Math.random()-.5)*.06,d:1+Math.random()*2})};
@@ -612,14 +614,25 @@ function step(dt){
     // Coastal: sea spray particles
     if(currentZone.name==="coastal"&&Math.random()<.02*dt&&sparks.length<20){sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:'#cdd6e0',a:.2,vx:(Math.random()-.5)*.1,vz:Math.random()*.1+.05,d:Math.random()*3})};
     riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});drizzleActive=Math.max(0,drizzleActive+(player.z>300&&player.z<900?.004:-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
+    // Road-side fox spirits — small silhouettes dashing across the road ahead
+    if(Math.random()<.002*dt&&foxSpirits.length<3&&player.hp>0){
+      var fz=player.z+40+Math.random()*80,fx=(Math.random()-.5)*200;
+      foxSpirits.push({x:fx,z:fz,age:0,maxAge:120,side:Math.random()<.5?1:-1,dashPhase:0,color:'#d98986'});
+    }
+    foxSpirits=foxSpirits.filter(f=>f.age<f.maxAge);
+    foxSpirits.forEach(f=>{f.age+=dt;f.x+=f.side*1.5*dt;f.z-=0.4*dt;f.dashPhase+=dt*.08});
     // Rain puddles on road surface during drizzle
     if(drizzleActive>.15&&Math.random()<.008*dt&&puddles.length<20){var pw=10+Math.random()*30,ph=4+Math.random()*10;puddles.push({x:player.x+(Math.random()-.5)*120,z:player.z-20+Math.random()*80,w:pw,h:ph,alpha:0,maxAlpha:.25+Math.random()*.15,age:0,maxAge:200+Math.random()*300,ripplePhase:Math.random()*7})};puddles=puddles.filter(p=>p.age<p.maxAge);puddles.forEach(p=>{p.age+=dt;if(p.age<20)p.alpha=Math.min(p.maxAlpha,p.age/20*.25);else if(p.age>p.maxAge-60)p.alpha=Math.max(0,p.alpha-(p.age-(p.maxAge-60))/60);p.ripplePhase+=.02*dt});
     // Rain drop impact ripples on puddles — drizzle landing near active puddles spawns ripple rings
     if(drizzleActive>.15&&Math.random()<.01*dt&&ripples.length<30){puddles.filter(p=>p.alpha>0.1).forEach(function(p){if(Math.random()<.3){ripples.push({x:p.x+Math.random()*20,z:p.z+Math.random()*20,age:0,maxAge:40+Math.random()*20,radius:2+Math.random()*4})}})};ripples=ripples.filter(r=>r.age<r.maxAge);ripples.forEach(r=>{r.age+=dt});
   // Ambient: footsteps, wind drift, river near bridge; zone-transition audio cues
   initAudio();var amb=window._amb;
-  if(audioCtx&&amb&&amb.footstep&&amb.wind&&amb.river&&amb.melody&&amb.rain){
+  if(audioCtx&&amb&&amb.footstep&&amb.wind&&amb.river&&amb.melody&&amb.rain&&amb.tension){
   amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);if(player.z>460&&player.z<580&&!bellRung){bellRung=1;sfx.tone(220,1.2,"sine",.15);setTimeout(function(){sfx.tone(330,.8,"sine",.1)},300);setTimeout(function(){sfx.tone(440,.6,"sine",.08)},600);say("A temple bell tolls across the bridge.")}const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){sfx.tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){sfx.tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}amb.river.gain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.6);if(amb.rain&&amb.rain.gain){amb.rain.gain.gain.setValueAtTime(drizzleActive*.035,audioCtx.currentTime)}
+  // Duel tension drone — gain ramps up when enemies are close
+  var tensionGain=0;
+  enemies.filter(e=>e.hp>0).forEach(function(eo){var d=Math.hypot(eo.x-player.x,eo.z-player.z);if(d<160)tensionGain=Math.max(tensionGain,Math.max(0,.12*(1-d/160)))});
+  if(amb.tension&&amb.tension.gain)amb.tension.gain.gain.setValueAtTime(tensionGain,audioCtx.currentTime);
   // Zone transition audio — subtle wind-shift chord when crossing zone boundaries
   if(currentZone!==prevZone&&player.hp>0){var zc=currentZone;
     if(zc.name==="forest"){sfx.tone(262,.6,"sine",.04);setTimeout(function(){sfx.tone(330,.4,"sine",.03)},200)}
@@ -742,12 +755,19 @@ function paint(){initAudio();
   const x=player.x+Math.sin(player.heading)*70,z=player.z+Math.cos(player.heading)*70;
   const holdBonus=Math.min(3,player.paintHoldTime/15);
   const brushSize=1+(player.paintChain/3)+(player.ink/hero.ink)*.4+holdBonus;
-  const maxAge=800+Math.round(brushSize*120);
+  const maxAge=1200+Math.round(brushSize*160); // longer mark persistence
+  // Zone-adaptive paint tint — marks absorb road zone color flavor
+  var zoneTint=getZone(player.z);
+  var markColor=paintMode==="blossom"?hero.color:paintMode==="barrier"?hero.color:hero.color;
+  if(zoneTint&&paintMode==="waymark"){
+    var zoneColors={meadow:'#5a7a48',forest:'#b88c45',mountain:'#8a9aaa',coastal:'#c4b88a'};
+    markColor=zoneColors[zoneTint.name]||hero.color;
+  }
   // Paint mark varies by mode
   if(paintMode==="barrier"){
     // Barrier seal: creates a zone that slows enemies within radius
     var barrierRadius=70+brushSize*20;
-    marks.push({x,z,age:0,maxAge,color:hero.color,style:hero.label,brushSize,kind:"barrier",radius:barrierRadius});
+    marks.push({x,z,age:0,maxAge,color:markColor,style:hero.label,brushSize,kind:"barrier",radius:barrierRadius});
     // Ink barrier visual — ring of brush strokes
     for(var bi=0;bi<16;bi++){var ba=bi*0.4,bd=barrierRadius*0.6;sparks.push({x:x+Math.cos(ba)*bd,z:z+Math.sin(ba)*bd,color:hero.color,a:.6,vx:Math.cos(ba)*.3,vz:Math.sin(ba)*.3,d:Math.random()*3+2})};
     marksPlacedTotal+=1;player.resolve+=1;
@@ -763,7 +783,7 @@ function paint(){initAudio();
     // Waymark seal (default): damages enemies near it
     enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{var dmg=Math.round(12*hero.art);e.hp-=dmg;if(e.hp<=0){enemiesDefeated+=1;player.resolve+=2;say(e.name+" unravels under the ink seal.")}else{player.resolve+=1;say("The ink mark binds "+e.name+".")}});
     marksPlacedTotal+=1;player.resolve+=1;
-    marks.push({x,z,age:0,maxAge,color:hero.color,style:hero.label,brushSize,kind:"waymark"});
+    marks.push({x,z,age:0,maxAge,color:markColor,style:hero.label,brushSize,kind:"waymark"});
     say(hero.label+" presses a living ink seal into the road.");
   }
   // Sumi-e splash burst — bigger for chain paints
@@ -894,7 +914,7 @@ function draw(){
   const skyR2=Math.round(sky2[0]+(sky3[0]-sky2[0])*gp),skyG2=Math.round(sky2[1]+(sky3[1]-sky2[1])*gp),skyB2=Math.round(sky2[2]+(sky3[2]-sky2[2])*gp);
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
-  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFireflies();drawRiverMist();drawDrizzle();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawDrizzle();
   // Journey zone transition markers — torii gates at zone boundaries
   var zoneMarkers=[{z:300,name:"forest entrance"},{z:600,name:"mountain gate"},{z:1000,name:"sea gate"}];
   zoneMarkers.forEach(function(zm){var dz=Math.abs(player.z-zm.z);if(dz<60){var gateAlpha=Math.max(0,1-dz/60)*.35,gateP=project(0,zm.z,80);if(gateP){ctx.globalAlpha=gateAlpha;ctx.strokeStyle="#8e1c1c";ctx.lineWidth=10*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-28*gateP.s,gateP.y);ctx.lineTo(gateP.x-28*gateP.s,gateP.y-60*gateP.s);ctx.moveTo(gateP.x+28*gateP.s,gateP.y);ctx.lineTo(gateP.x+28*gateP.s,gateP.y-60*gateP.s);ctx.stroke();ctx.strokeStyle="#b82727";ctx.lineWidth=5*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-30*gateP.s,gateP.y-62*gateP.s);ctx.lineTo(gateP.x+30*gateP.s,gateP.y-62*gateP.s);ctx.moveTo(gateP.x-26*gateP.s,gateP.y-52*gateP.s);ctx.lineTo(gateP.x+26*gateP.s,gateP.y-52*gateP.s);ctx.stroke();ctx.globalAlpha=1}}});
@@ -1385,6 +1405,16 @@ function inkSplatter(x,z,color){for(let i=0;i<10;i++)sparks.push({x,z,color,a:.9
 function drawSparks(){sparks=sparks.filter(s=>s.a>.02);sparks.forEach(s=>{s.x+=s.vx;s.z+=s.vz;s.a*=.92;s.d*=.94;const p=project(s.x,s.z,s.d+18);if(!p)return;ctx.globalAlpha=s.a;if(s.d>0){ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1,s.d)*2,0,7);ctx.fill()}else{ctx.fillStyle=s.color;ctx.fillRect(p.x-2,p.y-2,4,4)};ctx.globalAlpha=1})}
 function drawLeaves(){leaves.forEach(l=>{const p=project(l.x,l.z,30);if(!p)return;ctx.globalAlpha=.6*(1-l.age/300);ctx.fillStyle="#d98986";ctx.beginPath();ctx.arc(p.x,p.y,1.5+Math.sin(l.age*.05)*.5,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawFireflies(){fireflies.forEach(f=>{const p=project(f.x,f.z,25);if(!p)return;ctx.globalAlpha=f.bright*.35;ctx.fillStyle="#d9e88f";ctx.beginPath();ctx.arc(p.x,p.y,2+Math.sin(Date.now()*.003+f.bright)*1.5,0,7);ctx.fill();ctx.globalAlpha=1})}
+function drawFoxSpirits(){foxSpirits.forEach(f=>{const p=project(f.x,f.z,30);if(!p)return;var fade=Math.max(0,1-f.age/f.maxAge),s=Math.min(p.s,3);
+  ctx.globalAlpha=fade*.5;
+  ctx.fillStyle='#d98986';ctx.globalAlpha=fade*.7;
+  ctx.beginPath();ctx.moveTo(p.x-8*s,p.y-8*s);ctx.lineTo(p.x-4*s,p.y-10*s);ctx.lineTo(p.x+2*s,p.y-12*s);ctx.lineTo(p.x+10*s,p.y-10*s);ctx.lineTo(p.x+6*s,p.y);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#d98986';ctx.lineWidth=2*s;
+  ctx.beginPath();ctx.moveTo(p.x-8*s,p.y-8*s);ctx.quadraticCurveTo(p.x-16*s,p.y-18*s,p.x-20*s,p.y-10*s);ctx.stroke();
+  ctx.globalAlpha=fade*.2;
+  ctx.strokeStyle='#d98986';ctx.lineWidth=1.5*s;
+  ctx.beginPath();ctx.moveTo(p.x-6*s,p.y-8*s);ctx.lineTo(p.x-22*s,p.y-12*s);ctx.stroke();
+  ctx.globalAlpha=1})}
 function drawDrizzle(){drizzle.forEach(d=>{const p=project(d.x,d.z,80);if(!p)return;var fade=Math.max(0,1-d.age/90),s=Math.min(p.s,3);ctx.globalAlpha=fade*.5;ctx.strokeStyle="#cdd6e0";ctx.lineWidth=1.2*s;ctx.beginPath();ctx.moveTo(p.x+d.vx*2*s,p.y-2);var endX=p.x+(d.vx/1.5)*d.len*s,endY=p.y+d.len*s;ctx.lineTo(endX,endY);ctx.stroke();// Ground splash spot
 ctx.globalAlpha=fade*.25;ctx.fillStyle="#e8eef0";ctx.beginPath();ctx.arc(endX,endY,1.2*s,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawPuddles(){puddles.forEach(p=>{const proj=project(p.x,p.z,0);if(!proj)return;var s=Math.min(proj.s,4);if(s<.5)return;var alpha=p.alpha*Math.min(1,s/2);var px=proj.x,py=proj.y,pw=p.w*s,ph=p.h*s;ctx.globalAlpha=alpha*.5;// Sky reflection gradient in puddle
