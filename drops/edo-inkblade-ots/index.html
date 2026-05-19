@@ -186,7 +186,8 @@ const SPRITE_KEYS=["musashi","koeda","yoshino","chaser","prowler","duelist","vag
 SPRITE_KEYS.forEach(function(k){var img=new Image();img.src="assets/characters/"+k+".png";SPRITES[k]=img});
 const ENEMY_SPRITE_KEY={"dock ronin":"chaser","cedar bandit":"prowler","bridge duelist":"duelist","straw-hat vagrant":"vagrant","river-bank monk":"monk"};
 // Audio
-let audioCtx=null,sfx={};
+const noopAudio=function(){};
+let audioCtx=null,sfx={tone:noopAudio,slash:noopAudio,paint:noopAudio,block:noopAudio,hit:noopAudio,mark:noopAudio,death:noopAudio,inkRegen:noopAudio,victory:noopAudio};
 function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return};
   function tone(f,d,t,g){var o=audioCtx.createOscillator();o.type=t;o.frequency.value=f;
     var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
@@ -250,7 +251,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     gg.connect(audioCtx.destination);amb.ganryu.g=gg;
   }
   // SFX — rebuilt with musical character
-  sfx={slash:function(){
+  sfx={tone:tone,slash:function(){
     var so=audioCtx.createOscillator();so.type="sawtooth";so.frequency.value=180;
     var sg=audioCtx.createGain();sg.gain.setValueAtTime(.12,audioCtx.currentTime);sg.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.12);
     var sf=audioCtx.createBiquadFilter();sf.type="bandpass";sf.frequency.value=4000;sf.Q.value=40;so.connect(sf);sf.connect(sg);sg.connect(audioCtx.destination);
