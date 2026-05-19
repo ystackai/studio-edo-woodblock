@@ -206,6 +206,7 @@ function initAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||windo
   }
   // AMBIENT WIND
   if(!amb.wind.node){const bc=audioCtx.createBiquadFilter();bc.type="lowpass";bc.frequency.value=220;const wg=audioCtx.createGain();wg.gain.value=.018;const wb=audioCtx.createBuffer(1,audioCtx.sampleRate*4,audioCtx.sampleRate),wd=wb.getChannelData(0);for(let i=0;i<wd.length;i++)wd[i]=Math.random()*2-1;const ws=audioCtx.createBufferSource();ws.buffer=wb;ws.loop=true;ws.connect(bc);bc.connect(wg);wg.connect(audioCtx.destination);wg.gain.setValueAtTime(.018,audioCtx.currentTime);wg.gain.exponentialSmoothValueAtTime(.003,audioCtx.currentTime+3);amb.wind.node=ws;amb.wind.gain=wg;ws.start()
+  }
   // HARMONY PAD — Yo-scale open chords zone-triggered
   if(!amb.pad.node){
     var pg=audioCtx.createGain();pg.gain.value=0;amb.pad.padGain=pg;
