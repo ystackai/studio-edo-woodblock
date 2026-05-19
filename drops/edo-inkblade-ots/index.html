@@ -33,14 +33,16 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background
 #select-inner{position:relative;width:min(920px,calc(100vw - 32px));padding:22px}
 #select-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:12px}
 h1{font-family:serif;font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 4px;font-weight:800;letter-spacing:.04em}
-#select p{max-width:680px;color:#d9cbb4;margin:0 0 16px;line-height:1.55;font-size:clamp(13px,1.8vw,16px)}
-#select-sub{font-size:11px;color:#b9a88d;margin:0 0 20px;letter-spacing:.06em}
+#select h1{color:#3b2a1d;text-shadow:0 1px 0 rgba(244,234,216,.55)}
+#select p{max-width:680px;color:#4e3a28;margin:0 0 16px;line-height:1.55;font-size:clamp(13px,1.8vw,16px)}
+#select-sub{font-size:11px;color:#6f5437;margin:0 0 20px;letter-spacing:.06em}
 #cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .card{appearance:none;border:2px solid rgba(231,197,130,.35);background:#241b13;color:#f4ead8;border-radius:10px;padding:12px 14px 16px;text-align:left;cursor:pointer;min-height:180px;position:relative;overflow:hidden;transition:border-color .3s,background .3s}
 .card:hover,.card:focus{outline:none;border-color:#d7b66f;background:#2e1e14}
-.card strong{font-family:serif;display:block;font-size:clamp(15px,2vw,20px);margin-bottom:6px;letter-spacing:.02em}
-.card .sub{font-family:serif;display:block;color:#b9a88d;font-size:11px;letter-spacing:.03em;margin-bottom:4px}
-.card span{display:block;color:#cdbb9d;font-size:12px;line-height:1.4}
+.card-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;background:transparent;z-index:0}
+.card strong{position:relative;z-index:1;font-family:serif;display:block;font-size:clamp(15px,2vw,20px);margin-bottom:6px;letter-spacing:.02em}
+.card .sub{position:relative;z-index:1;font-family:serif;display:block;color:#b9a88d;font-size:11px;letter-spacing:.03em;margin-bottom:4px}
+.card span{position:relative;z-index:1;display:block;color:#cdbb9d;font-size:12px;line-height:1.4;max-width:58%}
 .card .swatch{position:relative;z-index:1;width:40px;height:10px;border-radius:10px;margin-bottom:10px;border:1px solid rgba(255,255,255,.15)}
 #veil{position:absolute;inset:auto 0 0 0;height:35vh;background:linear-gradient(0deg,rgba(23,19,15,.72),rgba(23,19,15,0));pointer-events:none}
 #death{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0);z-index:3;pointer-events:none;transition:background 1.2s}
@@ -183,7 +185,7 @@ let victoryParticles=[],victoryFanfare=false;
 // Sprite preloading
 let SPRITES={};
 const SPRITE_KEYS=["musashi","koeda","yoshino","chaser","prowler","duelist","vagrant","monk","ganryu"];
-SPRITE_KEYS.forEach(function(k){var img=new Image();img.src="assets/characters/"+k+".png";SPRITES[k]=img});
+SPRITE_KEYS.forEach(function(k){var img=new Image();img.onload=function(){if(k==="musashi"||k==="koeda"||k==="yoshino")drawSelectArt()};img.src="assets/characters/"+k+".png";SPRITES[k]=img});
 const ENEMY_SPRITE_KEY={"dock ronin":"chaser","cedar bandit":"prowler","bridge duelist":"duelist","straw-hat vagrant":"vagrant","river-bank monk":"monk"};
 // Audio
 const noopAudio=function(){};
@@ -309,8 +311,8 @@ const route=[{z:180,text:"Paint three waymarks on the road.",triggered:false},{z
 for(let i=0;i<30;i++){leaves.push({x:Math.random()*300-150,z:Math.random()*1200,s:2+Math.random()*3,sp:Math.random()*2+.5,phase:Math.random()*6,color:["#6b8d4a","#b88c45","#8e4f30"][i%3]})}
 for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()*1100,b:Math.random()*6+3,phase:Math.random()*8,speed:.3+Math.random()*.4})}
 
-// Character-select canvas art: ink-brush frame, woodblock grain, calligraphy accents, per-card silhouettes
-(function drawSelectArt(){
+// Character-select canvas art: ink-brush frame, woodblock grain, calligraphy accents, and sprite cards.
+function drawSelectArt(){
   var sc=document.getElementById('select-canvas').getContext('2d');
   var sw=920,sh=480;sc.clearRect(0,0,sw,sh);
   // Paper base with warm off-white
@@ -363,7 +365,7 @@ for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()
       sc.quadraticCurveTo(px,py,nx,ny);px=nx;py=ny}
     sc.fill()
   }
-  // Per-card silhouettes
+  // Per-card sprite portraits
   var cardData=[
     {key:'musashi',cx:120,color:'#d7b66f'},
     {key:'koeda',cx:460,color:'#8fc7d6'},
@@ -379,37 +381,42 @@ for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()
     var bg=cc.createRadialGradient(cw/2,ch-10,10,cw/2,ch-10,120);
     bg.addColorStop(0,data.color+'40');bg.addColorStop(.6,data.color+'20');bg.addColorStop(1,'rgba(20,15,10,0)');
     cc.fillStyle=bg;cc.fillRect(0,0,cw,ch);
-    // Hero silhouette standing with weapon
-    cc.save();cc.translate(cw/2,ch-15);
-    // Body — kimono shape
-    cc.fillStyle='#1a1512';
-    cc.beginPath();cc.moveTo(-12,-70);cc.lineTo(-20,-30);
-    cc.quadraticCurveTo(-18,-10,-16,0);cc.lineTo(16,0);
-    cc.quadraticCurveTo(18,-10,20,-30);cc.lineTo(12,-70);cc.closePath();cc.fill();
-    // Head — topknot silhouette
-    cc.fillStyle='#16120f';
-    cc.beginPath();cc.arc(0,-70,12,0,7);cc.fill();
-    cc.beginPath();cc.arc(0,-70,4,0,7);cc.fillStyle='#2a1e14';cc.arc(0,-70,4,0,7);cc.fill();
-    // Weapon silhouette based on hero
-    cc.strokeStyle='#2a1e14';cc.lineWidth=3;
-    if(key==='musashi'){
-      cc.lineWidth=2.5;cc.strokeStyle='#1a1512';
-      cc.beginPath();cc.moveTo(10,-50);cc.lineTo(40,-90);cc.stroke();
-      cc.beginPath();cc.moveTo(10,-45);cc.lineTo(40,-70);cc.stroke();
-    }else if(key==='koeda'){
-      cc.lineWidth=2;cc.strokeStyle='#1a1512';
-      cc.beginPath();cc.moveTo(14,-55);cc.lineTo(44,-75);cc.stroke();
-      cc.beginPath();cc.moveTo(20,-52);cc.lineTo(48,-70);cc.stroke();
-    }else if(key==='yoshino'){
-      cc.lineWidth=2.5;cc.strokeStyle='#1a1512';
-      cc.beginPath();cc.moveTo(8,-60);cc.lineTo(50,-90);cc.stroke();
-      cc.lineWidth=1;cc.strokeStyle='rgba(217,137,134,.25)';
-      cc.beginPath();cc.moveTo(8,-60);cc.lineTo(46,-95);cc.stroke();
+    var img=SPRITES[key];
+    if(img&&img.complete&&img.naturalWidth>0){
+      var fw=80,fh=120,scale=Math.min(cw/fw,ch/fh)*.98;
+      var sx=cw-fw*scale-12,sy=ch-fh*scale-2;
+      cc.fillStyle='rgba(0,0,0,.24)';cc.beginPath();
+      cc.ellipse(sx+fw*scale*.5,sy+fh*scale-3,fw*scale*.36,8,0,0,7);cc.fill();
+      cc.drawImage(img,0,0,fw,fh,sx,sy,fw*scale,fh*scale);
+    }else{
+      cc.save();cc.translate(cw-76,ch-14);
+      cc.fillStyle='#1a1512';
+      cc.beginPath();cc.moveTo(-12,-70);cc.lineTo(-20,-30);
+      cc.quadraticCurveTo(-18,-10,-16,0);cc.lineTo(16,0);
+      cc.quadraticCurveTo(18,-10,20,-30);cc.lineTo(12,-70);cc.closePath();cc.fill();
+      cc.fillStyle='#16120f';
+      cc.beginPath();cc.arc(0,-70,12,0,7);cc.fill();
+      cc.beginPath();cc.arc(0,-70,4,0,7);cc.fillStyle='#2a1e14';cc.arc(0,-70,4,0,7);cc.fill();
+      cc.strokeStyle='#2a1e14';cc.lineWidth=3;
+      if(key==='musashi'){
+        cc.lineWidth=2.5;cc.strokeStyle='#1a1512';
+        cc.beginPath();cc.moveTo(10,-50);cc.lineTo(40,-90);cc.stroke();
+        cc.beginPath();cc.moveTo(10,-45);cc.lineTo(40,-70);cc.stroke();
+      }else if(key==='koeda'){
+        cc.lineWidth=2;cc.strokeStyle='#1a1512';
+        cc.beginPath();cc.moveTo(14,-55);cc.lineTo(44,-75);cc.stroke();
+        cc.beginPath();cc.moveTo(20,-52);cc.lineTo(48,-70);cc.stroke();
+      }else if(key==='yoshino'){
+        cc.lineWidth=2.5;cc.strokeStyle='#1a1512';
+        cc.beginPath();cc.moveTo(8,-60);cc.lineTo(50,-90);cc.stroke();
+        cc.lineWidth=1;cc.strokeStyle='rgba(217,137,134,.25)';
+        cc.beginPath();cc.moveTo(8,-60);cc.lineTo(46,-95);cc.stroke();
+      }
+      cc.restore();
     }
     // Ink-splash accent at feet
     cc.fillStyle=data.color+'50';cc.beginPath();
-    cc.arc(0,0,18+Math.random()*8,0,7);cc.fill();
-    cc.restore();
+    cc.arc(cw-74,ch-12,18+Math.random()*8,0,7);cc.fill();
     // Subtle brush-frame border
     cc.strokeStyle='rgba(74,58,40,.18)';cc.lineWidth=1;
     cc.strokeRect(2,2,cw-4,ch-4);
@@ -417,18 +424,12 @@ for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()
     cc.fillStyle='rgba(40,30,20,.22)';cc.font='11px serif';
     cc.fillText('✻',cw-20,ch-6);
   });
-  // Draw top title calligraphy overlay
-  sc.save();
-  sc.fillStyle='rgba(30,20,12,.7)';sc.font='600 32px serif';sc.textAlign='center';
-  sc.fillText('Edo Inkblade',sw/2,38);
-  sc.fillStyle='rgba(50,38,25,.45)';sc.font='14px serif';sc.textAlign='center';
-  sc.fillText('— Road to Ganryu —',sw/2,58);
-  sc.restore();
   // Fade edges with paper vignette
   var v=sc.createRadialGradient(sw/2,sh/2,sw/3,sw/2,sh/2,sw/2);
   v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(.7,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(20,15,10,.35)');
   sc.fillStyle=v;sc.fillRect(0,0,sw,sh);
-})();
+}
+drawSelectArt();
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
 function start(id){currentHeroKey=id;
   hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,blockDecay:0,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
