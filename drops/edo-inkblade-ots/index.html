@@ -187,11 +187,12 @@ SPRITE_KEYS.forEach(function(k){var img=new Image();img.src="assets/characters/"
 const ENEMY_SPRITE_KEY={"dock ronin":"chaser","cedar bandit":"prowler","bridge duelist":"duelist","straw-hat vagrant":"vagrant","river-bank monk":"monk"};
 // Audio
 let audioCtx=null,sfx={};
-function initAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return};
   function tone(f,d,t,g){var o=audioCtx.createOscillator();o.type=t;o.frequency.value=f;
     var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
     gn.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+d);
     o.connect(gn);gn.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d)}
+  sfx.tone=tone;
   function noise(d,g){var n=audioCtx.createBufferSource(),b=audioCtx.createBuffer(1,44100*d,44100);
     for(var i=0;i<b.length;i++)b.getChannelData(0)[i]=Math.random()*2-1;n.buffer=b;
     var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
@@ -468,7 +469,9 @@ function step(dt){
     if(Math.random()<.015*dt&&riverMist.length<12)riverMist.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.2,vz:Math.random()*.3+.1,alpha:.6});
     riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});drizzleActive=Math.max(0,drizzleActive+(player.z>300&&player.z<700?.004:-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt)drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:(Math.random()-.5)*.1,vy:1+Math.random()*.5,age:0});drizzle=drizzle.filter(d=>d.age<120);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
   // Ambient: footsteps, wind drift, river near bridge
-  initAudio();var amb=window._amb;amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);if(player.z>460&&player.z<580&&!bellRung){bellRung=1;tone(220,1.2,"sine",.15);setTimeout(function(){tone(330,.8,"sine",.1)},300);setTimeout(function(){tone(440,.6,"sine",.08)},600);say("A temple bell tolls across the bridge.")}const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}amb.river.gain.gain.exponentialSmoothValueAtTime(0,audioCtx.currentTime+.6)
+  initAudio();var amb=window._amb;
+  if(audioCtx&&amb&&amb.footstep&&amb.wind&&amb.river&&amb.melody){
+  amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);if(player.z>460&&player.z<580&&!bellRung){bellRung=1;sfx.tone(220,1.2,"sine",.15);setTimeout(function(){sfx.tone(330,.8,"sine",.1)},300);setTimeout(function(){sfx.tone(440,.6,"sine",.08)},600);say("A temple bell tolls across the bridge.")}const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){sfx.tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){sfx.tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}amb.river.gain.gain.exponentialSmoothValueAtTime(0,audioCtx.currentTime+.6)
 // Melody scheduler — Yo-scale flute cycling through motifs by zone
 if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
   var melodyInt=3.5;
@@ -485,6 +488,7 @@ if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
     amb.melody.g.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+melodyInt*.9);
     amb.melody.noteIdx=(amb.melody.noteIdx+1)%phrase.length;
   }
+}
 }
     if(won)victoryParticles.push({x:player.x+(Math.random()-.5)*30,z:player.z+(Math.random()-.5)*30,a:1,vx:(Math.random()-.5)*.8,vy:Math.random()*3+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb"][Math.random()*5|0],d:Math.random()*4+1});
     player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);if(player.paintTimer<=0)player.paintChain=0;player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);if(player.blocking){player.blockDecay+=dt*3}else{player.blockDecay=Math.max(0,player.blockDecay-dt*5)}

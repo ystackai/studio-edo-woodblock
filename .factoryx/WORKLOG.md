@@ -72,3 +72,20 @@
 
 ## Delivery Branch
 `factoryx/factory-edo-woodblock/edo-inkblade-ots`
+### Pass 16 — Sprite integration
+- **Sprite preloading**: `SPRITES` object with 9 PNG keys (musashi, koeda, yoshino, chaser, prowler, duelist, vagrant, monk, ganryu)
+- **`ENEMY_SPRITE_KEY`** mapping from enemy kind to sprite key
+- **`drawPlayer()`** uses `SPRITES[currentHeroKey]` with 4-frame sprite sheet (idle/slash/block/damage), procedural ink-wash fallback when image not loaded
+- **`drawEnemy(e,p)`** uses `ENEMY_SPRITE_KEY[e.kind]` sprite with procedural silhouette fallback
+- **`drawGanryu(w,hor)`** uses `SPRITES.ganryu` with procedural island-shape fallback
+- Generated PNG assets committed: 9 character sprites + contact sheet + manifest + capture.js + screenshots
+- All 15 smoke checks pass after sprite integration
+
+## Known Issues
+- PR body needs screenshot integration (screenshots from preview not yet taken)
+- Balance tuning: enemy damage values, ink economy, travel pacing need tuning pass
+- Character selection silhouettes are primitive — could use richer procedural ink-wash shapes
+- Drizzle particles are simple dots — could be richer with rain streaks
+- Death flow and victory ceremony timeline could be smoother
+- Melody scheduler could use more motif variety and dynamic tempo
+- Existing screenshots (01-character-select.jpg, 02-journey.jpg) are from previous pass — need fresh captures
