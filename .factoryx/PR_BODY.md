@@ -13,7 +13,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 15 — Yo-scale melody audio complete)
+### Current Artifact State (Pass 17 — Edo character sprite art checkpoint)
 - **960-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino)
 - Road travel with WASD/arrow/mouse/touch (drag + long-press) controls
@@ -52,3 +52,8 @@ Yo-scale pentatonic melody scheduler now drives zone-adaptive flute motifs. Bass
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
 Target repo: `ystackai/studio-edo-woodblock`. Canonical PR: #107.
 Deadline: 2026-05-25T22:13:34Z. Finish policy: polish_until_deadline.
+
+### Latest Checkpoint (Pass 17 — Edo character sprite art)
+- Replaced the tiny block-like PNG sprites with richer transparent Edo ink-wash character sheets for Musashi, Koeda, Yoshino, road enemies, and Ganryu.
+- Updated `drops/edo-inkblade-ots/assets/characters/_contact_sheet.png` and `manifest.json` so future passes can see the sprite direction.
+- Note: the worker's direct image API path returned HTTP 401, so this checkpoint uses local authored/generated sprite assets rather than raw API-generated images.

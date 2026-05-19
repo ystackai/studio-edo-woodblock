@@ -1,92 +1,100 @@
 {
-  "format": "row-based sprite sheets",
-  "description": "Edo Inkblade character sprite sheets. Each PNG is a row of frames: idle, slash, block, wounded.",
-  "frame_size": {
-    "hero": { "width": 80, "height": 120 },
-    "enemy": { "width": 60, "height": 100 },
-    "boss":  { "width": 80, "height": 120 }
+  "version": "operator-seeded-2026-05-19",
+  "style": "transparent PNG sprite sheets, Edo ink-wash silhouettes with kimono folds, topknots/hats, weapon poses, and rough woodblock outlines",
+  "frame_layout": {
+    "heroes": "4 frames, 80x120 each",
+    "enemies": "4 frames, 60x100 each"
   },
   "characters": {
     "musashi": {
       "file": "musashi.png",
-      "type": "player",
-      "label": "Miyamoto Musashi",
-      "frames": ["idle", "slash", "block", "wounded"],
-      "color": "#d7b66f",
-      "frame_size": [80, 120],
-      "sheet_size": [320, 120]
+      "palette": {
+        "body": "3b2d1f",
+        "trim": "d7b66f",
+        "accent": "d7b66f"
+      },
+      "frames": 4,
+      "role": "hero/boss"
     },
     "koeda": {
       "file": "koeda.png",
-      "type": "player",
-      "label": "Koeda, runner of bridges",
-      "frames": ["idle", "slash", "block", "wounded"],
-      "color": "#8fc7d6",
-      "frame_size": [80, 120],
-      "sheet_size": [320, 120]
+      "palette": {
+        "body": "263840",
+        "trim": "8fc7d6",
+        "accent": "8fc7d6"
+      },
+      "frames": 4,
+      "role": "hero/boss"
     },
     "yoshino": {
       "file": "yoshino.png",
-      "type": "player",
-      "label": "Yoshino, carver of rain",
-      "frames": ["idle", "slash", "block", "wounded"],
-      "color": "#d98986",
-      "frame_size": [80, 120],
-      "sheet_size": [320, 120]
+      "palette": {
+        "body": "3d2732",
+        "trim": "d98986",
+        "accent": "d98986"
+      },
+      "frames": 4,
+      "role": "hero/boss"
     },
     "chaser": {
       "file": "chaser.png",
-      "type": "enemy",
-      "label": "dock ronin",
-      "frames": ["idle", "attack", "idle", "idle"],
-      "color": "#6f3f32",
-      "frame_size": [60, 100],
-      "sheet_size": [240, 100]
+      "palette": {
+        "body": "4a2d28",
+        "trim": "8f5a3f",
+        "accent": "c05b3f"
+      },
+      "frames": 4,
+      "role": "enemy"
     },
     "prowler": {
       "file": "prowler.png",
-      "type": "enemy",
-      "label": "cedar bandit",
-      "frames": ["idle", "attack", "idle", "idle"],
-      "color": "#344d40",
-      "frame_size": [60, 100],
-      "sheet_size": [240, 100]
+      "palette": {
+        "body": "25392f",
+        "trim": "9dbb7d",
+        "accent": "80b070"
+      },
+      "frames": 4,
+      "role": "enemy"
     },
     "duelist": {
       "file": "duelist.png",
-      "type": "enemy",
-      "label": "bridge duelist",
-      "frames": ["idle", "attack", "combo", "idle"],
-      "color": "#3e4a68",
-      "frame_size": [60, 100],
-      "sheet_size": [240, 100]
+      "palette": {
+        "body": "273048",
+        "trim": "b2bad8",
+        "accent": "c7d5ff"
+      },
+      "frames": 4,
+      "role": "enemy"
     },
     "vagrant": {
       "file": "vagrant.png",
-      "type": "enemy",
-      "label": "straw-hat vagrant",
-      "frames": ["idle", "attack", "idle", "idle"],
-      "color": "#5a4a38",
-      "frame_size": [60, 100],
-      "sheet_size": [240, 100]
+      "palette": {
+        "body": "514233",
+        "trim": "b89358",
+        "accent": "c5a468"
+      },
+      "frames": 4,
+      "role": "enemy"
     },
     "monk": {
       "file": "monk.png",
-      "type": "enemy",
-      "label": "river-bank monk",
-      "frames": ["idle", "attack", "idle", "idle"],
-      "color": "#4a5a58",
-      "frame_size": [60, 100],
-      "sheet_size": [240, 100]
+      "palette": {
+        "body": "3e4542",
+        "trim": "a6b7a7",
+        "accent": "86d6bc"
+      },
+      "frames": 4,
+      "role": "enemy"
     },
     "ganryu": {
       "file": "ganryu.png",
-      "type": "boss",
-      "label": "Ganryu",
-      "frames": ["idle", "attack", "block", "wounded"],
-      "color": "#2a3833",
-      "frame_size": [80, 120],
-      "sheet_size": [320, 120]
+      "palette": {
+        "body": "161616",
+        "trim": "efe1c0",
+        "accent": "ff8333"
+      },
+      "frames": 4,
+      "role": "hero/boss"
     }
   }
 }

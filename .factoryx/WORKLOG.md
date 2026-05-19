@@ -89,3 +89,9 @@
 - Death flow and victory ceremony timeline could be smoother
 - Melody scheduler could use more motif variety and dynamic tempo
 - Existing screenshots (01-character-select.jpg, 02-journey.jpg) are from previous pass — need fresh captures
+
+### Operator-seeded Pass 17 — Edo character sprite art checkpoint
+- Replaced the tiny block-like character PNGs with transparent Edo ink-wash sprite sheets for Musashi, Koeda, Yoshino, five road enemies, and Ganryu.
+- Each hero sheet keeps the existing 4x80x120 frame layout; enemy sheets keep the 4x60x100 layout expected by `drawPlayer()` and `drawEnemy()`.
+- Added kimono folds, hats/topknots, weapon poses, slash/block frames, rough woodblock outlines, and an updated `_contact_sheet.png`/`manifest.json` for future art passes.
+- This is a local authored asset checkpoint because the worker image-generation path returned HTTP 401; future agents should build on these assets or report the missing image pipeline as a blocker, not retry raw image API calls.
