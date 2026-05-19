@@ -13,26 +13,27 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 25 — Rain puddle reflections + orientation fix)
-- **~1120-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 26 — Sprint resolve economy, extended road, dynamic melody, mouse look)
+- **~1140-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino)
-- Road travel with WASD/arrow/mouse/touch (drag + long-press) controls
+- Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look (middle-click or left-click drag rotates camera heading)
 - **22 scenery kinds**: gate, pine, torii, shrine, pagoda, teaHouse, bamboo, stoneMarker, ricePaddy, bridgeArch, stall, cedar, monument, boatDock, well, lanternPost, waterfall, oldTree, stoneWall, lanternRow, crypt, willow
 - Ink paint system: brush marks with chain-paint widening, stamp seal, milestone glow, ink resource with slow regen
 - **Paint depth**: brush size varies by hold duration (Space/right-click/touch long-press); holdBonus and ink check
-- **3 enemy types**: chaser (aggressive), prowler (circles + retreats), duelist (retreat + combo follow-up with thrust)
+- **7 enemies over 5 types**: chaser (aggressive), prowler (circles + retreats), duelist (retreat + combo follow-up with thrust), plus mountain ascetic (chaser at z=1050) and ganryu sentinel (duelist at z=1180) for a richer journey
 - Enemy telegraph wind glow, patrol patterns, HP bars, low-HP danger glow
 - Duel readability checkpoint: `duelFocus` hints, blade-breath arcs, ground rings, and slash curves make enemy windups easier to understand
 - Restart flow restores all enemies from patrol anchors
 - **Parry/block system**: blocking reduces damage; sustained block decay; parry window gives resolve+3 and parryBonus
-- **3 quest milestones**: paint waymarks -> cross bridge -> reach Ganryu shore
+- **5 quest milestones**: paint waymarks -> cross bridge -> reach Ganryu shore -> mountain pass -> Ganryu pier (extended road for longer journey)
 - Milestone popup with ink-brush frame and cherry blossoms
 - Ganryu arrival ceremony: layered ocean waves, mist-shrouded island, pier, 120 victory particles, character haiku
-- **Weather depth**: fog layer (two-phase density scaling by z), **rain streaks** (angled falling lines with ground splash, replacing simple dots), drizzle particles active z=300-700 zone, fade-in/out, **rain puddle reflections** (elliptical pools mirroring sky gradient with shimmering ripple animation during drizzle)
+- **Weather depth**: fog layer (two-phase density scaling by z), **rain streaks** (angled falling lines with ground splash, replacing simple dots), drizzle particles active z=300-900 zone (extended for longer road), fade-in/out, **rain puddle reflections** (elliptical pools mirroring sky gradient with shimmering ripple animation during drizzle)
 - **Zone audio**: temple bell at bridge (3-note chord), ambient bird chirps at shrines, wind drift, river drone near bridge, **rain ambience** (filtered noise driven by drizzle zone gain)
 - **Audio depth** (Pass 15): D-based Yo-scale pentatonic music system — bass drone, harmony pad, melody flute cycling Yo motifs by road zone, river drone, duel tension drone, Ganryu bright theme
-- **Melody scheduler**: flute cycles ascending/wandering/descending/Ganryu hopeful motifs based on player z-position
+- **Melody scheduler**: flute cycles ascending/wandering/descending/Ganryu hopeful motifs based on player z-position; **dynamic tempo** speeds up when enemies are close (tempoFactor 1.5-2.5x), creating tension-responsive audio
+- **Sprint with resolve economy**: Shift key drains resolve (1 per 3 frames) for 1.55x speed; at low resolve sprint slows to 1.1x. Sprinting reduces ink regen when resolve is low. Ties sprint usage into blocking/parry/ink economy decisions
 - **Combat SFX** rebuilt with musical character
 - Ambient particles: falling leaves, fireflies, river mist, drizzle
 - HUD: HP, ink, resolve bars with animated fill
@@ -45,8 +46,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Atmosphere progression** (Pass 19): sky gradient shifts from cool dawn to warm sunset as player travels toward Ganryu
 
 ### Verification
-- `node drops/edo-inkblade-ots/test.js` — 22 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, negative checks (not Floating Score, not falling-object)
-- **All 22 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — 27 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, sprint mechanic, mouse drag camera look, dynamic melody tempo, extended road length, 7 enemies defined, negative checks (not Floating Score, not falling-object)
+- **All 27 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -63,13 +64,13 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 23** — Ink-wash procedural silhouettes retire vector blob fallbacks per character
 **Pass 24** — Rain streaks (angled falling lines with ground splash) replace simple dot drizzle; rain ambience (filtered noise) in drizzle zone
 **Pass 25** — Rain puddle reflections on road surface during drizzle (sky-mirroring elliptical pools with ripple shimmer); orientation change listener for title canvas redraw
+**Pass 26** — Sprint resolve economy (Shift drains resolve for 1.55x speed); extended road to 1400 units for longer journey; 2 new enemies (mountain ascetic, ganryu sentinel); 5 route milestones (was 3); ink regen rate improved; dynamic melody tempo based on enemy proximity; mouse drag camera look
 
 ### Known Issues
 - Sprite asset quality: PNGs are local-authored placeholder quality — richer ink-wash sprite sheets desirable
-- Balance tuning: enemy damage values, ink economy, travel pacing
-- Puddle reflections added — could further add rain drop-ripple interaction
-- Melody scheduler could use more motif variety and dynamic tempo
-- Screenshots are from current game state but could use fresh captures after puddle/weather changes
+- Puddle reflections could further add rain drop-ripple interaction
+- Screenshots could use fresh captures after Pass 26 balance changes
+- New enemies use existing sprite keys — dedicated mountain ascetic and sentinel PNGs would improve visual variety
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.

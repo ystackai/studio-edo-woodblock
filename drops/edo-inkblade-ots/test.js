@@ -42,7 +42,12 @@ const checks = [
   ["not falling object game", !/falling|catch drifting|score-display/.test(html)],
   ["title screen animation", html.includes("requestAnimationFrame(titleAnimLoop)") && html.includes("titleMistDrift") && html.includes("cancelAnimationFrame")],
   ["rain puddle reflections", html.includes("function drawPuddles") && html.includes("ripplePhase") && html.includes("drawPuddles(){puddles.forEach")],
-  ["orientation change handler", html.includes("screen.orientation") && html.includes("orientation") && html.includes("change")]
+  ["orientation change handler", html.includes("screen.orientation") && html.includes("orientation") && html.includes("change")],
+  ["sprint mechanic", html.includes("keys.shift") && html.includes("sprintDrainTimer") && html.includes("player.resolve")],
+  ["mouse drag camera look", html.includes("mouseLook") && html.includes("mouseLook.active") && html.includes("mouseLook.lastX")],
+  ["dynamic melody tempo", html.includes("tempoFactor") && html.includes("tensionCount") && html.includes("melodyInt")],
+  ["extended road length", html.includes("Math.min(1420") && html.includes("player.z>1380")],
+  ["7 enemies defined", html.includes("ganryu sentinel") && html.includes("mountain ascetic")]
 ];
 
 let failed = 0;

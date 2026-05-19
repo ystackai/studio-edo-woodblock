@@ -135,30 +135,14 @@
 - **Smoke tests updated**: 22 checks pass (new: rain puddle reflections, orientation change handler)
 
 ## Known Issues (updated)
-- PR body needs screenshot integration (screenshots from preview not yet taken)
-- Balance tuning: enemy damage values, ink economy, travel pacing need tuning pass
-- Character selection silhouettes are primitive — could use richer procedural ink-wash shapes
-- Drizzle particles are simple dots — could be richer with rain streaks
-- Death flow and victory ceremony timeline could be smoother
-- Melody scheduler could use more motif variety and dynamic tempo
-- Existing screenshots (01-character-select.jpg, 02-journey.jpg) are from previous pass — need fresh captures
-- Title screen is static — could add animated mist/ink particles on title canvas
-- Title-canvas redraws on resize but not on window orientation change on mobile
-- **Drizzle particle improvement**: replaced simple dot drizzle with angled rain streaks (`len` property, angled by `vx`, drawn as falling lines with ground splash spots)
-- **Rain ambience**: added filtered noise generator (`amb.rain`) with lowpass+highpass, gain driven by `drizzleActive` in step function
-- **PR body updated** to Pass 24 state with rain streaks, rain ambience, and ink-wash silhouettes
-- All 20 smoke checks pass
-- **Primary change**: replaced throwaway polygon/rect fallbacks in `drawPlayer()`, `drawEnemy()`, and `drawGanryu()` with deliberately designed ink-wash/woodblock silhouettes per character, so the game looks like intentional character art even before sprite PNGs load
-- **`drawPlayer()` fallback** — three hero-specific silhouettes:
-  - **Musashi**: wide kasa hat (curved sweep), topknot, face, haori coat, hakama trousers, katana at hip. Frame-aware weapon poses: idle (sheathed), slash (extended thrust), block (raised overhead)
-  - **Koeda**: smaller lean build, face, long scarf trailing behind, no visible weapon. Frame-aware with scarf detail layer
-  - **Yoshino**: wide hooded robe, face, staff held. Frame-aware: slash (staff swung), block (staff raised), idle (staff upright). Sleeve wave accents
-- **`drawEnemy()` fallback** — five enemy-type-specific silhouettes:
-  - Chaser/prowler: hunched ronin body with curved weapon stroke
-  - Duelist: broad-shouldered formal silhouette with shoulder armor detail and extended blade
-  - Vagrant: straw-hat wanderer with wide hat brim and cloak body
-  - Monk: robe-clad silhouette with staff
-  - Default fallback for unhandled types
-- **`drawGanryu()` fallback** — imposing samurai silhouette with wide kasa hat, topknot, broad body, katana drawn in guard position
-- All assets use intentional ink-wash color palette (#1a1512 dark silhouette, #2a1f14 body, #2a1f18 face, #3a2a1a weapon lines), matching the Edo woodblock ink aesthetic
-- All 20 smoke checks pass
+- Sprite asset quality: PNGs are local-authored placeholder quality — richer ink-wash sprite sheets desirable
+- Puddle reflections could add rain drop-ripple interaction
+- Screenshots need fresh captures after Pass 26 balance changes
+
+## Pass 26 — Sprint resolve economy, extended road, dynamic melody, mouse look
+- **Sprint mechanic with resolve drain**: Shift key drains resolve (1 resolve per 3 frames when sprinting); at low resolve sprint slows to 1.1x multiplier. Sprint ties into the resolve economy — players must manage sprint usage alongside blocking/parry/inking
+- **Balance tuning — extended road to 1400 units**: road now stretches from -30 to 1420 (was 1080), creating a longer journey with more atmospheric progression. Victory threshold moved to z>1380, requires 4 painted waymarks (was 3), 5 route milestones (was 3) including mountain pass and Ganryu pier. Travel pacing improved: ink regen rate increased (0.007*art per frame, was 0.006), sprinting reduces ink regen at low resolve
+- **2 new enemies**: mountain ascetic (chaser, z=1050), ganryu sentinel (duelist, z=1180) — 7 total enemies for a richer journey. Scenery coverage extended to 96 items (was 72)
+- **Dynamic melody tempo**: melody interval shortens when enemies are within 200 units (tempoFactor 1.5-2.5x) and slows in peaceful zones, creating tension-responsive audio
+- **Mouse drag camera look**: middle-click or left-click (when on title/select) drag rotates the camera heading via mousemove, giving desktop players smoother look control
+- All 27 smoke checks pass
