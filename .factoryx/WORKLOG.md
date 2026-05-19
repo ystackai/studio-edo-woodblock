@@ -119,3 +119,10 @@
 - Particles are recycled on expiry (200-600 frames), ensuring infinite subtle motion
 - `cancelAnimationFrame` on dismiss stops the loop cleanly; resize passes current animation time to preserve continuity
 - All 21 smoke checks pass
+
+### Pass 22 — Character sprite ink-wash outline and walking ink particles
+- Added dark ink-brush outline (sumi-e edge) around player sprite when using bitmap sprites, creating stronger ink-wash character silhouette
+- Added subtle dark ink particle trail at player feet during movement (sparks when `|mx|+|mz|>0.15`), reinforcing the ink-walk feel
+- Added ink-brush outline around enemy sprites using the same dark ink stroke, unifying the character art direction
+- Enhanced card portrait rendering with ink-wash overlay on sprite (semi-transparent dark rect) for deeper Edo scroll aesthetic
+- All 20 smoke checks pass
