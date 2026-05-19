@@ -168,7 +168,21 @@
 - **Zone tracking system**: `getZone(z)` lookup, `currentZone/prevZone` tracking for transition detection, `zoneCrossTimer` for boundary effects
 - All 50 smoke checks pass (was 44 — added 6 checks: journey zones, zone markers, road colors, lantern colors, zone particles, zone audio)
 
-## Pass 29 — Rain drop ripple interaction on puddles; milestone vignettes with ink-wash illustrations and haiku
+## Pass 31 — Ink-wash brush character art asset pass; sumi-e sprite overlay
+- **Improved all 11 character sprite sheets** with proper ink-wash brush rendering technique — multi-layered brush fills (`brushFill`), brush stroke draws (`brushStroke`), sumi-e dark ink outline (`sumiEdge`), and woodblock grain per-frame overlay (`woodGrain`)
+- **Musashi sprite** (31845 bytes → 31458 bytes): enhanced kasa hat with layered brush strokes, clearer haori body and shoulder shapes, better katana scabbard drawing, improved slash/block/damage poses with ink-brush arc trails
+- **Koeda sprite** (21888 → 31328): lean runner body with brush-fill layers, detailed long trailing scarf as multi-stroke brush, visible ink brush at hip, crossed-arm block pose, brush-sweep slash with ink trail
+- **Yoshino sprite** (14511 → 27210): hooded sage robe with two-layer hood brush fills, walking staff with brush-stroke drawing, wider silhouette
+- **Ganryu boss sprite** (13333 → 32011): imposing dark armor with layered brush fills, wider dark hat (2-layer), yoroi shoulder plates, large nodachi with brush stroke, chest armor plate
+- **All 7 enemy sprites** (11-13 KB → 22-23 KB): unified ink-wash brush silhouettes — chaser/prowler with hat/weapon brush fills, duelist headband, vagrant straw hat, monk cowl, mountain ascetic wide straw hat, ganryu sentinel jingasa helmet; all with sumi-e dark brush outline
+- **Improved procedural ink-wash fallback silhouettes** in `drawPlayer()` else path: Musashi (kasa hat layered brush, face, topknot, haori body, shoulders, katana scabbard, sumi-e outline), Koeda (lean body, scarf brush strokes, ink brush, cross-arm block), Yoshino (hooded robe 2-layer, staff, sumi-e outline) — replaces simple fillRect fallback with intentional brush-art silhouettes
+- **Unified enemy fallback silhouette** in `drawEnemy()`: single ink-wash brush body with head, torso, weapon stroke, and dark sumi-e brush outline replaces per-type branched fallbacks — consistent ink-wash look when PNGs haven't loaded
+- **Sumi-e overlay on sprite PNG rendering**: when loaded sprites render, apply dark semi-transparent ink wash (`ctx.fillStyle="#0a0806"` at 35% alpha over sprite rect) plus dark brush stroke outline around character bounding box — creates sumi-e ink-wash feel even for PNG-based characters
+- **Enhanced contact sheet** (34745 → 44921 bytes): larger layout (420x160), woodblock grain background, ink splash backdrop per hero, proper character palette per hero
+- **Regenerated manifest.json** with updated sprite generation description
+- All 52 smoke checks pass
+
+### Pass 30 — Journey atmosphere zones with zone-specific visual, audio, and particle progression
 - **Rain drop impact ripples**: when drizzle streaks land near active puddles, expanding ripple rings spawn with elliptical fade — visual interaction between rain and puddle systems (`ripples[]`, `drawRipples()`)
 - **Milestone vignettes**: each of the 5 route milestones now shows a rich ink-wash illustration (bridge arch with lantern glow, shrine with bird silhouettes, valley with distant mountains, mountain pass with wind lines, Ganryu shore with ocean waves)
 - **Haiku narration**: each milestone carries a seasonal Edo haiku that fades in below the objective text, deepening journey narrative
