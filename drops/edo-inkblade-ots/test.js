@@ -116,6 +116,14 @@ checks.push(["brush-stroke arc trails on paint", /arcCount=4\+player\.paintChain
 checks.push(["ink drip trails after paint", html.includes('Ink drip') || html.includes('ink drip')]);
 checks.push(["seasonal zone flower blooms", html.includes('bloomZone') && html.includes('seasonal blooms')]);
 
+// Pass 38: Death/ceremony enhancement, HUD polish, zone-aware hints, Ganryu approach audio
+checks.push(["death screen haiku", html.includes('death-haiku') && html.includes('deathHaikus')]);
+checks.push(["death ink particles burst", html.includes('Ink-wash death particles') && html.includes('burst(player.x,player.z')]);
+checks.push(["victory ink-wash mist", html.includes('Ink-wash victory mist') && html.includes('victoryParticles.push')]);
+checks.push(["HUD decorative ink-wash border", html.includes('stats::before') && html.includes('stats::after')]);
+checks.push(["zone-aware hints", html.includes("zoneName") && html.includes("zoneName+")]);
+checks.push(["Ganryu approach audio drone", html.includes('ganryuDrone') && html.includes('ganryuProx')]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

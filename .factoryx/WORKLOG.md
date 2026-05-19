@@ -272,3 +272,13 @@
 - **79 smoke checks pass** (was 74 — added 5 checks for zone-transition particles, wind swirl, brush-stroke arcs, ink drip, seasonal blooms)
 - **Fresh screenshots captured** after all changes (character select, mid-journey, paint-combat, combat-duel, ganryu-victory)
 
+## Pass 38 — Death/ceremony enhancement, HUD polish, zone-aware hints, Ganryu approach audio
+
+### What changed
+- **Death screen ink-wash ceremony**: ink dissolving particle burst on defeat, character-specific death haiku (Musashi/Koeda/Yoshino), decorative brush divider. Death screen feels like a poetic Edo conclusion rather than a plain overlay.
+- **Victory ceremony enhancement**: expanded palette (8 colors), ink-wash victory mist particles (dark drifting wisps) for deeper ceremony depth. Particles persist with richer variety.
+- **HUD ink-wash decorative borders**: `::before`/`::after` pseudo-elements on stats panel create layered Edo scroll-style frames with gold-tinged borders. Ink stone indicator appears near ink stat when ink is low.
+- **Zone-aware contextual hints**: hints now mention current zone name ("meadow/forest/mountain/coastal") so player always knows their territory.
+- **Ganryu approach audio drone**: deep sine bass oscillator (60Hz→24Hz) with lowpass filter builds as player nears Ganryu shoreline (z=1100-1380). Gain ramps 0→0.06, frequency descends for ominous depth. Creates palpable audio tension approaching the final boss.
+- **93 smoke checks pass** (was 87 — added 6 checks for death haiku, death ink burst, victory mist, HUD borders, zone hints, Ganryu drone)
+

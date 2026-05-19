@@ -12,6 +12,11 @@ body{overflow:hidden}
 canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background:#1a1714}
 #hud{position:absolute;inset:16px 16px auto 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;pointer-events:none}
 .panel{background:rgba(25,19,15,.82);border:1px solid rgba(231,197,130,.34);box-shadow:0 10px 40px rgba(0,0,0,.32);backdrop-filter:blur(6px);border-radius:8px;padding:10px 12px}
+#stats{position:relative}
+#stats::before{content:"";position:absolute;top:-4px;left:-4px;right:-4px;bottom:-4px;border:1px solid rgba(215,182,111,.15);border-radius:10px;pointer-events:none;background:rgba(25,19,15,.08)}
+#stats::after{content:"";position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;border:1px solid rgba(202,164,95,.08);border-radius:10px;pointer-events:none}
+#controls{position:relative}
+#controls::before{content:"";position:absolute;top:-3px;left:-3px;right:-3px;bottom:-3px;border:1px solid rgba(215,182,111,.1);border-radius:10px;pointer-events:none}
 #stats{display:grid;grid-template-columns:repeat(4,minmax(76px,1fr));gap:8px;min-width:min(560px,calc(100vw - 32px))}
 .stat{border-left:3px solid #caa45f;padding-left:8px}
 .label{font-size:10px;text-transform:uppercase;color:#b9a88d;letter-spacing:.08em}
@@ -22,6 +27,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background
 #ink-fill{background:#8fc7d6}
 #resolve-fill{background:#d7b66f}
 #ink-glow{position:absolute;top:-2px;left:-2px;width:calc(100% + 4px);height:calc(100% + 4px);border-radius:3px;pointer-events:none;transition:opacity .3s}
+#ink-stone{position:absolute;bottom:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle,#2a1f14,#0a0806);border:1px solid rgba(215,182,111,.2);pointer-events:none;opacity:0;transition:opacity .5s}
+#ink-stone.show{opacity:1}
+#ink-stone::before{content:"";position:absolute;top:3px;left:3px;width:4px;height:4px;border-radius:50%;background:rgba(140,200,180,.15);box-shadow:0 0 6px rgba(140,200,180,.1)}
 #log{width:300px;max-width:36vw;font-size:12px;line-height:1.35;color:#ead9bb}
 #log div{margin:0 0 4px}
 #objective{position:absolute;left:16px;bottom:16px;right:16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-end;pointer-events:none}
@@ -57,17 +65,13 @@ h1{font-family:serif;font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 4
 .card .swatch{position:relative;z-index:1;width:40px;height:10px;border-radius:10px;margin-bottom:10px;border:1px solid rgba(255,255,255,.15)}
 #veil{position:absolute;inset:auto 0 0 0;height:35vh;background:linear-gradient(0deg,rgba(23,19,15,.72),rgba(23,19,15,0));pointer-events:none}
 #death{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0);z-index:3;pointer-events:none;transition:background 1.2s}
-#victory{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0);z-index:3;pointer-events:none;transition:background 1.6s}
-#victory.show{background:linear-gradient(180deg,rgba(18,12,8,.88),rgba(30,20,15,.82));pointer-events:auto}
-#victory h2{font-size:clamp(28px,5vw,52px);color:#d7b66f;text-align:center;margin:0 0 8px;text-shadow:0 0 40px rgba(215,182,111,.35)}
-#victory p{font-size:14px;color:#d9c49e;text-align:center;margin:0 0 8px}
-#victory .sub{font-size:12px;color:#b9a88d;margin:0}
-#v-haiku{font-size:14px;color:#ead9bb;font-family:serif;font-style:italic;text-align:center;margin:0 0 16px;line-height:1.6;padding:0 20px;white-space:pre-line;opacity:0;transition:opacity 2s ease}
-#victory.show #v-haiku{opacity:1}
-#celebrate{position:absolute;inset:0;pointer-events:none;z-index:2}
 #death.show{background:rgba(0,0,0,.88);pointer-events:auto}
 #death h2{font-size:clamp(22px,4vw,42px);color:#f4ead8;text-align:center;margin:0 0 16px}
 #death p{font-size:14px;color:#cdbb9d;text-align:center;margin:0}
+#death-haiku{font-size:13px;color:#b9a88d;font-family:serif;font-style:italic;text-align:center;margin:0 0 6px;line-height:1.6;opacity:0;transition:opacity 1.6s}
+#death.show #death-haiku{opacity:1}
+#death-brush{width:clamp(80px,14vw,200px);height:1.5px;background:linear-gradient(90deg,transparent,#cdbb9d,rgba(205,187,157,.3),transparent);margin:0 auto 12px;opacity:0;transition:opacity 1.2s}
+#death.show #death-brush{opacity:1}
 @media(max-width:760px){#hud{inset:10px;display:block}.panel{padding:8px}#stats{grid-template-columns:repeat(2,1fr);min-width:0}#log{display:none}#cards{grid-template-columns:1fr}#objective{display:block}#controls{text-align:left;margin-top:8px}}
 </style>
 </head>
@@ -80,7 +84,7 @@ h1{font-family:serif;font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 4
     <div id="stats" class="panel" aria-live="polite">
       <div class="stat"><div class="label">Style</div><div class="value" id="style">Musashi</div></div>
       <div class="stat"><div class="label">Health</div><div class="value" id="hp">100</div><div class="stat-bar"><div class="stat-fill" id="hp-fill"></div></div></div>
-      <div class="stat"><div class="label">Ink</div><div class="value" id="ink">5</div><div class="stat-bar"><div class="stat-fill" id="ink-fill"></div><div id="ink-glow"></div></div></div>
+      <div class="stat"><div class="label">Ink</div><div class="value" id="ink">5</div><div class="stat-bar"><div class="stat-fill" id="ink-fill"></div><div id="ink-glow"></div></div><div id="ink-stone"></div></div>
       <div class="stat"><div class="label">Resolve</div><div class="value" id="resolve">0</div><div class="stat-bar"><div class="stat-fill" id="resolve-fill"></div></div></div>
       <div class="stat"><div class="label">Paint</div><div class="value" id="paint-mode" style="font-size:14px">Waymark</div></div>
     </div>
@@ -97,6 +101,8 @@ h1{font-family:serif;font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 4
     <section id="death">
       <div class="overlay-inner">
         <h2>Defeated</h2>
+        <p id="death-haiku">the road ends here / ink scatters like autumn leaves / return to the brush</p>
+        <div id="death-brush"></div>
         <div id="death-stats-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:12px 0;min-width:280px">
           <div class="stat"><div class="label">Time</div><div class="value" id="death-time"></div></div>
           <div class="stat"><div class="label">Defeated</div><div class="value" id="death-defeated"></div></div>
@@ -267,6 +273,8 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
   amb.footstep=function(){const fb=audioCtx.createBuffer(1,audioCtx.sampleRate*.06,audioCtx.sampleRate),fd=fb.getChannelData(0);for(let i=0;i<fd.length;i++)fd[i]=Math.random()*2-1*(1-i/fd.length);const fs=audioCtx.createBufferSource(),fg=audioCtx.createGain();fs.buffer=fb;fg.gain.value=.028;fs.connect(fg);fg.connect(audioCtx.destination);fs.start()}
   // DUEL TENSION DRONE — gain ramps with enemy proximity
   if(!amb.tension.node){var tg=audioCtx.createGain();tg.gain.value=0;var to=audioCtx.createOscillator();to.type="sawtooth";to.frequency.value=55;var tf=audioCtx.createBiquadFilter();tf.type="lowpass";tf.frequency.value=120;to.connect(tf);tf.connect(tg);tg.connect(audioCtx.destination);amb.tension={node:to,gain:tg};to.start()}
+  // GANRYU APPROACH DRONE — deep bass builds as player nears Ganryu shoreline
+  if(!amb.ganryuDrone){var gdo=audioCtx.createOscillator();gdo.type="sine";gdo.frequency.value=60;var gdg=audioCtx.createGain();gdg.gain.value=0;var gdf=audioCtx.createBiquadFilter();gdf.type="lowpass";gdf.frequency.value=80;gdo.connect(gdf);gdf.connect(gdg);gdg.connect(audioCtx.destination);amb.ganryuDrone={node:gdo,gain:gdg,frequency:gdo.frequency};gdo.start()}
   // GANRYU BRIGHT THEME — higher register triangle chords
   if(!amb.ganryu.g){
     var gg=audioCtx.createGain();gg.gain.value=0;
@@ -647,6 +655,9 @@ function step(dt){
   var tensionGain=0;
   enemies.filter(e=>e.hp>0).forEach(function(eo){var d=Math.hypot(eo.x-player.x,eo.z-player.z);if(d<160)tensionGain=Math.max(tensionGain,Math.max(0,.12*(1-d/160)))});
   if(amb.tension&&amb.tension.gain)amb.tension.gain.gain.setValueAtTime(tensionGain,audioCtx.currentTime);
+  // Ganryu approach drone — deep bass that builds as player nears the final zone
+  var ganryuProx=Math.max(0,Math.min(1,(player.z-1100)/280));
+  if(amb.ganryuDrone&&amb.ganryuDrone.gain&&amb.ganryuDrone.frequency){amb.ganryuDrone.gain.gain.setValueAtTime(ganryuProx*.06,audioCtx.currentTime);amb.ganryuDrone.frequency.setValueAtTime(Math.max(24,60-ganryuProx*36),audioCtx.currentTime)}
   // Zone transition audio — subtle wind-shift chord when crossing zone boundaries
   if(currentZone!==prevZone&&player.hp>0){var zc=currentZone;
     if(zc.name==="forest"){sfx.tone(262,.6,"sine",.04);setTimeout(function(){sfx.tone(330,.4,"sine",.03)},200)}
@@ -692,12 +703,16 @@ if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
           sparks.push({x:player.x+(Math.random()-.5)*10,z:player.z+(Math.random()-.5)*10,color:'#d98986',a:.6,vx:(Math.random()-.5)*.8,vz:(Math.random()-.5)*.8,d:Math.random()*3})}
       }
     });
-    if(won)victoryParticles.push({x:player.x+(Math.random()-.5)*30,z:player.z+(Math.random()-.5)*30,a:1,vx:(Math.random()-.5)*.8,vy:Math.random()*3+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb"][Math.random()*5|0],d:Math.random()*4+1});
+    if(won){victoryParticles.push({x:player.x+(Math.random()-.5)*30,z:player.z+(Math.random()-.5)*30,a:1,vx:(Math.random()-.5)*.8,vy:Math.random()*3+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb","#eca5a0","#caa45f","#d4c8a0"][Math.random()*8|0],d:Math.random()*4+1});
+      // Ink-wash victory mist — drifting dark wisps for ceremony depth
+      if(Math.random()<.06){victoryParticles.push({x:player.x+(Math.random()-.5)*60,z:player.z+(Math.random()-.5)*60,a:.7,vx:(Math.random()-.5)*.3,vy:Math.random()*1+.2,color:"#1a120e",d:Math.random()*6+4})}}
     player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);if(player.paintTimer<=0)player.paintChain=0;player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
     duelFocus.timer=Math.max(0,duelFocus.timer-dt);
     if(player.blocking){player.blockDecay+=dt*3}else{player.blockDecay=Math.max(0,player.blockDecay-dt*5)}
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
-    if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show");var e=Math.floor((Date.now()-gameStartTime)/1000);var tm=Math.floor(e/60)+"m "+(e%60)+"s";document.getElementById("death-time").textContent=tm;document.getElementById("death-defeated").textContent=enemiesDefeated;document.getElementById("death-ink").textContent=inkUsedTotal;document.getElementById("death-resolve").textContent=player.resolve}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0)ui.death.classList.remove("show")}
+    if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show");var e=Math.floor((Date.now()-gameStartTime)/1000);var tm=Math.floor(e/60)+"m "+(e%60)+"s";document.getElementById("death-time").textContent=tm;document.getElementById("death-defeated").textContent=enemiesDefeated;document.getElementById("death-ink").textContent=inkUsedTotal;document.getElementById("death-resolve").textContent=player.resolve;
+      // Ink-wash death particles — dissolving ink burst on defeat
+      if(player.deathFade<.1)burst(player.x,player.z,"#1a120e","#0a0806",80);var dhEl=document.getElementById("death-haiku");if(dhEl){var deathHaikus={musashi:"the road ends here / ink scatters like autumn leaves / return to the brush",koeda:"running the long road / brush slips from the belt / mist takes the path",yoshino:"tide pulls the robe / the walking staff sinks / journey stops here"};dhEl.textContent=deathHaikus[currentHeroKey]||"the road ends here / ink scatters like autumn leaves / return to the brush";dhEl.style.opacity="1"}}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0){ui.death.classList.remove("show");var dhEl=document.getElementById("death-haiku");if(dhEl)dhEl.style.opacity="0"}}
     milestonePopup.timer=Math.max(0,milestonePopup.timer-dt);
     updateEnemies(dt);updateQuest();updateUi();
   }
@@ -920,20 +935,21 @@ function updateUi(){ui.style.textContent=hero.label;
   ui.log.innerHTML=messages.map(m=>`<div>${m}</div>`).join("");
   document.getElementById("hp-fill").style.width=(dispHp/hero.hp*100)+"%";
   document.getElementById("ink-fill").style.width=(dispInk/hero.ink*100)+"%";
-  // Contextual hint
+  // Contextual hint with zone awareness
   var hint=document.getElementById("hint"),hintText="";
   var alive=enemies.filter(e=>e.hp>0).length;
   var nearestEnemy=enemies.reduce(function(a,b){var da=Math.hypot(a.x-player.x,a.z-player.z),db=Math.hypot(b.x-player.x,b.z-player.z);return da<db?a:b});
   var enemyDist=Math.hypot(nearestEnemy.x-player.x,nearestEnemy.z-player.z);
   var painted=marks.length;
+  var zoneName=(currentZone||getZone(player.z)).name;
   if(duelFocus.timer>0)hintText="Duel focus: "+duelFocus.name+" is breathing for a strike. Block the glow, then slash.";
-  else if(painted<4&&player.z<200&&Math.abs(player.z-180)<80)hintText="Press Space to paint a waymark on the road.";
-  else if(painted<4&&player.z>200&&player.z<520)hintText="Paint remaining waymarks with Space. Enemies prowl ahead.";
-  else if(player.blocking&&enemyDist<120)hintText="Hold block. Release K/Q to strike when the enemy winds up.";
-  else if(enemyDist<100&&!player.blocking&&player.slashTimer<=0)hintText="Enemy close! Press J/E to slash or K/Q to block.";
-  else if(enemyDist<100&&alive>0&&player.ink>0)hintText="Enemy near — press Space to paint a sealing mark, or J/E to duel.";
-  else if(painted<4&&player.ink<1)hintText="Ink is low. Keep moving to let it flow back.";
-  else if(alive>0&&player.z>1200)hintText="Ganryu shore nears. Resolve your encounters.";
+  else if(painted<4&&player.z<200&&Math.abs(player.z-180)<80)hintText="Press Space to paint a waymark on the "+zoneName+" road.";
+  else if(painted<4&&player.z>200&&player.z<520)hintText="Paint remaining waymarks with Space through the "+zoneName+". Enemies prowl ahead.";
+  else if(player.blocking&&enemyDist<120)hintText="Hold block in the "+zoneName+". Release K/Q to strike when the enemy winds up.";
+  else if(enemyDist<100&&!player.blocking&&player.slashTimer<=0)hintText="Enemy close in the "+zoneName+"! Press J/E to slash or K/Q to block.";
+  else if(enemyDist<100&&alive>0&&player.ink>0)hintText="Enemy near in the "+zoneName+" — press Space to paint a sealing mark, or J/E to duel.";
+  else if(painted<4&&player.ink<1)hintText="Ink is low in the "+zoneName+". Keep moving to let it flow back.";
+  else if(alive>0&&player.z>1200)hintText="Ganryu shore nears through the "+zoneName+". Resolve your encounters.";
   
   // Mobile touch hint - prepend for touch devices
   if('ontouchstart' in document.documentElement&&hintText){hintText='Tap=Slash, Hold=Paint. Drag sides to move. '+hintText}
