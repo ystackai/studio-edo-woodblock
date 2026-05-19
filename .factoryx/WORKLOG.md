@@ -1,7 +1,7 @@
 # Edo Inkblade: Road to Ganryu — WORKLOG
 
 ## Artifact
-`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (~1408 lines)
+`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (~1560 lines)
 
 ## Completed Passes
 
@@ -281,4 +281,19 @@
 - **Zone-aware contextual hints**: hints now mention current zone name ("meadow/forest/mountain/coastal") so player always knows their territory.
 - **Ganryu approach audio drone**: deep sine bass oscillator (60Hz→24Hz) with lowpass filter builds as player nears Ganryu shoreline (z=1100-1380). Gain ramps 0→0.06, frequency descends for ominous depth. Creates palpable audio tension approaching the final boss.
 - **93 smoke checks pass** (was 87 — added 6 checks for death haiku, death ink burst, victory mist, HUD borders, zone hints, Ganryu drone)
+
+## Pass 39 — Rich Edo audio identity, instrument emulation, zone ambient particles, atmosphere depth
+
+### What changed
+- **Audio instrument emulation**: replaced basic oscillator SFX with three proper Edo-style instruments:
+  - Shakuhachi bamboo flute (bandpass-filtered sawtooth with vibrato LFO, breath attack envelope) for melody and death ceremony
+  - Koto string instrument (triangle wave with bandpass resonance and pluck attack) for harmony and ink/mark/inkRegen SFX
+  - Taiko drum (filtered noise burst with pitch drop) for block, hit, and death ceremony pulses
+- **Combat SFX rewritten**: slash uses bandpass noise + metal ring + body resonance; block uses taiko impact + wood resonance; hit uses taiko + low thud; death uses layered shakuhachi Dm7 chord + taiko pulses
+- **Melody system expanded**: added 4 zone-specific extended motifs (yoMotifMeadow, yoMotifForest, yoMotifMountain, yoMotifCoastal) and koto harmony motif (yoKotoMotif). Shakuhachi voice handles melodies with vibrato, koto voice handles slower harmony intervals — dual-instrument layering replaces single flute
+- **Zone ambient noise layer**: filtered noise ambience (zoneAmbient) with zone-specific gain values — meadow (gentle breeze), forest (deeper hum), mountain (wind through stone), coastal (sea wash)
+- **Zone-specific ambient creatures**: 4 new particle types — meadow butterflies (yellow, erratic flight), forest crows (dark, fast, descending), mountain eagles (wide wings, slow glide), coastal seabirds (swift, low flight). Each animates with lifecycle, fade, and zone-only spawning
+- **Zone-aware atmosphere colors**: drawAtmosphere now uses zone-specific tint palettes (atmColors/atmGlow) — meadow warm mist, forest earthy tone, mountain cool blue-gray, coastal light sea-tone
+- **Fresh screenshots captured** after all changes
+- **106 smoke checks pass** (was 93 — added 13 checks: shakuhachi, koto, taiko emulation; zone ambient creatures; butterfly/crow/eagle/seabird draw functions; extended melody motifs; shaku/koto voices; zone ambient noise; atmosphere colors)
 

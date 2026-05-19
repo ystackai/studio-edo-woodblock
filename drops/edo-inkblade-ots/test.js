@@ -116,7 +116,20 @@ checks.push(["brush-stroke arc trails on paint", /arcCount=4\+player\.paintChain
 checks.push(["ink drip trails after paint", html.includes('Ink drip') || html.includes('ink drip')]);
 checks.push(["seasonal zone flower blooms", html.includes('bloomZone') && html.includes('seasonal blooms')]);
 
-// Pass 38: Death/ceremony enhancement, HUD polish, zone-aware hints, Ganryu approach audio
+// Pass 39: Rich Edo Audio Identity + Atmosphere Depth
+checks.push(["shakuhachi instrument emulation", html.includes("shakuhachi") && html.includes("bandpass") && html.includes("vibrato")]);
+checks.push(["koto instrument emulation", html.includes("koto") && html.includes("triangle") && html.includes("pluck")]);
+checks.push(["taiko drum emulation", html.includes("taiko") && html.includes("noise") && html.includes("pitch drop")]);
+checks.push(["zone ambient creatures", html.includes("butterflies") && html.includes("crows") && html.includes("eagles") && html.includes("seabirds")]);
+checks.push(["butterfly draw function", html.includes("function drawButterflies")]);
+checks.push(["crow draw function", html.includes("function drawCrows")]);
+checks.push(["eagle draw function", html.includes("function drawEagles")]);
+checks.push(["seabird draw function", html.includes("function drawSeabirds")]);
+checks.push(["extended melody motifs", html.includes("yoMotifMeadow") && html.includes("yoMotifForest") && html.includes("yoMotifMountain") && html.includes("yoMotifCoastal") && html.includes("yoKotoMotif")]);
+checks.push(["shakuhachi melody voice", html.includes("amb.shaku") && html.includes("shakuPhrase")]);
+checks.push(["koto harmony voice", html.includes("amb.koto") && html.includes("kotoPhrase")]);
+checks.push(["zone ambient noise layer", html.includes("amb.zoneAmbient") && html.includes("zaGain")]);
+checks.push(["zone-aware atmosphere colors", html.includes("atmColors") && html.includes("atmGlow")]);
 checks.push(["death screen haiku", html.includes('death-haiku') && html.includes('deathHaikus')]);
 checks.push(["death ink particles burst", html.includes('Ink-wash death particles') && html.includes('burst(player.x,player.z')]);
 checks.push(["victory ink-wash mist", html.includes('Ink-wash victory mist') && html.includes('victoryParticles.push')]);
