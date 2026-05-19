@@ -213,8 +213,8 @@ function initAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||windo
 }
 let currentHeroKey="musashi";
 
-let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0,inkTimer:0};
-let keys={},last=0,won=false,hitStop=0,touch={id:0,sx:0,sy:0,startTime:0,hold:false,moving:false};
+let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0,inkTimer:0};
+let keys={},last=0,won=false,hitStop=0,touch={id:0,sx:0,sy:0,startTime:0,hold:false,moving:false};let drizzle=[],drizzleActive=0,bellRung=0,parryBonus=0;
 let gameStartTime=0,enemiesDefeated=0,inkUsedTotal=0,marksPlacedTotal=0;
 let messages=["Choose a style, then begin the road."];
 let milestonePopup={active:false,text:"",timer:0};
@@ -229,7 +229,7 @@ let enemies=[
 let scenery=[];
 for(let i=0;i<72;i++){
   const side=i%2?1:-1;
-  const kinds=["gate","pine","torii","shrine","pagoda","teaHouse","bamboo","stoneMarker","ricePaddy","bridgeArch","stall","cedar","monument","boatDock","well","lanternPost","waterfall","oldTree","stoneWall"];
+  const kinds=["gate","pine","torii","shrine","pagoda","teaHouse","bamboo","stoneMarker","ricePaddy","bridgeArch","stall","cedar","monument","boatDock","well","lanternPost","waterfall","oldTree","stoneWall","lanternRow","crypt","willow"];
   const kind=kinds[i%15];
   scenery.push({kind,x:side*(140+Math.random()*200),z:80+i*100,w:50+Math.random()*60,h:60+Math.random()*90});
 }
@@ -360,18 +360,20 @@ for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()
 })();
 document.querySelectorAll(".card").forEach(btn=>btn.addEventListener("click",()=>start(btn.dataset.hero)));
 function start(id){currentHeroKey=id;
-  hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,blockDecay:0,slashTimer:0,paintTimer:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
+  hero=heroes[id];player={x:0,z:0,heading:0,hp:hero.hp,ink:hero.ink,resolve:0,blocking:false,blockDecay:0,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:hero.hp,displayInk:hero.ink,deathFade:0};
   marks=[];sparks=[];leaves=[];fireflies=[];won=false;victoryParticles=[];victoryFanfare=false;ui.victory.classList.remove("show");enemies.forEach((e,i)=>{e.hp=e.max;e.x=[-140,120,-80][i];e.z=[340,620,900][i];e.patrolAngle=i*1.6;e.wind=0});
   screenShake=0;gameStartTime=Date.now();enemiesDefeated=0;inkUsedTotal=0;marksPlacedTotal=0;messages=[hero.label+" steps onto the Tokaido road."];ui.select.classList.add("hidden");updateUi();
 }
-addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" ")paint();if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase())){player.blocking=true;player.blockDecay=0}});
-addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false});
+let paintPressTime=0;
+addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" "){paintPressTime=Date.now();paint()}if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase())){player.blocking=true;player.blockDecay=0}});
+addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false;if(e.key===" "&&paintPressTime){var held=Date.now()-paintPressTime;player.paintHoldTime=Math.min(99,held/250);paintPressTime=0}});
 addEventListener("touchstart",(e)=>{e.preventDefault();const t=e.changedTouches[0];touch.id=t.identifier;touch.sx=t.clientX;touch.sy=t.clientY;touch.startTime=Date.now();touch.hold=false;touch.moving=false;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}});
 addEventListener("touchmove",(e)=>{e.preventDefault();const t=e.changedTouches[0];if(t.identifier!==touch.id)return;const dx=t.clientX-touch.sx,dy=t.clientY-touch.sy;if(Math.abs(dx)>18||Math.abs(dy)>18){touch.moving=true;touch.sx=t.clientX;touch.sy=t.clientY}if(touch.moving){const spd=hero.speed*1.1;const ang=Math.atan2(dy,dx);if(ang>-2.5&&ang<.7){player.heading+=dx*.003}else{const fwd=Math.cos(ang)*spd*.03,side=Math.sin(ang)*spd*.03;player.mx+=((side-player.mx)*.08);player.mz+=((fwd-player.mz)*.08)}}});
-addEventListener("touchend",(e)=>{e.preventDefault();if(touch.moving){touch.moving=false;player.mx=0;player.mz=0;return}const held=Date.now()-touch.startTime;if(held>500){paint()}else if(!touch.hold){slash()}});
+addEventListener("touchend",(e)=>{e.preventDefault();if(touch.moving){touch.moving=false;player.mx=0;player.mz=0;return}const held=Date.now()-touch.startTime;if(held>500){player.paintHoldTime=Math.min(99,held/250);paint()}else if(!touch.hold){slash()}});
 addEventListener("touchcancel",(e)=>{touch.moving=false;player.mx=0;player.mz=0});
 addEventListener("contextmenu",e=>e.preventDefault());
-addEventListener("mousedown",e=>{if(e.button===0)slash();if(e.button===2)paint()});
+addEventListener("mousedown",e=>{if(e.button===0)slash();if(e.button===2){paintPressTime=Date.now();paint()}})
+addEventListener("mouseup",e=>{if(e.button===2&&paintPressTime){var held=Date.now()-paintPressTime;player.paintHoldTime=Math.min(99,held/250);paintPressTime=0}});
 addEventListener("resize",resize);resize();requestAnimationFrame(loop);
 function resize(){const dpr=Math.min(devicePixelRatio||1,2);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
 function loop(t){const dt=Math.min(40,t-last||16)/16.67;last=t;waveAnim=t;if(hitStop>0){hitStop=Math.max(0,hitStop-dt*2);draw();requestAnimationFrame(loop)}else{step(dt);draw();requestAnimationFrame(loop)}}
@@ -395,11 +397,11 @@ function step(dt){
     if(Math.random()<.02*dt&&fireflies.length<18)fireflies.push({x:player.x+(Math.random()-.5)*70,z:player.z-20+Math.random()*60,vx:(Math.random()-.5)*.1,vz:(Math.random()-.5)*.1,bright:Math.random()*.5+.5});
     fireflies=fireflies.filter(f=>f.bright>.05);fireflies.forEach(f=>{f.x+=f.vx*dt;f.z+=f.vz*dt;f.bright=Math.max(0,f.bright-.004*dt)});
     if(Math.random()<.015*dt&&riverMist.length<12)riverMist.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.2,vz:Math.random()*.3+.1,alpha:.6});
-    riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});
+    riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});drizzleActive=Math.max(0,drizzleActive+(player.z>300&&player.z<700?.004:-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt)drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:(Math.random()-.5)*.1,vy:1+Math.random()*.5,age:0});drizzle=drizzle.filter(d=>d.age<120);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
   // Ambient: footsteps, wind drift, river near bridge
-  initAudio();var amb=window._amb;amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);amb.river.gain.gain.exponentialSmoothValueAtTime(0,audioCtx.currentTime+.6)
+  initAudio();var amb=window._amb;amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);if(player.z>460&&player.z<580&&!bellRung){bellRung=1;tone(220,1.2,"sine",.15);setTimeout(function(){tone(330,.8,"sine",.1)},300);setTimeout(function(){tone(440,.6,"sine",.08)},600);say("A temple bell tolls across the bridge.")}const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}amb.river.gain.gain.exponentialSmoothValueAtTime(0,audioCtx.currentTime+.6)
     if(won)victoryParticles.push({x:player.x+(Math.random()-.5)*30,z:player.z+(Math.random()-.5)*30,a:1,vx:(Math.random()-.5)*.8,vy:Math.random()*3+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb"][Math.random()*5|0],d:Math.random()*4+1});
-    player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);if(player.blocking){player.blockDecay+=dt*3}else{player.blockDecay=Math.max(0,player.blockDecay-dt*5)}
+    player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);if(player.paintTimer<=0)player.paintChain=0;player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);if(player.blocking){player.blockDecay+=dt*3}else{player.blockDecay=Math.max(0,player.blockDecay-dt*5)}
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
     if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show");var e=Math.floor((Date.now()-gameStartTime)/1000);var tm=Math.floor(e/60)+"m "+(e%60)+"s";document.getElementById("death-time").textContent=tm;document.getElementById("death-defeated").textContent=enemiesDefeated;document.getElementById("death-ink").textContent=inkUsedTotal;document.getElementById("death-resolve").textContent=player.resolve}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0)ui.death.classList.remove("show")}
     milestonePopup.timer=Math.max(0,milestonePopup.timer-dt);
@@ -441,7 +443,7 @@ if(e.attackCount>0){e.attackCount--;if(dist<e.atkRange+25){e.wind=e.attackCount=
     e.attackWindUp=(e.attackWindUp||0)+dt;
     if(e.wind>40&&e.attackWindUp>8&&dist<e.atkRange+15){
       // Strike when wind telegraphed long enough
-      const dmg=player.blocking?Math.max(1,e.atk/(3+Math.min(player.blockDecay/10,4))):e.atk;
+      const parryWindow=player.blocking&&e.wind>45&&e.wind<65?1:0;if(parryWindow&&player.blockDecay<20){parryBonus=3;player.resolve=Math.min(15,player.resolve+3);say("Perfect parry! Resolve surges.")}else{parryBonus=0}const dmg=player.blocking?Math.max(1,e.atk/(3+Math.min(player.blockDecay/10,4))):e.atk;
       player.hp=Math.max(0,player.hp-dmg);
       player.damageFlash=player.invincible>0?0:10;
       player.invincible=player.invincible>0?player.invincible:24;
@@ -458,15 +460,22 @@ if(e.attackCount>0){e.attackCount--;if(dist<e.atkRange+25){e.wind=e.attackCount=
 }
 function paint(){initAudio();
   if(!ui.select.classList.contains("hidden")||player.paintTimer>0)return;
-  if(player.ink<1){say("The inkstone is dry. Keep moving and breathe.");return}
+  if(player.ink<1){say("The inkstone is dry. Keep moving and breathe.");player.paintHoldTime=0;return}
   player.ink-=1;inkUsedTotal+=1;player.paintTimer=20;
+  player.paintChain=Math.min(6,player.paintChain+1);
   const x=player.x+Math.sin(player.heading)*70,z=player.z+Math.cos(player.heading)*70;
-  marks.push({x,z,age:0,color:hero.color,style:hero.label});
+  // Brush size grows with hold duration and chain painting
+  const holdBonus=Math.min(3,player.paintHoldTime/15);
+  const brushSize=1+(player.paintChain/3)+(player.ink/hero.ink)*.4+holdBonus;
+  // Longer persistence for larger, more deliberate marks
+  const maxAge=800+Math.round(brushSize*120);
+  marks.push({x,z,age:0,maxAge,color:hero.color,style:hero.label,brushSize});
   // Sealing mark: enemies near the paint mark take art-aligned damage
   enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{var dmg=Math.round(12*hero.art);e.hp-=dmg;if(e.hp<=0){enemiesDefeated+=1;player.resolve+=2;say(e.name+" unravels under the ink seal.")}else{player.resolve+=1;say("The ink mark binds "+e.name+".")}});
   marksPlacedTotal+=1;player.resolve+=1;
-  // Sumi-e splash burst
-  for(var i=0;i<30;i++){var ang=Math.random()*7,dist=Math.random()*60;sparks.push({x:x+Math.cos(ang)*dist,z:z+Math.sin(ang)*dist,color:hero.color,a:.7+(Math.random()*.3),vx:(Math.random()-.5)*5,vz:(Math.random()-.5)*5,d:Math.random()*3+1})};
+  // Sumi-e splash burst — bigger for chain paints
+  var splatCount=20+player.paintChain*15,splatSpread=40+player.paintChain*30;
+  for(var i=0;i<splatCount;i++){var ang=Math.random()*7,dist=Math.random()*splatSpread;sparks.push({x:x+Math.cos(ang)*dist,z:z+Math.sin(ang)*dist,color:hero.color,a:.7+(Math.random()*.3),vx:(Math.random()-.5)*5,vz:(Math.random()-.5)*5,d:Math.random()*3+1})};
   say(hero.label+" presses a living ink seal into the road.");
 }
 function slash(){initAudio();
@@ -541,11 +550,11 @@ function draw(){
   ctx.clearRect(0,0,w,h);
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#1c2839");sky.addColorStop(.5,"#6a5a4b");sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
-  drawRoad(w,h,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawLeaves();drawFireflies();drawRiverMist();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawLeaves();drawFireflies();drawRiverMist();drawDrizzle();
   const visible=[];
   scenery.forEach(o=>{const p=project(o.x,o.z,o.h);if(p)visible.push({p,o,type:"scenery"})});
   if(victoryParticles.length)drawVictoryParticles();
-  marks.forEach(m=>{m.age++;const p=project(m.x,m.z,4);if(p)visible.push({p,o:m,type:"mark"})});
+  marks.forEach(m=>{m.age++;if(m.age>m.maxAge&&m.brushSize<63)return;const p=project(m.x,m.z,4);if(p)visible.push({p,o:m,type:"mark"})});
   enemies.filter(e=>e.hp>0).forEach(e=>{const p=project(e.x,e.z,54);if(p)visible.push({p,o:e,type:"enemy"})});
   visible.sort((a,b)=>b.p.d-a.p.d).forEach(v=>v.type==="enemy"?drawEnemy(v.o,v.p):v.type==="mark"?drawMark(v.o,v.p):drawScenery(v.o,v.p));
   drawPlayer();drawSparks();drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
@@ -586,7 +595,7 @@ function drawSun(w,hor){
 }
 function drawMountains(w,hor){ctx.fillStyle="#29333c";for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(i*w/5-80,hor);ctx.lineTo(i*w/5+80,hor*(.42+.12*(i%2)));ctx.lineTo(i*w/5+230,hor);ctx.fill()}}
 function drawGanryu(w,hor){var wp=waveAnim;ctx.fillStyle="#2f403b";ctx.fillRect(0,hor+10,w,80);ctx.strokeStyle="rgba(200,220,230,.08)";ctx.lineWidth=1.5;for(var i=0;i<10;i++){var wy=hor+20+i*7+Math.sin(wp+i*1.4)*3;ctx.beginPath();ctx.moveTo(0,wy);for(var x=0;x<w;x+=8){var y=wy+Math.sin(x*.015+wp+i)*2;ctx.lineTo(x,y)};ctx.stroke()};var ir=Math.min(1,Math.max(0,(player.z-700)/200));if(ir>0){ctx.globalAlpha=ir*.35;ctx.fillStyle="#2a3833";ctx.beginPath();ctx.moveTo(w*.25,hor-10);ctx.lineTo(w*.35,hor-50);ctx.lineTo(w*.42,hor-35);ctx.lineTo(w*.48,hor-55);ctx.lineTo(w*.55,hor-40);ctx.lineTo(w*.65,hor-25);ctx.lineTo(w*.7,hor-10);ctx.closePath();ctx.fill();ctx.fillStyle="rgba(200,215,225,.15)";ctx.beginPath();ctx.moveTo(w*.3,hor-8);ctx.lineTo(w*.38,hor-35);ctx.lineTo(w*.45,hor-25);ctx.lineTo(w*.5,hor-40);ctx.lineTo(w*.58,hor-30);ctx.lineTo(w*.65,hor-8);ctx.closePath();ctx.fill();ctx.globalAlpha=1;if(ir>0.3){ctx.globalAlpha=ir*.25;ctx.fillStyle="#3a2822";ctx.fillRect(w*.45-4,hor-5,8,40);for(var pi=0;pi<3;pi++){ctx.fillRect(w*.44+pi*6,hor-5+pi*12,3,15)};ctx.globalAlpha=1}}}
-function drawMist(w,hor){ctx.strokeStyle="rgba(245,232,204,.06)";ctx.lineWidth=2;for(let i=0;i<14;i++){ctx.beginPath();ctx.moveTo(0,hor+10+i*16+Math.sin(last*.0008+i)*10);ctx.bezierCurveTo(w*.25,hor+i*12,w*.6,hor+50+i*10,w,hor+20+i*18);ctx.stroke()};// Deep mist at Ganryu approach
+function drawFog(w,hor){const fogBase=Math.min(1,Math.max(0,(player.z-200)/300)*.18+Math.max(0,(player.z-800)/200)*.22);ctx.fillStyle="rgba(200,220,230,"+fogBase+")";ctx.fillRect(0,0,w,hor)}function drawMist(w,hor){ctx.strokeStyle="rgba(245,232,204,.06)";ctx.lineWidth=2;for(let i=0;i<14;i++){ctx.beginPath();ctx.moveTo(0,hor+10+i*16+Math.sin(last*.0008+i)*10);ctx.bezierCurveTo(w*.25,hor+i*12,w*.6,hor+50+i*10,w,hor+20+i*18);ctx.stroke()};// Deep mist at Ganryu approach
 var ganryuMist=Math.min(1,Math.max(0,(player.z-800)/200));if(ganryuMist>0){ctx.globalAlpha=ganryuMist*.2;ctx.fillStyle="rgba(200,220,230,.6)";ctx.fillRect(0,0,w,hor);ctx.globalAlpha=1}}
 function drawMilestoneGlow(w,hor){
   // Glow rings near each route milestone zone
@@ -726,6 +735,53 @@ function drawScenery(o,p){
     // Gate opening
     ctx.fillStyle="#2a1a10";ctx.fillRect(p.x-8*s,base-12*s,16*s,12*s)
   }
+
+  else if(o.kind==="lanternRow"){
+    // Row of stone lanterns along a road — warm glow
+    for(var li=0;li<5;li++){const lx=p.x+(li-2)*16*s;
+      ctx.fillStyle="#5a4a38";ctx.fillRect(lx-3*s,base-28*s,6*s,28*s);
+      ctx.fillStyle="#8a7a68";ctx.fillRect(lx-6*s,base-32*s,12*s,4*s);
+      ctx.fillStyle="#a74435";ctx.beginPath();ctx.arc(lx,base-32*s,5*s,0,7);ctx.fill();
+      ctx.fillStyle="#ff8333";ctx.globalAlpha=.12;
+      ctx.beginPath();ctx.arc(lx,base-32*s,10*s,0,7);ctx.fill();
+      ctx.globalAlpha=1};
+    // Ground glow
+    ctx.fillStyle="rgba(255,130,50,.06)";ctx.fillRect(p.x-42*s,base-4*s,84*s,4*s)
+  }
+  else if(o.kind==="crypt"){
+    // Stone crypt/tomb with moss and inscription
+    ctx.fillStyle="#6a5a48";ctx.fillRect(p.x-12*s,base-36*s,24*s,36*s);
+    ctx.fillStyle="#5a4a38";ctx.fillRect(p.x-16*s,base-40*s,32*s,4*s);
+    ctx.strokeStyle="#4a3a28";ctx.lineWidth=1.5*s;
+    ctx.beginPath();ctx.moveTo(p.x-16*s,base-40*s);ctx.lineTo(p.x+16*s,base-40*s);ctx.stroke();
+    ctx.fillStyle="#4a6a38";ctx.globalAlpha=.35;
+    ctx.fillRect(p.x-22*s,base-44*s,44*s,6*s);ctx.globalAlpha=1;
+    ctx.strokeStyle="#8a7a68";ctx.lineWidth=1.5*s;
+    ctx.beginPath();ctx.moveTo(p.x-8*s,base-18*s);ctx.lineTo(p.x+8*s,base-18*s);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p.x-6*s,base-14*s);ctx.lineTo(p.x+6*s,base-14*s);ctx.stroke();
+    ctx.fillStyle="#d98986";ctx.globalAlpha=.5;
+    ctx.beginPath();ctx.arc(p.x,base-4*s,3*s,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(p.x-4*s,base-2*s,3*s,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(p.x+4*s,base-2*s,3*s,0,7);ctx.fill();
+    ctx.globalAlpha=1
+  }
+  else if(o.kind==="willow"){
+    // Weeping willow — trunk, cascading drooping branches
+    ctx.fillStyle="#3a2a1a";ctx.fillRect(p.x-4*s,base-44*s,8*s,44*s);
+    ctx.strokeStyle="#6a8a58";ctx.lineWidth=1.5*s;
+    for(var wi=0;wi<16;wi++){const angle=-.8+wi/12,radius=40+wi*3*s;
+      const bx=p.x+Math.cos(angle)*radius,by=base-30*s+Math.sin(angle)*radius*1.2;
+      ctx.beginPath();ctx.moveTo(p.x,base-32*s);
+      ctx.quadraticCurveTo(p.x+(bx-p.x)*.4,base-50*s+wi*2,bx,by);ctx.stroke()};
+    ctx.fillStyle="#4b7a38";ctx.globalAlpha=.3;
+    for(var wi=0;wi<5;wi++){ctx.beginPath();
+      ctx.moveTo(p.x-30*s+wi*12*s,base-55*s);
+      ctx.quadraticCurveTo(p.x-30*s+wi*12*s,base-35*s,p.x-30*s+wi*12*s+Math.sin(wi)*10*s,base-55*s);
+      ctx.fill()};
+    ctx.globalAlpha=1;
+    ctx.fillStyle="rgba(0,0,0,.1)";ctx.beginPath();
+    ctx.ellipse(p.x,base+2*s,32*s,6*s,0,0,7);ctx.fill()
+  }
   else{ctx.fillStyle="#5b3828";ctx.fillRect(p.x-34*s,base-48*s,68*s,48*s);ctx.fillStyle="#2a211b";ctx.beginPath();ctx.moveTo(p.x-42*s,base-48*s);ctx.lineTo(p.x,base-82*s);ctx.lineTo(p.x+42*s,base-48*s);ctx.fill()}
 }
 
@@ -748,22 +804,26 @@ function drawEnemy(e,p){
   if(e.attackFlash>0&&e.attackFlash<8){ctx.strokeStyle="#efe1c0";ctx.lineWidth=6*s;ctx.beginPath();ctx.moveTo(p.x+50*s,base-62*s);ctx.lineTo(p.x+10*s,base-38*s);ctx.stroke()}
 }
 function drawMark(m,p){
-  const s=Math.min(p.s,5);
-  // Sumi-e brush stroke painted on road surface
-  ctx.globalAlpha=.6+Math.sin(m.age*.05)*.1;
-  ctx.strokeStyle=m.color;ctx.lineWidth=8*s;ctx.beginPath();
+  const s=Math.min(p.s,5)*(m.brushSize||1);
+  var ageDecay=1;if(m.age>m.maxAge)ageDecay=Math.max(0.06,1-(m.age-m.maxAge)/300);
+  // Sumi-e brush stroke painted on road surface — wider for chain paints
+  ctx.globalAlpha=.6*ageDecay+Math.sin(m.age*.05)*.1*ageDecay;
+  ctx.strokeStyle=m.color;ctx.lineWidth=Math.max(3,8*s)*ageDecay;ctx.beginPath();
   ctx.moveTo(p.x,p.y);
   var waveAng=m.age*.04;
   for(var i=0;i<5;i++){var ti=i/5;ctx.lineTo(p.x+Math.cos(waveAng+ti*3)*20*s-10*s, p.y-8*s*ti+Math.sin(waveAng+ti*2)*3*s)};
   ctx.stroke();
-  // Ink bleed halo
-  ctx.globalAlpha=.12;ctx.beginPath();ctx.ellipse(p.x,p.y-4*s,28*s,10*s,0,0,7);ctx.fillStyle=m.color;ctx.fill();ctx.globalAlpha=1;
+  // Ink bleed halo — larger for bigger brushes
+  ctx.globalAlpha=.12*ageDecay;ctx.beginPath();ctx.ellipse(p.x,p.y-4*s,28*s,10*s,0,0,7);ctx.fillStyle=m.color;ctx.fill();ctx.globalAlpha=1;
   // Stamp seal impression
-  ctx.globalAlpha=.35;ctx.fillStyle=m.color;ctx.beginPath();ctx.rect(p.x-5*s,p.y-2*s,10*s,6*s);ctx.fill();ctx.globalAlpha=1;
+  ctx.globalAlpha=.35*ageDecay;ctx.fillStyle=m.color;ctx.beginPath();ctx.rect(p.x-5*s,p.y-2*s,10*s,6*s);ctx.fill();ctx.globalAlpha=1;
   // Fresh mark glow
-  if(m.age<30){ctx.globalAlpha=.2;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y-4*s,32*s,12*s,0,0,7);ctx.fill();ctx.globalAlpha=1}
+  if(m.age<30){ctx.globalAlpha=.2*ageDecay;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y-4*s,32*s,12*s,0,0,7);ctx.fill();ctx.globalAlpha=1}
+  // Milestone zone glow — marks placed near route milestones radiate warm gold
+  var mg=0;route.forEach(r=>{var dz=Math.abs(m.z-r.z);if(dz<60)mg=Math.max(mg,1-dz/60)});
+  if(mg>0){ctx.globalAlpha=mg*.25*ageDecay;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y-4*s,44*s,18*s,0,0,7);ctx.fill();ctx.globalAlpha=1}
   // Ground glow pulse
-  ctx.globalAlpha=.06;ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(p.x,p.y+2*s,18*s,0,7);ctx.fill();ctx.globalAlpha=1
+  ctx.globalAlpha=.06*ageDecay;ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(p.x,p.y+2*s,18*s*(m.brushSize||1),0,7);ctx.fill();ctx.globalAlpha=1
 }
 function drawPlayer(){
   const bob=Math.sin(player.bobPhase)*4,lean=-(player.mx/1.5)*6;
@@ -796,6 +856,7 @@ function inkSplatter(x,z,color){for(let i=0;i<10;i++)sparks.push({x,z,color,a:.9
 function drawSparks(){sparks=sparks.filter(s=>s.a>.02);sparks.forEach(s=>{s.x+=s.vx;s.z+=s.vz;s.a*=.92;s.d*=.94;const p=project(s.x,s.z,s.d+18);if(!p)return;ctx.globalAlpha=s.a;if(s.d>0){ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1,s.d)*2,0,7);ctx.fill()}else{ctx.fillStyle=s.color;ctx.fillRect(p.x-2,p.y-2,4,4)};ctx.globalAlpha=1})}
 function drawLeaves(){leaves.forEach(l=>{const p=project(l.x,l.z,30);if(!p)return;ctx.globalAlpha=.6*(1-l.age/300);ctx.fillStyle="#d98986";ctx.beginPath();ctx.arc(p.x,p.y,1.5+Math.sin(l.age*.05)*.5,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawFireflies(){fireflies.forEach(f=>{const p=project(f.x,f.z,25);if(!p)return;ctx.globalAlpha=f.bright*.35;ctx.fillStyle="#d9e88f";ctx.beginPath();ctx.arc(p.x,p.y,2+Math.sin(Date.now()*.003+f.bright)*1.5,0,7);ctx.fill();ctx.globalAlpha=1})}
+function drawDrizzle(){drizzle.forEach(d=>{const p=project(d.x,d.z,80);if(!p)return;ctx.globalAlpha=.35*Math.max(0,1-d.age/120);ctx.fillStyle="#cdd6e0";ctx.beginPath();ctx.arc(p.x,p.y,.8+Math.sin(d.age*.1)*.3,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawRiverMist(){riverMist.forEach(m=>{const p=project(m.x,m.z,20);if(!p)return;ctx.globalAlpha=m.alpha*.25;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y,6+Math.sin(m.z*.02)*3,3,0,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawVignette(w,h){const g=ctx.createRadialGradient(w/2,h/2,80,w/2,h/2,Math.max(w,h)*.7);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.55)");ctx.fillStyle=g;ctx.fillRect(0,0,w,h)}
 </script>
