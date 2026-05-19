@@ -50,7 +50,15 @@ const checks = [
   ["7 enemies defined", html.includes("ganryu sentinel") && html.includes("mountain ascetic")],
   ["rain ripple puddle interaction", html.includes("function drawRipples") && html.includes("ripples.push") && html.includes("ripples.filter")],
   ["milestone vignette haiku", html.includes("vignette:") && html.includes("haiku:") && html.includes("milestonePopup.haiku") && html.includes("haikuLines.forEach")],
-  ["5 route milestones with vignettes", (()=>{const routes= [...html.matchAll(/z:(\d+)/g)]; return routes.length>=5})()]
+  ["5 route milestones with vignettes", (()=>{const routes= [...html.matchAll(/z:(\d+)/g)]; return routes.length>=5})()],
+  ["journey atmosphere zones", html.includes("journeyZones") && html.includes("meadow") && html.includes("forest") && html.includes("mountain") && html.includes("coastal")],
+  ["zone transition markers", html.includes("zoneMarkers") && html.includes("forest entrance") && html.includes("mountain gate") && html.includes("sea gate")],
+  ["zone-specific road colors", html.includes("zoneEdge.roadEdge") && html.includes("zoneEdge.roadEdge2")],
+  ["zone-specific lantern colors", html.includes("zoneL.lanternColor") && html.includes("zoneL.lanternGlow")],
+  ["zone particle spawning", html.includes('currentZone.name==="meadow"') && html.includes('currentZone.name==="forest"') && html.includes('currentZone.name==="mountain"') && html.includes('currentZone.name==="coastal"')],
+  ["zone transition audio", html.includes("zone-transition audio") && html.includes("sfx.tone(262") && html.includes("sfx.tone(196")],
+  ["no invalid Web Audio smooth method", !html.includes("exponentialSmoothValueAtTime")],
+  ["no zero-target exponential gain ramps", !html.includes("exponentialRampToValueAtTime(0,")]
 ];
 
 // Sprite dimension validation

@@ -13,12 +13,13 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 29 — Rain ripple puddle interaction; milestone vignettes with ink-wash illustrations and haiku)
-- **~1145-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 30 — Journey atmosphere zones with zone-specific visual, audio, and particle progression)
+- **~1200-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino)
 - Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look (middle-click or left-click drag rotates camera heading)
 - **22 scenery kinds**: gate, pine, torii, shrine, pagoda, teaHouse, bamboo, stoneMarker, ricePaddy, bridgeArch, stall, cedar, monument, boatDock, well, lanternPost, waterfall, oldTree, stoneWall, lanternRow, crypt, willow
+- **4 journey atmosphere zones** (Pass 30): Meadow (z 0-300) green grass edges/warm amber lanterns/pollen particles; Forest (z 300-600) brown earth/golden lanterns/thicker leaf fall; Mountain (z 600-1000) gray stone/cool blue-white lanterns/drifting mist wisps; Coastal (z 1000-1420) white sand/gold lanterns/sea spray. Torii gate markers at each boundary with wind-shift audio cues.
 - Ink paint system: brush marks with chain-paint widening, stamp seal, milestone glow, ink resource with slow regen
 - **Paint depth**: brush size varies by hold duration (Space/right-click/touch long-press); holdBonus and ink check
 - **7 enemies over 5 types**: chaser (aggressive), prowler (circles + retreats), duelist (retreat + combo follow-up with thrust), plus mountain ascetic (chaser at z=1050) and ganryu sentinel (duelist at z=1180) for a richer journey
@@ -48,8 +49,9 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Milestone vignettes with haiku** (Pass 29): each of the 5 route milestones shows a rich ink-wash illustration (bridge arch, shrine bird silhouettes, valley mountains, mountain pass wind lines, Ganryu ocean waves) plus a seasonal Edo haiku — deepens journey narrative
 
 ### Verification
-- `node drops/edo-inkblade-ots/test.js` — 43 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, sprint mechanic, mouse drag camera look, dynamic melody tempo, extended road length, 7 enemies defined, negative checks, 11 sprite PNGs >= 10KB, manifest validation, generator existence, rain ripple interaction, milestone vignette haiku, 5 route milestones with vignettes
-- **All 43 checks pass**
+- Browser runtime: Web Audio API calls use valid linearRampToValueAtTime fallbacks; invalid exponentialSmoothValueAtTime and zero-target exponential ramps are regression-checked.
+- `node drops/edo-inkblade-ots/test.js` — 52 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, sprint mechanic, mouse drag camera look, dynamic melody tempo, extended road length, 7 enemies defined, negative checks, 11 sprite PNGs >= 10KB, manifest validation, generator existence, rain ripple interaction, milestone vignette haiku, 5 route milestones with vignettes, journey atmosphere zones, zone transition markers, zone-specific road colors, zone-specific lantern colors, zone particle spawning, zone transition audio, invalid Web Audio method regression, zero-target exponential gain regression
+- **All 52 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -59,7 +61,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - `04-combat-duel.jpg` — duel telegraph and combat
 - `05-ganryu-victory.jpg` — Ganryu arrival victory screen
 
-### Recent Passes
+### Passes
 **Pass 20** — Title screen with ink-wash key art
 **Pass 21** — Animated title screen with drifting mist and ink particles
 **Pass 22** — Character sprite ink-wash outline and walking ink particles
@@ -70,10 +72,12 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 27** — Character art asset generation: detailed Playwright-rendered Edo ink-wash sprite sheets for all 9 characters (heroes, enemies, ganryu). New sheet art with kimono folds, weapons, hats, woodblock grain background, ink-splash backdrop per frame.
 **Pass 28** — Dedicated sprite PNGs for mountain ascetic (weathered hermit, straw hat, staff) and ganryu sentinel (jingasa helmet, yoroi armor, wakizashi). Updated ENEMY_SPRITE_KEY mapping. Fresh screenshots captured.
 **Pass 29** — Rain drop-ripple interaction: expanding ripple rings when drizzle hits active puddles. Milestone vignettes with ink-wash illustrations (bridge, shrine, valley, mountain pass, Ganryu shore) and Edo haiku at each route waypoint. 43 smoke checks pass (was 41).
+**Pass 30** — Journey atmosphere zones: 4 distinct zones (meadow/forest/mountain/coastal) with zone-specific road edge colors, lantern color palettes, ambient particle spawning, and zone-boundary torii gate markers. Zone transition audio cues (wind-shift chords) and zone-entry narration. All 50 smoke checks pass.
 
 ### Known Issues
-- Mountain ascetic and ganryu sentinel sprite art could be further refined with richer detail
-- Rain ripple ring expansion could be more dramatic in heavier drizzle
+- Screenshots need fresh captures after Pass 30 zone additions
+- Zone transition particles could be more dramatic at boundary crossings
+- Zone audio cues are oscillator-based — real zone ambience files would be richer
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.

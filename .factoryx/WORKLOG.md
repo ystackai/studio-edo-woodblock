@@ -135,8 +135,9 @@
 - **Smoke tests updated**: 22 checks pass (new: rain puddle reflections, orientation change handler)
 
 ## Known Issues (updated)
-- Screenshots need fresh captures after Pass 27 sprite generation and Pass 26 balance changes
-- Mountain ascetic and ganryu sentinel currently reuse monk/duelist sprite keys — dedicated sprite mappings desirable
+- Screenshots need fresh captures after Pass 30 zone atmosphere additions
+- Zone transition particles could be more dramatic at boundary crossings
+- Zone audio cues are oscillator-based — real zone ambience files would be richer
 
 ## Pass 27 — Character art asset generation: detailed Playwright-rendered sprite sheets
 - **Generated detailed Edo ink-wash sprite sheets** for all 9 characters using a Playwright-based headless Chromium generator (`drops/edo-inkblade-ots/generate-sprites.js`)
@@ -148,6 +149,24 @@
 - **Updated manifest.json** with palette, frame layout, character descriptions per role
 - **Contact sheet regenerated** at `assets/characters/_contact_sheet.png`
 - All existing 27 smoke checks pass (no HTML changes needed — sprite loading uses existing img.onload paths)
+
+## Operator repair: Web Audio runtime gate
+- Replaced invalid exponentialSmoothValueAtTime calls and zero-target exponential gain ramps with valid linearRampToValueAtTime calls so browser runtime checks catch and prevent this preview failure.
+- Added smoke checks for invalid Web Audio method regressions.
+
+## Pass 30 — Journey atmosphere zones with zone-specific visual, audio, and particle progression
+- **4 journey atmosphere zones** dividing the road into distinct visual/audio territories:
+  - Meadow (z 0-300): green grass road edges, warm amber lanterns, light pollen particles, free-spirited melody
+  - Forest (z 300-600): brown earth edges, golden lanterns, thicker leaf fall, bamboo rustle chord
+  - Mountain (z 600-1000): gray stone edges, cool blue-white lanterns, drifting mist wisps, deep mountain echo
+  - Coastal (z 1000-1420): white sand edges, gold lanterns, sea spray particles, ocean wind chord
+- **Zone boundary torii gates** rendered at z=300 (forest entrance), z=600 (mountain gate), z=1000 (sea gate) — fade in as player approaches, creating clear visual milestones between zones
+- **Zone-specific road rendering**: road edge grass/flower colors, cherry blossom density (reduced in mountain), marker pole lantern colors change by zone
+- **Zone-specific lantern colors**: meadow warm orange → forest golden → mountain cool blue-white → coastal gold
+- **Zone transition audio cues**: subtle wind-shift chords (forest: C-E, mountain: G-B, coastal: A-C#-F#) when crossing boundaries, plus zone-entry narration
+- **Zone-specific ambient particles**: meadow pollen (light floating dots), forest leaf fall (thicker leaves), mountain mist wisps (riverMist expansion), coastal sea spray (white droplets)
+- **Zone tracking system**: `getZone(z)` lookup, `currentZone/prevZone` tracking for transition detection, `zoneCrossTimer` for boundary effects
+- All 50 smoke checks pass (was 44 — added 6 checks: journey zones, zone markers, road colors, lantern colors, zone particles, zone audio)
 
 ## Pass 29 — Rain drop ripple interaction on puddles; milestone vignettes with ink-wash illustrations and haiku
 - **Rain drop impact ripples**: when drizzle streaks land near active puddles, expanding ripple rings spawn with elliptical fade — visual interaction between rain and puddle systems (`ripples[]`, `drawRipples()`)

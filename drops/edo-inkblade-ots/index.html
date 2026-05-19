@@ -215,13 +215,13 @@ let audioCtx=null,sfx={tone:noopAudio,slash:noopAudio,paint:noopAudio,block:noop
 function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return};
   function tone(f,d,t,g){var o=audioCtx.createOscillator();o.type=t;o.frequency.value=f;
     var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
-    gn.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+d);
+    gn.gain.linearRampToValueAtTime(0,audioCtx.currentTime+d);
     o.connect(gn);gn.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d)}
   sfx.tone=tone;
   function noise(d,g){var n=audioCtx.createBufferSource(),b=audioCtx.createBuffer(1,44100*d,44100);
     for(var i=0;i<b.length;i++)b.getChannelData(0)[i]=Math.random()*2-1;n.buffer=b;
     var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime(g||.3,audioCtx.currentTime);
-    gn.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+d);
+    gn.gain.linearRampToValueAtTime(0,audioCtx.currentTime+d);
     n.connect(gn);gn.connect(audioCtx.destination);n.start()}
   var amb=window._amb||(window._amb={wind:{node:null,gain:null,lastPan:0},river:{node:null,gain:null},footstepTimer:0,
     drone:{node:null,gain:null},rain:{source:null,gain:null},pad:{node:null,gain:null,padGain:null},
@@ -236,7 +236,7 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     dd.start();amb.drone.node=dd;amb.drone.gain=dg;
   }
   // AMBIENT WIND
-  if(!amb.wind.node){const bc=audioCtx.createBiquadFilter();bc.type="lowpass";bc.frequency.value=220;const wg=audioCtx.createGain();wg.gain.value=.018;const wb=audioCtx.createBuffer(1,audioCtx.sampleRate*4,audioCtx.sampleRate),wd=wb.getChannelData(0);for(let i=0;i<wd.length;i++)wd[i]=Math.random()*2-1;const ws=audioCtx.createBufferSource();ws.buffer=wb;ws.loop=true;ws.connect(bc);bc.connect(wg);wg.connect(audioCtx.destination);wg.gain.setValueAtTime(.018,audioCtx.currentTime);wg.gain.exponentialSmoothValueAtTime(.003,audioCtx.currentTime+3);amb.wind.node=ws;amb.wind.gain=wg;ws.start()
+  if(!amb.wind.node){const bc=audioCtx.createBiquadFilter();bc.type="lowpass";bc.frequency.value=220;const wg=audioCtx.createGain();wg.gain.value=.018;const wb=audioCtx.createBuffer(1,audioCtx.sampleRate*4,audioCtx.sampleRate),wd=wb.getChannelData(0);for(let i=0;i<wd.length;i++)wd[i]=Math.random()*2-1;const ws=audioCtx.createBufferSource();ws.buffer=wb;ws.loop=true;ws.connect(bc);bc.connect(wg);wg.connect(audioCtx.destination);wg.gain.setValueAtTime(.018,audioCtx.currentTime);wg.gain.linearRampToValueAtTime(.003,audioCtx.currentTime+3);amb.wind.node=ws;amb.wind.gain=wg;ws.start()
   }
   // RAIN AMBIENCE — filtered noise for drizzle zone
   if(!amb.rain){const rb=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate),rd=rb.getChannelData(0);for(let ri=0;ri<rd.length;ri++)rd[ri]=Math.random()*2-1;const rs=audioCtx.createBufferSource();rs.buffer=rb;rs.loop=true;const rg=audioCtx.createGain();rg.gain.value=0;const rf=audioCtx.createBiquadFilter();rf.type="lowpass";rf.frequency.value=600;const rf2=audioCtx.createBiquadFilter();rf2.type="highpass";rf2.frequency.value=120;rs.connect(rf);rf.connect(rf2);rf2.connect(rg);rg.connect(audioCtx.destination);rs.start();amb.rain={source:rs,gain:rg}}
@@ -279,27 +279,27 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
   // SFX — rebuilt with musical character
   sfx={tone:tone,slash:function(){
     var so=audioCtx.createOscillator();so.type="sawtooth";so.frequency.value=180;
-    var sg=audioCtx.createGain();sg.gain.setValueAtTime(.12,audioCtx.currentTime);sg.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.12);
+    var sg=audioCtx.createGain();sg.gain.setValueAtTime(.12,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.12);
     var sf=audioCtx.createBiquadFilter();sf.type="bandpass";sf.frequency.value=4000;sf.Q.value=40;so.connect(sf);sf.connect(sg);sg.connect(audioCtx.destination);
     so.start();so.stop(audioCtx.currentTime+.12);
-    var si=audioCtx.createOscillator();si.type="sine";si.frequency.value=1200;var sig=audioCtx.createGain();sig.gain.setValueAtTime(.06,audioCtx.currentTime);sig.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.06);
+    var si=audioCtx.createOscillator();si.type="sine";si.frequency.value=1200;var sig=audioCtx.createGain();sig.gain.setValueAtTime(.06,audioCtx.currentTime);sig.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.06);
     si.connect(sig);sig.connect(audioCtx.destination);si.start();si.stop(audioCtx.currentTime+.06)}
-    ,paint:function(){var pn=audioCtx.createBufferSource();var pb=audioCtx.createBuffer(1,44100*.15,44100),pd=pb.getChannelData(0);for(let i=0;i<pd.length;i++)pd[i]=Math.random()*2-1*(1-i/pd.length);pn.buffer=pb;var pg2=audioCtx.createGain();pg2.gain.setValueAtTime(.1,audioCtx.currentTime);pg2.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.15);var pf2=audioCtx.createBiquadFilter();pf2.type="bandpass";pf2.frequency.value=1200;pf2.Q.value=3;pn.connect(pf2);pf2.connect(pg2);pg2.connect(audioCtx.destination);pn.start();
-      var pt=audioCtx.createOscillator();pt.type="triangle";pt.frequency.value=440;var pgt=audioCtx.createGain();pgt.gain.setValueAtTime(.04,audioCtx.currentTime);pgt.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.2);pt.connect(pgt);pgt.connect(audioCtx.destination);pt.start();pt.stop(audioCtx.currentTime+.2)}
-    ,block:function(){var bo=audioCtx.createOscillator();bo.type="square";bo.frequency.value=120;var bg=audioCtx.createGain();bg.gain.setValueAtTime(.18,audioCtx.currentTime);bg.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.08);var bf=audioCtx.createBiquadFilter();bf.type="bandpass";bf.frequency.value=800;bf.Q.value=15;bo.connect(bf);bf.connect(bg);bg.connect(audioCtx.destination);bo.start();bo.stop(audioCtx.currentTime+.08);
-      var bw=audioCtx.createOscillator();bw.type="sine";bw.frequency.value=360;var bwg=audioCtx.createGain();bwg.gain.setValueAtTime(.06,audioCtx.currentTime);bwg.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.15);bw.connect(bwg);bwg.connect(audioCtx.destination);bw.start();bw.stop(audioCtx.currentTime+.15)}
-    ,hit:function(){var ho=audioCtx.createOscillator();ho.type="sawtooth";ho.frequency.value=80;var hg=audioCtx.createGain();hg.gain.setValueAtTime(.25,audioCtx.currentTime);hg.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.15);var hf=audioCtx.createBiquadFilter();hf.type="lowpass";hf.frequency.value=200;ho.connect(hf);hf.connect(hg);hg.connect(audioCtx.destination);ho.start();ho.stop(audioCtx.currentTime+.15);
-      var hn=audioCtx.createBufferSource();var hnb=audioCtx.createBuffer(1,44100*.1,44100),hnd=hnb.getChannelData(0);for(let i=0;i<hnd.length;i++)hnd[i]=Math.random()*2-1*(1-i/hnd.length);hn.buffer=hnb;var hng=audioCtx.createGain();hng.gain.setValueAtTime(.15,audioCtx.currentTime);hng.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.1);var hnf=audioCtx.createBiquadFilter();hnf.type="lowpass";hnf.frequency.value=300;hn.connect(hnf);hnf.connect(hng);hng.connect(audioCtx.destination);hn.start()}
-    ,death:function(){[294,349,440,523].forEach(function(f,i){var d2=audioCtx.createOscillator();d2.type="sine";d2.frequency.value=f;var dg2=audioCtx.createGain();dg2.gain.setValueAtTime(.1-i*.015,audioCtx.currentTime);dg2.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.6);d2.connect(dg2);dg2.connect(audioCtx.destination);d2.start();d2.stop(audioCtx.currentTime+.6)});
-      var dg3=audioCtx.createOscillator();dg3.type="sawtooth";dg3.frequency.value=45;var dg4=audioCtx.createGain();dg4.gain.setValueAtTime(.12,audioCtx.currentTime);dg4.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.8);var df2=audioCtx.createBiquadFilter();df2.type="lowpass";df2.frequency.value=100;dg3.connect(df2);df2.connect(dg4);dg4.connect(audioCtx.destination);dg3.start();dg3.stop(audioCtx.currentTime+.8);
-      var dn2=audioCtx.createBufferSource();var dnb2=audioCtx.createBuffer(1,44100*.4,44100),dnd2=dnb2.getChannelData(0);for(let i=0;i<dnd2.length;i++)dnd2[i]=Math.random()*2-1*(1-i/dnd2.length);dn2.buffer=dnb2;var dng2=audioCtx.createGain();dng2.gain.setValueAtTime(.35,audioCtx.currentTime);dng2.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.4);var dnf2=audioCtx.createBiquadFilter();dnf2.type="lowpass";dnf2.frequency.value=200;dn2.connect(dnf2);dnf2.connect(dng2);dng2.connect(audioCtx.destination);dn2.start()}
-    ,inkRegen:function(){var io=audioCtx.createOscillator();io.type="sine";io.frequency.value=440;var ig=audioCtx.createGain();ig.gain.setValueAtTime(.04,audioCtx.currentTime);ig.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.25);io.connect(ig);ig.connect(audioCtx.destination);io.start();io.stop(audioCtx.currentTime+.25);
-      var it=audioCtx.createOscillator();it.type="triangle";it.frequency.value=554;var itg=audioCtx.createGain();itg.gain.setValueAtTime(.03,audioCtx.currentTime);itg.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.2);it.connect(itg);itg.connect(audioCtx.destination);it.start();it.stop(audioCtx.currentTime+.2)}
-    ,mark:function(){var mk1=audioCtx.createOscillator();mk1.type="sine";mk1.frequency.value=350;var mk1g=audioCtx.createGain();mk1g.gain.setValueAtTime(.08,audioCtx.currentTime);mk1g.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.15);mk1.connect(mk1g);mk1g.connect(audioCtx.destination);mk1.start();mk1.stop(audioCtx.currentTime+.15);
-      var mk2=audioCtx.createOscillator();mk2.type="triangle";mk2.frequency.value=440;var mk2g=audioCtx.createGain();mk2g.gain.setValueAtTime(.05,audioCtx.currentTime);mk2g.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.2);mk2.connect(mk2g);mk2g.connect(audioCtx.destination);mk2.start();mk2.stop(audioCtx.currentTime+.2);
-      var mk3=audioCtx.createOscillator();mk3.type="sine";mk3.frequency.value=550;var mk3g=audioCtx.createGain();mk3g.gain.setValueAtTime(.04,audioCtx.currentTime);mk3g.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.25);mk3.connect(mk3g);mk3g.connect(audioCtx.destination);mk3.start();mk3.stop(audioCtx.currentTime+.25)}
-    ,victory:function(){var vn=[440,554,659,880,1108,1320];vn.forEach(function(f,i){setTimeout(function(){var vo=audioCtx.createOscillator();vo.type="sine";vo.frequency.value=f;var vg=audioCtx.createGain();vg.gain.setValueAtTime(.12,audioCtx.currentTime);vg.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.3);var vf2=audioCtx.createBiquadFilter();vf2.type="lowpass";vf2.frequency.value=2000;vo.connect(vf2);vf2.connect(vg);vg.connect(audioCtx.destination);vo.start();vo.stop(audioCtx.currentTime+.3)},i*90)});
-      setTimeout(function(){[523,659,784,880].forEach(function(f){var vc=audioCtx.createOscillator();vc.type="triangle";vc.frequency.value=f;var vcg=audioCtx.createGain();vcg.gain.setValueAtTime(.07,audioCtx.currentTime);vcg.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+.5);vc.connect(vcg);vcg.connect(audioCtx.destination);vc.start();vc.stop(audioCtx.currentTime+.5)})},540)}
+    ,paint:function(){var pn=audioCtx.createBufferSource();var pb=audioCtx.createBuffer(1,44100*.15,44100),pd=pb.getChannelData(0);for(let i=0;i<pd.length;i++)pd[i]=Math.random()*2-1*(1-i/pd.length);pn.buffer=pb;var pg2=audioCtx.createGain();pg2.gain.setValueAtTime(.1,audioCtx.currentTime);pg2.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var pf2=audioCtx.createBiquadFilter();pf2.type="bandpass";pf2.frequency.value=1200;pf2.Q.value=3;pn.connect(pf2);pf2.connect(pg2);pg2.connect(audioCtx.destination);pn.start();
+      var pt=audioCtx.createOscillator();pt.type="triangle";pt.frequency.value=440;var pgt=audioCtx.createGain();pgt.gain.setValueAtTime(.04,audioCtx.currentTime);pgt.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.2);pt.connect(pgt);pgt.connect(audioCtx.destination);pt.start();pt.stop(audioCtx.currentTime+.2)}
+    ,block:function(){var bo=audioCtx.createOscillator();bo.type="square";bo.frequency.value=120;var bg=audioCtx.createGain();bg.gain.setValueAtTime(.18,audioCtx.currentTime);bg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.08);var bf=audioCtx.createBiquadFilter();bf.type="bandpass";bf.frequency.value=800;bf.Q.value=15;bo.connect(bf);bf.connect(bg);bg.connect(audioCtx.destination);bo.start();bo.stop(audioCtx.currentTime+.08);
+      var bw=audioCtx.createOscillator();bw.type="sine";bw.frequency.value=360;var bwg=audioCtx.createGain();bwg.gain.setValueAtTime(.06,audioCtx.currentTime);bwg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);bw.connect(bwg);bwg.connect(audioCtx.destination);bw.start();bw.stop(audioCtx.currentTime+.15)}
+    ,hit:function(){var ho=audioCtx.createOscillator();ho.type="sawtooth";ho.frequency.value=80;var hg=audioCtx.createGain();hg.gain.setValueAtTime(.25,audioCtx.currentTime);hg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var hf=audioCtx.createBiquadFilter();hf.type="lowpass";hf.frequency.value=200;ho.connect(hf);hf.connect(hg);hg.connect(audioCtx.destination);ho.start();ho.stop(audioCtx.currentTime+.15);
+      var hn=audioCtx.createBufferSource();var hnb=audioCtx.createBuffer(1,44100*.1,44100),hnd=hnb.getChannelData(0);for(let i=0;i<hnd.length;i++)hnd[i]=Math.random()*2-1*(1-i/hnd.length);hn.buffer=hnb;var hng=audioCtx.createGain();hng.gain.setValueAtTime(.15,audioCtx.currentTime);hng.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.1);var hnf=audioCtx.createBiquadFilter();hnf.type="lowpass";hnf.frequency.value=300;hn.connect(hnf);hnf.connect(hng);hng.connect(audioCtx.destination);hn.start()}
+    ,death:function(){[294,349,440,523].forEach(function(f,i){var d2=audioCtx.createOscillator();d2.type="sine";d2.frequency.value=f;var dg2=audioCtx.createGain();dg2.gain.setValueAtTime(.1-i*.015,audioCtx.currentTime);dg2.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.6);d2.connect(dg2);dg2.connect(audioCtx.destination);d2.start();d2.stop(audioCtx.currentTime+.6)});
+      var dg3=audioCtx.createOscillator();dg3.type="sawtooth";dg3.frequency.value=45;var dg4=audioCtx.createGain();dg4.gain.setValueAtTime(.12,audioCtx.currentTime);dg4.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.8);var df2=audioCtx.createBiquadFilter();df2.type="lowpass";df2.frequency.value=100;dg3.connect(df2);df2.connect(dg4);dg4.connect(audioCtx.destination);dg3.start();dg3.stop(audioCtx.currentTime+.8);
+      var dn2=audioCtx.createBufferSource();var dnb2=audioCtx.createBuffer(1,44100*.4,44100),dnd2=dnb2.getChannelData(0);for(let i=0;i<dnd2.length;i++)dnd2[i]=Math.random()*2-1*(1-i/dnd2.length);dn2.buffer=dnb2;var dng2=audioCtx.createGain();dng2.gain.setValueAtTime(.35,audioCtx.currentTime);dng2.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.4);var dnf2=audioCtx.createBiquadFilter();dnf2.type="lowpass";dnf2.frequency.value=200;dn2.connect(dnf2);dnf2.connect(dng2);dng2.connect(audioCtx.destination);dn2.start()}
+    ,inkRegen:function(){var io=audioCtx.createOscillator();io.type="sine";io.frequency.value=440;var ig=audioCtx.createGain();ig.gain.setValueAtTime(.04,audioCtx.currentTime);ig.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.25);io.connect(ig);ig.connect(audioCtx.destination);io.start();io.stop(audioCtx.currentTime+.25);
+      var it=audioCtx.createOscillator();it.type="triangle";it.frequency.value=554;var itg=audioCtx.createGain();itg.gain.setValueAtTime(.03,audioCtx.currentTime);itg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.2);it.connect(itg);itg.connect(audioCtx.destination);it.start();it.stop(audioCtx.currentTime+.2)}
+    ,mark:function(){var mk1=audioCtx.createOscillator();mk1.type="sine";mk1.frequency.value=350;var mk1g=audioCtx.createGain();mk1g.gain.setValueAtTime(.08,audioCtx.currentTime);mk1g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);mk1.connect(mk1g);mk1g.connect(audioCtx.destination);mk1.start();mk1.stop(audioCtx.currentTime+.15);
+      var mk2=audioCtx.createOscillator();mk2.type="triangle";mk2.frequency.value=440;var mk2g=audioCtx.createGain();mk2g.gain.setValueAtTime(.05,audioCtx.currentTime);mk2g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.2);mk2.connect(mk2g);mk2g.connect(audioCtx.destination);mk2.start();mk2.stop(audioCtx.currentTime+.2);
+      var mk3=audioCtx.createOscillator();mk3.type="sine";mk3.frequency.value=550;var mk3g=audioCtx.createGain();mk3g.gain.setValueAtTime(.04,audioCtx.currentTime);mk3g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.25);mk3.connect(mk3g);mk3g.connect(audioCtx.destination);mk3.start();mk3.stop(audioCtx.currentTime+.25)}
+    ,victory:function(){var vn=[440,554,659,880,1108,1320];vn.forEach(function(f,i){setTimeout(function(){var vo=audioCtx.createOscillator();vo.type="sine";vo.frequency.value=f;var vg=audioCtx.createGain();vg.gain.setValueAtTime(.12,audioCtx.currentTime);vg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.3);var vf2=audioCtx.createBiquadFilter();vf2.type="lowpass";vf2.frequency.value=2000;vo.connect(vf2);vf2.connect(vg);vg.connect(audioCtx.destination);vo.start();vo.stop(audioCtx.currentTime+.3)},i*90)});
+      setTimeout(function(){[523,659,784,880].forEach(function(f){var vc=audioCtx.createOscillator();vc.type="triangle";vc.frequency.value=f;var vcg=audioCtx.createGain();vcg.gain.setValueAtTime(.07,audioCtx.currentTime);vcg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.5);vc.connect(vcg);vcg.connect(audioCtx.destination);vc.start();vc.stop(audioCtx.currentTime+.5)})},540)}
   };
 }
 let currentHeroKey="musashi";
@@ -316,6 +316,15 @@ let yoMotif2=[4,3,2,0,1];  // descending contemplative
 let yoPhrase=[0,1,3,4,2,0,4]; // wandering
 let yoMotif3=[0,0,2,2,4,4,3,1]; // Ganryu hopeful ascent
 let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[];
+// Journey atmosphere zones for visual/audio progression
+const journeyZones=[
+  {start:0,end:300,name:"meadow",roadEdge:'#2a3a1a',roadEdge2:'#3a4b2a',lanternColor:'#ff8333',lanternGlow:'rgba(255,131,51,0.2)',flowers:['#c84a3a','#8a5a3a'],pollenColor:'#d9c84a'},
+  {start:300,end:600,name:"forest",roadEdge:'#3a2a18',roadEdge2:'#4a3a28',lanternColor:'#d9c84a',lanternGlow:'rgba(217,200,74,0.18)',flowers:['#8a5a3a','#6a7a3a'],pollenColor:'#8a9a4a'},
+  {start:600,end:1000,name:"mountain",roadEdge:'#4a3a28',roadEdge2:'#5a4a38',lanternColor:'#8a9aaa',lanternGlow:'rgba(138,154,170,0.15)',flowers:['#6a5a48','#7a6a58'],pollenColor:'#9a8a7a'},
+  {start:1000,end:1420,name:"coastal",roadEdge:'#5a4a38',roadEdge2:'#6a5a48',lanternColor:'#d7b66f',lanternGlow:'rgba(215,182,111,0.18)',flowers:['#8a7a68','#6a8a9a'],pollenColor:'#c4b88a'}
+];
+function getZone(z){for(var zi=0;zi<journeyZones.length;zi++)if(z>=journeyZones[zi].start&&z<journeyZones[zi].end)return journeyZones[zi];return journeyZones[0]}
+let currentZone=getZone(0),prevZone=getZone(0),zoneCrossTimer=0;
 let enemies=[
   {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:14,atkRange:44,patrolX:-140,patrolZ:340,patrolRadius:55,patrolSpeed:.3,patrolAngle:0},
   {name:"straw-hat vagrant",x:180,z:450,hp:44,max:44,phase:0.8,wind:0,color:"#5a4a38",type:"prowler",atk:11,atkRange:40,patrolX:180,patrolZ:450,patrolRadius:50,patrolSpeed:.35,patrolAngle:1.2},
@@ -568,15 +577,33 @@ function step(dt){
     if(Math.random()<.02*dt&&fireflies.length<18)fireflies.push({x:player.x+(Math.random()-.5)*70,z:player.z-20+Math.random()*60,vx:(Math.random()-.5)*.1,vz:(Math.random()-.5)*.1,bright:Math.random()*.5+.5});
     fireflies=fireflies.filter(f=>f.bright>.05);fireflies.forEach(f=>{f.x+=f.vx*dt;f.z+=f.vz*dt;f.bright=Math.max(0,f.bright-.004*dt)});
     if(Math.random()<.015*dt&&riverMist.length<12)riverMist.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.2,vz:Math.random()*.3+.1,alpha:.6});
+    // Journey zone tracking — spawn zone-specific ambient particles
+    prevZone=currentZone;currentZone=getZone(player.z);zoneCrossTimer=currentZone===prevZone?Math.min(80,zoneCrossTimer+dt):0;
+    if(currentZone.name!=="meadow"&&Math.random()<.01*dt&&sparks.length<30){var zc='#b9a88d';sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:zc,a:.25,vx:(Math.random()-.5)*.15,vz:(Math.random()-.5)*.15-.1,d:Math.random()*3+3})};
+    // Meadow: light pollen particles
+    if(currentZone.name==="meadow"&&Math.random()<.03*dt&&sparks.length<25){sparks.push({x:player.x+(Math.random()-.5)*60,z:player.z-20+Math.random()*40,color:currentZone.pollenColor,a:.18,vx:(Math.random()-.5)*.06,vz:(Math.random()-.5)*.06,d:1+Math.random()*2})};
+    // Forest: thicker leaf fall
+    if(currentZone.name==="forest"&&Math.random()<.06*dt&&leaves.length<50)leaves.push({x:player.x+(Math.random()-.5)*120,z:player.z-30+Math.random()*80,vx:(Math.random()-.5)*.4+Math.sin(windDrift)*.35,vz:Math.random()*.8+.3,age:0});
+    // Mountain: drifting mist wisps
+    if(currentZone.name==="mountain"&&Math.random()<.025*dt&&riverMist.length<20)riverMist.push({x:player.x+(Math.random()-.5)*100,z:player.z-40+Math.random()*80,vx:(Math.random()-.5)*.15,vz:Math.random()*.2+.05,alpha:.5});
+    // Coastal: sea spray particles
+    if(currentZone.name==="coastal"&&Math.random()<.02*dt&&sparks.length<20){sparks.push({x:player.x+(Math.random()-.5)*80,z:player.z-20+Math.random()*60,color:'#cdd6e0',a:.2,vx:(Math.random()-.5)*.1,vz:Math.random()*.1+.05,d:Math.random()*3})};
     riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});drizzleActive=Math.max(0,drizzleActive+(player.z>300&&player.z<900?.004:-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
     // Rain puddles on road surface during drizzle
     if(drizzleActive>.15&&Math.random()<.008*dt&&puddles.length<20){var pw=10+Math.random()*30,ph=4+Math.random()*10;puddles.push({x:player.x+(Math.random()-.5)*120,z:player.z-20+Math.random()*80,w:pw,h:ph,alpha:0,maxAlpha:.25+Math.random()*.15,age:0,maxAge:200+Math.random()*300,ripplePhase:Math.random()*7})};puddles=puddles.filter(p=>p.age<p.maxAge);puddles.forEach(p=>{p.age+=dt;if(p.age<20)p.alpha=Math.min(p.maxAlpha,p.age/20*.25);else if(p.age>p.maxAge-60)p.alpha=Math.max(0,p.alpha-(p.age-(p.maxAge-60))/60);p.ripplePhase+=.02*dt});
     // Rain drop impact ripples on puddles — drizzle landing near active puddles spawns ripple rings
     if(drizzleActive>.15&&Math.random()<.01*dt&&ripples.length<30){puddles.filter(p=>p.alpha>0.1).forEach(function(p){if(Math.random()<.3){ripples.push({x:p.x+Math.random()*20,z:p.z+Math.random()*20,age:0,maxAge:40+Math.random()*20,radius:2+Math.random()*4})}})};ripples=ripples.filter(r=>r.age<r.maxAge);ripples.forEach(r=>{r.age+=dt});
-  // Ambient: footsteps, wind drift, river near bridge
+  // Ambient: footsteps, wind drift, river near bridge; zone-transition audio cues
   initAudio();var amb=window._amb;
   if(audioCtx&&amb&&amb.footstep&&amb.wind&&amb.river&&amb.melody&&amb.rain){
-  amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);if(player.z>460&&player.z<580&&!bellRung){bellRung=1;sfx.tone(220,1.2,"sine",.15);setTimeout(function(){sfx.tone(330,.8,"sine",.1)},300);setTimeout(function(){sfx.tone(440,.6,"sine",.08)},600);say("A temple bell tolls across the bridge.")}const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){sfx.tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){sfx.tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}amb.river.gain.gain.exponentialSmoothValueAtTime(0,audioCtx.currentTime+.6);if(amb.rain&&amb.rain.gain){amb.rain.gain.gain.setValueAtTime(drizzleActive*.035,audioCtx.currentTime)}
+  amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);if(player.z>460&&player.z<580&&!bellRung){bellRung=1;sfx.tone(220,1.2,"sine",.15);setTimeout(function(){sfx.tone(330,.8,"sine",.1)},300);setTimeout(function(){sfx.tone(440,.6,"sine",.08)},600);say("A temple bell tolls across the bridge.")}const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){sfx.tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){sfx.tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}amb.river.gain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.6);if(amb.rain&&amb.rain.gain){amb.rain.gain.gain.setValueAtTime(drizzleActive*.035,audioCtx.currentTime)}
+  // Zone transition audio — subtle wind-shift chord when crossing zone boundaries
+  if(currentZone!==prevZone&&player.hp>0){var zc=currentZone;
+    if(zc.name==="forest"){sfx.tone(262,.6,"sine",.04);setTimeout(function(){sfx.tone(330,.4,"sine",.03)},200)}
+    else if(zc.name==="mountain"){sfx.tone(196,.7,"sine",.04);setTimeout(function(){sfx.tone(220,.5,"sine",.03)},180)}
+    else if(zc.name==="coastal"){sfx.tone(330,.6,"sine",.05);setTimeout(function(){sfx.tone(440,.4,"sine",.04);setTimeout(function(){sfx.tone(554,.3,"sine",.03)},200)},180)}
+    say("The road enters "+zc.name+"...");
+  }
 // Melody scheduler — Yo-scale flute cycling through motifs by zone, tempo varies with tension
 if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
   // Dynamic tempo: speed up when enemies are close, slow down in peaceful zones
@@ -593,7 +620,7 @@ if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
     var freq=yoNotes[phrase[amb.melody.noteIdx]];
     amb.melody.o.frequency.setValueAtTime(freq,audioCtx.currentTime);
     amb.melody.g.gain.setValueAtTime(.025,audioCtx.currentTime);
-    amb.melody.g.gain.exponentialRampToValueAtTime(0,audioCtx.currentTime+melodyInt*.8);
+    amb.melody.g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+melodyInt*.8);
     amb.melody.noteIdx=(amb.melody.noteIdx+1)%phrase.length;
   }
 }
@@ -760,6 +787,9 @@ function draw(){
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
   drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFireflies();drawRiverMist();drawDrizzle();
+  // Journey zone transition markers — torii gates at zone boundaries
+  var zoneMarkers=[{z:300,name:"forest entrance"},{z:600,name:"mountain gate"},{z:1000,name:"sea gate"}];
+  zoneMarkers.forEach(function(zm){var dz=Math.abs(player.z-zm.z);if(dz<60){var gateAlpha=Math.max(0,1-dz/60)*.35,gateP=project(0,zm.z,80);if(gateP){ctx.globalAlpha=gateAlpha;ctx.strokeStyle="#8e1c1c";ctx.lineWidth=10*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-28*gateP.s,gateP.y);ctx.lineTo(gateP.x-28*gateP.s,gateP.y-60*gateP.s);ctx.moveTo(gateP.x+28*gateP.s,gateP.y);ctx.lineTo(gateP.x+28*gateP.s,gateP.y-60*gateP.s);ctx.stroke();ctx.strokeStyle="#b82727";ctx.lineWidth=5*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-30*gateP.s,gateP.y-62*gateP.s);ctx.lineTo(gateP.x+30*gateP.s,gateP.y-62*gateP.s);ctx.moveTo(gateP.x-26*gateP.s,gateP.y-52*gateP.s);ctx.lineTo(gateP.x+26*gateP.s,gateP.y-52*gateP.s);ctx.stroke();ctx.globalAlpha=1}}});
   const visible=[];
   scenery.forEach(o=>{const p=project(o.x,o.z,o.h);if(p)visible.push({p,o,type:"scenery"})});
   if(victoryParticles.length)drawVictoryParticles();
@@ -822,15 +852,20 @@ function draw(){
 
 }
 function drawRoad(w,h,hor){
+  var zoneEdge=currentZone||getZone(player.z);
+  var e1=zoneEdge.roadEdge,e2=zoneEdge.roadEdge2,f1=zoneEdge.flowers[0],f2=zoneEdge.flowers[1];
   for(let i=0;i<22;i++){const y1=hor+i*(h-hor)/22,y2=hor+(i+1)*(h-hor)/22,t=i/22;ctx.fillStyle=i%2?"#403121":"#36291c";ctx.beginPath();ctx.moveTo(w*.5-28-260*t,y1);ctx.lineTo(w*.5+28+260*t,y1);ctx.lineTo(w*.5+42+285*(t+.04),y2);ctx.lineTo(w*.5-42-285*(t+.04),y2);ctx.closePath();ctx.fill()}
-  // road center line markings
-  ctx.strokeStyle="rgba(231,197,130,.18)";ctx.setLineDash([12,18]);ctx.lineWidth=2;for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(w*.5+i*15,hor);ctx.lineTo(w*.5+i*110,h);ctx.stroke()};ctx.setLineDash([])
-  // road edge marker poles with lantern detail
-  ctx.fillStyle="#3a2c1d";for(let i=0;i<6;i++){const mt=i/6,my=hor+mt*(h-hor);ctx.save();ctx.globalAlpha=.35;ctx.fillRect(w*.5-50-280*mt-4,my,6,18);ctx.fillRect(w*.5+50+280*mt-4,my,6,18);ctx.globalAlpha=.12;ctx.fillStyle="#ff8333";ctx.beginPath();ctx.arc(w*.5-50-280*mt-1,my-4,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+50+280*mt-1,my-4,4,0,7);ctx.fill();ctx.restore()}
-  // roadside grass and flowers
-  for(let i=0;i<18;i++){const gy=hor+(i+.5)*(h-hor)/18,gt=i/18,gw=280*gt+30;ctx.fillStyle=i%7?"#2a3a1a":"#3a4b2a";ctx.fillRect(w*.5-gw-70,gy-3,30,6);ctx.fillRect(w*.5+gw+40,gy-3,30,6)};for(let i=0;i<12;i++){const fy=hor+(i+.3)*(h-hor)/12+Math.sin(last*.001+i)*3,ft=i/12,fw=282*ft+24;ctx.fillStyle=i%3?"#8a5a3a":"#c84a3a";ctx.globalAlpha=.25;ctx.beginPath();ctx.arc(w*.5-fw-80,fy,3,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+fw+50,fy,3,0,7);ctx.fill()};ctx.globalAlpha=1
-  // roadside cherry blossom trees
-  for(let i=0;i<5;i++){const bt=hor+(i+.2)*(h-hor)/5,bw=300*(i/5)+40;ctx.fillStyle="#8a5a6a";ctx.fillRect(w*.5-bw-90-4,i%2?0:20,8,i%2?40:50);ctx.globalAlpha=.15;ctx.fillStyle="#d98986";ctx.beginPath();ctx.arc(w*.5-bw-86,i%2?12:24,12,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+bw+60,i%2?12:24,12,0,7);ctx.fill();ctx.globalAlpha=1}
+  // road center line markings (color shifts by zone)
+  var lineAlpha=zoneEdge.name==="coastal"?0.25:0.18;
+  ctx.strokeStyle="rgba(231,197,130,"+(lineAlpha*1.2)+")";ctx.setLineDash([12,18]);ctx.lineWidth=2;for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(w*.5+i*15,hor);ctx.lineTo(w*.5+i*110,h);ctx.stroke()};ctx.setLineDash([])
+  // road edge marker poles with zone-appropriate lantern color
+  var poleColor=zoneEdge.lanternColor;
+  ctx.fillStyle="#3a2c1d";for(let i=0;i<6;i++){const mt=i/6,my=hor+mt*(h-hor);ctx.save();ctx.globalAlpha=.35;ctx.fillRect(w*.5-50-280*mt-4,my,6,18);ctx.fillRect(w*.5+50+280*mt-4,my,6,18);ctx.globalAlpha=.12;ctx.fillStyle=poleColor;ctx.beginPath();ctx.arc(w*.5-50-280*mt-1,my-4,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+50+280*mt-1,my-4,4,0,7);ctx.fill();ctx.restore()}
+  // roadside grass and flowers — zone-specific palette
+  for(let i=0;i<18;i++){const gy=hor+(i+.5)*(h-hor)/18,gt=i/18,gw=280*gt+30;ctx.fillStyle=i%7?e1:e2;ctx.fillRect(w*.5-gw-70,gy-3,30,6);ctx.fillRect(w*.5+gw+40,gy-3,30,6)};for(let i=0;i<12;i++){const fy=hor+(i+.3)*(h-hor)/12+Math.sin(last*.001+i)*3,ft=i/12,fw=282*ft+24;ctx.fillStyle=i%3?f1||"#8a5a3a":f2||"#c84a3a";ctx.globalAlpha=.25;ctx.beginPath();ctx.arc(w*.5-fw-80,fy,3,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+fw+50,fy,3,0,7);ctx.fill()};ctx.globalAlpha=1
+  // roadside cherry blossom trees — fewer in mountain zone
+  var blossomDensity=zoneEdge.name==="mountain"?0.3:1;
+  if(blossomDensity>0.5){for(let i=0;i<5;i++){const bt=hor+(i+.2)*(h-hor)/5,bw=300*(i/5)+40;ctx.fillStyle="#8a5a6a";ctx.fillRect(w*.5-bw-90-4,i%2?0:20,8,i%2?40:50);ctx.globalAlpha=.15*blossomDensity;ctx.fillStyle="#d98986";ctx.beginPath();ctx.arc(w*.5-bw-86,i%2?12:24,12,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+bw+60,i%2?12:24,12,0,7);ctx.fill();ctx.globalAlpha=1}}
   // road shadow gradient
   const sg=ctx.createLinearGradient(0,h*.72,0,h);sg.addColorStop(0,"rgba(0,0,0,0)");sg.addColorStop(1,"rgba(0,0,0,.25)");ctx.fillStyle=sg;ctx.fillRect(0,0,w,h)
 }
@@ -860,17 +895,19 @@ function drawMilestoneGlow(w,hor){
   // Glow rings near each route milestone zone
   route.forEach(r=>{const dz=Math.abs(player.z-r.z);if(dz<40&&dz<60){const ga=Math.max(0,1-dz/40)*.12;ctx.globalAlpha=ga;const g=ctx.createRadialGradient(w/2,hor+60,10,w/2,hor+60,80);g.addColorStop(0,"rgba(215,182,111,.08)");g.addColorStop(1,"rgba(215,182,111,0)");ctx.fillStyle=g;ctx.fillRect(w/2-80,hor+20,160,120);ctx.globalAlpha=1}})}
 function drawLanterns(w,hor){
+  var zoneL=currentZone||getZone(player.z);
+  var lc=zoneL.lanternColor,lg=zoneL.lanternGlow;
   for(let i=0;i<8;i++){
     const lx=w*.1+(w*.8/7)*i,ly=hor-30+Math.sin(last*.00055+i)*5;
     if(i===3||i===5||i===7)continue;
     ctx.fillStyle="#d96a1f";ctx.fillRect(lx-4,ly-28,8,28);
-    ctx.fillStyle="#ff8333";ctx.beginPath();ctx.arc(lx,ly-34,6,0,7);ctx.fill();
+    ctx.fillStyle=lc;ctx.beginPath();ctx.arc(lx,ly-34,6,0,7);ctx.fill();
     const g=ctx.createRadialGradient(lx,ly-34,2,lx,ly-34,28);
-    g.addColorStop(0,"rgba(255,131,51,.28)");g.addColorStop(1,"rgba(255,131,51,0)");
+    g.addColorStop(0,lg);g.addColorStop(1,"rgba("+(zoneL.name==="coastal"?"215,182,111":"255,131,51")+",0)");
     ctx.fillStyle=g;ctx.fillRect(lx-28,ly-62,56,56)
   }
   // additional smaller road-side lanterns
-  ctx.fillStyle="#ff8333";for(let i=0;i<4;i++){const lx2=w*.05+(w*.9/3)*i*2,ly2=hor-40+Math.sin(last*.0007+i)*3;ctx.globalAlpha=.15;const g2=ctx.createRadialGradient(lx2,ly2,3,lx2,ly2,20);g2.addColorStop(0,"rgba(255,131,51,.18)");g2.addColorStop(1,"rgba(255,131,51,0)");ctx.fillStyle=g2;ctx.fillRect(lx2-20,ly2-20,40,40)};ctx.globalAlpha=1
+  ctx.fillStyle=lc;for(let i=0;i<4;i++){const lx2=w*.05+(w*.9/3)*i*2,ly2=hor-40+Math.sin(last*.0007+i)*3;ctx.globalAlpha=.15;const g2=ctx.createRadialGradient(lx2,ly2,3,lx2,ly2,20);g2.addColorStop(0,lg);g2.addColorStop(1,"rgba("+(zoneL.name==="coastal"?"215,182,111":"255,131,51")+",0)");ctx.fillStyle=g2;ctx.fillRect(lx2-20,ly2-20,40,40)};ctx.globalAlpha=1
 }
 function drawBloom(w,h){
   const g=ctx.createRadialGradient(w/2,h*.7,20,w/2,h*.7,Math.max(w,h)*.3);
