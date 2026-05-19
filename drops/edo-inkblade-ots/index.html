@@ -661,7 +661,7 @@ function drawRoad(w,h,hor){
   // road center line markings
   ctx.strokeStyle="rgba(231,197,130,.18)";ctx.setLineDash([12,18]);ctx.lineWidth=2;for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(w*.5+i*15,hor);ctx.lineTo(w*.5+i*110,h);ctx.stroke()};ctx.setLineDash([])
   // road edge marker poles with lantern detail
-  ctx.fillStyle="#3a2c1d";for(let i=0;i<6;i++){const mt=i/6;ctx.save();ctx.globalAlpha=.35;ctx.fillRect(w*.5-50-280*mt-4,y1+mt*(h-hor),6,18);ctx.fillRect(w*.5+50+280*mt-4,y1+mt*(h-hor),6,18);ctx.globalAlpha=.12;ctx.fillStyle="#ff8333";ctx.beginPath();ctx.arc(w*.5-50-280*mt-1,y1+mt*(h-hor)-4,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+50+280*mt-1,y1+mt*(h-hor)-4,4,0,7);ctx.fill();ctx.restore()}
+  ctx.fillStyle="#3a2c1d";for(let i=0;i<6;i++){const mt=i/6,my=hor+mt*(h-hor);ctx.save();ctx.globalAlpha=.35;ctx.fillRect(w*.5-50-280*mt-4,my,6,18);ctx.fillRect(w*.5+50+280*mt-4,my,6,18);ctx.globalAlpha=.12;ctx.fillStyle="#ff8333";ctx.beginPath();ctx.arc(w*.5-50-280*mt-1,my-4,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+50+280*mt-1,my-4,4,0,7);ctx.fill();ctx.restore()}
   // roadside grass and flowers
   for(let i=0;i<18;i++){const gy=hor+(i+.5)*(h-hor)/18,gt=i/18,gw=280*gt+30;ctx.fillStyle=i%7?"#2a3a1a":"#3a4b2a";ctx.fillRect(w*.5-gw-70,gy-3,30,6);ctx.fillRect(w*.5+gw+40,gy-3,30,6)};for(let i=0;i<12;i++){const fy=hor+(i+.3)*(h-hor)/12+Math.sin(last*.001+i)*3,ft=i/12,fw=282*ft+24;ctx.fillStyle=i%3?"#8a5a3a":"#c84a3a";ctx.globalAlpha=.25;ctx.beginPath();ctx.arc(w*.5-fw-80,fy,3,0,7);ctx.fill();ctx.beginPath();ctx.arc(w*.5+fw+50,fy,3,0,7);ctx.fill()};ctx.globalAlpha=1
   // roadside cherry blossom trees
