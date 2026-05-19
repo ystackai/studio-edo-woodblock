@@ -137,6 +137,17 @@ checks.push(["HUD decorative ink-wash border", html.includes('stats::before') &&
 checks.push(["zone-aware hints", html.includes("zoneName") && html.includes("zoneName+")]);
 checks.push(["Ganryu approach audio drone", html.includes('ganryuDrone') && html.includes('ganryuProx')]);
 
+// Pass 40: Hero-specific special abilities + road-side haiku moments
+checks.push(["hero abilities defined per character", html.includes("resolveStrike") && html.includes("windStep") && html.includes("inkBlessing")]);
+checks.push(["hero ability key binding M", html.includes('key==="m"') && html.includes("useHeroAbility()")]);
+checks.push(["useHeroAbility function exists", html.includes("function useHeroAbility")]);
+checks.push(["ability cooldown mechanic", html.includes("abilityCooldown") && html.includes("abilityEffectTimer")]);
+checks.push(["ability visual effect aura", html.includes("abilityEffectTimer>0") && html.includes("abPulse")]);
+checks.push(["ability status UI indicator", html.includes("ability-status") && html.includes("abReady")]);
+checks.push(["road-side haiku moments", html.includes("haikuMoments") && html.includes("haikuMoment")]);
+checks.push(["haiku moment drawing", html.includes("haikuMoment.active") && html.includes("haikuMoment.text")]);
+checks.push(["haiku moment fade rendering", html.includes("haikuMoment.timer") && html.includes("haikuMoment.age")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

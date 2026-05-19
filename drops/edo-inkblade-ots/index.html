@@ -17,6 +17,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background
 #stats::after{content:"";position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;border:1px solid rgba(202,164,95,.08);border-radius:10px;pointer-events:none}
 #controls{position:relative}
 #controls::before{content:"";position:absolute;top:-3px;left:-3px;right:-3px;bottom:-3px;border:1px solid rgba(215,182,111,.1);border-radius:10px;pointer-events:none}
+#ability-status{transition:color .3s}
 #stats{display:grid;grid-template-columns:repeat(4,minmax(76px,1fr));gap:8px;min-width:min(560px,calc(100vw - 32px))}
 .stat{border-left:3px solid #caa45f;padding-left:8px}
 .label{font-size:10px;text-transform:uppercase;color:#b9a88d;letter-spacing:.08em}
@@ -95,7 +96,7 @@ h1{font-family:serif;font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 4
       <div class="label">Current objective</div>
       <div id="quest">Choose a traveler and walk the road toward Ganryu.</div>
     </div>
-    <div id="controls" class="panel">WASD move, arrows turn, Space paint, mouse click slash, right click paint, K / Q block, Shift run, 1-3 switch paint mode, R pray at shrines</div>
+    <div id="controls" class="panel">WASD move, arrows turn, Space paint, mouse click slash, right click paint, K/Q block, Shift run, 1-3 paint mode, R pray, M hero ability<div id="ability-status" style="margin-top:4px;font-size:11px;color:#b9a88d"></div></div>
 		<div id="hint" style="display:none">//</div>
   </section>
     <section id="death">
@@ -178,21 +179,21 @@ to a shore where art and steel find peace.</div>
             <div class="swatch" style="background:#d7b66f"></div>
             <strong>Miyamoto Musashi</strong>
             <div class="sub">— the duelist painter —</div>
-            <span>Balanced footwork, strong parry, measured brush marks.</span>
+            <span>Balanced footwork, strong parry, measured brush marks. <strong>Ability: Resolve Strike</strong> (M) — empower your next slash.</span>
           </button>
           <button class="card" data-hero="koeda">
             <canvas class="card-canvas" width="280" height="180"></canvas>
             <div class="swatch" style="background:#8fc7d6"></div>
             <strong>Koeda, runner of bridges</strong>
             <div class="sub">— the swift wanderer —</div>
-            <span>Fast movement, quick slash, smaller ink reserve.</span>
+            <span>Fast movement, quick slash, smaller ink reserve. <strong>Ability: Wind Step</strong> (M) — dodge through danger.</span>
           </button>
           <button class="card" data-hero="yoshino">
             <canvas class="card-canvas" width="280" height="180"></canvas>
             <div class="swatch" style="background:#d98986"></div>
             <strong>Yoshino, carver of rain</strong>
             <div class="sub">— the ink sage —</div>
-            <span>Slow stride, deep ink, art pacifies enemies sooner.</span>
+            <span>Slow stride, deep ink, art pacifies enemies sooner. <strong>Ability: Ink Blessing</strong> (M) — replenish ink and bless your brush.</span>
           </button>
         </div>
       </div>
@@ -205,9 +206,9 @@ const ctx=canvas.getContext("2d");
 const ui={style:byId("style"),hp:byId("hp"),ink:byId("ink"),resolve:byId("resolve"),quest:byId("quest"),log:byId("log"),select:byId("select"),death:byId("death"),victory:byId("victory"),title:byId("title"),titleCanvas:byId("title-canvas")};
 function byId(id){return document.getElementById(id)}
 const heroes={
-  musashi:{label:"Musashi",color:"#d7b66f",hp:100,ink:5,speed:2.35,slash:24,block:.28,art:1},
-  koeda:{label:"Koeda",color:"#8fc7d6",hp:82,ink:4,speed:3.05,slash:18,block:.38,art:.8},
-  yoshino:{label:"Yoshino",color:"#d98986",hp:92,ink:7,speed:1.95,slash:17,block:.22,art:1.6}
+  musashi:{label:"Musashi",color:"#d7b66f",hp:100,ink:5,speed:2.35,slash:24,block:.28,art:1,ability:"resolveStrike",abilityName:"Resolve Strike",abilityDesc:"Press M to empower next slash — consumes resolve for double damage"},
+  koeda:{label:"Koeda",color:"#8fc7d6",hp:82,ink:4,speed:3.05,slash:18,block:.38,art:.8,ability:"windStep",abilityName:"Wind Step",abilityDesc:"Press M to dodge — briefly invincible, no resolve cost"},
+  yoshino:{label:"Yoshino",color:"#d98986",hp:92,ink:7,speed:1.95,slash:17,block:.22,art:1.6,ability:"inkBlessing",abilityName:"Ink Blessing",abilityDesc:"Press M to bless your ink — faster regen, stronger paint marks"}
 };
 let hero=heroes.musashi;
 let victoryParticles=[],victoryFanfare=false;
@@ -389,7 +390,7 @@ let currentHeroKey="musashi";
 let paintMode="waymark"; // "waymark", "barrier", "blossom"
 let shrineEvents=[]; // clickable road-side shrines
 
-let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0,inkTimer:0,sprintDrainTimer:0};
+let player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0,inkTimer:0,sprintDrainTimer:0,abilityReady:true,abilityCooldown:0,abilityEffectTimer:0};
 let keys={},last=0,won=false,ganryuDefeated=false,hitStop=0,touch={id:0,sx:0,sy:0,startTime:0,hold:false,moving:false};let damageNumbers=[],drizzle=[],drizzleActive=0,bellRung=0,parryBonus=0,duelFocus={name:"",timer:0};
 let gameStartTime=0,enemiesDefeated=0,inkUsedTotal=0,marksPlacedTotal=0;
 let messages=["Choose a style, then begin the road."];
@@ -444,6 +445,15 @@ const shrines=[
   {z:1000,used:false,text:"A small shrine by the coastal path. Sea breeze carries peace.",icon:"shrine"},
   {z:1250,used:false,text:"Ganryu approach — a final shrine. Steel yourself.",icon:"shrine"}
 ];
+// Road-side poetic haiku moments — ambient atmosphere when passing scenic points
+var haikuMoments=[
+  {z:120,haiku:"morning frost\ncracks under the sandal —\nanother step begins",shown:false},
+  {z:350,haiku:"pine shadows\nshift across the road —\nlight bends like water",shown:false},
+  {z:650,haiku:"the mountain breathes\nmist through cedar gaps —\nfootfalls dissolve",shown:false},
+  {z:850,haiku:"river widens\nbetween stone and sky —\ntide pulls the hour",shown:false},
+  {z:1150,haiku:"wind tastes of salt\nGanryu pulls closer —\nthe road forgets itself",shown:false}
+];
+var haikuMoment={active:false,text:"",timer:0,age:0};
 // Atmosphere particles
 for(let i=0;i<30;i++){leaves.push({x:Math.random()*300-150,z:Math.random()*1200,s:2+Math.random()*3,sp:Math.random()*2+.5,phase:Math.random()*6,color:["#6b8d4a","#b88c45","#8e4f30"][i%3]})}
 for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()*1100,b:Math.random()*6+3,phase:Math.random()*8,speed:.3+Math.random()*.4})}
@@ -640,14 +650,51 @@ document.querySelectorAll(".card").forEach(function(card){
   card.addEventListener("click",function(e){chooseHero(card,e)});
   card.addEventListener("touchstart",function(e){chooseHero(card,e)});
 });
-let paintPressTime=0;
+// Hero-specific special abilities
+function useHeroAbility(){initAudio();if(player.abilityCooldown>0){say("Ability not ready yet.");return}
+  var ab=hero.ability;
+  if(ab==="resolveStrike"&&player.resolve>=3){
+    // Musashi: Resolve Strike — empowers next slash for 2x damage, consumes 4 resolve
+    player.resolve=Math.max(0,player.resolve-4);
+    player.abilityEffectTimer=120;
+    player.abilityCooldown=240;
+    player.abilityReady=true;
+    screenShake=3;
+    burst(player.x,player.z,"#d7b66f","#efe1c0");
+    say("Musashi enters Resolve Strike stance — the next blade cuts twice.");
+  }else if(ab==="windStep"){
+    // Koeda: Wind Step — brief invincible dash, grants resolve+1
+    player.invincible=Math.max(player.invincible,60);
+    player.mx+=0.5;player.mz+=1.2;
+    player.abilityEffectTimer=60;
+    player.abilityCooldown=300;
+    player.resolve=Math.min(15,player.resolve+1);
+    screenShake=2;
+    burst(player.x,player.z,"#8fc7d6","#fff");
+    say("Koeda slips on the wind — steps invisible for a heartbeat.");
+  }else if(ab==="inkBlessing"){
+    // Yoshino: Ink Blessing — faster ink regen + paint effect boost for a duration
+    player.ink=Math.min(hero.ink,player.ink+3);
+    player.abilityEffectTimer=360;
+    player.abilityCooldown=480;
+    screenShake=1;
+    burst(player.x,player.z,"#d98986","#ead9bb");
+    say("Yoshino blesses the inkstone — the brush flows with new life.");
+  }else{
+    say("Not enough resolve or ink for the ability.");
+    return;
+  }
+}
+// Paint press time tracking for hold-duration brush sizing
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}if(won){won=false;ui.victory.classList.remove("show");start(currentHeroKey);return}if(e.key===" "){paintPressTime=Date.now();paint()}if(["j","e"].includes(e.key.toLowerCase()))slash();if(["k","q"].includes(e.key.toLowerCase())){player.blocking=true;player.blockDecay=0}
   // Paint mode toggle: 1=waymark, 2=barrier, 3=blossom
   if(e.key==="1"){paintMode="waymark";say("Paint mode: waymark seal")}
   if(e.key==="2"){paintMode="barrier";say("Paint mode: ink barrier — slows enemies near the mark")}
   if(e.key==="3"){paintMode="blossom";say("Paint mode: ink blossom — gentle healing near the mark")}
   // Shrine interaction: press R near a shrine to pray
-  if(e.key==="r"||e.key==="R"){shrineEvents.forEach(function(s){if(!s.used&&Math.abs(player.z-s.z)<30){s.used=true;player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+2);initAudio();sfx.inkRegen();say(s.text);burst(player.x,player.z,"#d7b66f");screenShake=1}});}});
+  if(e.key==="r"||e.key==="R"){shrineEvents.forEach(function(s){if(!s.used&&Math.abs(player.z-s.z)<30){s.used=true;player.resolve=Math.min(15,player.resolve+3);player.ink=Math.min(hero.ink,player.ink+2);initAudio();sfx.inkRegen();say(s.text);burst(player.x,player.z,"#d7b66f");screenShake=1}})}
+  // Hero ability: press M to activate unique hero power
+  if((e.key==="m"||e.key==="M")&&player.abilityReady&&player.abilityCooldown<=0){useHeroAbility()}});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;if(["k","q"].includes(e.key.toLowerCase()))player.blocking=false;if(e.key===" "&&paintPressTime){var held=Date.now()-paintPressTime;player.paintHoldTime=Math.min(99,held/250);paintPressTime=0}});
 addEventListener("touchstart",(e)=>{e.preventDefault();const t=e.changedTouches[0];touch.id=t.identifier;touch.sx=t.clientX;touch.sy=t.clientY;touch.startTime=Date.now();touch.hold=false;touch.moving=false;if(player.hp<=0){initAudio();sfx.death();start(currentHeroKey);return}});
 addEventListener("touchmove",(e)=>{e.preventDefault();const t=e.changedTouches[0];if(t.identifier!==touch.id)return;const dx=t.clientX-touch.sx,dy=t.clientY-touch.sy;if(Math.abs(dx)>18||Math.abs(dy)>18){touch.moving=true;touch.sx=t.clientX;touch.sy=t.clientY}if(touch.moving){const spd=hero.speed*1.1;const ang=Math.atan2(dy,dx);if(ang>-2.5&&ang<.7){player.heading+=dx*.003}else{const fwd=Math.cos(ang)*spd*.03,side=Math.sin(ang)*spd*.03;player.mx+=((side-player.mx)*.08);player.mz+=((fwd-player.mz)*.08)}}});
@@ -833,12 +880,29 @@ if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
       if(Math.random()<.06){victoryParticles.push({x:player.x+(Math.random()-.5)*60,z:player.z+(Math.random()-.5)*60,a:.7,vx:(Math.random()-.5)*.3,vy:Math.random()*1+.2,color:"#1a120e",d:Math.random()*6+4})}}
     player.slashTimer=Math.max(0,player.slashTimer-dt);player.paintTimer=Math.max(0,player.paintTimer-dt);if(player.paintTimer<=0)player.paintChain=0;player.invincible=Math.max(0,player.invincible-dt);player.damageFlash=Math.max(0,player.damageFlash-dt);
     duelFocus.timer=Math.max(0,duelFocus.timer-dt);
+    // Ability cooldown and effect timer decay
+    player.abilityCooldown=Math.max(0,player.abilityCooldown-dt);
+    player.abilityEffectTimer=Math.max(0,player.abilityEffectTimer-dt);
+    // Yoshino Ink Blessing effect: faster ink regen while effect timer active
+    if(hero.ability==="inkBlessing"&&player.abilityEffectTimer>0){player.inkTimer+=dt*2}
     if(player.blocking){player.blockDecay+=dt*3}else{player.blockDecay=Math.max(0,player.blockDecay-dt*5)}
     player.displayHp+=((player.hp-player.displayHp)*.15)*dt;player.displayInk+=((player.ink-player.displayInk)*.15)*dt;
     if(player.hp<=0){player.deathFade=Math.min(1,player.deathFade+.012*dt);ui.death.classList.add("show");var e=Math.floor((Date.now()-gameStartTime)/1000);var tm=Math.floor(e/60)+"m "+(e%60)+"s";document.getElementById("death-time").textContent=tm;document.getElementById("death-defeated").textContent=enemiesDefeated;document.getElementById("death-ink").textContent=inkUsedTotal;document.getElementById("death-resolve").textContent=player.resolve;
       // Ink-wash death particles — dissolving ink burst on defeat
       if(player.deathFade<.1)burst(player.x,player.z,"#1a120e","#0a0806",80);var dhEl=document.getElementById("death-haiku");if(dhEl){var deathHaikus={musashi:"the road ends here / ink scatters like autumn leaves / return to the brush",koeda:"running the long road / brush slips from the belt / mist takes the path",yoshino:"tide pulls the robe / the walking staff sinks / journey stops here"};dhEl.textContent=deathHaikus[currentHeroKey]||"the road ends here / ink scatters like autumn leaves / return to the brush";dhEl.style.opacity="1"}}else if(player.deathFade>0){player.deathFade=Math.max(0,player.deathFade-.03*dt);if(player.deathFade<=0){ui.death.classList.remove("show");var dhEl=document.getElementById("death-haiku");if(dhEl)dhEl.style.opacity="0"}}
     milestonePopup.timer=Math.max(0,milestonePopup.timer-dt);
+    // Road-side haiku moments — ambient poetry when passing scenic points
+    var haikuZ=player.z;
+    for(var hm=0;hm<haikuMoments.length;hm++){var h=haikuMoments[hm];
+      if(!h.shown&&Math.abs(haikuZ-h.z)<15){
+        h.shown=true;
+        haikuMoment.active=true;haikuMoment.text=h.haiku;haikuMoment.timer=120;haikuMoment.age=0;
+        break;
+      }
+    }
+    if(haikuMoment.active){haikuMoment.timer=Math.max(0,haikuMoment.timer-dt);
+      haikuMoment.age=Math.min(haikuMoment.timer,120-haikuMoment.timer);
+      if(haikuMoment.timer<=0)haikuMoment.active=false;}
     updateEnemies(dt);updateQuest();updateUi();
   }
 }
@@ -1019,10 +1083,14 @@ function paint(){initAudio();
 }
 function slash(){initAudio();
   if(!ui.select.classList.contains("hidden")||player.slashTimer>0)return;
+  // Musashi Resolve Strike: 2x damage when abilityEffectTimer active
+  var slashMult=hero.ability==="resolveStrike"&&player.abilityEffectTimer>0?2:1;
+  if(slashMult>1){player.abilityEffectTimer=0;
+    say("Resolve Strike lands — the blade sings with doubled force.");}
   player.slashTimer=18;let hit=false;
   enemies.filter(e=>e.hp>0).forEach(e=>{
     const dx=e.x-player.x,dz=e.z-player.z,dist=Math.hypot(dx,dz),ang=Math.atan2(dx,dz)-player.heading;
-    if(dist<82&&Math.abs(Math.atan2(Math.sin(ang),Math.cos(ang)))<.72){e.hp-=hero.slash;hit=true;screenShake=2;hitStop=2;damageNumbers.push({x:e.x,z:e.z,dmg:hero.slash,age:0,color:"#efe1c0"});burst(e.x,e.z,"#efe1c0","#fff");say("Inkblade strikes "+e.name+".");if(e.hp<=0){enemiesDefeated+=1;player.resolve+=3;screenShake=4;hitStop=4;say(e.name+" scatters like mist under the blade.");burst(e.x,e.z,"#fff","#d7b66f")}}
+    if(dist<82&&Math.abs(Math.atan2(Math.sin(ang),Math.cos(ang)))<.72){e.hp-=hero.slash*slashMult;hit=true;screenShake=2;hitStop=2;damageNumbers.push({x:e.x,z:e.z,dmg:hero.slash*slashMult,age:0,color:"#efe1c0"});burst(e.x,e.z,"#efe1c0","#fff");say("Inkblade strikes "+e.name+".");if(e.hp<=0){enemiesDefeated+=1;player.resolve+=3;screenShake=4;hitStop=4;say(e.name+" scatters like mist under the blade.");burst(e.x,e.z,"#fff","#d7b66f")}}
   });
   if(!hit){say("The blade cuts only mist.");screenShake=.5}
 }
@@ -1079,7 +1147,18 @@ function updateUi(){ui.style.textContent=hero.label;
   // Mobile touch hint - prepend for touch devices
   if('ontouchstart' in document.documentElement&&hintText){hintText='Tap=Slash, Hold=Paint. Drag sides to move. '+hintText}
 
-  if(hintText){hint.textContent=hintText;hint.style.display=""}else{hint.style.display="none"}}
+  if(hintText){hint.textContent=hintText;hint.style.display=""}else{hint.style.display="none"}
+  // Hero ability status indicator
+  var abEl=document.getElementById("ability-status");
+  if(abEl){
+    var abReady=player.abilityReady&&player.abilityCooldown<=0;
+    var abText=hero.abilityName||"";
+    var abCD=Math.round(player.abilityCooldown/10)/10;
+    var isKoeda=hero.ability==="windStep";
+    var isYoshino=hero.ability==="inkBlessing";
+    abEl.textContent=abReady?"[M] "+abText+" ready":player.abilityCooldown>0?"[M] "+abText+" "+abCD+"s":abText;
+    abEl.style.color=abReady?"#f4ead8":"#b9a88d";}
+}
 function project(x,z,h=0){
   const dx=x-player.x,dz=z-player.z,cs=Math.cos(player.heading),sn=Math.sin(player.heading);
   const cx=dx*cs-dz*sn,cz=dx*sn+dz*cs;
@@ -1177,6 +1256,18 @@ function draw(){
   visible.sort((a,b)=>b.p.d-a.p.d).forEach(v=>v.type==="enemy"?drawEnemy(v.o,v.p):v.type==="mark"?drawMark(v.o,v.p):drawScenery(v.o,v.p));
   drawDamageNumbers();drawPlayer();drawSparks();drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
   drawAtmosphere(w,h);
+  // Road-side haiku moment — ambient poetry overlay at scenic points
+  if(haikuMoment.active&&haikuMoment.timer>0){ctx.save();
+    var ha=Math.min(1,haikuMoment.age/30,haikuMoment.timer/30);
+    ctx.globalAlpha=ha*.8;
+    ctx.fillStyle="#b9a88d";ctx.font="clamp(11px,1.4vw,15px) serif";ctx.textAlign="center";ctx.textBaseline="middle";
+    var hl=haikuMoment.text.split("\n");
+    hl.forEach(function(line,i){
+      ctx.globalAlpha=ha*(.7+i*.15);
+      ctx.fillStyle="#ead9bb";ctx.font="italic clamp(12px,1.6vw,17px) serif";
+      ctx.fillText(line,w/2,h*.76+i*22);
+    });
+    ctx.restore()}
   if(milestonePopup.active&&milestonePopup.timer>0){ctx.save();const ma=Math.min(1,milestonePopup.timer/20);ctx.globalAlpha=ma;
   // Rich ink-wash vignette illustration based on milestone zone
   var vignetteKind=milestonePopup.vignette||"bridge";
@@ -1650,7 +1741,27 @@ function drawPlayer(){var bob=Math.sin(player.bobPhase)*4,lean=-(player.mx/1.5)*
     ctx.beginPath();ctx.moveTo(-22,-50);ctx.lineTo(-22,0);ctx.lineTo(22,0);ctx.lineTo(22,-50);ctx.closePath();ctx.stroke();
     ctx.globalAlpha=1
   }
-};if(player.damageFlash>0){ctx.globalAlpha=.6*player.damageFlash;ctx.fillStyle="#c85d43";ctx.fillRect(-24,-74,48,50);ctx.globalAlpha=1};if(player.invincible>0){ctx.globalAlpha=.4;ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(0,-74,24,0,7);ctx.fill();ctx.globalAlpha=1};ctx.restore()}
+  };if(player.damageFlash>0){ctx.globalAlpha=.6*player.damageFlash;ctx.fillStyle="#c85d43";ctx.fillRect(-24,-74,48,50);ctx.globalAlpha=1};if(player.invincible>0){ctx.globalAlpha=.4;ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(0,-74,24,0,7);ctx.fill();ctx.globalAlpha=1};ctx.restore()
+  // Ability visual effect aura on player
+  if(player.abilityEffectTimer>0){ctx.save();ctx.translate(x,y);
+    var abPulse=.5+.5*Math.sin(last*.012+player.abilityEffectTimer*.03);
+    if(hero.ability==="resolveStrike"){
+      ctx.globalAlpha=abPulse*.35;ctx.fillStyle="#d7b66f";
+      ctx.beginPath();ctx.arc(0,-74,28+abPulse*8,0,7);ctx.fill();
+      ctx.strokeStyle="#f4ead8";ctx.lineWidth=3;ctx.globalAlpha=abPulse*.5;
+      ctx.beginPath();ctx.arc(0,-74,36+abPulse*4,0,7);ctx.stroke()}
+    else if(hero.ability==="windStep"){
+      ctx.globalAlpha=abPulse*.3;ctx.fillStyle="#8fc7d6";
+      ctx.beginPath();ctx.arc(0,-74,26+abPulse*6,0,7);ctx.fill();
+      ctx.globalAlpha=abPulse*.25;ctx.fillStyle="#fff";
+      for(var wi=0;wi<3;wi++){var wa=wi*2.1+last*.005;ctx.beginPath();ctx.arc(Math.cos(wa)*30,Math.sin(wa)*30-74,3+abPulse*3,0,7);ctx.fill()}}
+    else if(hero.ability==="inkBlessing"){
+      ctx.globalAlpha=abPulse*.3;ctx.fillStyle="#d98986";
+      ctx.beginPath();ctx.arc(0,-74,26+abPulse*6,0,7);ctx.fill();
+      ctx.globalAlpha=abPulse*.2;ctx.fillStyle="#ead9bb";
+      ctx.beginPath();ctx.arc(0,-74,38+abPulse*3,0,7);ctx.fill()}
+    ctx.globalAlpha=1;ctx.restore()}
+}
 function burst(x,z,c1,c2){var c=c2||c1;for(var i=0;i<20;i++)sparks.push({x,z,color:i%3===0?c1:c,a:1,vx:(Math.random()-.5)*8,vz:(Math.random()-.5)*8,d:Math.random()*4})}
 function inkSplatter(x,z,color){for(let i=0;i<10;i++)sparks.push({x,z,color,a:.9,vx:(Math.random()-.5)*7,vz:(Math.random()-.5)*7,d:Math.random()*6})}
 function drawSparks(){sparks=sparks.filter(s=>s.a>.02);sparks.forEach(s=>{s.x+=s.vx;s.z+=s.vz;s.a*=.92;s.d*=.94;const p=project(s.x,s.z,s.d+18);if(!p)return;ctx.globalAlpha=s.a;if(s.d>0){ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1,s.d)*2,0,7);ctx.fill()}else{ctx.fillStyle=s.color;ctx.fillRect(p.x-2,p.y-2,4,4)};ctx.globalAlpha=1})}

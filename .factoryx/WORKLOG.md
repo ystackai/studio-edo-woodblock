@@ -297,3 +297,24 @@
 - **Fresh screenshots captured** after all changes
 - **106 smoke checks pass** (was 93 — added 13 checks: shakuhachi, koto, taiko emulation; zone ambient creatures; butterfly/crow/eagle/seabird draw functions; extended melody motifs; shaku/koto voices; zone ambient noise; atmosphere colors)
 
+## Pass 40 — Hero-specific special abilities, road-side haiku moments, character identity depth
+
+### What changed
+- **Hero-specific special abilities** — each character has a unique power activated by pressing M:
+  - Musashi — **Resolve Strike**: consumes 4 resolve to empower the next slash with 2× damage. Pulsing golden aura visible during effect. 240-frame cooldown.
+  - Koeda — **Wind Step**: brief 60-frame invincible dash with resolve+1 reward. Cyan wind-ring aura with swirling particle trails. 300-frame cooldown.
+  - Yoshino — **Ink Blessing**: instant ink+3 restoration plus 360-frame effect window with faster ink regen (2× regen tick rate). Rose-gold aura glow. 480-frame cooldown.
+- **Visual effect auras**: each ability has a distinct draw-time particle aura on the player — golden pulse (resolveStrike), cyan wind swirl (windStep), rose-gold halo (inkBlessing)
+- **Ability status UI indicator**: `#ability-status` element in controls panel shows cooldown remaining and readiness state. Updates every frame via `updateUi()`.
+- **Character card descriptions updated**: each hero card now lists their ability name and M-key binding so players understand the mechanic at character select.
+- **Road-side haiku moments** — 5 ambient poetry spots at scenic road positions (z=120, 350, 650, 850, 1150). When passing within 15 units, a fade-in haiku overlay appears at the bottom of screen, persists for 120 frames, then fades away. Each haiku reflects zone atmosphere.
+- **Controls updated**: "M hero ability" added to controls display. Ability status shown below controls.
+- **115 smoke checks pass** (was 106 — added 9 checks: hero abilities defined per character, hero ability key binding M, useHeroAbility function, ability cooldown mechanic, ability visual aura, ability status UI, road-side haiku moments, haiku moment drawing, haiku moment fade rendering)
+- **Fresh screenshots captured** after all changes (01-character-select, 02-mid-journey, 03-paint-combat, 04-combat-duel, 05-ganryu-victory)
+
+## Known Issues (updated)
+- Screenshots need fresh captures after Pass 40 — DONE
+- Zone transition particles could be more dramatic at boundary crossings
+- Zone audio cues are oscillator-based — real zone ambience files would be richer
+- Hero ability cooldowns could be fine-tuned for balance
+- Haiku moments are one-shot per playthrough — could be extended with replay or zone-specific haiku sets
