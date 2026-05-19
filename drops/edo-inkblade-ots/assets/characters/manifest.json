@@ -1,0 +1,92 @@
+{
+  "format": "row-based sprite sheets",
+  "description": "Edo Inkblade character sprite sheets. Each PNG is a row of frames: idle, slash, block, wounded.",
+  "frame_size": {
+    "hero": { "width": 80, "height": 120 },
+    "enemy": { "width": 60, "height": 100 },
+    "boss":  { "width": 80, "height": 120 }
+  },
+  "characters": {
+    "musashi": {
+      "file": "musashi.png",
+      "type": "player",
+      "label": "Miyamoto Musashi",
+      "frames": ["idle", "slash", "block", "wounded"],
+      "color": "#d7b66f",
+      "frame_size": [80, 120],
+      "sheet_size": [320, 120]
+    },
+    "koeda": {
+      "file": "koeda.png",
+      "type": "player",
+      "label": "Koeda, runner of bridges",
+      "frames": ["idle", "slash", "block", "wounded"],
+      "color": "#8fc7d6",
+      "frame_size": [80, 120],
+      "sheet_size": [320, 120]
+    },
+    "yoshino": {
+      "file": "yoshino.png",
+      "type": "player",
+      "label": "Yoshino, carver of rain",
+      "frames": ["idle", "slash", "block", "wounded"],
+      "color": "#d98986",
+      "frame_size": [80, 120],
+      "sheet_size": [320, 120]
+    },
+    "chaser": {
+      "file": "chaser.png",
+      "type": "enemy",
+      "label": "dock ronin",
+      "frames": ["idle", "attack", "idle", "idle"],
+      "color": "#6f3f32",
+      "frame_size": [60, 100],
+      "sheet_size": [240, 100]
+    },
+    "prowler": {
+      "file": "prowler.png",
+      "type": "enemy",
+      "label": "cedar bandit",
+      "frames": ["idle", "attack", "idle", "idle"],
+      "color": "#344d40",
+      "frame_size": [60, 100],
+      "sheet_size": [240, 100]
+    },
+    "duelist": {
+      "file": "duelist.png",
+      "type": "enemy",
+      "label": "bridge duelist",
+      "frames": ["idle", "attack", "combo", "idle"],
+      "color": "#3e4a68",
+      "frame_size": [60, 100],
+      "sheet_size": [240, 100]
+    },
+    "vagrant": {
+      "file": "vagrant.png",
+      "type": "enemy",
+      "label": "straw-hat vagrant",
+      "frames": ["idle", "attack", "idle", "idle"],
+      "color": "#5a4a38",
+      "frame_size": [60, 100],
+      "sheet_size": [240, 100]
+    },
+    "monk": {
+      "file": "monk.png",
+      "type": "enemy",
+      "label": "river-bank monk",
+      "frames": ["idle", "attack", "idle", "idle"],
+      "color": "#4a5a58",
+      "frame_size": [60, 100],
+      "sheet_size": [240, 100]
+    },
+    "ganryu": {
+      "file": "ganryu.png",
+      "type": "boss",
+      "label": "Ganryu",
+      "frames": ["idle", "attack", "block", "wounded"],
+      "color": "#2a3833",
+      "frame_size": [80, 120],
+      "sheet_size": [320, 120]
+    }
+  }
+}
