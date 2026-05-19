@@ -25,7 +25,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - 3 enemy types: chaser, prowler, duelist with telegraph attacks
 - 3 quest milestones: paint waymarks → cross bridge → reach Ganryu
 - Ambient particles (leaves, fireflies, river mist)
-- Audio: wind drone, river, footsteps, ink/combat SFX
+- Audio: current wind/river/footstep/combat SFX are scaffolding; final direction now requires a real musical identity and committed or deliberately composed audio assets
 - HUD: HP, ink, resolve bars with animated fill
 - Death & victory screens with journey stats
 - Woodblock grain overlay, bloom, vignette, screen shake
@@ -40,11 +40,15 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 3. Paint mark persistence and terrain-responsive appearance
 4. Combat depth (duelist second attack, tighter block timing)
 5. Ganryu arrival zone with layered mist, island silhouette, closing ceremony
-6. Audio polish (temple bell, rain, balanced silence)
-7. Mobile UX verification at small viewports
-8. Final verification, screenshots, PR body update, review invitation
+6. Real art asset pass: title/key art, character portraits/sprites, enemy designs, Ganryu backdrop, UI texture plates
+7. Real music/audio pass: road motif, ambient layer, duel tension layer, Ganryu arrival cue, polished SFX
+8. Mobile UX verification at small viewports
+9. Final verification, screenshots, PR body update, review invitation
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
 Target repo: `ystackai/studio-edo-woodblock`. Canonical PR: #107.
 Deadline: 2026-05-25T22:13:34Z. Finish policy: polish_until_deadline.
+
+### Quality Bar Correction
+The planning docs now explicitly reject placeholder-only primitive art and oscillator-only final audio. Procedural generation is still allowed when it adds richness, but the target is committed/generated visual assets plus a real musical identity.

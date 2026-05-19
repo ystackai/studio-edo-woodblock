@@ -219,17 +219,18 @@ This creates an over-the-shoulder depth effect without a full 3D engine. The roa
 - Ink splash / slash / block / hit / death / fanfare (oscillator-based SFX)
 
 ### Target additions
-- Distant temple bell (zone-triggered oscillator)
-- Rain in valley zone (noise gate)
-- More layered silence between events
+- Distant temple bell or struck-metal cue with musical tuning
+- Rain in valley zone with texture rather than raw noise
+- A road motif and low musical bed that can thin out into silence
+- Duel tension layer and Ganryu arrival cue
 
-All audio uses `AudioContext` oscillator nodes — no samples or external files.
+Audio may use committed audio files, generated/recorded loops, or deliberately composed Web Audio. Oscillator-only SFX are acceptable as temporary scaffolding, but not as the final sound identity.
 
 ---
 
 ## 7. Asset Plan
 
-### Generated assets (procedural, canvas-based)
+### Current generated assets (procedural, canvas-based)
 
 | Asset | Generation method | Current state |
 |---|---|---|
@@ -243,8 +244,20 @@ All audio uses `AudioContext` oscillator nodes — no samples or external files.
 | Title banner / character-select calligraphy | Canvas text + ink-brush frame | Minimal |
 | Victory/Death screens | DOM overlays with stat grid | Working |
 
-### Zero external assets
-No images, fonts (system font only), audio files, or sprite sheets. The single HTML file contains everything.
+### Asset pipeline and quality bar
+The single-file bootstrap was useful for speed, but it should not constrain art quality. Use `drops/edo-inkblade-ots/assets/` for committed assets when they improve the game.
+
+| Folder | Purpose |
+|---|---|
+| `assets/title/` | title art, key art, logo/calligraphy plates |
+| `assets/characters/` | portraits, sprite sheets, stance/duel poses, character-select art |
+| `assets/enemies/` | ronin/bandit/yamabushi designs, silhouettes, attack telegraph art |
+| `assets/environment/` | Ganryu shore, bridge, shrine, bamboo, rain, paper/ink textures |
+| `assets/audio/` | road ambience, musical motif, duel layer, Ganryu arrival cue, polished SFX |
+
+Allowed sources: authored art, generated image/audio assets, and procedural generation exported to files. Procedural runtime drawing remains useful for fog, particles, and variation, but the review-worthy artifact needs real visual and musical identity.
+
+Verification must confirm referenced asset paths exist, load from the preview root, and do not silently fall back to missing placeholders. The PR body should call out which assets are final-quality, which are provisional, and what remains to replace.
 
 ---
 

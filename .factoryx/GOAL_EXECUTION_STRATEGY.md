@@ -53,10 +53,11 @@ The player selects from a small roster of Edo archetypes (Musashi, an artist, a 
 - **Woodblock grain**: Subtle overlay texture across the canvas. Strengthen with paper edge vignette.  
 - **Character design**: Kimono silhouette with weapon silhouette. Simple but recognizable. Enemy designs: three types (chaser yamabushi, prowler bandit, duelist ronin) with distinct silhouette profiles.
 
-### Audio (partially implemented)
-- Currently: wind noise, river drone, footstep percussion, ink/combat SFX.  
-- Target: more ambient layering (distant temple bell, birds at dawn, rain for select zones).  
-- Audio should be atmospheric, not intrusive. Silence is a tool.
+### Audio and music quality bar
+- Current oscillator wind, river, footsteps, and combat SFX are temporary scaffolding, not the desired final sound identity.  
+- Target: a real musical identity for the road to Ganryu: a restrained main motif, a walking/road ambience layer, a duel tension layer, and an arrival cue for Ganryu.  
+- Sound can be implemented with committed audio files or deliberately composed Web Audio, but oscillator-only beeps and generic drones are not acceptable as final art direction.  
+- Audio should be atmospheric, musical, and culturally coherent. Silence is still a tool, but it must feel chosen rather than absent.
 
 ### Interaction
 - **Movement**: Click/tap to move forward. Mouse look (orbit camera) optional. Auto-scroll with speed control.  
@@ -71,10 +72,12 @@ The player selects from a small roster of Edo archetypes (Musashi, an artist, a 
 - No external runtime or framework. Single HTML file.  
 - Future: extract rendering into a small module structure if the file threatens to exceed 1000 lines in a single pass.
 
-### Assets
-- All generated via canvas drawing (procedural art). No external images, fonts, or audio files.  
-- Map/generation seeds for replay variety.  
-- Future: consider generating a small title card and character-select screen with ink-brush calligraphy.
+### Assets and authored art quality bar
+- Procedural generation is allowed when it produces richness, variation, or replay value. It is not a license for placeholder-only primitives.  
+- The branch should grow an explicit asset set under `drops/edo-inkblade-ots/assets/` when that improves quality: title/key art, character portraits or sprite sheets, enemy designs, Ganryu shoreline/backdrop art, UI brush frames, texture plates, and music/audio cues.  
+- Generated images are welcome if they are committed as inspectable assets and integrated into the game, not merely described in a plan.  
+- Canvas-drawn elements may remain where they are strong, but weak silhouettes, crude shapes, and generic gradients should be replaced or supported by higher-quality authored/generated art.  
+- Future process posts should share asset sheets, screenshots, music direction, and concept choices, not line counts.
 
 ### Controls
 - Desktop: arrow/WASD movement, mouse click/look, right-click paint, space to block.  
