@@ -127,7 +127,23 @@
 - Enhanced card portrait rendering with ink-wash overlay on sprite (semi-transparent dark rect) for deeper Edo scroll aesthetic
 - All 20 smoke checks pass
 
-### Pass 24 — Rain streaks and rain ambience
+### Pass 25 — Rain puddle reflections on road, orientation fix
+- **Rain puddle reflections**: added `drawPuddles()` rendering elliptical pools on road surface during drizzle zones — pools reflect sky gradient (cool dawn through warm sunset), with shimmering ripple animation via `ripplePhase`
+- **Puddle lifecycle**: spawn when `drizzleActive>0.15`, up to 20 puddles, fade in over 20 frames, persist 200-500 frames, fade out over last 60 frames
+- **Puddle rendering**: sky-mirroring gradient fill with `createLinearGradient`, ripple overlay with `Math.sin(p.ripplePhase)` for shimmer effect
+- **Orientation fix**: added `screen.orientation.addEventListener("change",resize)` so title canvas redraws on mobile orientation switch
+- **Smoke tests updated**: 22 checks pass (new: rain puddle reflections, orientation change handler)
+
+## Known Issues (updated)
+- PR body needs screenshot integration (screenshots from preview not yet taken)
+- Balance tuning: enemy damage values, ink economy, travel pacing need tuning pass
+- Character selection silhouettes are primitive — could use richer procedural ink-wash shapes
+- Drizzle particles are simple dots — could be richer with rain streaks
+- Death flow and victory ceremony timeline could be smoother
+- Melody scheduler could use more motif variety and dynamic tempo
+- Existing screenshots (01-character-select.jpg, 02-journey.jpg) are from previous pass — need fresh captures
+- Title screen is static — could add animated mist/ink particles on title canvas
+- Title-canvas redraws on resize but not on window orientation change on mobile
 - **Drizzle particle improvement**: replaced simple dot drizzle with angled rain streaks (`len` property, angled by `vx`, drawn as falling lines with ground splash spots)
 - **Rain ambience**: added filtered noise generator (`amb.rain`) with lowpass+highpass, gain driven by `drizzleActive` in step function
 - **PR body updated** to Pass 24 state with rain streaks, rain ambience, and ink-wash silhouettes

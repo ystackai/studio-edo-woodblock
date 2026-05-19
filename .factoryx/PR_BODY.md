@@ -13,9 +13,9 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 24 — Rain streaks + rain ambience + ink-wash silhouettes)
-- **~1105-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
-- Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss
+### Current Artifact State (Pass 25 — Rain puddle reflections + orientation fix)
+- **~1120-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+- Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino)
 - Road travel with WASD/arrow/mouse/touch (drag + long-press) controls
 - **22 scenery kinds**: gate, pine, torii, shrine, pagoda, teaHouse, bamboo, stoneMarker, ricePaddy, bridgeArch, stall, cedar, monument, boatDock, well, lanternPost, waterfall, oldTree, stoneWall, lanternRow, crypt, willow
@@ -29,7 +29,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **3 quest milestones**: paint waymarks -> cross bridge -> reach Ganryu shore
 - Milestone popup with ink-brush frame and cherry blossoms
 - Ganryu arrival ceremony: layered ocean waves, mist-shrouded island, pier, 120 victory particles, character haiku
-- **Weather depth**: fog layer (two-phase density scaling by z), **rain streaks** (angled falling lines with ground splash, replacing simple dots), drizzle particles active z=300-700 zone, fade-in/out
+- **Weather depth**: fog layer (two-phase density scaling by z), **rain streaks** (angled falling lines with ground splash, replacing simple dots), drizzle particles active z=300-700 zone, fade-in/out, **rain puddle reflections** (elliptical pools mirroring sky gradient with shimmering ripple animation during drizzle)
 - **Zone audio**: temple bell at bridge (3-note chord), ambient bird chirps at shrines, wind drift, river drone near bridge, **rain ambience** (filtered noise driven by drizzle zone gain)
 - **Audio depth** (Pass 15): D-based Yo-scale pentatonic music system — bass drone, harmony pad, melody flute cycling Yo motifs by road zone, river drone, duel tension drone, Ganryu bright theme
 - **Melody scheduler**: flute cycles ascending/wandering/descending/Ganryu hopeful motifs based on player z-position
@@ -41,10 +41,12 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Woodblock grain overlay, vignette, bloom, screen shake, damage flash, invincibility flash
 - Mobile touch zones: walk/turn/slash/paint/block buttons auto-detect
 - **Ink-wash procedural silhouettes** (Pass 23): character-specific Edo silhouettes for Musashi (kasa hat, topknot, katana), Koeda (scarf, lean build), Yoshino (hooded robe, staff) — used as fallback before sprite PNGs load. Enemy silhouettes per type. Ganryu imposing samurai silhouette.
+- **Character sprite ink-wash outline** (Pass 22): dark sumi-e edge around bitmap sprites, walking ink particle trail at player feet
+- **Atmosphere progression** (Pass 19): sky gradient shifts from cool dawn to warm sunset as player travels toward Ganryu
 
 ### Verification
-- `node drops/edo-inkblade-ots/test.js` — 20 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, negative checks (not Floating Score, not falling-object)
-- **All 20 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — 22 checks: syntax, canvas, projection, character select, movement, art creation, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, negative checks (not Floating Score, not falling-object)
+- **All 22 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -60,13 +62,14 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 22** — Character sprite ink-wash outline and walking ink particles
 **Pass 23** — Ink-wash procedural silhouettes retire vector blob fallbacks per character
 **Pass 24** — Rain streaks (angled falling lines with ground splash) replace simple dot drizzle; rain ambience (filtered noise) in drizzle zone
+**Pass 25** — Rain puddle reflections on road surface during drizzle (sky-mirroring elliptical pools with ripple shimmer); orientation change listener for title canvas redraw
 
 ### Known Issues
 - Sprite asset quality: PNGs are local-authored placeholder quality — richer ink-wash sprite sheets desirable
 - Balance tuning: enemy damage values, ink economy, travel pacing
-- Drizzle particles upgraded to streaks; could further add rain puddle reflections
+- Puddle reflections added — could further add rain drop-ripple interaction
 - Melody scheduler could use more motif variety and dynamic tempo
-- Screenshots are from current game state
+- Screenshots are from current game state but could use fresh captures after puddle/weather changes
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.

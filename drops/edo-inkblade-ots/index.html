@@ -315,7 +315,7 @@ let yoMotif1=[0,2,3,1,4];  // ascending playful
 let yoMotif2=[4,3,2,0,1];  // descending contemplative
 let yoPhrase=[0,1,3,4,2,0,4]; // wandering
 let yoMotif3=[0,0,2,2,4,4,3,1]; // Ganryu hopeful ascent
-let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0;
+let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[];
 let enemies=[
   {name:"dock ronin",x:-140,z:340,hp:52,max:52,phase:0,wind:0,color:"#6f3f32",type:"chaser",atk:14,atkRange:44,patrolX:-140,patrolZ:340,patrolRadius:55,patrolSpeed:.3,patrolAngle:0},
   {name:"cedar bandit",x:120,z:620,hp:64,max:64,phase:1.2,wind:0,color:"#344d40",type:"prowler",atk:17,atkRange:48,patrolX:120,patrolZ:620,patrolRadius:80,patrolSpeed:.28,patrolAngle:1.8},
@@ -531,7 +531,7 @@ addEventListener("touchcancel",(e)=>{touch.moving=false;player.mx=0;player.mz=0}
 addEventListener("contextmenu",e=>e.preventDefault());
 addEventListener("mousedown",e=>{if(e.button===0)slash();if(e.button===2){paintPressTime=Date.now();paint()}})
 addEventListener("mouseup",e=>{if(e.button===2&&paintPressTime){var held=Date.now()-paintPressTime;player.paintHoldTime=Math.min(99,held/250);paintPressTime=0}});
-addEventListener("resize",resize);resize();requestAnimationFrame(loop);
+addEventListener("resize",resize);resize();if(screen.orientation)screen.orientation.addEventListener("change",resize);requestAnimationFrame(loop);
 function resize(){const dpr=Math.min(devicePixelRatio||1,2);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);var tc=ui.titleCanvas;if(tc){tc.width=innerWidth;tc.height=innerHeight;drawTitleBg(titleAnimTime||0)}}
 function loop(t){const dt=Math.min(40,t-last||16)/16.67;last=t;waveAnim=t;if(hitStop>0){hitStop=Math.max(0,hitStop-dt*2);draw();requestAnimationFrame(loop)}else{step(dt);draw();requestAnimationFrame(loop)}}
 function step(dt){
@@ -555,6 +555,8 @@ function step(dt){
     fireflies=fireflies.filter(f=>f.bright>.05);fireflies.forEach(f=>{f.x+=f.vx*dt;f.z+=f.vz*dt;f.bright=Math.max(0,f.bright-.004*dt)});
     if(Math.random()<.015*dt&&riverMist.length<12)riverMist.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.2,vz:Math.random()*.3+.1,alpha:.6});
     riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});drizzleActive=Math.max(0,drizzleActive+(player.z>300&&player.z<700?.004:-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
+    // Rain puddles on road surface during drizzle
+    if(drizzleActive>.15&&Math.random()<.008*dt&&puddles.length<20){var pw=10+Math.random()*30,ph=4+Math.random()*10;puddles.push({x:player.x+(Math.random()-.5)*120,z:player.z-20+Math.random()*80,w:pw,h:ph,alpha:0,maxAlpha:.25+Math.random()*.15,age:0,maxAge:200+Math.random()*300,ripplePhase:Math.random()*7})};puddles=puddles.filter(p=>p.age<p.maxAge);puddles.forEach(p=>{p.age+=dt;if(p.age<20)p.alpha=Math.min(p.maxAlpha,p.age/20*.25);else if(p.age>p.maxAge-60)p.alpha=Math.max(0,p.alpha-(p.age-(p.maxAge-60))/60);p.ripplePhase+=.02*dt});
   // Ambient: footsteps, wind drift, river near bridge
   initAudio();var amb=window._amb;
   if(audioCtx&&amb&&amb.footstep&&amb.wind&&amb.river&&amb.melody&&amb.rain){
@@ -738,7 +740,7 @@ function draw(){
   const skyR2=Math.round(sky2[0]+(sky3[0]-sky2[0])*gp),skyG2=Math.round(sky2[1]+(sky3[1]-sky2[1])*gp),skyB2=Math.round(sky2[2]+(sky3[2]-sky2[2])*gp);
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
-  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawLeaves();drawFireflies();drawRiverMist();drawDrizzle();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawLeaves();drawFireflies();drawRiverMist();drawDrizzle();
   const visible=[];
   scenery.forEach(o=>{const p=project(o.x,o.z,o.h);if(p)visible.push({p,o,type:"scenery"})});
   if(victoryParticles.length)drawVictoryParticles();
@@ -1097,6 +1099,17 @@ function drawLeaves(){leaves.forEach(l=>{const p=project(l.x,l.z,30);if(!p)retur
 function drawFireflies(){fireflies.forEach(f=>{const p=project(f.x,f.z,25);if(!p)return;ctx.globalAlpha=f.bright*.35;ctx.fillStyle="#d9e88f";ctx.beginPath();ctx.arc(p.x,p.y,2+Math.sin(Date.now()*.003+f.bright)*1.5,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawDrizzle(){drizzle.forEach(d=>{const p=project(d.x,d.z,80);if(!p)return;var fade=Math.max(0,1-d.age/90),s=Math.min(p.s,3);ctx.globalAlpha=fade*.5;ctx.strokeStyle="#cdd6e0";ctx.lineWidth=1.2*s;ctx.beginPath();ctx.moveTo(p.x+d.vx*2*s,p.y-2);var endX=p.x+(d.vx/1.5)*d.len*s,endY=p.y+d.len*s;ctx.lineTo(endX,endY);ctx.stroke();// Ground splash spot
 ctx.globalAlpha=fade*.25;ctx.fillStyle="#e8eef0";ctx.beginPath();ctx.arc(endX,endY,1.2*s,0,7);ctx.fill();ctx.globalAlpha=1})}
+function drawPuddles(){puddles.forEach(p=>{const proj=project(p.x,p.z,0);if(!proj)return;var s=Math.min(proj.s,4);if(s<.5)return;var alpha=p.alpha*Math.min(1,s/2);var px=proj.x,py=proj.y,pw=p.w*s,ph=p.h*s;ctx.globalAlpha=alpha*.5;// Sky reflection gradient in puddle
+    var sg=ctx.createLinearGradient(px,py-ph,px,py+ph);
+    var skyProg=Math.min(1,Math.max(0,player.z/1000));
+    var r1=Math.round(80+(100-80)*skyProg),g1=Math.round(55+(60-55)*skyProg),b1=Math.round(54+(40-54)*skyProg);
+    sg.addColorStop(0,"rgba("+r1+","+g1+","+b1+",.65)");
+    sg.addColorStop(.5,"rgba(200,180,155,.35)");
+    sg.addColorStop(1,"rgba(60,50,40,.5)");
+    ctx.fillStyle=sg;ctx.beginPath();ctx.ellipse(px,py,pw/2,ph/2,0,0,7);ctx.fill();
+    // Ripple shimmer
+    ctx.globalAlpha=alpha*.2*Math.sin(p.ripplePhase);ctx.fillStyle="#f4ead8";
+    ctx.beginPath();ctx.ellipse(px,py,pw/3,ph/3,0,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawRiverMist(){riverMist.forEach(m=>{const p=project(m.x,m.z,20);if(!p)return;ctx.globalAlpha=m.alpha*.25;ctx.fillStyle="#f4ead8";ctx.beginPath();ctx.ellipse(p.x,p.y,6+Math.sin(m.z*.02)*3,3,0,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawVignette(w,h){const g=ctx.createRadialGradient(w/2,h/2,80,w/2,h/2,Math.max(w,h)*.7);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.55)");ctx.fillStyle=g;ctx.fillRect(0,0,w,h)}
 function drawDamageNumbers(){damageNumbers=damageNumbers.filter(function(n){return n.age<60});damageNumbers.forEach(function(n){n.age++;var p=project(n.x,n.z,50);if(!p)return;var f=Math.max(0,1-n.age/60);ctx.globalAlpha=f*.9;ctx.fillStyle=n.color;ctx.font="bold "+(10+Math.floor(f*8))+"px monospace";ctx.textAlign="center";var txt=n.dmg>0?"-"+Math.abs(n.dmg):"+"+Math.abs(n.dmg);ctx.fillText(txt,p.x,p.y-f*40);ctx.globalAlpha=1})}

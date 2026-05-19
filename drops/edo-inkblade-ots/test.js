@@ -40,7 +40,9 @@ const checks = [
   ["preview redirect", preview.includes("window.location.replace")],
   ["not Floating Score", !html.includes("Floating Score") && !html.includes("floating-score-hs")],
   ["not falling object game", !/falling|catch drifting|score-display/.test(html)],
-  ["title screen animation", html.includes("requestAnimationFrame(titleAnimLoop)") && html.includes("titleMistDrift") && html.includes("cancelAnimationFrame")]
+  ["title screen animation", html.includes("requestAnimationFrame(titleAnimLoop)") && html.includes("titleMistDrift") && html.includes("cancelAnimationFrame")],
+  ["rain puddle reflections", html.includes("function drawPuddles") && html.includes("ripplePhase") && html.includes("drawPuddles(){puddles.forEach")],
+  ["orientation change handler", html.includes("screen.orientation") && html.includes("orientation") && html.includes("change")]
 ];
 
 let failed = 0;
