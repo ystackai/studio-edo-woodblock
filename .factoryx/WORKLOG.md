@@ -1,7 +1,7 @@
 # Edo Inkblade: Road to Ganryu — WORKLOG
 
 ## Artifact
-`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (~1013 lines)
+`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (~1408 lines)
 
 ## Completed Passes
 
@@ -217,4 +217,19 @@
 - Added `drawMark(m,p)` to render perspective ink seals/waymarks with fade, shadow, brush stroke, and ink speckles.
 - Added a smoke check that the mark renderer exists and is used by the sorted draw loop.
 - Verified locally with browser automation: title click -> character card -> move -> paint; no page errors or failed requests.
-- `node drops/edo-inkblade-ots/test.js`, `scripts/verify.sh`, and `git diff --check` pass.
+
+## Pass 34 — Combat depth, paint mode variety, road-side shrines
+
+### What changed
+- **3 paint modes** via keys 1/2/3:
+  - Waymark (default): damages enemies near mark, 1 ink cost
+  - Barrier: slows enemies within radius, 2 ink cost, pulsing protective ring with dashed circle glow
+  - Blossom: heals player for 2 HP periodically near mark, cherry blossom petals orbiting mark, 1 ink cost
+- **Duelist berserk mode**: when duelist enemy HP < 50%, enters berserk stance with faster telegraph (48 vs 78 wind), brighter glow, longer duel focus timer (120 vs 100)
+- **Road-side shrines**: 5 clickable prayer nodes at z=200/400/700/1000/1250 — press R near a shrine to gain resolve+3 and ink+2. Visible glowing shrine indicators with "[R] Pray" hint
+- **Enemy death ink-dissolve**: defeated enemies emit 20 ink burst particles and 10 light spark particles
+- **Paint mode HUD indicator**: color-coded paint mode label in stats panel
+- **Controls updated**: 1-3 switch paint mode, R pray at shrines
+- Updated `drawMark()` to render barrier ring and blossom petals per mark kind
+- 60 smoke checks pass (was 54 — added 6 new checks)
+- Screenshots captured fresh after Pass 34

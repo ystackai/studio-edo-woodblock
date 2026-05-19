@@ -60,7 +60,13 @@ const checks = [
   ["zone particle spawning", html.includes('currentZone.name==="meadow"') && html.includes('currentZone.name==="forest"') && html.includes('currentZone.name==="mountain"') && html.includes('currentZone.name==="coastal"')],
   ["zone transition audio", html.includes("zone-transition audio") && html.includes("sfx.tone(262") && html.includes("sfx.tone(196")],
   ["no invalid Web Audio smooth method", !html.includes("exponentialSmoothValueAtTime")],
-  ["no zero-target exponential gain ramps", !html.includes("exponentialRampToValueAtTime(0,")]
+  ["no zero-target exponential gain ramps", !html.includes("exponentialRampToValueAtTime(0,")],
+  ["paint mode switching", html.includes("paintMode") && html.includes('"waymark"') && html.includes('"barrier"') && html.includes('"blossom"')],
+  ["barrier mark kind", html.includes('kind:"barrier"') && html.includes("barrierRadius")],
+  ["blossom mark kind", html.includes('kind:"blossom"') && html.includes("healRadius")],
+  ["road-side shrine events", html.includes("shrines") && html.includes("Pray") && html.includes("shrineEvents.forEach")],
+  ["duelist berserk mode", html.includes("berserk") && html.includes("e.berserk") && html.includes("berserk stance")],
+  ["enemy death ink dissolve", html.includes("Ink dissolve") && html.includes("di=0;di<20") && html.includes("deathAge===undefined")],
 ];
 
 // Sprite dimension validation

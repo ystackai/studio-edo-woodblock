@@ -13,7 +13,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 33 — Runtime start flow and painted waymark repair)
+### Current Artifact State (Pass 34 — Combat depth, paint mode variety, road-side shrines)
 - **~1200-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), and card clicks/taps wired into game start
@@ -47,11 +47,20 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Atmosphere progression** (Pass 19): sky gradient shifts from cool dawn to warm sunset as player travels toward Ganryu
 - **Rain drop-ripple interaction** (Pass 29): when drizzle streaks land near active puddles, expanding ripple rings appear — visual interaction between rain and puddle systems (`drawRipples()`)
 - **Milestone vignettes with haiku** (Pass 29): each of the 5 route milestones shows a rich ink-wash illustration (bridge arch, shrine bird silhouettes, valley mountains, mountain pass wind lines, Ganryu ocean waves) plus a seasonal Edo haiku — deepens journey narrative
+- **Pass 34 additions**:
+  - **3 paint modes** via keys 1/2/3: Waymark (damages enemies near mark), Barrier (2 ink cost, slows enemies within radius), Blossom (heals player near mark)
+  - **Duelist berserk mode**: when duelist HP < 50%, enters berserk stance with faster telegraph, brighter glow, longer duel focus timer
+  - **Road-side shrines**: 5 clickable shrine nodes at road intervals — press R to pray, gaining resolve+3 and ink+2. Glowing shrine indicators visible on road
+  - **Enemy death ink-dissolve**: defeated enemies burst into ink particles and light sparks for satisfying defeat feedback
+  - **Barrier mark rendering**: pulsing protective ring with dashed circle glow
+  - **Blossom mark rendering**: cherry blossom petals orbiting the mark
+  - **Paint mode HUD indicator**: color-coded paint mode label in stats panel
+  - Controls updated: 1-3 switch paint mode, R pray at shrines
 
 ### Verification
 - Browser runtime: Web Audio API calls use valid linearRampToValueAtTime fallbacks; invalid exponentialSmoothValueAtTime and zero-target exponential ramps are regression-checked. Public/manual browser playthrough verifies title click, character card click, movement, painting, and no hard page errors.
-- `node drops/edo-inkblade-ots/test.js` — 54 checks: syntax, canvas, projection, character select, character-card start wiring, movement, art creation, painted waymark rendering, duel loop, duel telegraph readability, enemy restart reset, objective progression, animation loop, preview redirect, title screen animation, rain puddle reflections, orientation change handler, sprint mechanic, mouse drag camera look, dynamic melody tempo, extended road length, 7 enemies defined, negative checks, 11 sprite PNGs >= 10KB, manifest validation, generator existence, rain ripple interaction, milestone vignette haiku, 5 route milestones with vignettes, journey atmosphere zones, zone transition markers, zone-specific road colors, zone-specific lantern colors, zone particle spawning, zone audio, invalid Web Audio method regression, zero-target exponential gain regression
-- **All 54 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — 60 checks: all existing checks plus paint mode switching, barrier mark kind, blossom mark kind, road-side shrine events, duelist berserk mode, enemy death ink dissolve
+- **All 60 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -76,9 +85,9 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 31** — Ink-wash brush character sprite art pass with sumi-e overlays, regenerated character sheets, and richer fallback silhouettes.
 **Pass 32** — Character card clicks/taps now call the hero start flow so the title/select front page can enter gameplay.
 **Pass 33** — Painted waymark renderer restored; Space/right-click paint no longer throws `drawMark is not defined`; local browser playthrough covers title -> hero select -> movement -> painting.
+**Pass 34** — Combat depth: duelist berserk mode (berserk telegraph, brighter glow, longer focus timer), enemy death ink-dissolve. Paint mode variety: 3 mark types (waymark/barrier/blossom) with distinct visual rendering. Road-side shrines: 5 clickable prayer nodes granting resolve+ink, glowing indicators. Paint mode HUD indicator.
 
 ### Known Issues
-- Screenshots need fresh captures after Pass 30 zone additions
 - Zone transition particles could be more dramatic at boundary crossings
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
 
