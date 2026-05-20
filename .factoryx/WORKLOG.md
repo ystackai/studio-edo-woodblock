@@ -345,5 +345,17 @@
 - Added `drawVignette(w,h)` function: radial gradient darkening edges of game canvas to create ink-wash paper vignette effect. This was called from the draw loop but was never defined, causing a `ReferenceError: drawVignette is not defined` browser runtime failure.
 - All 146 smoke checks continue to pass after the fix.
 
+## Pass 44 — Controls tutorial onboarding, 2 new scenery types
+
+### What changed
+- **Controls tutorial overlay**: on first hero selection, a visual controls grid appears showing WASD/arrow movement, mouse look, paint, slash, block, sprint, paint modes, pray, hero ability, interact, diary, pause, and mobile touch controls. Dismiss by pressing any key or click. Uses `firstGameStarted` flag to trigger once.
+- **2 new road scenery types**: 
+  - `waterwheel` — animated wooden water wheel turning slowly with river splash particles and wheel spokes, appears near river zones
+  - `sakeStand` — sake vendor stall with hanging banners (red noren), warm lantern glow, sake barrels, fits roadside atmosphere
+- **154 smoke checks pass** (was 146 — added 5 checks: tutorial overlay exists, first-game trigger, waterwheel scenery, sakeStand scenery, scenery kinds updated).
+- Fresh screenshots captured after all changes.
+
 ## Known Issues (updated)
-- Screenshots need fresh captures after Pass 43
+- Screenshots reflect Pass 44 content
+
+(End of file)

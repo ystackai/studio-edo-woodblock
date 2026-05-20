@@ -175,6 +175,13 @@ checks.push(["road event E interaction", html.includes('re.type==="spirit"') && 
 checks.push(["Ganryu epilogue after victory", html.includes("epilogueActive") && html.includes("epilogueTimer")]);
 checks.push(["epilogue scroll rendering", html.includes("The journey ends at Ganryu shore") && html.includes("Ink flows back into the tide")]);
 
+// Pass 44: Controls tutorial onboarding + 2 new scenery types
+checks.push(["controls tutorial overlay exists", html.includes('id="tutorial"')]);
+checks.push(["controls tutorial first-game trigger", html.includes("firstGameStarted") && html.includes("dismissTutorial")]);
+checks.push(["waterwheel scenery type", html.includes('kind==="waterwheel"') && html.includes("wheelPhase")]);
+checks.push(["sakeStand scenery type", html.includes('kind==="sakeStand"') && html.includes("sakeStand")]);
+checks.push(["scenery kinds include waterwheel", html.includes('"waterwheel","sakeStand"')]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);
