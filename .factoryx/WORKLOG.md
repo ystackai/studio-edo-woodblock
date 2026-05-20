@@ -363,7 +363,18 @@
 - **Road travelers**: distant wanderer and pilgrim silhouettes walk along the road ahead — small moving figures in the distance with walking animation, hats, and staff details creating lived-in road atmosphere. Up to 8 concurrent travelers, each with 120-200 frame lifespan.
 - **159 smoke checks pass** (was 154 — added 5 checks: auto-forward drift, ink-wash ripple, paint audio accent, road travelers update+draw, traveler types).
 
-## Pass 46 — Journey milestone stone markers, diary journey stats, visual cohesion
+## Pass 47 — Woodblock grain texture upgrade, road progress markings, ink-wash paint stains, organic drifting leaves
+
+### What changed
+- **Woodblock grain texture upgrade**: replaced 60 random dot grain with horizontal woodblock print grain lines — authentic Edo print texture with varying line thickness, grain wave, and fine cross-grain lines for paper texture depth.
+- **Road journey progress markings**: stones inscribed with distance-to-Ganryu markers appear on road surface every 200 units, showing remaining journey length with "里 <number>m" calligraphy, creating visual road progress feedback.
+- **Ink-wash paint stains on road**: after paint marks fade, a dark sumi-e ink pool stain persists on the road surface (fading over 1600 frames) — creates the feel that painting leaves permanent traces on the world.
+- **Organic drifting leaves with wind responsiveness**: leaves now have 6 natural autumn colors (amber, rust, gold, brown, dark, cream), spinning animation (rotation per leaf), and gust-responsive sway that responds to windDrift — leaves feel alive rather than uniform dots.
+- **Enhanced vignette warm paper tone**: sumi-e paper edge vignette now has a warmer multi-stop radial gradient (three intermediate stops at .3/.6/.85) with richer dark edges (rgba(40,30,22,.55) at edge), creating aged Edo scroll paper feel.
+- **169 smoke checks pass** (was 163 — added 6 checks: horizontal woodblock grain, road progress markers, ink-wash paint stain, organic leaf colors+spinning, enhanced vignette warm tone, enhanced leaf rotation).
+
+## Known Issues (updated)
+- Screenshots need fresh captures after Pass 47 visual improvements.
 
 ### What changed
 - **Journey milestone stone markers**: 5 inscribed stone pillars along the road at each route milestone position (z=180, 520, 880, 1100, 1280). Each pillar has a unique Japanese calligraphy glyph (一, 橋, 谷, 山, 岸), an inscription line from the milestone haiku, and a subtle glow when the player approaches. Markers render in the draw loop with proper perspective scaling and zone-aware fade.

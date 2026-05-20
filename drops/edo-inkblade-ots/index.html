@@ -855,8 +855,10 @@ function step(dt){
     player.ink=Math.min(hero.ink,player.ink+.007*hero.art*dt*inkRegenMult);
     // Ambient particles
     windDrift+=.003*dt;
-    if(Math.random()<.04*dt&&leaves.length<40)leaves.push({x:player.x+(Math.random()-.5)*100,z:player.z-30+Math.random()*80,vx:(Math.random()-.5)*.3+Math.sin(windDrift)*.25,vz:Math.random()*.6+.2,age:0});
-    leaves=leaves.filter(l=>l.age<300);leaves.forEach(l=>{l.x+=l.vx*dt;l.z+=l.vz*dt;l.age+=dt});
+    // Organic drifting leaves with wind responsiveness — varying colors, spinning, and gust-responsive sway
+    var leafColors=["#d98986","#b88c45","#caa45f","#9a7358","#7a5a38","#ead9bb"];
+    if(Math.random()<.04*dt&&leaves.length<45)leaves.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.35+Math.sin(windDrift)*.3,vz:Math.random()*.5+.15,age:0,spin:Math.random()*6.28,spinRate:(Math.random()-.5)*.03,color:leafColors[Math.floor(Math.random()*leafColors.length)],size:.8+Math.random()*1.2});
+    leaves=leaves.filter(l=>l.age<360);leaves.forEach(l=>{var gust=Math.sin(windDrift*2+l.x*.01)*.08;l.vx+=gust*.08*dt;l.vz+=gust*.02*dt;l.x+=l.vx*dt;l.z+=l.vz*dt;l.spin+=l.spinRate*dt;l.age+=dt});
     if(Math.random()<.02*dt&&fireflies.length<18)fireflies.push({x:player.x+(Math.random()-.5)*70,z:player.z-20+Math.random()*60,vx:(Math.random()-.5)*.1,vz:(Math.random()-.5)*.1,bright:Math.random()*.5+.5});
     fireflies=fireflies.filter(f=>f.bright>.05);fireflies.forEach(f=>{f.x+=f.vx*dt;f.z+=f.vz*dt;f.bright=Math.max(0,f.bright-.004*dt)});
     if(Math.random()<.015*dt&&riverMist.length<12)riverMist.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.2,vz:Math.random()*.3+.1,alpha:.6});
@@ -1332,6 +1334,14 @@ function project(x,z,h=0){
 }
 function drawMark(m,p){
   var s=Math.min(p.s,4.8),age=m.maxAge?m.age/m.maxAge:0,fade=Math.max(.12,1-age),brush=m.brushSize||1;
+  // Ink-wash paint stain on road — dark sumi-e pool where paint was placed, fading slowly
+  var stainAge=m.age>60?m.age-60:0;
+  var stainFade=Math.max(0,1-stainAge/1600)*.25;
+  if(stainFade>.01){ctx.save();ctx.globalAlpha=stainFade;
+    ctx.fillStyle="#1a120e";ctx.beginPath();ctx.ellipse(p.x,p.y+3*s,28*s,6*s,0,0,7);ctx.fill();
+    ctx.fillStyle="#2a1f14";ctx.globalAlpha=stainFade*.12;
+    ctx.beginPath();ctx.ellipse(p.x-5*s,p.y+2*s,22*s,5*s,0,0,7);ctx.fill();
+    ctx.globalAlpha=1;ctx.restore()}
   var r=(18+brush*8)*s,pulse=Math.sin(last*.006+m.x*.01+m.z*.01)*.08+.92;
   ctx.save();
   ctx.globalAlpha=Math.min(.85,fade*.8);
@@ -1387,6 +1397,8 @@ function draw(){
   // Journey zone transition markers — torii gates at zone boundaries
   var zoneMarkers=[{z:300,name:"forest entrance"},{z:600,name:"mountain gate"},{z:1000,name:"sea gate"}];
   zoneMarkers.forEach(function(zm){var dz=Math.abs(player.z-zm.z);if(dz<60){var gateAlpha=Math.max(0,1-dz/60)*.35,gateP=project(0,zm.z,80);if(gateP){ctx.globalAlpha=gateAlpha;ctx.strokeStyle="#8e1c1c";ctx.lineWidth=10*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-28*gateP.s,gateP.y);ctx.lineTo(gateP.x-28*gateP.s,gateP.y-60*gateP.s);ctx.moveTo(gateP.x+28*gateP.s,gateP.y);ctx.lineTo(gateP.x+28*gateP.s,gateP.y-60*gateP.s);ctx.stroke();ctx.strokeStyle="#b82727";ctx.lineWidth=5*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-30*gateP.s,gateP.y-62*gateP.s);ctx.lineTo(gateP.x+30*gateP.s,gateP.y-62*gateP.s);ctx.moveTo(gateP.x-26*gateP.s,gateP.y-52*gateP.s);ctx.lineTo(gateP.x+26*gateP.s,gateP.y-52*gateP.s);ctx.stroke();ctx.globalAlpha=1}}});
+  // Road journey progress markings — distance stones and road markers showing journey to Ganryu
+  drawRoadProgress(w,h,horizon,player.z);
   // Road-side event shrines — clickable nodes granting resolve and ink
   shrineEvents.forEach(function(sh){if(sh.used)return;
     var dz=Math.abs(player.z-sh.z);
@@ -1590,6 +1602,35 @@ function draw(){
   if(milestonePopup.haiku){ctx.globalAlpha=ma*.85;ctx.fillStyle="#b9a88d";ctx.font="clamp(11px,1.6vw,16px) serif";ctx.textAlign="center";var haikuLines=milestonePopup.haiku.split("\n");haikuLines.forEach(function(line,i){ctx.fillStyle="#b9a88d";ctx.fillText(line,w/2,h*.35+26+i*18)})};ctx.globalAlpha=1;ctx.restore()}
 
 }
+function drawRoadProgress(w,h,hor,playerZ){
+  // Kurikara-style distance markers on road — white marker stones with calligraphy showing remaining distance to Ganryu
+  var totalDist=1380;
+  var markerInterval=200;
+  ctx.save();
+  for(var ri=0;ri*markerInterval<totalDist;ri++){
+    var mz=ri*markerInterval+30;
+    if(mz>playerZ+50||mz<playerZ-80)continue;
+    var dz=Math.abs(playerZ-mz);
+    var p=project(5,mz,2);
+    if(!p)continue;
+    var s=Math.min(p.s,3.5),fade=Math.max(0,1-dz/80)*.5;
+    if(s<.3)continue;
+    ctx.globalAlpha=fade;
+    // Small flat inscribed stone on road surface
+    ctx.fillStyle="#5a4a38";
+    ctx.beginPath();ctx.ellipse(p.x,p.y,8*s,3*s,0,0,7);ctx.fill();
+    ctx.fillStyle="#7a6a58";
+    ctx.beginPath();ctx.ellipse(p.x,p.y-s,6*s,2*s,0,0,7);ctx.fill();
+    // Distance number
+    var remaining=Math.max(0,totalDist-mz);
+    var distKm=remaining<500?"里 "+(Math.floor(remaining/50)*10)+"m":"里 50m";
+    ctx.fillStyle="#b9a88d";ctx.font="bold "+(7*s)+"px serif";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(remaining>0?distKm:"Ganryu",p.x,p.y-2*s);
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
 function drawRoad(w,h,hor){
   var zoneEdge=currentZone||getZone(player.z);
   var e1=zoneEdge.roadEdge,e2=zoneEdge.roadEdge2,f1=zoneEdge.flowers[0],f2=zoneEdge.flowers[1];
@@ -1673,16 +1714,41 @@ function drawBloom(w,h){
   ctx.fillStyle=g;ctx.fillRect(0,0,w,h)
 }
 function drawWoodblockTexture(w,h){
-  ctx.save();ctx.globalAlpha=.04;
-  for(let i=0;i<60;i++){
-    const gx=Math.sin(i*217+last*.0001)*w,gy=Math.cos(i*137+last*.0001)*h*.2+h*.5;
-    ctx.fillStyle=i%7===0?"#000":"rgba(245,232,204,.3)";ctx.fillRect(gx,gy,1+Math.sin(i)*2,1)
+  ctx.save();ctx.globalAlpha=.035;
+  // Horizontal woodblock grain lines — authentic Edo print texture
+  var grainSpacing=8+Math.sin(last*.00005)*3;
+  var grainWave=3+Math.sin(last*.00003)*1.5;
+  for(var gi=0;gi<w*h/grainSpacing/80;gi++){
+    var gx=Math.sin(gi*137+last*.00005)*w*1.4;
+    var gy=gi*grainSpacing%h+(Math.sin(gi*73+last*.00004)*grainWave);
+    // Grain line segments with varying thickness
+    var len=30+Math.sin(gi*53+last*.00008)*15;
+    ctx.strokeStyle=gi%9===0?"rgba(20,15,10,.5)":"rgba(245,232,204,.35)";
+    ctx.lineWidth=1+Math.sin(gi*47+last*.00002)*.8;
+    ctx.beginPath();ctx.moveTo(gx,gy);
+    ctx.lineTo(gx+len,gy+Math.sin(gi*29+last*.00006)*2);
+    ctx.stroke();
+  }
+  // Additional fine cross-grain lines for paper texture depth
+  ctx.globalAlpha=.015;
+  for(var gi=0;gi<40;gi++){
+    var gx=Math.sin(gi*217+last*.00007)*w*1.2;
+    var gy=gi*18%h+Math.sin(gi*173+last*.00003)*4;
+    ctx.strokeStyle="rgba(245,232,204,.2)";
+    ctx.lineWidth=.5+Math.sin(gi*61+last*.00001)*.3;
+    ctx.beginPath();ctx.moveTo(gx,gy);
+    ctx.lineTo(gx+20+Math.sin(gi*31+last*.00005)*10,gy);
+    ctx.stroke();
   }
   ctx.restore()
 }
 function drawVignette(w,h){
+  // Sumi-e paper edge vignette — warm dark edges like aged Edo scroll
   var vg=ctx.createRadialGradient(w/2,h/2,w*0.25,w/2,h/2,w*0.55);
-  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(.6,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(20,15,10,.35)');
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(.3,'rgba(0,0,0,0)');
+  vg.addColorStop(.6,'rgba(25,18,12,.18)');
+  vg.addColorStop(.85,'rgba(35,25,18,.35)');
+  vg.addColorStop(1,'rgba(40,30,22,.55)');
   ctx.fillStyle=vg;ctx.fillRect(0,0,w,h)
 }
 
@@ -2081,7 +2147,7 @@ function drawPlayer(){var bob=Math.sin(player.bobPhase)*4,lean=-(player.mx/1.5)*
 function burst(x,z,c1,c2){var c=c2||c1;for(var i=0;i<20;i++)sparks.push({x,z,color:i%3===0?c1:c,a:1,vx:(Math.random()-.5)*8,vz:(Math.random()-.5)*8,d:Math.random()*4})}
 function inkSplatter(x,z,color){for(let i=0;i<10;i++)sparks.push({x,z,color,a:.9,vx:(Math.random()-.5)*7,vz:(Math.random()-.5)*7,d:Math.random()*6})}
 function drawSparks(){sparks=sparks.filter(s=>s.a>.02);sparks.forEach(s=>{s.x+=s.vx;s.z+=s.vz;s.a*=.92;s.d*=.94;const p=project(s.x,s.z,s.d+18);if(!p)return;ctx.globalAlpha=s.a;if(s.d>0){ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1,s.d)*2,0,7);ctx.fill()}else{ctx.fillStyle=s.color;ctx.fillRect(p.x-2,p.y-2,4,4)};ctx.globalAlpha=1})}
-function drawLeaves(){leaves.forEach(l=>{const p=project(l.x,l.z,30);if(!p)return;ctx.globalAlpha=.6*(1-l.age/300);ctx.fillStyle="#d98986";ctx.beginPath();ctx.arc(p.x,p.y,1.5+Math.sin(l.age*.05)*.5,0,7);ctx.fill();ctx.globalAlpha=1})}
+function drawLeaves(){leaves.forEach(l=>{const p=project(l.x,l.z,30);if(!p)return;var fade=Math.max(.1,1-l.age/360),s=Math.min(p.s,3);ctx.globalAlpha=fade*.55*s;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(l.spin||0);var leafSize=(l.size||1.5)*s;ctx.fillStyle=l.color||"#d98986";ctx.beginPath();ctx.ellipse(0,0,leafSize,leafSize*.45,0,0,7);ctx.fill();ctx.fillStyle="#ffffff30";ctx.beginPath();ctx.arc(0,0,leafSize*.3,0,7);ctx.fill();ctx.restore();ctx.globalAlpha=1})}
 function drawFireflies(){fireflies.forEach(f=>{const p=project(f.x,f.z,25);if(!p)return;ctx.globalAlpha=f.bright*.35;ctx.fillStyle="#d9e88f";ctx.beginPath();ctx.arc(p.x,p.y,2+Math.sin(Date.now()*.003+f.bright)*1.5,0,7);ctx.fill();ctx.globalAlpha=1})}
 function drawFoxSpirits(){foxSpirits.forEach(f=>{const p=project(f.x,f.z,30);if(!p)return;var fade=Math.max(0,1-f.age/f.maxAge),s=Math.min(p.s,3);
   ctx.globalAlpha=fade*.5;

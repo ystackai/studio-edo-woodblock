@@ -13,10 +13,14 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 46 — Journey milestone stone markers, diary journey stats)
-- **~2190-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 47 — Woodblock grain texture, road progress markings, ink-wash stains)
+- **~2310-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), card clicks/taps wired into game start, hero ability descriptions
+- **Woodblock grain upgrade**: horizontal woodblock print grain lines with varying thickness and grain wave for authentic Edo paper feel
+- **Road journey progress markings**: inscribed distance stones on road every 200 units showing remaining journey with "里 Nm" calligraphy
+- **Ink-wash paint stains**: dark sumi-e pools persist on road after marks fade, leaving traces of ink on the world
+- **Organic drifting leaves**: 6 autumn colors, per-leaf spinning rotation, gust-responsive wind sway
 - Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look with sensitivity slider; **auto-forward drift when idle** for cinematic journey feel
 - **4 journey atmosphere zones**: Meadow (z 0-300), Forest (z 300-600), Mountain (z 600-1000), Coastal (z 1000-1420) with zone-specific road colors, lantern palettes, particles, creatures, audio, and torii gate markers
 - **5 journey milestone stone markers** along the road — inscribed stone pillars with Japanese calligraphy glyphs and haiku inscriptions at each route milestone position; glow when player approaches
@@ -52,8 +56,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
-- `node drops/edo-inkblade-ots/test.js` — **163 checks**: all previous plus Pass 45 (auto-forward drift, enhanced paint ripple, paint audio accent, road travelers) and Pass 46 (milestone stone markers, stone draw function, zone time tracking, diary journey stats)
-- **All 163 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **169 checks**: all previous plus Pass 47 (horizontal woodblock grain lines, road progress markers, ink-wash paint stains, organic leaf colors+spinning, enhanced vignette warm tone, enhanced leaf rotation)
+- **All 169 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -91,6 +95,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 44** — Controls tutorial onboarding overlay displayed on first hero selection; 2 new road scenery types (waterwheel, sakeStand)
 **Pass 45** — Auto-forward drift when idle for cinematic journey feel; enhanced paint ink-wash ripple rings and paint audio accent; road travelers (wanderer/pilgrim silhouettes) for road atmosphere
 **Pass 46** — Journey milestone stone markers with Japanese calligraphy glyphs at each route position; diary journey stats summary bar; zone time tracking; fixed horizon variable ReferenceError; fresh screenshots
+**Pass 47** — Woodblock grain texture upgrade (horizontal woodblock print grain lines), road journey progress markings (distance stones), ink-wash paint stains on road (persistent sumi-e pools), organic drifting leaves with 6 colors, spinning, and wind gust responsiveness; enhanced vignette with warm paper tone
 
 ### Known Issues
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
