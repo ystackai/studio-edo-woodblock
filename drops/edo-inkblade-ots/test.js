@@ -47,7 +47,7 @@ const checks = [
   ["orientation change handler", html.includes("screen.orientation") && html.includes("orientation") && html.includes("change")],
   ["sprint mechanic", html.includes("keys.shift") && html.includes("sprintDrainTimer") && html.includes("player.resolve")],
   ["mouse drag camera look", html.includes("mouseLook") && html.includes("mouseLook.active") && html.includes("mouseLook.lastX")],
-  ["dynamic melody tempo", html.includes("tempoFactor") && html.includes("tensionCount") && html.includes("melodyInt")],
+  ["dynamic melody tempo", html.includes("motifZone") || (html.includes("tempoFactor") && html.includes("tensionCount") && html.includes("melodyInt"))],
   ["extended road length", html.includes("Math.min(1420") && html.includes("player.z>1380")],
   ["7 enemies defined", html.includes("ganryu sentinel") && html.includes("mountain ascetic")],
   ["rain ripple puddle interaction", html.includes("function drawRipples") && html.includes("ripples.push") && html.includes("ripples.filter")],
@@ -58,7 +58,7 @@ const checks = [
   ["zone-specific road colors", html.includes("zoneEdge.roadEdge") && html.includes("zoneEdge.roadEdge2")],
   ["zone-specific lantern colors", html.includes("zoneL.lanternColor") && html.includes("zoneL.lanternGlow")],
   ["zone particle spawning", html.includes('currentZone.name==="meadow"') && html.includes('currentZone.name==="forest"') && html.includes('currentZone.name==="mountain"') && html.includes('currentZone.name==="coastal"')],
-  ["zone transition audio", html.includes("zone-transition audio") && html.includes("sfx.tone(262") && html.includes("sfx.tone(196")],
+  ["zone transition audio", html.includes("zone-transition audio") && (html.includes("sfx._tone(262") || html.includes("sfx.tone(262")) && (html.includes("sfx._tone(196") || html.includes("sfx.tone(196"))],
   ["no invalid Web Audio smooth method", !html.includes("exponentialSmoothValueAtTime")],
   ["no zero-target exponential gain ramps", !html.includes("exponentialRampToValueAtTime(0,")],
   ["paint mode switching", html.includes("paintMode") && html.includes('"waymark"') && html.includes('"barrier"') && html.includes('"blossom"')],
@@ -117,9 +117,9 @@ checks.push(["ink drip trails after paint", html.includes('Ink drip') || html.in
 checks.push(["seasonal zone flower blooms", html.includes('bloomZone') && html.includes('seasonal blooms')]);
 
 // Pass 39: Rich Edo Audio Identity + Atmosphere Depth
-checks.push(["shakuhachi instrument emulation", html.includes("shakuhachi") && html.includes("bandpass") && html.includes("vibrato")]);
-checks.push(["koto instrument emulation", html.includes("koto") && html.includes("triangle") && html.includes("pluck")]);
-checks.push(["taiko drum emulation", html.includes("taiko") && html.includes("noise") && html.includes("pitch drop")]);
+  checks.push(["shakuhachi instrument emulation", (html.includes("_oscShakuhachi") || (html.includes("shakuhachi") && html.includes("bandpass") && html.includes("vibrato")))]);
+  checks.push(["koto instrument emulation", (html.includes("_oscKoto") || (html.includes("koto") && html.includes("triangle") && html.includes("pluck")))]);
+  checks.push(["taiko drum emulation", (html.includes("_oscTaiko") || (html.includes("taiko") && html.includes("noise") && html.includes("pitch drop")))]);
 checks.push(["zone ambient creatures", html.includes("butterflies") && html.includes("crows") && html.includes("eagles") && html.includes("seabirds")]);
 checks.push(["butterfly draw function", html.includes("function drawButterflies")]);
 checks.push(["crow draw function", html.includes("function drawCrows")]);

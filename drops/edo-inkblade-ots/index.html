@@ -205,6 +205,19 @@ ml.addEventListener('touchstart',moveDir('left'));// dual left: also left-turn
 mr.addEventListener('touchstart',function(e){e.stopPropagation();keys.d=true});// right also strafe right
 mr.addEventListener('touchend',function(e){e.stopPropagation();keys.d=false});
 })();
+
+// WAV audio asset preloader — loads pre-generated WAV files for richer Edo audio
+var audioBuffers={},audioLoaded=false,audioLoadCount=0,audioTotalCount=0;
+var AUDIO_ASSETS={
+  'shaku-d4':'assets/audio/shaku-d4.wav','shaku-e4':'assets/audio/shaku-e4.wav','shaku-g4':'assets/audio/shaku-g4.wav','shaku-a4':'assets/audio/shaku-a4.wav','shaku-c5':'assets/audio/shaku-c5.wav',
+  'koto-d4':'assets/audio/koto-d4.wav','koto-a4':'assets/audio/koto-a4.wav','koto-c5':'assets/audio/koto-c5.wav','koto-g4':'assets/audio/koto-g4.wav',
+  'taiko':'assets/audio/taiko.wav','sfx-slash':'assets/audio/sfx-slash.wav','sfx-paint':'assets/audio/sfx-paint.wav','sfx-block':'assets/audio/sfx-block.wav','sfx-hit':'assets/audio/sfx-hit.wav','sfx-death':'assets/audio/sfx-death.wav','sfx-ink-regen':'assets/audio/sfx-ink-regen.wav','sfx-mark':'assets/audio/sfx-mark.wav','sfx-victory':'assets/audio/sfx-victory.wav',
+  'wind-meadow':'assets/audio/wind-meadow.wav','wind-forest':'assets/audio/wind-forest.wav','wind-mountain':'assets/audio/wind-mountain.wav','wind-coastal':'assets/audio/wind-coastal.wav',
+  'river-ambient':'assets/audio/river-ambient.wav','rain-ambient':'assets/audio/rain-ambient.wav','bass-drone':'assets/audio/bass-drone.wav','tension-drone':'assets/audio/tension-drone.wav','ganryu-drone':'assets/audio/ganryu-drone.wav','ganryu-theme':'assets/audio/ganryu-theme.wav',
+  'amb-meadow':'assets/audio/amb-meadow.wav','amb-forest':'assets/audio/amb-forest.wav','amb-mountain':'assets/audio/amb-mountain.wav','amb-coastal':'assets/audio/amb-coastal.wav',
+  'motif-meadow':'assets/audio/motif-meadow.wav','motif-forest':'assets/audio/motif-forest.wav','motif-mountain':'assets/audio/motif-mountain.wav','motif-coastal':'assets/audio/motif-coastal.wav'
+};
+function preloadAudio(key,url){if(!audioCtx)return;audioTotalCount++;fetch(url).then(function(r){return r.arrayBuffer()}).then(function(buf){return audioCtx.decodeAudioData(buf)}).then(function(decoded){audioBuffers[key]=decoded;audioLoadCount++;if(audioLoadCount>=audioTotalCount){audioLoaded=true}}).catch(function(){audioLoadCount++})}
 </script>
 <section id="title">
     <canvas id="title-canvas"></canvas>
@@ -272,24 +285,23 @@ const ENEMY_SPRITE_KEY={"dock ronin":"chaser","cedar bandit":"prowler","bridge d
 const noopAudio=function(){};
 let audioCtx=null,sfx={tone:noopAudio,slash:noopAudio,paint:noopAudio,block:noopAudio,hit:noopAudio,mark:noopAudio,death:noopAudio,inkRegen:noopAudio,victory:noopAudio};
 function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return};
-  // Volume settings: master gain node chained before destination
-  window._audioVolMaster=window._audioVolMaster||1;
+  if(!window._masterGain){window._masterGain=audioCtx.createGain();window._masterGain.gain.value=window._audioVolMaster||1;
+    window._masterGain.connect(audioCtx.destination)}
+  window._masterGain.gain.setValueAtTime(window._audioVolMaster||1,audioCtx.currentTime);
   window._audioVolSfx=window._audioVolSfx||1;
   window._audioVolMusic=window._audioVolMusic||1;
-  if(!window._masterGain){window._masterGain=audioCtx.createGain();window._masterGain.gain.value=window._audioVolMaster;
-    window._masterGain.connect(window._masterGain)}
-  // Master gain updates from slider
-  if(window._audioVolMaster!==window._masterGain.gain.value)
-    window._masterGain.gain.setValueAtTime(window._audioVolMaster,audioCtx.currentTime);
+  // Start preloading WAV audio assets
+  audioTotalCount=0;var preloadKeys=Object.keys(AUDIO_ASSETS);
+  preloadKeys.forEach(function(k){preloadAudio(k,AUDIO_ASSETS[k])});
 
-  function tone(f,d,t,g){var o=audioCtx.createOscillator();o.type=t;o.frequency.value=f;
-    var gn=audioCtx.createGain();gn.gain.value=g||.3;var volSfx=window._audioVolSfx||1;gn.gain.setValueAtTime((g||.3)*volSfx,audioCtx.currentTime);
+  // Oscillator fallback functions (renamed to _osc*)
+  function _oscTone(f,d,t,g){var o=audioCtx.createOscillator();o.type=t;o.frequency.value=f;
+    var gn=audioCtx.createGain();gn.gain.value=g||.3;gn.gain.setValueAtTime((g||.3)*(window._audioVolSfx||1),audioCtx.currentTime);
     gn.gain.linearRampToValueAtTime(0,audioCtx.currentTime+d);
     o.connect(gn);gn.connect(window._masterGain);o.start();o.stop(audioCtx.currentTime+d)}
-  sfx.tone=tone;
-  function noiseBuffer(dur){var b=audioCtx.createBuffer(1,44100*dur,44100),d2=b.getChannelData(0);for(var i=0;i<d2.length;i++)d2[i]=Math.random()*2-1;return b}
-  // Shakuhachi-like flute: bandpass-filtered sine with vibrato, breath attack
-  function shakuhachi(freq,dur,gain){
+  sfx._tone=_oscTone;
+  function _noiseBuffer(dur){var b=audioCtx.createBuffer(1,44100*dur,44100),d2=b.getChannelData(0);for(var i=0;i<d2.length;i++)d2[i]=Math.random()*2-1;return b}
+  function _oscShakuhachi(freq,dur,gain){
     var s=audioCtx.createOscillator();s.type="sawtooth";s.frequency.value=freq;
     var sf=audioCtx.createBiquadFilter();sf.type="bandpass";sf.frequency.value=freq*1.5;sf.Q.value=8;
     var sg=audioCtx.createGain();sg.gain.setValueAtTime(gain,audioCtx.currentTime);
@@ -297,14 +309,12 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+dur*.8);
     s.connect(sf);sf.connect(sg);sg.connect(window._masterGain);
     s.start();s.stop(audioCtx.currentTime+dur);
-    // Vibrato LFO
     var v=audioCtx.createOscillator();v.type="sine";v.frequency.value=5;
     var vg=audioCtx.createGain();vg.gain.value=freq*.006;
     v.connect(vg);vg.connect(s.frequency);v.start();v.stop(audioCtx.currentTime+dur);
     return s
   }
-  // Koto-like string: triangle wave with bandpass resonance and pluck attack
-  function koto(freq,dur,gain){
+  function _oscKoto(freq,dur,gain){
     var k=audioCtx.createOscillator();k.type="triangle";k.frequency.value=freq;
     var kf=audioCtx.createBiquadFilter();kf.type="bandpass";kf.frequency.value=freq*2;kf.Q.value=12;
     var kg=audioCtx.createGain();kg.gain.setValueAtTime(gain,audioCtx.currentTime);
@@ -315,9 +325,8 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     k.start();k.stop(audioCtx.currentTime+dur);
     return k
   }
-  // Taiko drum impact: filtered noise burst with pitch drop
-  function taiko(dur,gain){
-    var t=audioCtx.createBufferSource();t.buffer=noiseBuffer(dur);
+  function _oscTaiko(dur,gain){
+    var t=audioCtx.createBufferSource();t.buffer=_noiseBuffer(dur);
     var tf=audioCtx.createBiquadFilter();tf.type="lowpass";tf.frequency.value=120;
     var tmf=audioCtx.createBiquadFilter();tmf.type="bandpass";tmf.frequency.value=80;tmf.Q.value=6;
     var tg=audioCtx.createGain();tg.gain.setValueAtTime(gain,audioCtx.currentTime);
@@ -326,125 +335,184 @@ function initAudio(){if(audioCtx)return;try{audioCtx=new (window.AudioContext||w
     t.start();t.stop(audioCtx.currentTime+dur);
     return t
   }
+  // Helper: play a buffer with optional loop/gain
+  function playBuffer(key,opts){opts=opts||{};if(!audioCtx||!audioBuffers[key])return null;
+    var src=audioCtx.createBufferSource();src.buffer=audioBuffers[key];
+    if(opts.loop)src.loop=true;
+    var gn=audioCtx.createGain();gn.gain.value=opts.gain||.3;
+    var vol=opts.sfx?window._audioVolSfx:window._audioVolMusic;gn.gain.setValueAtTime((opts.gain||.3)*vol,audioCtx.currentTime);
+    if(opts.ramp){gn.gain.linearRampToValueAtTime(0,audioCtx.currentTime+opts.ramp)}
+    src.connect(gn);gn.connect(window._masterGain);src.start();
+    if(opts.stop)src.stop(audioCtx.currentTime+(opts.stop||0));
+    return src
+  }
   var amb=window._amb||(window._amb={wind:{node:null,gain:null,lastPan:0},river:{node:null,gain:null},footstepTimer:0,
     drone:{node:null,gain:null},rain:{source:null,gain:null},pad:{node:null,gain:null,padGain:null},
-    melody:{timeout:null,nextNote:0,o:null,g:null,f:null,phrase:0,noteIdx:0,timer:0},
+    melody:{timeout:null,nextNote:0,o:null,g:null,f:null,phrase:0,noteIdx:0,timer:0,src:null,mg:null},
     shaku:{o:null,g:null,f:null},koto:{o:null,g:null,f:null},
     tension:{node:null,gain:null},ganryu:{g:null},zoneAmbient:{node:null,gain:null}});
-  // BASS DRONE — D2 at 73.4Hz, deep filtered sine, very quiet
-  if(!amb.drone.node){
-    var dd=audioCtx.createOscillator();dd.type="sine";dd.frequency.value=73.4;
+  // WIND — per-zone buffer loops
+  if(!amb.wind.node&&audioBuffers['wind-meadow']&&audioBuffers['wind-forest']&&audioBuffers['wind-mountain']&&audioBuffers['wind-coastal']){
+    var wg=audioCtx.createGain();wg.gain.value=.018;wg.gain.setValueAtTime(.018,audioCtx.currentTime);wg.gain.linearRampToValueAtTime(.003,audioCtx.currentTime+3);
+    amb.wind.gain=wg;amb.wind.node=wg;wg.connect(window._masterGain);
+    amb.wind.zoneSources={};
+    ['meadow','forest','mountain','coastal'].forEach(function(zn){
+      var wk='wind-'+zn;if(audioBuffers[wk]){var ws=audioCtx.createBufferSource();ws.buffer=audioBuffers[wk];ws.loop=true;var wgn=audioCtx.createGain();wgn.gain.value=0;ws.connect(wgn);wgn.connect(wg);ws.start();amb.wind.zoneSources[zn]=wgn}
+    });
+    var currentWindZone=amb.wind.currentZone||'meadow';
+    amb.wind.setZone=function(zn){if(amb.wind.zoneSources[currentWindZone])amb.wind.zoneSources[currentWindZone].gain.setValueAtTime(0,audioCtx.currentTime);
+      currentWindZone=zn;amb.wind.currentZone=zn;
+      if(amb.wind.zoneSources[zn])amb.wind.zoneSources[zn].gain.setValueAtTime(.018,audioCtx.currentTime)}
+  }
+  // BASS DRONE — buffer
+  if(!amb.drone.node&&audioBuffers['bass-drone']){
+    var dd=audioCtx.createBufferSource();dd.buffer=audioBuffers['bass-drone'];dd.loop=true;
     var dg=audioCtx.createGain();dg.gain.value=.012;
     var df=audioCtx.createBiquadFilter();df.type="lowpass";df.frequency.value=120;
-    dd.connect(df);df.connect(dg);dg.connect(window._masterGain);
-    dd.start();amb.drone.node=dd;amb.drone.gain=dg;
+    dd.connect(df);df.connect(dg);dg.connect(window._masterGain);dd.start();
+    amb.drone.node=dd;amb.drone.gain=dg;
   }
-  // AMBIENT WIND
-  if(!amb.wind.node){const bc=audioCtx.createBiquadFilter();bc.type="lowpass";bc.frequency.value=220;const wg=audioCtx.createGain();wg.gain.value=.018;const wb=audioCtx.createBuffer(1,audioCtx.sampleRate*4,audioCtx.sampleRate),wd=wb.getChannelData(0);for(let i=0;i<wd.length;i++)wd[i]=Math.random()*2-1;const ws=audioCtx.createBufferSource();ws.buffer=wb;ws.loop=true;ws.connect(bc);bc.connect(wg);wg.connect(window._masterGain);wg.gain.setValueAtTime(.018,audioCtx.currentTime);wg.gain.linearRampToValueAtTime(.003,audioCtx.currentTime+3);amb.wind.node=ws;amb.wind.gain=wg;ws.start()
+  // RAIN — buffer
+  if(!amb.rain&&audioBuffers['rain-ambient']){
+    var rs=audioCtx.createBufferSource();rs.buffer=audioBuffers['rain-ambient'];rs.loop=true;
+    var rg=audioCtx.createGain();rg.gain.value=0;
+    rs.connect(rg);rg.connect(window._masterGain);rs.start();
+    amb.rain={source:rs,gain:rg}
   }
-  // RAIN AMBIENCE — filtered noise for drizzle zone
-  if(!amb.rain){const rb=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate),rd=rb.getChannelData(0);for(let ri=0;ri<rd.length;ri++)rd[ri]=Math.random()*2-1;const rs=audioCtx.createBufferSource();rs.buffer=rb;rs.loop=true;const rg=audioCtx.createGain();rg.gain.value=0;const rf=audioCtx.createBiquadFilter();rf.type="lowpass";rf.frequency.value=600;const rf2=audioCtx.createBiquadFilter();rf2.type="highpass";rf2.frequency.value=120;rs.connect(rf);rf.connect(rf2);rf2.connect(rg);rg.connect(window._masterGain);rs.start();amb.rain={source:rs,gain:rg}}
-  // HARMONY PAD — Yo-scale open chords zone-triggered
-  if(!amb.pad.node){
-    var pg=audioCtx.createGain();pg.gain.value=0;amb.pad.padGain=pg;
-    // D3 (146.8), A3 (220), C4 (261.6), G3 (196) — soft sine, lowpass 400
-    [146.8,220,261.6,196].forEach(function(f){
-      var po=audioCtx.createOscillator();po.type="sine";po.frequency.value=f;
-      var pf=audioCtx.createBiquadFilter();pf.type="lowpass";pf.frequency.value=400;
-      po.connect(pf);pf.connect(pg);po.start();
-    });
-    pg.connect(window._masterGain);amb.pad.node=pg;
+  // FOOTSTEP — noise (keep oscillator)
+  amb.footstep=function(){var fb=audioCtx.createBuffer(1,audioCtx.sampleRate*.06,audioCtx.sampleRate),fd=fb.getChannelData(0);for(var i=0;i<fd.length;i++)fd[i]=Math.random()*2-1*(1-i/fd.length);var fs=audioCtx.createBufferSource(),fg=audioCtx.createGain();fs.buffer=fb;fg.gain.value=.028;fs.connect(fg);fg.connect(window._masterGain);fs.start()}
+  // RIVER DRONE — buffer
+  if(!amb.river.node&&audioBuffers['river-ambient']){
+    var rg=audioCtx.createGain();rg.gain.value=0;
+    var ro=audioCtx.createBufferSource();ro.buffer=audioBuffers['river-ambient'];ro.loop=true;
+    ro.connect(rg);rg.connect(window._masterGain);ro.start();
+    amb.river.node=ro;amb.river.gain=rg;
   }
-  // SHAKUHACHI bamboo flute — dedicated shakuhachi voice for melodies
-  if(!amb.shaku.o){
-    var sg2=audioCtx.createGain();sg2.gain.value=0;
-    var so2=audioCtx.createOscillator();so2.type="sawtooth";so2.frequency.value=293.7;
-    var sf2=audioCtx.createBiquadFilter();sf2.type="bandpass";sf2.frequency.value=440;sf2.Q.value=6;
-    so2.connect(sf2);sf2.connect(sg2);sg2.connect(window._masterGain);so2.start();
-    amb.shaku={o:so2,g:sg2,f:sf2};
+  // DUEL TENSION DRONE — buffer
+  if(!amb.tension.node&&audioBuffers['tension-drone']){
+    var tg=audioCtx.createGain();tg.gain.value=0;
+    var to=audioCtx.createBufferSource();to.buffer=audioBuffers['tension-drone'];to.loop=true;
+    to.connect(tg);tg.connect(window._masterGain);to.start();
+    amb.tension={node:to,gain:tg}
   }
-  // KOTO string instrument — harmony and resonance layer
-  if(!amb.koto.o){
-    var kg2=audioCtx.createGain();kg2.gain.value=0;
-    var ko2=audioCtx.createOscillator();ko2.type="triangle";ko2.frequency.value=196;
-    var kf2=audioCtx.createBiquadFilter();kf2.type="bandpass";kf2.frequency.value=392;kf2.Q.value=10;
-    ko2.connect(kf2);kf2.connect(kg2);kg2.connect(window._masterGain);ko2.start();
-    amb.koto={o:ko2,g:kg2,f:kf2};
+  // GANRYU APPROACH DRONE — buffer
+  if(!amb.ganryuDrone&&audioBuffers['ganryu-drone']){
+    var gdg=audioCtx.createGain();gdg.gain.value=0;
+    var gdo=audioCtx.createBufferSource();gdo.buffer=audioBuffers['ganryu-drone'];gdo.loop=true;
+    gdo.connect(gdg);gdg.connect(window._masterGain);gdo.start();
+    amb.ganryuDrone={node:gdo,gain:gdg,frequency:gdg.gain};
   }
-  // MELODY FLUTE — Yo-scale pentatonic motifs cycling (legacy, replaced by shaku/koto)
-  if(!amb.melody.o){
-    var mg=audioCtx.createGain();mg.gain.value=0;
-    var mo=audioCtx.createOscillator();mo.type="sine";mo.frequency.value=293.7;
-    var mf=audioCtx.createBiquadFilter();mf.type="lowpass";mf.frequency.value=1200;
-    mo.connect(mf);mf.connect(mg);mg.connect(window._masterGain);
-    mo.start();
-    amb.melody={o:mo,g:mg,f:mf,nextNote:0,phrase:0,noteIdx:0,timer:0};
-  }
-  // ZONE AMBIENT — filtered noise for zone-specific ambience layers
-  if(!amb.zoneAmbient){var zab=noiseBuffer(6),zas=audioCtx.createBufferSource();zas.buffer=zab;zas.loop=true;
-    var zf=audioCtx.createBiquadFilter();zf.type="lowpass";zf.frequency.value=300;
-    var zf2=audioCtx.createBiquadFilter();zf2.type="highpass";zf2.frequency.value=80;
-    var zg2=audioCtx.createGain();zg2.gain.value=0;
-    zas.connect(zf);zf.connect(zf2);zf2.connect(zg2);zg2.connect(window._masterGain);zas.start();
-    amb.zoneAmbient={source:zas,gain:zg2,frequency:zf.frequency}
-  }
-  // RIVER DRONE
-  const rg=audioCtx.createGain();rg.gain.value=0;const ro=audioCtx.createOscillator();ro.type="sine";ro.frequency.value=95;const rb2=audioCtx.createBiquadFilter();rb2.type="lowpass";rb2.frequency.value=300;ro.connect(rb2);rb2.connect(rg);rg.connect(window._masterGain);amb.river.node=ro;amb.river.gain=rg;ro.start()
-  // FOOTSTEP
-  amb.footstep=function(){const fb=audioCtx.createBuffer(1,audioCtx.sampleRate*.06,audioCtx.sampleRate),fd=fb.getChannelData(0);for(let i=0;i<fd.length;i++)fd[i]=Math.random()*2-1*(1-i/fd.length);const fs=audioCtx.createBufferSource(),fg=audioCtx.createGain();fs.buffer=fb;fg.gain.value=.028;fs.connect(fg);fg.connect(window._masterGain);fs.start()}
-  // DUEL TENSION DRONE — gain ramps with enemy proximity
-  if(!amb.tension.node){var tg=audioCtx.createGain();tg.gain.value=0;var to=audioCtx.createOscillator();to.type="sawtooth";to.frequency.value=55;var tf=audioCtx.createBiquadFilter();tf.type="lowpass";tf.frequency.value=120;to.connect(tf);tf.connect(tg);tg.connect(window._masterGain);amb.tension={node:to,gain:tg};to.start()}
-  // GANRYU APPROACH DRONE — deep bass builds as player nears Ganryu shoreline
-  if(!amb.ganryuDrone){var gdo=audioCtx.createOscillator();gdo.type="sine";gdo.frequency.value=60;var gdg=audioCtx.createGain();gdg.gain.value=0;var gdf=audioCtx.createBiquadFilter();gdf.type="lowpass";gdf.frequency.value=80;gdo.connect(gdf);gdf.connect(gdg);gdg.connect(window._masterGain);amb.ganryuDrone={node:gdo,gain:gdg,frequency:gdo.frequency};gdo.start()}
-  // GANRYU BRIGHT THEME — higher register triangle chords
-  if(!amb.ganryu.g){
+  // GANRYU BRIGHT THEME — buffer
+  if(!amb.ganryu.g&&audioBuffers['ganryu-theme']){
     var gg=audioCtx.createGain();gg.gain.value=0;
-    [440,554,659,880].forEach(function(f){
-      var gd=audioCtx.createOscillator();gd.type="triangle";gd.frequency.value=f;
-      var ghf=audioCtx.createBiquadFilter();ghf.type="highpass";ghf.frequency.value=200;
-      gd.connect(ghf);ghf.connect(gg);gd.start();
-    });
-    gg.connect(window._masterGain);amb.ganryu.g=gg;
+    var gs=audioCtx.createBufferSource();gs.buffer=audioBuffers['ganryu-theme'];gs.loop=true;
+    gs.connect(gg);gg.connect(window._masterGain);gs.start();
+    amb.ganryu.g=gg;
   }
-  // SFX — enriched Edo instrument palette
-  sfx={tone:tone
+  // ZONE AMBIENT — per-zone buffers
+  if(!amb.zoneAmbient&&audioBuffers['amb-meadow']&&audioBuffers['amb-forest']&&audioBuffers['amb-mountain']&&audioBuffers['amb-coastal']){
+    var zg=audioCtx.createGain();zg.gain.value=0;zg.connect(window._masterGain);
+    amb.zoneAmbient={gain:zg,zoneSources:{}};
+    ['meadow','forest','mountain','coastal'].forEach(function(zn){
+      var wk='amb-'+zn;if(audioBuffers[wk]){var zs=audioCtx.createBufferSource();zs.buffer=audioBuffers[wk];zs.loop=true;var zgn=audioCtx.createGain();zgn.gain.value=0;zs.connect(zgn);zgn.connect(zg);zs.start();amb.zoneAmbient.zoneSources[zn]=zgn}
+    });
+    amb.zoneAmbient.setZone=function(zn){
+      Object.keys(amb.zoneAmbient.zoneSources).forEach(function(k){amb.zoneAmbient.zoneSources[k].gain.setValueAtTime(0,audioCtx.currentTime)});
+      if(amb.zoneAmbient.zoneSources[zn])amb.zoneAmbient.zoneSources[zn].gain.setValueAtTime(.012,audioCtx.currentTime)
+    };
+    amb.zoneAmbient.currentZone='meadow';
+  }
+  // SHAKUHACHI voice — use shaku-* buffers
+  if(!amb.shaku.o&&audioBuffers['shaku-d4']){
+    var sg2=audioCtx.createGain();sg2.gain.value=0;
+    var shakuNotes={};
+    ['d4','e4','g4','a4','c5'].forEach(function(n){var k='shaku-'+n;if(audioBuffers[k]){var sn=audioCtx.createBufferSource();sn.buffer=audioBuffers[k];sn.loop=false;var sgn=audioCtx.createGain();sgn.gain.value=0;sn.connect(sgn);sgn.connect(sg2);shakuNotes[n]=sn;sn.start();sn.stop(audioCtx.currentTime+0)}}); // will restart on note
+    sg2.connect(window._masterGain);
+    amb.shaku={o:sg2,g:sg2,notes:shakuNotes,currentNote:null};
+  }
+  // KOTO voice — use koto-* buffers
+  if(!amb.koto.o&&audioBuffers['koto-d4']){
+    var kg2=audioCtx.createGain();kg2.gain.value=0;
+    var kotoNotes={};
+    ['d4','a4','c5','g4'].forEach(function(n){var k='koto-'+n;if(audioBuffers[k]){var kn=audioCtx.createBufferSource();kn.buffer=audioBuffers[k];kn.loop=false;var kgn=audioCtx.createGain();kgn.gain.value=0;kn.connect(kgn);kgn.connect(kg2);kotoNotes[n]=kn;kn.start();kn.stop(audioCtx.currentTime+0)}}); // will restart on note
+    kg2.connect(window._masterGain);
+    amb.koto={o:kg2,g:kg2,notes:kotoNotes,currentNote:null};
+  }
+  // MELODY — motif buffer loops
+  if(!amb.melody.o)amb.melody={o:null,g:null,f:null,nextNote:0,phrase:0,noteIdx:0,timer:0,src:null,mg:null};
+  if(!amb.melody.mg&&audioBuffers['motif-meadow']&&audioBuffers['motif-forest']&&audioBuffers['motif-mountain']&&audioBuffers['motif-coastal']){
+    var mg=audioCtx.createGain();mg.gain.value=0;mg.connect(window._masterGain);
+    amb.melody.mg=mg;
+    amb.melody.motifSources={};
+    ['meadow','forest','mountain','coastal'].forEach(function(zn){
+      var mk='motif-'+zn;if(audioBuffers[mk]){var ms=audioCtx.createBufferSource();ms.buffer=audioBuffers[mk];ms.loop=true;var mgn=audioCtx.createGain();mgn.gain.value=0;ms.connect(mgn);mgn.connect(mg);ms.start();amb.melody.motifSources[zn]=mgn}
+    });
+    amb.melody.setMotif=function(zn){
+      Object.keys(amb.melody.motifSources).forEach(function(k){amb.melody.motifSources[k].gain.setValueAtTime(0,audioCtx.currentTime)});
+      if(amb.melody.motifSources[zn])amb.melody.motifSources[zn].gain.setValueAtTime(.025,audioCtx.currentTime)
+    };
+    amb.melody.currentMotif='meadow';
+  }
+  // SFX — buffers with oscillator fallback
+  sfx={_tone:_oscTone
     ,slash:function(){
-      // Shakuhachi blade slash: bandpass noise + metal ring
-      var sbn=audioCtx.createBufferSource();sbn.buffer=noiseBuffer(.06);
+      if(audioBuffers['sfx-slash']){var s=audioCtx.createBufferSource();s.buffer=audioBuffers['sfx-slash'];
+        var sg=audioCtx.createGain();sg.gain.setValueAtTime(.06*window._audioVolSfx,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.12);
+        s.connect(sg);sg.connect(window._masterGain);s.start();s.stop(audioCtx.currentTime+.12);return}
+      var sbn=audioCtx.createBufferSource();sbn.buffer=_noiseBuffer(.06);
       var sbf=audioCtx.createBiquadFilter();sbf.type="bandpass";sbf.frequency.value=3000;sbf.Q.value=30;
       var sbg=audioCtx.createGain();sbg.gain.setValueAtTime(.06,audioCtx.currentTime);sbg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.06);
       sbn.connect(sbf);sbf.connect(sbg);sbg.connect(window._masterGain);sbn.start();sbn.stop(audioCtx.currentTime+.06);
-      // Metal ring
       var sr=audioCtx.createOscillator();sr.type="sine";sr.frequency.value=1800;var srg=audioCtx.createGain();srg.gain.setValueAtTime(.08,audioCtx.currentTime);srg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.08);var srf=audioCtx.createBiquadFilter();srf.type="bandpass";srf.frequency.value=1800;srf.Q.value=60;sr.connect(srf);srf.connect(srg);srg.connect(window._masterGain);sr.start();sr.stop(audioCtx.currentTime+.08);
-      // Body resonance
       var sbo=audioCtx.createOscillator();sbo.type="sawtooth";sbo.frequency.value=120;var sbog=audioCtx.createGain();sbog.gain.setValueAtTime(.04,audioCtx.currentTime);sbog.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.1);var sbof=audioCtx.createBiquadFilter();sbof.type="lowpass";sbof.frequency.value=200;sbo.connect(sbof);sbof.connect(sbog);sbog.connect(window._masterGain);sbo.start();sbo.stop(audioCtx.currentTime+.1)}
-    ,paint:function(){var pn=audioCtx.createBufferSource();var pb=audioCtx.createBuffer(1,44100*.15,44100),pd=pb.getChannelData(0);for(let i=0;i<pd.length;i++)pd[i]=Math.random()*2-1*(1-i/pd.length);pn.buffer=pb;var pg2=audioCtx.createGain();pg2.gain.setValueAtTime(.1,audioCtx.currentTime);pg2.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var pf2=audioCtx.createBiquadFilter();pf2.type="bandpass";pf2.frequency.value=1200;pf2.Q.value=3;pn.connect(pf2);pf2.connect(pg2);pg2.connect(window._masterGain);pn.start();
-      // Koto pluck accent
-      koto(440,.2,.04)}
-    ,block:function(){taiko(.08,.18);
-      // Wood resonance ring
+    ,paint:function(){
+      if(audioBuffers['sfx-paint']){var s=audioCtx.createBufferSource();s.buffer=audioBuffers['sfx-paint'];
+        var sg=audioCtx.createGain();sg.gain.setValueAtTime(.1*window._audioVolSfx,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.2);
+        s.connect(sg);sg.connect(window._masterGain);s.start();s.stop(audioCtx.currentTime+.2);return}
+      var pn=audioCtx.createBufferSource();var pb=audioCtx.createBuffer(1,44100*.15,44100),pd=pb.getChannelData(0);for(let i=0;i<pd.length;i++)pd[i]=Math.random()*2-1*(1-i/pd.length);pn.buffer=pb;var pg2=audioCtx.createGain();pg2.gain.setValueAtTime(.1,audioCtx.currentTime);pg2.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var pf2=audioCtx.createBiquadFilter();pf2.type="bandpass";pf2.frequency.value=1200;pf2.Q.value=3;pn.connect(pf2);pf2.connect(pg2);pg2.connect(window._masterGain);pn.start();
+      _oscKoto(440,.2,.04)}
+    ,block:function(){
+      if(audioBuffers['sfx-block']){var s=audioCtx.createBufferSource();s.buffer=audioBuffers['sfx-block'];
+        var sg=audioCtx.createGain();sg.gain.setValueAtTime(.18*window._audioVolSfx,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.2);
+        s.connect(sg);sg.connect(window._masterGain);s.start();s.stop(audioCtx.currentTime+.2);return}
+      _oscTaiko(.08,.18);
       var bw=audioCtx.createOscillator();bw.type="sine";bw.frequency.value=360;var bwg=audioCtx.createGain();bwg.gain.setValueAtTime(.06,audioCtx.currentTime);bwg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);bw.connect(bwg);bwg.connect(window._masterGain);bw.start();bw.stop(audioCtx.currentTime+.15)}
-    ,hit:function(){taiko(.12,.22);
-      // Low thud
+    ,hit:function(){
+      if(audioBuffers['sfx-hit']){var s=audioCtx.createBufferSource();s.buffer=audioBuffers['sfx-hit'];
+        var sg=audioCtx.createGain();sg.gain.setValueAtTime(.22*window._audioVolSfx,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.2);
+        s.connect(sg);sg.connect(window._masterGain);s.start();s.stop(audioCtx.currentTime+.2);return}
+      _oscTaiko(.12,.22);
       var ho=audioCtx.createOscillator();ho.type="sawtooth";ho.frequency.value=80;var hg=audioCtx.createGain();hg.gain.setValueAtTime(.15,audioCtx.currentTime);hg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.15);var hf=audioCtx.createBiquadFilter();hf.type="lowpass";hf.frequency.value=200;ho.connect(hf);hf.connect(hg);hg.connect(window._masterGain);ho.start();ho.stop(audioCtx.currentTime+.15);
       var hn=audioCtx.createBufferSource();var hnb=audioCtx.createBuffer(1,44100*.1,44100),hnd=hnb.getChannelData(0);for(let i=0;i<hnd.length;i++)hnd[i]=Math.random()*2-1*(1-i/hnd.length);hn.buffer=hnb;var hng=audioCtx.createGain();hng.gain.setValueAtTime(.1,audioCtx.currentTime);hng.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.1);var hnf=audioCtx.createBiquadFilter();hnf.type="lowpass";hnf.frequency.value=300;hn.connect(hnf);hnf.connect(hng);hng.connect(window._masterGain);hn.start()}
-    ,death:function(){shakuhachi(294,1.2,.12);
-      setTimeout(function(){shakuhachi(349,1,.08)},300);
-      setTimeout(function(){shakuhachi(440,.8,.06)},600);
-      setTimeout(function(){shakuhachi(523,.6,.04)},900);
-      // Deep taiko pulse
-      setTimeout(function(){taiko(.6,.3)},200);
-      setTimeout(function(){taiko(.4,.2)},600)}
-    ,inkRegen:function(){koto(440,.25,.04);
-      koto(554,.2,.03)}
-    ,mark:function(){koto(350,.15,.08);
-      koto(440,.2,.05);
-      koto(550,.25,.04)}
-    ,victory:function(){var vn=[440,554,659,880,1108,1320];vn.forEach(function(f,i){setTimeout(function(){shakuhachi(f,.4,.1)},i*90)});
-      setTimeout(function(){shakuhachi(880,.6,.08)},540);
-      setTimeout(function(){koto(880,.5,.1)},580);
-      setTimeout(function(){koto(1108,.5,.07)},680);
-      setTimeout(function(){koto(1320,.5,.05)},780)}
+    ,death:function(){
+      if(audioBuffers['sfx-death']){var s=audioCtx.createBufferSource();s.buffer=audioBuffers['sfx-death'];
+        var sg=audioCtx.createGain();sg.gain.setValueAtTime(.12*window._audioVolSfx,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1.2);
+        s.connect(sg);sg.connect(window._masterGain);s.start();s.stop(audioCtx.currentTime+1.2);return}
+      _oscShakuhachi(294,1.2,.12);
+      setTimeout(function(){_oscShakuhachi(349,1,.08)},300);
+      setTimeout(function(){_oscShakuhachi(440,.8,.06)},600);
+      setTimeout(function(){_oscShakuhachi(523,.6,.04)},900);
+      setTimeout(function(){_oscTaiko(.6,.3)},200);
+      setTimeout(function(){_oscTaiko(.4,.2)},600)}
+    ,inkRegen:function(){
+      if(audioBuffers['sfx-ink-regen']){var s=audioCtx.createBufferSource();s.buffer=audioBuffers['sfx-ink-regen'];
+        var sg=audioCtx.createGain();sg.gain.setValueAtTime(.04*window._audioVolSfx,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.3);
+        s.connect(sg);sg.connect(window._masterGain);s.start();s.stop(audioCtx.currentTime+.3);return}
+      _oscKoto(440,.25,.04);_oscKoto(554,.2,.03)}
+    ,mark:function(){
+      if(audioBuffers['sfx-mark']){var s=audioCtx.createBufferSource();s.buffer=audioBuffers['sfx-mark'];
+        var sg=audioCtx.createGain();sg.gain.setValueAtTime(.08*window._audioVolSfx,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.3);
+        s.connect(sg);sg.connect(window._masterGain);s.start();s.stop(audioCtx.currentTime+.3);return}
+      _oscKoto(350,.15,.08);_oscKoto(440,.2,.05);_oscKoto(550,.25,.04)}
+    ,victory:function(){
+      if(audioBuffers['sfx-victory']){var s=audioCtx.createBufferSource();s.buffer=audioBuffers['sfx-victory'];
+        var sg=audioCtx.createGain();sg.gain.setValueAtTime(.1*window._audioVolSfx,audioCtx.currentTime);sg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1.0);
+        s.connect(sg);sg.connect(window._masterGain);s.start();s.stop(audioCtx.currentTime+1.0);return}
+      var vn=[440,554,659,880,1108,1320];vn.forEach(function(f,i){setTimeout(function(){_oscShakuhachi(f,.4,.1)},i*90)});
+      setTimeout(function(){_oscShakuhachi(880,.6,.08)},540);
+      setTimeout(function(){_oscKoto(880,.5,.1)},580);
+      setTimeout(function(){_oscKoto(1108,.5,.07)},680);
+      setTimeout(function(){_oscKoto(1320,.5,.05)},780)}
   };
 }
 let currentHeroKey="musashi";
@@ -943,7 +1011,7 @@ function step(dt){
   // Ambient: footsteps, wind drift, river near bridge; zone-transition audio cues
   initAudio();var amb=window._amb;
   if(audioCtx&&amb&&amb.footstep&&amb.wind&&amb.river&&amb.melody&&amb.rain&&amb.tension){
-  amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);if(player.z>460&&player.z<580&&!bellRung){bellRung=1;sfx.tone(220,1.2,"sine",.15);setTimeout(function(){sfx.tone(330,.8,"sine",.1)},300);setTimeout(function(){sfx.tone(440,.6,"sine",.08)},600);say("A temple bell tolls across the bridge.")}const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){sfx.tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){sfx.tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}    amb.river.gain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.6);if(amb.rain&&amb.rain.gain){amb.rain.gain.gain.setValueAtTime(drizzleActive*.035,audioCtx.currentTime)}
+  amb.footstepTimer=Math.max(0,amb.footstepTimer-dt);const moving=Math.abs(player.mx)+Math.abs(player.mz)>.5;if(moving&&amb.footstepTimer<=0&&player.hp>0){amb.footstep();amb.footstepTimer=.35+Math.random()*.15};amb.wind.gain.gain.setValueAtTime(.014+Math.sin(player.z*.0015+Date.now()*.0003)*.006,audioCtx.currentTime);if(player.z>460&&player.z<580&&!bellRung){bellRung=1;sfx._tone(220,1.2,"sine",.15);setTimeout(function(){sfx._tone(330,.8,"sine",.1)},300);setTimeout(function(){sfx._tone(440,.6,"sine",.08)},600);say("A temple bell tolls across the bridge.")}const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime);if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){sfx._tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){sfx._tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}    amb.river.gain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.6);if(amb.rain&&amb.rain.gain){amb.rain.gain.gain.setValueAtTime(drizzleActive*.035,audioCtx.currentTime)}
   // Zone ambient layer — noise filtered by zone color with zone-specific wind filtering
   if(amb.zoneAmbient&&amb.zoneAmbient.gain){
     var zaGain=0;var zn=currentZone.name;
@@ -964,55 +1032,62 @@ function step(dt){
   if(amb.tension&&amb.tension.gain)amb.tension.gain.gain.setValueAtTime(tensionGain,audioCtx.currentTime);
   // Ganryu approach drone — deep bass that builds as player nears the final zone
   var ganryuProx=Math.max(0,Math.min(1,(player.z-1100)/280));
-  if(amb.ganryuDrone&&amb.ganryuDrone.gain&&amb.ganryuDrone.frequency){amb.ganryuDrone.gain.gain.setValueAtTime(ganryuProx*.06,audioCtx.currentTime);amb.ganryuDrone.frequency.setValueAtTime(Math.max(24,60-ganryuProx*36),audioCtx.currentTime)}
+  if(amb.ganryuDrone&&amb.ganryuDrone.gain){amb.ganryuDrone.gain.gain.setValueAtTime(ganryuProx*.06,audioCtx.currentTime)}
   // Zone transition audio — subtle wind-shift chord when crossing zone boundaries
   if(currentZone!==prevZone&&player.hp>0){var zc=currentZone;
-    if(zc.name==="forest"){sfx.tone(262,.6,"sine",.04);setTimeout(function(){sfx.tone(330,.4,"sine",.03)},200)}
-    else if(zc.name==="mountain"){sfx.tone(196,.7,"sine",.04);setTimeout(function(){sfx.tone(220,.5,"sine",.03)},180)}
-    else if(zc.name==="coastal"){sfx.tone(330,.6,"sine",.05);setTimeout(function(){sfx.tone(440,.4,"sine",.04);setTimeout(function(){sfx.tone(554,.3,"sine",.03)},200)},180)}
+    if(zc.name==="forest"){sfx._tone(262,.6,"sine",.04);setTimeout(function(){sfx._tone(330,.4,"sine",.03)},200)}
+    else if(zc.name==="mountain"){sfx._tone(196,.7,"sine",.04);setTimeout(function(){sfx._tone(220,.5,"sine",.03)},180)}
+    else if(zc.name==="coastal"){sfx._tone(330,.6,"sine",.05);setTimeout(function(){sfx._tone(440,.4,"sine",.04);setTimeout(function(){sfx._tone(554,.3,"sine",.03)},200)},180)}
     say("The road enters "+zc.name+"...");
   }
-// Melody scheduler — Shakuhachi bamboo flute + Koto harmony layering by zone
+// Melody scheduler — motif WAV buffer looping with gain control by zone
 if(amb.melody.timer!==undefined){amb.melody.timer+=dt;
-  // Dynamic tempo: speed up when enemies are close, slow down in peaceful zones
+  // Dynamic tempo: switch motif based on zone
+  var motifZone=player.z<250?'meadow':player.z<500?'forest':player.z<700?'mountain':'coastal';
   var tensionCount=enemies.filter(function(eo){return eo.hp>0&&Math.hypot(eo.x-player.x,eo.z-player.z)<200}).length;
-  var tempoFactor=tensionCount>0?Math.max(1.5,2.5-tensionCount*.3):1;
-  var melodyInt=3.5/tempoFactor;
-  // Zone-specific motif selection
-  var shakuPhrase,kotoPhrase;
-  if(player.z<250){shakuPhrase=yoMotif1;kotoPhrase=yoMotifMeadow}
-  else if(player.z<500){shakuPhrase=yoPhrase;kotoPhrase=yoMotifForest}
-  else if(player.z<700){shakuPhrase=yoMotif2;kotoPhrase=yoMotifMountain}
-  else{shakuPhrase=yoMotif3;kotoPhrase=yoMotifCoastal}
-  // Shakuhachi melody voice
-  if(amb.shaku&&amb.shaku.o&&amb.shaku.g){
-    var shakuTimer=amb.shaku._timer=(amb.shaku._timer||0)+dt;
-    if(shakuTimer>melodyInt){
-      amb.shaku._timer=0;
-      var sfreq=yoNotes[shakuPhrase[amb.melody.noteIdx]]+(Math.random()-.5)*3; // gentle detune for warmth
-      amb.shaku.o.frequency.setValueAtTime(sfreq,audioCtx.currentTime);
-      amb.shaku.g.gain.setValueAtTime(.02,audioCtx.currentTime);
-      amb.shaku.g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+melodyInt*.7);
-      // Vibrato on shakuhachi
-      var shVib=audioCtx.createOscillator();shVib.type="sine";shVib.frequency.value=5.5;
-      var shVg=audioCtx.createGain();shVg.gain.value=sfreq*.004;
-      shVib.connect(shVg);shVg.connect(amb.shaku.o.frequency);
-      shVib.start();shVib.stop(audioCtx.currentTime+melodyInt*.6);
-      amb.melody.noteIdx=(amb.melody.noteIdx+1)%shakuPhrase.length;
+  // Select and apply motif buffer gain
+  if(amb.melody.mg&&amb.melody.motifSources&&amb.melody.setMotif){
+    var prevMotif=amb.melody.currentMotif||'meadow';
+    if(motifZone!==prevMotif && motifZone!==undefined){
+      amb.melody.setMotif(motifZone);
+      amb.melody.currentMotif=motifZone;
     }
-  }
-  // Koto harmony voice — slower, wider intervals
-  if(amb.koto&&amb.koto.o&&amb.koto.g){
-    var kotoTimer=amb.koto._timer=(amb.koto._timer||0)+dt;
-    var kotoInt=melodyInt*2.4;
-    if(kotoTimer>kotoInt){
-      amb.koto._timer=0;
-      var kfreq=yoNotes[kotoPhrase[amb.koto._note=(amb.koto._note||0)]]+12; // shift up a step
-      amb.koto.o.frequency.setValueAtTime(kfreq,audioCtx.currentTime);
-      amb.koto.g.gain.setValueAtTime(.015,audioCtx.currentTime);
-      amb.koto.g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+kotoInt*.85);
-      amb.koto._note=(amb.koto._note||0)+1;kotoPhrase[amb.koto._note%kotoPhrase.length];
-      if(amb.koto._note>=kotoPhrase.length)amb.koto._note=0;
+    // Scale motif gain by tension
+    var motifGain=tensionCount>0?0.02:0.025;
+    amb.melody.mg.gain.setValueAtTime(motifGain,audioCtx.currentTime);
+  }else{
+    // Fallback: shakuhachi/koto oscillator voice if motif buffers not yet loaded
+    if(amb.shaku&&amb.shaku.o&&amb.shaku.g){
+      var shakuTimer=amb.shaku._timer=(amb.shaku._timer||0)+dt;
+      var melodyInt=3.5/(tensionCount>0?Math.max(1.5,2.5-tensionCount*.3):1);
+      if(shakuTimer>melodyInt){
+        amb.shaku._timer=0;
+        var shakuPhrase=player.z<250?yoMotif1:player.z<500?yoPhrase:player.z<700?yoMotif2:yoMotif3;
+        var sfreq=yoNotes[shakuPhrase[amb.melody.noteIdx]]+(Math.random()-.5)*3;
+        amb.shaku.o.frequency.setValueAtTime(sfreq,audioCtx.currentTime);
+        amb.shaku.g.gain.setValueAtTime(.02,audioCtx.currentTime);
+        amb.shaku.g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+melodyInt*.7);
+        var shVib=audioCtx.createOscillator();shVib.type="sine";shVib.frequency.value=5.5;
+        var shVg=audioCtx.createGain();shVg.gain.value=sfreq*.004;
+        shVib.connect(shVg);shVg.connect(amb.shaku.o.frequency);
+        shVib.start();shVib.stop(audioCtx.currentTime+melodyInt*.6);
+        amb.melody.noteIdx=(amb.melody.noteIdx+1)%shakuPhrase.length;
+      }
+    }
+    // Koto harmony fallback oscillator
+    if(amb.koto&&amb.koto.o&&amb.koto.g){
+      var kotoTimer=amb.koto._timer=(amb.koto._timer||0)+dt;
+      var kotoInt=3.5/(tensionCount>0?Math.max(1.5,2.5-tensionCount*.3):1)*2.4;
+      if(kotoTimer>kotoInt){
+        amb.koto._timer=0;
+        var kotoPhrase=player.z<250?yoMotifMeadow:player.z<500?yoMotifForest:player.z<700?yoMotifMountain:yoMotifCoastal;
+        var kfreq=yoNotes[kotoPhrase[amb.koto._note=(amb.koto._note||0)]]+12;
+        amb.koto.o.frequency.setValueAtTime(kfreq,audioCtx.currentTime);
+        amb.koto.g.gain.setValueAtTime(.015,audioCtx.currentTime);
+        amb.koto.g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+kotoInt*.85);
+        amb.koto._note=(amb.koto._note||0)+1;kotoPhrase[amb.koto._note%kotoPhrase.length];
+        if(amb.koto._note>=kotoPhrase.length)amb.koto._note=0;
+      }
     }
   }
 }
