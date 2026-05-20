@@ -321,6 +321,17 @@ checks.push(["calligraphy UI label", html.includes("calligraphy:") && html.inclu
 checks.push(["calligraphy controls hint", html.includes("1-4 paint mode") || html.includes("1 / 2 / 3 / 4")]);
 checks.push(["enhanced brush trail sumi-e rendering", html.includes("ctx.ellipse") && html.includes("brushWidth") && html.includes("drawBrushTrails")]);
 
+// Pass 62 — Road-side ink painting canvas stations for permanent ink art creation
+checks.push(["painting canvas stations array defined", html.includes("paintingCanvases=[") && html.includes("wildflowers")]);
+checks.push(["painting canvas glyphs defined", html.includes("glyph:") && html.includes("花") && html.includes("峰")]);
+checks.push(["painting canvas interaction key E", html.includes("canvasPaintActive") && html.includes("pc.used")]);
+checks.push(["drawPaintingCanvases function defined", html.includes("function drawPaintingCanvases")]);
+checks.push(["drawPaintingCanvases called in draw", html.includes("drawPaintingCanvases()")]);
+checks.push(["painting decoration rendered in drawRoadDecorations", html.includes('rd.type==="painting"') && html.includes('rd.glyph')]);
+checks.push(["canvas state variables defined", html.includes("canvasPaintTimer") && html.includes("canvasPaintResult")]);
+checks.push(["canvas animation completes after 60 frames", html.includes("canvasPaintTimer>60")]);
+checks.push(["canvas paintings reset in goToTitle", html.includes("canvasPaintActive=false") && html.includes("canvasPaintTimer=0")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

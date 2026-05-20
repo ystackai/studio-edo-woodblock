@@ -26,9 +26,9 @@ function loadGame(){
       var uiTitle=doc.getElementById('title');
       if(uiTitle){pass('Title screen element found');}
       else{fail('Title screen element missing');}
-      var uiChars=doc.getElementById('chars');
-      if(uiChars){pass('Character select element found');}
-      else{fail('Character select element missing');}
+var uiChars=doc.getElementById('select');
+if(uiChars){pass('Character select element found');}
+else{fail('Character select element missing');}
       // Listen for runtime errors
       var origConsoleError=iframe.contentWindow.console.error.bind(iframe.contentWindow.console);
       iframe.contentWindow.console.error=function(){

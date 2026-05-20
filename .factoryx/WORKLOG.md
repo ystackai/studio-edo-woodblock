@@ -98,4 +98,10 @@
 - **Updated haiku moments**: refreshed poetic haiku content across all 5 scenic road points with more evocative Edo-era imagery (morning brush, pine shadows, cedar breath, river voice, salt wind).
 - 282 checks pass (272 existing + 10 new: calligraphy paint mode defined, key 4, kanjiChars array, calligraphy mark kind created on paint, calligraphy mark rendered in drawMark, calligraphy UI label, calligraphy controls hint, enhanced brush trail sumi-e rendering, plus calligraphy mode in paint function)
 
+### Pass 62 — Road-side ink painting canvas stations, gain null safety fix, runtime check fix
+- **Shakuhachi gain null safety fix**: fixed `amb.shaku.gain||amb.shaku.gain` redundant guard — replaced with proper `amb.shaku.g && amb.shaku.g.gain` check. The previous pattern `amb.shaku.gain||amb.shaku.gain` used same expression on both sides and had `pg.gain.linearRampToValueAtTime` called outside the null guard, creating a latent runtime TypeError if `amb.shaku` preload hadn't completed.
+- **Runtime check DOM ID fix**: character select element check used `getElementById('chars')` but the actual DOM ID is `select`; fixed to prevent false failure in browser runtime verification.
+- **Road-side ink painting canvas stations**: 4 scenic viewpoints along the road (z=120 meadow wildflowers, z=380 forest cedar, z=680 mountain peak mist, z=1080 coastal shore wave) where pressing E triggers a 60-frame painting animation that creates a permanent ink painting road decoration (maxAge=7200 frames). Each canvas shows zone-specific easel with brush icon, empty paper, and zone glyph hint before painting. After completion, the painting appears as framed ink-wash artwork with subject calligraphy character and mist aura. Diary entry records the painting.
+- 291 checks pass (282 existing + 9 new: painting canvas array defined, glyphs defined, E-key interaction, drawPaintingCanvases function, called in draw, painting decoration in drawRoadDecorations, state variables, 60-frame animation, goToTitle reset)
+
 (End of file)

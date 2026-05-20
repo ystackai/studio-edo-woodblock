@@ -13,7 +13,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 61 — Calligraphy paint mode, enhanced brush trails, haiku moments)
+### Current Artifact State (Pass 62 — Road-side ink painting canvas stations, gain null safety, runtime check fix)
 - **~2930-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - **Calligraphy paint mode (key 4)**: new paint mode that inscribes floating kanji characters (道 Road, 風 Wind, 月 Moon, 花 Flower, 海 Sea) with ink brush stroke rendering and blessing effects (resolve, speed, ink, heal, calm). Each mark produces flowing ink brush calligraphy stroke particles, gold ink blessing sparkles, and a radial golden ink aura. The kanji character floats above the mark with visible brush-stroke glyph lines drawn in sumi-e style.
 - **Enhanced brush trail rendering**: brush trails now render as sumi-e ink brush strokes with water spread halo, ink pooling variation, and taper tail marks — ellipses with width/height variation, ink wash paper bleed edges, and trailing brush hair marks for organic sumi-e brush feel
@@ -96,8 +96,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
-- `node drops/edo-inkblade-ots/test.js` — **282 checks**: all previous 272 plus 10 new (Pass 61: calligraphy paint mode defined, key 4, kanjiChars array, calligraphy mark kind created on paint, calligraphy mark rendered in drawMark, calligraphy UI label, calligraphy controls hint, enhanced brush trail sumi-e rendering, plus paint function calligraphy mode generalization).
-- **All 282 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **291 checks**: all previous 282 plus 9 new (Pass 62: painting canvas array, canvas glyphs, E-key interaction, drawPaintingCanvases function, draw call, painting decoration in drawRoadDecorations, state variables, 60-frame animation, goToTitle reset).
+- **All 291 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -160,8 +160,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 **Pass 61** — Calligraphy paint mode (key 4): kanji character marks with ink brush rendering and blessing effects; enhanced brush trail sumi-e rendering with water spread halo and ink pooling; refreshed haiku moments. 282 checks pass; 10 new checks.
 
+**Pass 62** — Road-side ink painting canvas stations: 4 scenic viewpoints (z=120 meadow wildflowers, z=380 forest cedar, z=680 mountain peak mist, z=1080 coastal shore wave) where pressing E triggers a 60-frame painting animation that creates permanent ink-wash painting road decorations with zone-specific subject glyphs. Shakuhachi gain null safety fix: replaced redundant `amb.shaku.gain||amb.shaku.gain` guard with proper `amb.shaku.g && amb.shaku.g.gain` check to prevent latent runtime TypeError. Runtime check DOM ID fix: character select check uses correct id="select" instead of id="chars". 291 checks pass; 9 new checks.
+
 ### Known Issues
-- None current — all 282 checks pass; calligraphy paint mode operational
+- None current — all 291 checks pass; painting canvas stations operational; gain null safety hardened; runtime check DOM ID corrected
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
