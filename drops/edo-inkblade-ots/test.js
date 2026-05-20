@@ -239,6 +239,16 @@ checks.push(["ganryu arrival draw overlay", html.includes("function drawGanryuAr
 checks.push(["enhanced boss phase particles", html.includes("bpd=Math.random()*60") && html.includes('color:"#efe1c0"') && html.includes("hitStop=6")]);
 checks.push(["enhanced boss defeat burst", html.includes("gbd=0;gbd<80") && html.includes('color:"#f4ead8"') && html.includes("hitStop=12")]);
 
+// Pass 54 — Enhanced ending ceremony with credits sequence and journey memory montage
+checks.push(["ending credits state", html.includes("endCreditsActive") && html.includes("endCreditsTimer")]);
+checks.push(["ending credits draw function", html.includes("function drawEndCredits") && html.includes("Journey Complete") && html.includes("The road ends where")]);
+checks.push(["ending credits zone memories", html.includes("memories") && html.includes("Meadow Road") && html.includes("Forest Path") && html.includes("Mountain Pass") && html.includes("Coastal Shore")]);
+checks.push(["ending credits stats display", html.includes("Journey stats") && html.includes("enemiesDefeated") && html.includes("marksPlacedTotal")]);
+checks.push(["ending credits calligraphy end", html.includes("fillText(\"終\"") && html.includes("The road ends where the ink")]);
+checks.push(["ending credits return to title hint", html.includes("return to title") && html.includes("any key")]);
+checks.push(["goToTitle function", html.includes("function goToTitle") && html.includes("endCreditsActive") && html.includes("ui.titleCanvas")]);
+checks.push(["epilogue transitions to credits", html.includes("endCreditsActive=true") && html.includes("epilogueTimer") && html.includes("epilogueActive=false")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

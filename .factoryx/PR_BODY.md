@@ -13,9 +13,11 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 52 — Fix browser runtime `.gain` null error safety)
-- **~2545-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 54 — Enhanced ending ceremony with credits sequence and journey memory montage)
+- **~2690-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - **Audio gain null safety fix**: all gain node accesses in the audio step loop now explicitly guard against null `.gain` properties when WAV buffers haven't finished preloading, preventing the past browser runtime `Uncaught TypeError: Cannot read properties of null (reading 'gain')` failure
+- **Ending credits ceremony**: after Ganryu victory epilogue scroll fades, a rich ending credits sequence plays showing journey zone memories (Meadow Road, Forest Path, Mountain Pass, Coastal Shore with zone-specific descriptions), journey stats summary (time, enemies defeated, marks placed, ink used), and closing Edo calligraphy ("終" — The End). Any key press returns to title.
+- **Ganryu arrival cinematic**: dramatic ink overlay with calligraphy reveal, mist bands, and particle burst when player first enters Ganryu's domain (z>1320)
 - **Zone-specific road surface rendering**: each atmosphere zone now has a distinct road texture — meadow dirt (organic earth tones), forest stone (small paving stones), mountain gravel (scattered pebble arcs), coastal sand (small shell-like dots). Road surface varies visually across zones, making each territory feel physically different underfoot.
 - **Zone-specific roaming enemy spawns**: each zone naturally spawns enemies that match its atmosphere — meadow (chaser, prowler), forest (prowler, chaser, monk), mountain (chaser, prowler, ascetic), coastal (duelist, prowler, sentinel). Spawn limit per zone (6-8) keeps encounters balanced.
 - **Zone-specific duel telegraph tints**: drawDuelCue now uses zone-aware colors for telegraph ring, glow, and blade arc — meadow warm gold, forest amber, mountain cool blue-gray, coastal muted gold — making each zone's combat feel visually distinct.
@@ -71,8 +73,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
-- `node drops/edo-inkblade-ots/test.js` — **197 checks**: all previous plus Pass 50 (dirt/stone/gravel/sand road surfaces, roaming spawns, zone enemy types, telegraph tints, wind frequency, torii gate, arrival glow, milestone stone colors) and Pass 51 WAV audio buffer integration
-- **All 197 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **215 checks**: all previous plus ending credits ceremony (credits state, draw function, zone memories, stats display, calligraphy end, return-to-title hint, goToTitle function, epilogue-to-credits transition)
+- **All 215 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -118,6 +120,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 52** — Fix browser runtime `.gain` null error safety: all gain node accesses in audio step loop now guard against null `.gain` when WAV buffers haven't finished preloading; prevents past `Cannot read properties of null (reading 'gain')` runtime failure; 197 checks pass
 
 **Pass 53** — Ganryu arrival cinematic (dramatic ink overlay, calligraphy reveal, mist bands, particle burst when entering Ganryu's domain); enhanced Ganryu phase transition VFX (Phase 2: 40 ink + 25 light particles, Phase 3: 60 ground-crack + 40 light particles, both with hit-stop); enhanced Ganryu defeat dissolution (80 ink + 50 white + 30 gold particles); title screen depth (40 particles, 8 drifting calligraphy brush-glyphs: 風月道筆刃旅橋岸); 203 checks pass; fresh screenshots
+
+**Pass 54** — Ending credits ceremony: after Ganryu victory epilogue scroll, a rich credits sequence plays showing journey zone memories (4 zones with descriptions), journey stats summary, and closing Edo calligraphy ("終"). `goToTitle()` function resets all state and returns to title screen on any key press during credits. Dark ink-wash overlay, drifting ink particles, "Journey Complete" title, pulsing "Press any key to return to title" hint. 215 checks pass
 
 ### Known Issues
 - None current — audio gain null safety fixed; all checks pass
