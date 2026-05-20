@@ -233,6 +233,11 @@ checks.push(["zone-specific wind frequency audio", html.includes("amb.zoneAmbien
 checks.push(["Ganryu ceremonial torii gate", html.includes("Ceremonial torii") && html.includes("Ganryu") && html.includes("Gate banner") && html.includes('fillText("Ganryu"')]);
 checks.push(["Ganryu arrival warm glow", html.includes("Arrival glow") && html.includes("d7b66f") && html.includes("arc(w*.46,hor-10")]);
 checks.push(["zone-specific milestone stone colors", html.includes("stoneColor=zt.name") && html.includes("\"meadow\"?") && html.includes("stoneTop")]);
+checks.push(["ganryu arrival cinematic", html.includes("ganryuArrival") && html.includes("drawGanryuArrival") && html.includes("Ganryu's domain")]);
+checks.push(["ganryu arrival ink burst", html.includes("ganryuArrival.flag") && html.includes("sfx.death()") && html.includes('color:"#1a1512"')]);
+checks.push(["ganryu arrival draw overlay", html.includes("function drawGanryuArrival") && html.includes('"Ganryu"') && html.includes("the shore where ink")]);
+checks.push(["enhanced boss phase particles", html.includes("bpd=Math.random()*60") && html.includes('color:"#efe1c0"') && html.includes("hitStop=6")]);
+checks.push(["enhanced boss defeat burst", html.includes("gbd=0;gbd<80") && html.includes('color:"#f4ead8"') && html.includes("hitStop=12")]);
 
 let failed = 0;
 for (const [name, ok] of checks) {

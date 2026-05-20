@@ -117,6 +117,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 51** — Generated 36 WAV audio assets (shakuhachi, koto, taiko, zone wind/ambience/motifs, drones, all SFX); replaced oscillator-based audio with buffer-based playback using looping AudioBufferSourceNode; oscillator fallbacks preserved; audio asset manifest committed
 **Pass 52** — Fix browser runtime `.gain` null error safety: all gain node accesses in audio step loop now guard against null `.gain` when WAV buffers haven't finished preloading; prevents past `Cannot read properties of null (reading 'gain')` runtime failure; 197 checks pass
 
+**Pass 53** — Ganryu arrival cinematic (dramatic ink overlay, calligraphy reveal, mist bands, particle burst when entering Ganryu's domain); enhanced Ganryu phase transition VFX (Phase 2: 40 ink + 25 light particles, Phase 3: 60 ground-crack + 40 light particles, both with hit-stop); enhanced Ganryu defeat dissolution (80 ink + 50 white + 30 gold particles); title screen depth (40 particles, 8 drifting calligraphy brush-glyphs: 風月道筆刃旅橋岸); 203 checks pass; fresh screenshots
+
 ### Known Issues
 - None current — audio gain null safety fixed; all checks pass
 

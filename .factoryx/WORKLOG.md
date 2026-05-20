@@ -443,4 +443,14 @@
 - This prevents null-pointer crashes when WAV audio buffers have not finished preloading and gain nodes are still null.
 - All 197 smoke checks continue to pass after the fix.
 
+## Pass 53 — Ganryu arrival cinematic, enhanced boss phase transitions, title screen depth
+
+### What changed
+- **Ganryu arrival cinematic**: when player first crosses z>1320, a dramatic cinematic triggers — 60 ink swirl particles, 30 white light particles, 8-magnitude screen shake, deep ink-wash overlay with dark mist bands, pulsing ink dots, and calligraphy text "Ganryu — the shore where ink and blade wait" with torii gate silhouette in background. `ganryuArrival` state with 180-frame timer, one-shot flag, diary entry recorded.
+- **Enhanced Ganryu phase transitions**: Phase 2 (60% HP) — 40 ink swirl + 25 light particles, hitStop=4, screenShake=6. Phase 3 (30% HP) — 60 ground-crack + 40 light particles, hitStop=6, screenShake=10.
+- **Enhanced Ganryu defeat dissolution**: 80 ink particles, 50 white particles, 30 gold particles, hitStop=12, screenShake=10.
+- **Enhanced title screen depth**: increased particles from 24 to 40, added 8 drifting calligraphy brush-stroke particles (Japanese glyphs: 風月道筆刃旅橋岸) that float upward with animated brush arcs.
+- **203 smoke checks pass** (was 197 — added 6 checks: ganryu arrival cinematic, arrival ink burst, arrival draw overlay, enhanced boss phase particles, enhanced boss defeat burst).
+- **Fresh screenshots captured** after all changes (character select, mid-journey, paint-combat, combat-duel, ganryu-victory).
+
 ## Known Issues
