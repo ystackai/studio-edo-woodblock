@@ -1,7 +1,7 @@
 # Edo Inkblade: Road to Ganryu — WORKLOG
 
 ## Artifact
-`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (~2885 lines)
+`drops/edo-inkblade-ots/index.html` — over-the-shoulder Edo art-and-duel game (~2928 lines)
 
 ## Completed Passes
 
