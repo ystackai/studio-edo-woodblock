@@ -92,4 +92,10 @@
 - **Road event persistent decorations**: spirit, flower seller, and calligrapher events now leave lasting visual marks on the road: spirit mark (ethereal golden glow with drifting mist wisps), flower bloom (5-petal delicate flower with pulsing bloom phase), calligraphy brush-stroke character (道 glyph in ink-blue tone). Decorations persist for up to 3600 frames, creating a sense of road history.
 - 272 checks pass (264 existing + 8 new: road decoration array init, draw function, rendered in draw, spirit/flower/calligraphy decoration creation, reset in goToTitle, ganryu arrival sfx fix)
 
+### Pass 61 — Calligraphy paint mode, enhanced brush trails, haiku moments
+- **Calligraphy paint mode (key 4)**: new paint mode that inscribes floating kanji characters (道 Road, 風 Wind, 月 Moon, 花 Flower, 海 Sea) with ink brush stroke rendering and blessing effects (resolve, speed, ink, heal, calm). Each calligraphy mark produces flowing ink brush calligraphy stroke particles, gold ink blessing sparkles, and a radial golden ink aura. The kanji character floats above the mark with visible brush-stroke glyph lines.
+- **Enhanced brush trail rendering**: brush trails now render as sumi-e ink brush strokes with water spread halo, ink pooling variation, and taper tail marks for organic brush feel — ellipses with width/height variation, ink wash paper bleed edges, and trailing brush hair marks.
+- **Updated haiku moments**: refreshed poetic haiku content across all 5 scenic road points with more evocative Edo-era imagery (morning brush, pine shadows, cedar breath, river voice, salt wind).
+- 282 checks pass (272 existing + 10 new: calligraphy paint mode defined, key 4, kanjiChars array, calligraphy mark kind created on paint, calligraphy mark rendered in drawMark, calligraphy UI label, calligraphy controls hint, enhanced brush trail sumi-e rendering, plus calligraphy mode in paint function)
+
 (End of file)

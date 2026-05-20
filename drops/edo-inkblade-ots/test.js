@@ -311,6 +311,15 @@ checks.push(["road decorations created on flower event", html.includes("roadDeco
 checks.push(["road decorations created on calligraphy event", html.includes("roadDecorations.push") && html.includes("calligraphy")]);
 checks.push(["road decorations reset in goToTitle", html.includes("roadDecorations=[];")]);
 checks.push(["ganryu arrival uses victory sfx", html.includes("sfx.victory()") && html.includes("ganryu-theme") && html.includes("playBuffer")]);
+// Calligraphy paint mode
+checks.push(["calligraphy paint mode defined", /\bpaintMode\s*=\s*"calligraphy"/.test(html)]);
+checks.push(["calligraphy paint mode key 4", html.includes('e.key==="4"') && html.includes('calligraphy')]);
+checks.push(["kanjiChars array defined", html.includes("kanjiChars") && html.includes("kanjiChars[")]);
+checks.push(["calligraphy mark kind created on paint", html.includes('kind:"calligraphy"') && html.includes("kanji:")]);
+checks.push(["calligraphy mark rendered in drawMark", html.includes('m.kind==="calligraphy"') && html.includes("m.kanji")]);
+checks.push(["calligraphy UI label", html.includes("calligraphy:") && html.includes("Calligraphy")]);
+checks.push(["calligraphy controls hint", html.includes("1-4 paint mode") || html.includes("1 / 2 / 3 / 4")]);
+checks.push(["enhanced brush trail sumi-e rendering", html.includes("ctx.ellipse") && html.includes("brushWidth") && html.includes("drawBrushTrails")]);
 
 let failed = 0;
 for (const [name, ok] of checks) {

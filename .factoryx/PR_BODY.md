@@ -13,8 +13,12 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 60 — Ganryu arrival SFX fix, road event persistent decorations)
-- **~2928-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 61 — Calligraphy paint mode, enhanced brush trails, haiku moments)
+- **~2930-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+- **Calligraphy paint mode (key 4)**: new paint mode that inscribes floating kanji characters (道 Road, 風 Wind, 月 Moon, 花 Flower, 海 Sea) with ink brush stroke rendering and blessing effects (resolve, speed, ink, heal, calm). Each mark produces flowing ink brush calligraphy stroke particles, gold ink blessing sparkles, and a radial golden ink aura. The kanji character floats above the mark with visible brush-stroke glyph lines drawn in sumi-e style.
+- **Enhanced brush trail rendering**: brush trails now render as sumi-e ink brush strokes with water spread halo, ink pooling variation, and taper tail marks — ellipses with width/height variation, ink wash paper bleed edges, and trailing brush hair marks for organic sumi-e brush feel
+- **Updated haiku moments**: refreshed poetic haiku content across all 5 scenic road points (morning brush, pine shadows, cedar breath, river voice, salt wind)
+- **282 smoke checks pass** (272 existing + 10 new: calligraphy paint mode defined, key 4, kanjiChars array, calligraphy mark kind created, calligraphy mark rendered in drawMark, calligraphy UI label, calligraphy controls hint, enhanced brush trail sumi-e rendering, plus paint function calligraphy mode generalization)
 - **Ganryu arrival SFX fix**: replaced incorrect `sfx.death()` with `sfx.victory()` plus one-shot `playBuffer('ganryu-theme')` for proper dramatic fanfare on arrival cinematic
 - **Road event persistent decorations**: spirit leaves ethereal golden glow with drifting mist wisps, flower seller leaves 5-petal delicate bloom, calligrapher leaves 道 calligraphy brush character — marks persist up to 3600 frames for road history atmosphere
 - **Campfire flying ember particles**: active campfires now spawn organic flying ember sparks (`campfireEmbers`) that rise upward and drift away with wind, decaying naturally in brightness and size. Each ember has warm white core with orange glow halo for living fire atmosphere. Embers reset on game restart.
@@ -92,8 +96,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
-- `node drops/edo-inkblade-ots/test.js` — **272 checks**: all previous 264 plus 8 new (Pass 60: road decoration array, draw function, rendered in draw, spirit/flower/calligraphy creation, goToTitle reset, ganryu arrival sfx fix).
-- **All 272 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **282 checks**: all previous 272 plus 10 new (Pass 61: calligraphy paint mode defined, key 4, kanjiChars array, calligraphy mark kind created on paint, calligraphy mark rendered in drawMark, calligraphy UI label, calligraphy controls hint, enhanced brush trail sumi-e rendering, plus paint function calligraphy mode generalization).
+- **All 282 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -154,8 +158,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 **Pass 60** — Ganryu arrival SFX fix (`sfx.death()` → `sfx.victory()` + one-shot `playBuffer('ganryu-theme')` for proper dramatic fanfare); road event persistent decorations (spirit leaves ethereal golden glow with mist wisps, flower seller leaves 5-petal bloom, calligrapher leaves 道 calligraphy glyph — marks persist up to 3600 frames for road history atmosphere). 272 checks pass; 8 new checks.
 
+**Pass 61** — Calligraphy paint mode (key 4): kanji character marks with ink brush rendering and blessing effects; enhanced brush trail sumi-e rendering with water spread halo and ink pooling; refreshed haiku moments. 282 checks pass; 10 new checks.
+
 ### Known Issues
-- None current — all 272 checks pass; ganryu arrival SFX fixed; road events leave persistent decorations
+- None current — all 282 checks pass; calligraphy paint mode operational
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
