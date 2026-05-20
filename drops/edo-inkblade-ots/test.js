@@ -182,6 +182,13 @@ checks.push(["waterwheel scenery type", html.includes('kind==="waterwheel"') && 
 checks.push(["sakeStand scenery type", html.includes('kind==="sakeStand"') && html.includes("sakeStand")]);
 checks.push(["scenery kinds include waterwheel", html.includes('"waterwheel","sakeStand"')]);
 
+// Pass 45: Auto-forward drift, enhanced paint ink-wash ripple, road travelers
+checks.push(["auto-forward drift when idle", html.includes("f===0&&r===0&&player.z<1380") && html.includes("drift")]);
+checks.push(["enhanced paint ink-wash ripple effect", html.includes("Ink wash ripple") && html.includes("rgba(215,182,111,0.4)")]);
+checks.push(["paint audio accent on ink placement", html.includes("Paint audio accent") && html.includes("shaku")]);
+checks.push(["road travelers update and draw", html.includes("roadTravelers") && html.includes("function drawTravelers")]);
+checks.push(["travelers have wanderer and pilgrim types", html.includes("wanderer") && html.includes("pilgrim") && html.includes("walkPhase")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

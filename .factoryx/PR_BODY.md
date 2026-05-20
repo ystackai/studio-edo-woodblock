@@ -13,18 +13,18 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 43 — Journey diary, road-side events, Ganryu epilogue)
-- **~1914-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 44 — Controls tutorial onboarding, waterwheel/sakeStand scenery)
+- **~2210-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), card clicks/taps wired into game start, hero ability descriptions
-- Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look with sensitivity slider
+- Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look with sensitivity slider; **auto-forward drift when idle** for cinematic journey feel
 - **4 journey atmosphere zones**: Meadow (z 0-300), Forest (z 300-600), Mountain (z 600-1000), Coastal (z 1000-1420) with zone-specific road colors, lantern palettes, particles, creatures, audio, and torii gate markers
 - **Death screen ink-wash ceremony**: character-specific death haiku, ink dissolving particle burst, brush divider
 - **Victory ceremony**: expanded 8-color palette, ink-wash victory mist particles after defeating Ganryu
 - **HUD ink-wash decoration**: Edo scroll-style gold-tinged borders, ink stone indicator
 - **Zone-aware contextual hints**: hints mention current zone name
 - **Ganryu approach audio drone**: deep sine bass 60→24Hz builds tension approaching boss
-- Ink paint system: brush marks with chain-paint widening, paint modes (waymark/barrier/blossom), hold-duration brush sizing
+- Ink paint system: brush marks with chain-paint widening, paint modes (waymark/barrier/blossom), hold-duration brush sizing, **enhanced ink-wash ripple ring** and **paint audio accent** on ink placement
 - **7 enemies over 5 types** plus Ganryu boss with multi-phase fight (nodachi slash/ink wave/ground pound), berserk duelist mode
 - Enemy telegraph, duel focus cues, parry/block system, death ink-dissolve
 - **5 quest milestones** with ink-wash vignettes and Edo haiku
@@ -34,6 +34,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Road-side NPCs** (Teahouse Keeper, Traveling Merchant, Wandering Poet) — repeatable with 4 dialogue variants each
 - **Road-side shrines**: 5 prayer nodes granting resolve+ink
 - **Road-side fox spirits**: animated silhouettes dashing across road
+- **Road travelers**: distant wanderer and pilgrim silhouettes walking along the road, creating lived-in atmosphere
 - **Pause menu** with settings: Master/SFX/Music volume sliders, mouse sensitivity slider
 - **Journey diary scroll (J key)**: press J to view ink-wash scroll of journey milestones, haiku, shrine visits, zone entries, NPC encounters, Ganryu defeat, and victory
 - **Road-side events**: 3 atmospheric encounters (Spirit of the Old Road, Flower Seller, Calligrapher) with visual indicators and E-key interaction
@@ -42,14 +43,15 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Zone-adaptive paint marks**, **rain puddle reflections**, **rain drop-ripple interaction**, **extended mark persistence**
 - **Seasonal road blooms**, **zone-boundary particle burst (36 particles + wind swirl)**, **zone-name banner overlay**
 - **Combat VFX**: slash trail arcs, block spark burst, parry flash
-- **22 scenery kinds**: gate, pine, torii, shrine, pagoda, teaHouse, bamboo, stoneMarker, ricePaddy, bridgeArch, stall, cedar, monument, boatDock, well, lanternPost, waterfall, oldTree, stoneWall, lanternRow, crypt, willow
+- **25 scenery kinds**: gate, pine, torii, shrine, pagoda, teaHouse, bamboo, stoneMarker, ricePaddy, bridgeArch, stall, cedar, monument, boatDock, well, lanternPost, waterfall, oldTree, stoneWall, lanternRow, crypt, willow, waterwheel, sakeStand
 - Mobile touch zones auto-detect
+- **Controls tutorial overlay**: visual controls grid shown on first hero selection
 
 ### Verification
 - Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
-- `node drops/edo-inkblade-ots/test.js` — **146 checks**: all previous plus journey diary, road-side events, Ganryu epilogue, enhanced zone VFX
-- **All 146 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **159 checks**: all previous plus Pass 44 (controls tutorial, waterwheel, sakeStand) and Pass 45 (auto-forward drift, enhanced paint ripple, paint audio accent, road travelers)
+- **All 159 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -84,9 +86,12 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 41** — Road-side NPCs, combat VFX depth (slash trail/block spark/parry flash), pause menu
 **Pass 42** — Repeatable NPCs with dialogue variants, pause volume/sensitivity settings, richer zone transition VFX (36 particles, 10 wind swirl lines, zone-name banner), master gain audio routing
 **Pass 43** — Journey diary scroll (J key), road-side event encounters (Spirit/Flower Seller/Calligrapher), Ganryu arrival epilogue, enhanced journey tracking
+**Pass 44** — Controls tutorial onboarding overlay displayed on first hero selection; 2 new road scenery types (waterwheel, sakeStand)
+**Pass 45** — Auto-forward drift when idle for cinematic journey feel; enhanced paint ink-wash ripple rings and paint audio accent; road travelers (wanderer/pilgrim silhouettes) for road atmosphere
 
 ### Known Issues
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
+- Screenshots from Pass 44 — need fresh captures after Pass 45 auto-forward drift, paint enhancements, road travelers
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.

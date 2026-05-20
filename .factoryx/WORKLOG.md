@@ -353,9 +353,17 @@
   - `waterwheel` — animated wooden water wheel turning slowly with river splash particles and wheel spokes, appears near river zones
   - `sakeStand` — sake vendor stall with hanging banners (red noren), warm lantern glow, sake barrels, fits roadside atmosphere
 - **154 smoke checks pass** (was 146 — added 5 checks: tutorial overlay exists, first-game trigger, waterwheel scenery, sakeStand scenery, scenery kinds updated).
-- Fresh screenshots captured after all changes.
+
+## Pass 45 — Auto-forward drift, enhanced paint ink-wash ripple, road travelers
+
+### What changed
+- **Auto-forward drift when idle**: player slowly advances even without pressing movement keys (25% of base speed drift). Creates cinematic journey feel — the road feels like it pulls the player forward rather than requiring constant input. Drift only active before Ganryu (z < 1380) so final area requires deliberate movement.
+- **Enhanced paint ink-wash ripple effect**: expanding concentric ink-wash rings radiate from paint point, adding sumi-e paper feel. Ripple particles fade outward with warm gold tone.
+- **Paint audio accent**: on ink placement, a low shakuhachi breath note (165-262 Hz) briefly accentuates the brush stroke, reinforcing ink placement with subtle musical texture.
+- **Road travelers**: distant wanderer and pilgrim silhouettes walk along the road ahead — small moving figures in the distance with walking animation, hats, and staff details creating lived-in road atmosphere. Up to 8 concurrent travelers, each with 120-200 frame lifespan.
+- **159 smoke checks pass** (was 154 — added 5 checks: auto-forward drift, ink-wash ripple, paint audio accent, road travelers update+draw, traveler types).
 
 ## Known Issues (updated)
-- Screenshots reflect Pass 44 content
+- Screenshots reflect Pass 44 content — need fresh captures after Pass 45
 
 (End of file)

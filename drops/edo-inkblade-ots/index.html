@@ -481,7 +481,7 @@ let yoMotifForest=[3,2,4,1,0,3,2];  // forest variant — deeper, slower
 let yoMotifMountain=[4,1,0,3,2,4,1]; // mountain variant — sparse, wind-like
 let yoMotifCoastal=[0,4,3,2,4,0,3];  // coastal variant — wide, sea-like
 let yoKotoMotif=[0,0,1,1,3,3,4,4,2,2]; // koto harmony — slow chord shifts
-let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[],foxSpirits=[];
+let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[],foxSpirits=[];let roadTravelers=[];
 let butterflies=[],crows=[],eagles=[],seabirds=[]; // zone-specific ambient particles
 // Journey atmosphere zones for visual/audio progression
 const journeyZones=[
@@ -831,6 +831,8 @@ function step(dt){
     const run=sprintOk&keys.shift?sprintMult:1,spd=hero.speed*run;
     if(keys.arrowleft)player.heading-=.04*dt;if(keys.arrowright)player.heading+=.04*dt;
     let f=(keys.w?1:0)-(keys.s?1:0),r=(keys.d?1:0)-(keys.a?1:0);
+    // Auto-forward drift when idle — player slowly advances even without keys, creating cinematic journey
+    if(f===0&&r===0&&player.z<1380){player.mz+=((hero.speed*0.25-player.mz)*0.06)*dt;player.mx*=0.92;}
     const mag=Math.hypot(f,r)||1,cs=Math.cos(player.heading),sn=Math.sin(player.heading);
     const tvx=(r/mag*cs+f/mag*sn)*spd,tvz=(f/mag*cs-r/mag*sn)*spd;
     player.mx+=((tvx-player.mx)*.18)*dt;player.mz+=((tvz-player.mz)*.18)*dt;
@@ -886,6 +888,12 @@ function step(dt){
     if(currentZone.name==="mountain"&&Math.random()<.0015*dt&&eagles.length<3){eagles.push({x:player.x+(Math.random()-.5)*120,z:player.z+Math.random()*80-10,age:0,maxAge:200+Math.random()*100,color:'#3a2a1a',vx:(Math.random()-.5)*.3,vz:-.1-Math.random()*.2})};
     if(currentZone.name==="coastal"&&Math.random()<.002*dt&&seabirds.length<5){seabirds.push({x:player.x+(Math.random()-.5)*100,z:player.z+Math.random()*60-10,age:0,maxAge:150+Math.random()*100,color:'#2a1a18',vx:(Math.random()-.5)*.35,vz:-.15-Math.random()*.25})};
     riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});
+    // Road travelers — distant wanderers with walking silhouettes for road atmosphere
+    if(player.hp>0&&Math.random()<.001*dt&&roadTravelers.length<8){
+      var tz=player.z+60+Math.random()*100,tx=(Math.random()-.5)*160,tKind=Math.random()<.5?"wanderer":"pilgrim";
+      roadTravelers.push({x:tx,z:tz,age:0,maxAge:120+Math.random()*80,kind:tKind,side:Math.random()<.5?1:-1,walkPhase:0,color:tKind==="wanderer"?'#4a3a28':'#6a5038'});
+    }
+    roadTravelers=roadTravelers.filter(t=>t.age<t.maxAge);roadTravelers.forEach(t=>{t.age+=dt;t.z-=0.15*dt;t.walkPhase+=dt*0.07});
     // Zone-specific ambient creature lifecycle
     butterflies=butterflies.filter(b=>b.age<b.maxAge);butterflies.forEach(b=>{b.age+=dt;b.x+=b.vx*dt;b.z+=b.vz*dt;if(b.age%30<2)b.vx=(Math.random()-.5)*.4;if(b.age%37<2)b.vz=(Math.random()-.5)*.2});
     crows=crows.filter(c=>c.age<c.maxAge);crows.forEach(c=>{c.age+=dt;c.x+=c.vx*dt;c.z+=c.vz*dt});
@@ -1208,6 +1216,11 @@ function paint(){initAudio();
   }
   // Ink drip trails — slow-falling ink droplets from paint point
   for(var id=0;id<3;id++){sparks.push({x:x+(Math.random()-.5)*10,z:z+Math.random()*20-10,color:'#1a120e',a:.35,vx:(Math.random()-.5)*.2,vz:Math.random()*1.5+.5,d:Math.random()*3+2})}
+  // Ink wash ripple — expanding ring from paint point adds sumi-e paper feel
+  for(var ri=0;ri<6;ri++){var rR=15+ri*12,ra=ri*1.1;sparks.push({x:x+Math.cos(ra)*rR,z:z+Math.sin(ra)*rR,color:'rgba(215,182,111,0.4)',a:.6,vx:Math.cos(ra)*.8,vz:Math.sin(ra)*.8,d:2})}
+  // Paint audio accent — low shakuhachi breath to emphasize ink placement
+  initAudio();try{var paf=amb.shaku&&amb.shaku.frequency;if(paf){var pg=amb.shaku.gain||amb.shaku.gain;if(pg)pg.gain.setValueAtTime(.08,amb.ctx.currentTime);pg.gain.linearRampToValueAtTime(0,amb.ctx.currentTime+.25);paf.setValueAtTime(x&1?196:165,amb.ctx.currentTime);paf.linearRampToValueAtTime(x&1?262:220,amb.ctx.currentTime+.15)}}
+  catch(e){}
 }
 function slash(){initAudio();
   if(!ui.select.classList.contains("hidden")||player.slashTimer>0)return;
@@ -1356,7 +1369,7 @@ function draw(){
   const skyR2=Math.round(sky2[0]+(sky3[0]-sky2[0])*gp),skyG2=Math.round(sky2[1]+(sky3[1]-sky2[1])*gp),skyB2=Math.round(sky2[2]+(sky3[2]-sky2[2])*gp);
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
-  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawDrizzle();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();drawDrizzle();
   // Journey zone transition markers — torii gates at zone boundaries
   var zoneMarkers=[{z:300,name:"forest entrance"},{z:600,name:"mountain gate"},{z:1000,name:"sea gate"}];
   zoneMarkers.forEach(function(zm){var dz=Math.abs(player.z-zm.z);if(dz<60){var gateAlpha=Math.max(0,1-dz/60)*.35,gateP=project(0,zm.z,80);if(gateP){ctx.globalAlpha=gateAlpha;ctx.strokeStyle="#8e1c1c";ctx.lineWidth=10*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-28*gateP.s,gateP.y);ctx.lineTo(gateP.x-28*gateP.s,gateP.y-60*gateP.s);ctx.moveTo(gateP.x+28*gateP.s,gateP.y);ctx.lineTo(gateP.x+28*gateP.s,gateP.y-60*gateP.s);ctx.stroke();ctx.strokeStyle="#b82727";ctx.lineWidth=5*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-30*gateP.s,gateP.y-62*gateP.s);ctx.lineTo(gateP.x+30*gateP.s,gateP.y-62*gateP.s);ctx.moveTo(gateP.x-26*gateP.s,gateP.y-52*gateP.s);ctx.lineTo(gateP.x+26*gateP.s,gateP.y-52*gateP.s);ctx.stroke();ctx.globalAlpha=1}}});
@@ -2065,6 +2078,28 @@ function drawFoxSpirits(){foxSpirits.forEach(f=>{const p=project(f.x,f.z,30);if(
   ctx.globalAlpha=fade*.2;
   ctx.strokeStyle='#d98986';ctx.lineWidth=1.5*s;
   ctx.beginPath();ctx.moveTo(p.x-6*s,p.y-8*s);ctx.lineTo(p.x-22*s,p.y-12*s);ctx.stroke();
+  ctx.globalAlpha=1})}
+function drawTravelers(){roadTravelers.forEach(t=>{const p=project(t.x,t.z,25);if(!p)return;var fade=Math.max(0,1-t.age/t.maxAge),s=Math.min(p.s,3);if(s<.4)return;
+  ctx.globalAlpha=fade*.35*Math.min(1,s/2);
+  // Wanderer or pilgrim silhouette walking along the road
+  var walkOff=Math.sin(t.walkPhase)*2*s;
+  ctx.fillStyle=t.color;
+  // Body
+  ctx.beginPath();ctx.moveTo(p.x-3*s,p.y-6*s+walkOff);ctx.lineTo(p.x+3*s,p.y-6*s+walkOff);ctx.lineTo(p.x+2*s,p.y+walkOff);ctx.lineTo(p.x-2*s,p.y+walkOff);ctx.closePath();ctx.fill();
+  // Head
+  ctx.beginPath();ctx.arc(p.x,p.y-10*s+walkOff,3.5*s,0,7);ctx.fill();
+  // Hat/staff detail
+  if(t.kind==="wanderer"){
+    ctx.strokeStyle="#2a1a18";ctx.lineWidth=1.5*s;
+    ctx.beginPath();ctx.moveTo(p.x-4*s,p.y-14*s+walkOff);ctx.lineTo(p.x+4*s,p.y-14*s+walkOff);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p.x+4*s,p.y-8*s+walkOff);ctx.lineTo(p.x+10*s,p.y-2*s+walkOff);ctx.stroke();
+    ctx.fillStyle="#1a1512";ctx.beginPath();ctx.arc(p.x-2*s,p.y-14*s+walkOff,4*s,0,7);ctx.fill();
+  }else{
+    // Pilgrim — staff and straw hat
+    ctx.fillStyle="#3a2a1a";ctx.beginPath();ctx.arc(p.x,p.y-14*s+walkOff,5*s,0,7);ctx.fill();
+    ctx.strokeStyle="#2a1a18";ctx.lineWidth=1.5*s;
+    ctx.beginPath();ctx.moveTo(p.x+3*s,p.y-6*s+walkOff);ctx.lineTo(p.x+8*s,p.y+walkOff);ctx.stroke();
+  }
   ctx.globalAlpha=1})}
 function drawDrizzle(){drizzle.forEach(d=>{const p=project(d.x,d.z,80);if(!p)return;var fade=Math.max(0,1-d.age/90),s=Math.min(p.s,3);ctx.globalAlpha=fade*.5;ctx.strokeStyle="#cdd6e0";ctx.lineWidth=1.2*s;ctx.beginPath();ctx.moveTo(p.x+d.vx*2*s,p.y-2);var endX=p.x+(d.vx/1.5)*d.len*s,endY=p.y+d.len*s;ctx.lineTo(endX,endY);ctx.stroke();// Ground splash spot
 ctx.globalAlpha=fade*.25;ctx.fillStyle="#e8eef0";ctx.beginPath();ctx.arc(endX,endY,1.2*s,0,7);ctx.fill();ctx.globalAlpha=1})}
