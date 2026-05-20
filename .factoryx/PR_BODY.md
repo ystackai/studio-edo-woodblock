@@ -13,8 +13,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 59 — Campfire flying ember particle effects)
-- **~2885-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 60 — Ganryu arrival SFX fix, road event persistent decorations)
+- **~2928-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+- **Ganryu arrival SFX fix**: replaced incorrect `sfx.death()` with `sfx.victory()` plus one-shot `playBuffer('ganryu-theme')` for proper dramatic fanfare on arrival cinematic
+- **Road event persistent decorations**: spirit leaves ethereal golden glow with drifting mist wisps, flower seller leaves 5-petal delicate bloom, calligrapher leaves 道 calligraphy brush character — marks persist up to 3600 frames for road history atmosphere
 - **Campfire flying ember particles**: active campfires now spawn organic flying ember sparks (`campfireEmbers`) that rise upward and drift away with wind, decaying naturally in brightness and size. Each ember has warm white core with orange glow halo for living fire atmosphere. Embers reset on game restart.
 - **264 smoke checks pass** (259 existing + 5 new: ember array init, ember draw function, embers rendered in draw, embers spawned in step, embers reset on restart)
 - **Road-side campfire vignettes**: warm glowing campfires spawn along the road with zone-appropriate fire colors, radial glow, pulsing inner flame, floating ember sparks for rest-stop atmosphere
@@ -90,8 +92,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
-- `node drops/edo-inkblade-ots/test.js` — **264 checks**: all previous 259 plus 5 new (Pass 59: 5 checks for campfire embers array init, ember draw function, embers rendered in draw, embers spawned in step, embers reset on restart).
-- **All 264 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **272 checks**: all previous 264 plus 8 new (Pass 60: road decoration array, draw function, rendered in draw, spirit/flower/calligraphy creation, goToTitle reset, ganryu arrival sfx fix).
+- **All 272 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -150,8 +152,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 **Pass 59** — Campfire flying ember particle effects: campfires now spawn organic flying embers (campfireEmbers) that rise and drift away with wind, warm white core with orange glow halo. Embers reset on game restart. Runtime check file updated to verify ember functions. 264 checks pass; 5 new checks.
 
+**Pass 60** — Ganryu arrival SFX fix (`sfx.death()` → `sfx.victory()` + one-shot `playBuffer('ganryu-theme')` for proper dramatic fanfare); road event persistent decorations (spirit leaves ethereal golden glow with mist wisps, flower seller leaves 5-petal bloom, calligrapher leaves 道 calligraphy glyph — marks persist up to 3600 frames for road history atmosphere). 272 checks pass; 8 new checks.
+
 ### Known Issues
-- None current — audio gain null safety fixed; all 264 checks pass
+- None current — all 272 checks pass; ganryu arrival SFX fixed; road events leave persistent decorations
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.

@@ -530,7 +530,7 @@ let ganryuArrival={active:false,timer:0,flag:false}; // Ganryu arrival cinematic
 let firstGameStarted=false,tutorialVisible=false;
 let gameStartTime=0,enemiesDefeated=0,inkUsedTotal=0,marksPlacedTotal=0;
 let messages=["Choose a style, then begin the road."];
-let dustMotes=[];
+let dustMotes=[],roadDecorations=[];
 let milestonePopup={active:false,text:"",timer:0};
 // Yo-scale pentatonic note frequencies (D E G A C)
 let yoNotes=[293.7,329.6,392,440,523.3];
@@ -880,9 +880,9 @@ addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(endCreditsActiv
     if(Math.abs(player.z-re.z)<30&&!re.used){
       re.used=true;
       initAudio();sfx.inkRegen();
-      if(re.type==="spirit"){player.resolve=Math.min(15,player.resolve+(re.effect.resolve||2));screenShake=1;say(re.text);burst(player.x,player.z,"#d9c84a","#ead9bb")}
-      else if(re.type==="flowerSeller"){player.hp=Math.min(hero.hp,player.hp+(re.effect.hp||10));screenShake=1;say(re.text);burst(player.x,player.z,"#d98986","#ead9bb")}
-      else if(re.type==="calligrapher"){player.ink=Math.min(hero.ink,player.ink+(re.effect.ink||3));screenShake=1;say(re.text);burst(player.x,player.z,"#8fc7d6","#ead9bb")}
+      if(re.type==="spirit"){player.resolve=Math.min(15,player.resolve+(re.effect.resolve||2));screenShake=1;say(re.text);burst(player.x,player.z,"#d9c84a","#ead9bb");roadDecorations.push({z:re.z,type:"spirit",age:0,maxAge:3600,color:"#d9c84a",glowPhase:Math.random()*7})}
+      else if(re.type==="flowerSeller"){player.hp=Math.min(hero.hp,player.hp+(re.effect.hp||10));screenShake=1;say(re.text);burst(player.x,player.z,"#d98986","#ead9bb");roadDecorations.push({z:re.z,type:"flower",age:0,maxAge:3600,color:"#d98986",bloomPhase:Math.random()*7})}
+      else if(re.type==="calligrapher"){player.ink=Math.min(hero.ink,player.ink+(re.effect.ink||3));screenShake=1;say(re.text);burst(player.x,player.z,"#8fc7d6","#ead9bb");roadDecorations.push({z:re.z,type:"calligraphy",age:0,maxAge:3600,color:"#8fc7d6",fadePhase:Math.random()*7})}
       diaryEntries.push({type:"event",event:re.type,text:"Encountered a "+re.type+" on the road."});
     }});
   // Road-side event proximity hint
@@ -959,7 +959,7 @@ function step(dt){
     if(player.z>1320&&player.hp>0&&!ganryuArrival.flag){
       ganryuArrival.flag=true;ganryuArrival.active=true;ganryuArrival.timer=180;
       screenShake=Math.max(screenShake,8);
-      initAudio();sfx.death();
+      initAudio();sfx.victory();if(audioBuffers['ganryu-theme']){playBuffer('ganryu-theme',{gain:.25,stop:4})}
       burst(player.x,player.z,"#1a1512","#4a3a5a");
       // Dramatic ink swirl particles
       for(var ga=0;ga<60;ga++){var gAng=Math.random()*7,gDist=10+Math.random()*80;
@@ -1636,7 +1636,7 @@ function draw(){
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawClouds(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
   drawSkyZoneTint(w,h,horizon);
-  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();  drawDustMotes();drawDrizzle();drawCampfires();drawCampfireEmbers();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();  drawDustMotes();drawRoadDecorations();drawDrizzle();drawCampfires();drawCampfireEmbers();
   // Journey milestone stone markers — inscribed pillars at route positions
   drawMilestoneStones(w,h,horizon);
   // Journey zone transition markers — torii gates at zone boundaries
@@ -2595,6 +2595,40 @@ function drawFoxSpirits(){foxSpirits.forEach(f=>{const p=project(f.x,f.z,30);if(
   ctx.beginPath();ctx.moveTo(p.x-6*s,p.y-8*s);ctx.lineTo(p.x-22*s,p.y-12*s);ctx.stroke();
   ctx.globalAlpha=1})}
 function drawDustMotes(){dustMotes.forEach(d=>{const p=project(d.x,d.z,20);if(!p)return;var fade=Math.max(0,1-d.age/d.maxAge),s=Math.min(p.s,3);ctx.globalAlpha=fade*.25*s;ctx.fillStyle=d.color;ctx.beginPath();ctx.arc(p.x,p.y+(d.y||0),d.size*s,0,7);ctx.fill();ctx.globalAlpha=1})}
+function drawRoadDecorations(){roadDecorations=roadDecorations.filter(function(rd){return rd.age<rd.maxAge});
+  roadDecorations.forEach(function(rd){rd.age+=1;
+    var dz=Math.abs(player.z-rd.z);if(dz>100)return;
+    var p=project(0,rd.z,25);if(!p)return;
+    var fade=Math.max(0,1-dz/100)*.65,s=Math.min(p.s,3.5);if(s<.4)return;
+    if(rd.type==="spirit"){
+      // Ethereal glow — warm golden light with drifting mist wisps
+      ctx.globalAlpha=fade*.45*s;
+      ctx.fillStyle="#d9c84a";ctx.beginPath();ctx.arc(p.x,p.y-10*s,8*s,0,7);ctx.fill();
+      ctx.globalAlpha=fade*.3*s;
+      ctx.fillStyle="#ead9bb";ctx.beginPath();ctx.arc(p.x,p.y-20*s,12*s+Math.sin(rd.glowPhase)*4*s,0,7);ctx.fill();
+      ctx.globalAlpha=fade*.2*s;
+      ctx.strokeStyle="#f4ead8";ctx.lineWidth=2*s;
+      ctx.beginPath();ctx.arc(p.x,p.y-20*s,16*s,0,7);ctx.stroke();
+      ctx.globalAlpha=1;
+    }else if(rd.type==="flower"){
+      // Flower bloom — delicate petaled flower persisting at roadside
+      var bloomPulse=.85+.15*Math.sin(rd.bloomPhase);
+      ctx.globalAlpha=fade*.5*s*bloomPulse;
+      for(var fp=0;fp<5;fp++){var fa=fp*1.257+rd.bloomPhase*.4;
+        ctx.fillStyle="#d98986";ctx.beginPath();ctx.arc(p.x+Math.cos(fa)*5*s,p.y-10*s+Math.sin(fa)*5*s,3*s,0,7);ctx.fill();
+        ctx.fillStyle="#ead9bb";ctx.globalAlpha=fade*.35;ctx.beginPath();ctx.arc(p.x+Math.cos(fa)*4*s,p.y-10*s+Math.sin(fa)*4*s,1.5*s,0,7);ctx.fill();ctx.globalAlpha=fade*.5*s*bloomPulse}
+      ctx.fillStyle="#d98986";ctx.beginPath();ctx.arc(p.x,p.y-10*s,3*s,0,7);ctx.fill()
+    }else if(rd.type==="calligraphy"){
+      // Calligraphy brush-stroke character — ink mark on road
+      ctx.globalAlpha=fade*.6*s;
+      ctx.strokeStyle="#8fc7d6";ctx.lineWidth=3*s;
+      ctx.beginPath();ctx.moveTo(p.x-6*s,p.y);ctx.quadraticCurveTo(p.x,p.y-16*s,p.x+10*s,p.y-28*s);ctx.stroke();
+      ctx.strokeStyle="#4a7a8a";ctx.lineWidth=1.5*s;
+      ctx.beginPath();ctx.moveTo(p.x+10*s,p.y-28*s);ctx.quadraticCurveTo(p.x+14*s,p.y-36*s,p.x+8*s,p.y-40*s);ctx.stroke();
+      ctx.fillStyle="#8fc7d6";ctx.globalAlpha=fade*.35*s;
+      ctx.font="bold "+(22*s)+"px serif";ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText("道",p.x,p.y-24*s)}
+    ctx.globalAlpha=1})}
 function drawTravelers(){roadTravelers.forEach(t=>{const p=project(t.x,t.z,25);if(!p)return;var fade=Math.max(0,1-t.age/t.maxAge),s=Math.min(p.s,3);if(s<.4)return;
   ctx.globalAlpha=fade*.35*Math.min(1,s/2);
   // Wanderer or pilgrim silhouette walking along the road
@@ -2820,7 +2854,7 @@ function goToTitle(){
   victoryFanfare=false;duelFocus={name:"",timer:0};diaryOpen=false;epilogueActive=false;endCreditsActive=false;
   gameStartTime=0;enemiesDefeated=0;inkUsedTotal=0;marksPlacedTotal=0;firstGameStarted=false;tutorialVisible=false;
   messages=["Choose a style, then begin the road."];
-  diaryEntries=[];roadEvents.forEach(function(re){re.used=false});inkPickups=[];fogBanks=[];
+  diaryEntries=[];roadEvents.forEach(function(re){re.used=false});inkPickups=[];fogBanks=[];roadDecorations=[];
   enemies.forEach(function(e,i){e.hp=e.max;e.x=e.patrolX;e.z=e.patrolZ;e.patrolAngle=i*1.6;e.wind=0;e.attackWindUp=0;e.attackCount=0;e.deathAge=undefined;e.bossPhase=1;e.inkWaveTimer=0;e.groundPoundTimer=0});
   ganryuArrival={active:false,timer:0,flag:false};
   player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,blockDecay:0,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0};

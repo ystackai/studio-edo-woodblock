@@ -87,4 +87,9 @@
 - **Flying ember particles**: campfires now produce organic flying ember sparks (campfireEmbers) that rise upward and drift away from the fire. Each ember has a warm white core with orange glow halo, decays naturally in brightness and size, and creates a living fire atmosphere. Embers are cleaned up on game restart alongside campfire arrays.
 - 264 checks pass (259 existing + 5 new: ember array init, ember draw function, embers rendered in draw, embers spawned in step, embers reset on restart)
 
+### Pass 60 — Ganryu arrival SFX fix, road event persistent decorations
+- **Ganryu arrival SFX fix**: replaced incorrect `sfx.death()` with `sfx.victory()` plus a one-shot `playBuffer('ganryu-theme')` call, giving the arrival cinematic a proper dramatic fanfare instead of a death sound
+- **Road event persistent decorations**: spirit, flower seller, and calligrapher events now leave lasting visual marks on the road: spirit mark (ethereal golden glow with drifting mist wisps), flower bloom (5-petal delicate flower with pulsing bloom phase), calligraphy brush-stroke character (道 glyph in ink-blue tone). Decorations persist for up to 3600 frames, creating a sense of road history.
+- 272 checks pass (264 existing + 8 new: road decoration array init, draw function, rendered in draw, spirit/flower/calligraphy decoration creation, reset in goToTitle, ganryu arrival sfx fix)
+
 (End of file)

@@ -302,6 +302,16 @@ checks.push(["campfire embers rendered in draw", html.includes("drawCampfireEmbe
 checks.push(["campfire embers spawned in step", html.includes("campfireEmbers.push") && html.includes("campfireEmbers=campfireEmbers.filter")]);
 checks.push(["campfire embers reset on restart", html.includes("campfireEmbers=[];won=false") || html.includes("campfireEmbers=[];won")]);
 
+// Pass 60 — Road event persistent decorations, Ganryu arrival SFX fix
+checks.push(["road decoration array initialized", html.includes("roadDecorations=[]")]);
+checks.push(["road decoration draw function", html.includes("function drawRoadDecorations") && html.includes("rd.type===")]);
+checks.push(["road decorations rendered in draw", html.includes("drawRoadDecorations()")]);
+checks.push(["road decorations created on spirit event", html.includes("roadDecorations.push") && html.includes("spirit")]);
+checks.push(["road decorations created on flower event", html.includes("roadDecorations.push") && html.includes("flower")]);
+checks.push(["road decorations created on calligraphy event", html.includes("roadDecorations.push") && html.includes("calligraphy")]);
+checks.push(["road decorations reset in goToTitle", html.includes("roadDecorations=[];")]);
+checks.push(["ganryu arrival uses victory sfx", html.includes("sfx.victory()") && html.includes("ganryu-theme") && html.includes("playBuffer")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);
