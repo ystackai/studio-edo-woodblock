@@ -13,11 +13,14 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 49 — Game balance tuning, Ganryu duel polish, road atmosphere depth)
-- **~2413-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
-- **Game balance tuned**: enemy ATK values reduced across 7 types (ronin 14→12, vagrant 11→10, bandit 17→15, monk 13→12, duelist 20→18, ascetic 16→14, sentinel 22→20); ink regen increased (.007→.009) for smoother economy; sprint resolve drain reduced (3→2 frames); paint waymark damage increased (12→14); Ganryu boss phase scaling lowered (.2→.15)
-- **Ganryu duel polish**: phase-specific aura glow on boss sprite (phase 2 blue-white ring, phase 3 orange-red glow); dramatic phase transition VFX (30 ground-crack particles phase 3, 20 ink-swirl particles phase 2); increased screen shake for phase changes
-- **Road atmosphere dust motes**: floating warm-gold light particles drift upward across road for richer ambient depth
+### Current Artifact State (Pass 50 — Zone-specific road surfaces, roaming enemies, telegraph tints, Ganryu ceremony, wind audio)
+- **~2464-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+- **Zone-specific road surface rendering**: each atmosphere zone now has a distinct road texture — meadow dirt (organic earth tones), forest stone (small paving stones), mountain gravel (scattered pebble arcs), coastal sand (small shell-like dots). Road surface varies visually across zones, making each territory feel physically different underfoot.
+- **Zone-specific roaming enemy spawns**: each zone naturally spawns enemies that match its atmosphere — meadow (chaser, prowler), forest (prowler, chaser, monk), mountain (chaser, prowler, ascetic), coastal (duelist, prowler, sentinel). Spawn limit per zone (6-8) keeps encounters balanced.
+- **Zone-specific duel telegraph tints**: drawDuelCue now uses zone-aware colors for telegraph ring, glow, and blade arc — meadow warm gold, forest amber, mountain cool blue-gray, coastal muted gold — making each zone's combat feel visually distinct.
+- **Ganryu ceremonial torii gate**: a dramatic vermillion torii gate emerges from mist at Ganryu island entrance, with "Ganryu" calligraphy banner. Warm golden arrival glow at island center intensifies as player nears.
+- **Zone-specific wind audio filtering**: zone ambient noise frequency controlled per zone — meadow (180Hz gentle breeze), forest (120Hz deeper hum), mountain (300Hz sharper wind), coastal (90Hz sea wash) — distinct ambient texture across territories.
+- **Zone-specific milestone stone colors**: the 5 inscribed milestone pillars now use zone-appropriate stone colors (meadow brown, forest dark, mountain gray, coastal sandy) for deeper visual cohesion.
 - **Richer road travelers**: merchant traveler type with pack and walking stick alongside wanderer/pilgrim, weighted distribution (.45/.35/.2)
 - **Enhanced victory ceremony**: 180 particles with 10-color palette (added beige/white); 40 ink-wash mist wisps for deeper ceremony depth; screen shake=4 on victory
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
@@ -65,8 +68,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
-- `node drops/edo-inkblade-ots/test.js` — **186 checks**: all previous plus Pass 49 (dust motes array, dust spawning, dust draw function, traveler merchant type, merchant rendering, boss phase aura, boss phase transition particles, enhanced victory ceremony, ink-wash mist particles)
-- **All 186 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **197 checks**: all previous plus Pass 50 (dirt/stone/gravel/sand road surfaces, roaming spawns, zone enemy types, telegraph tints, wind frequency, torii gate, arrival glow, milestone stone colors)
+- **All 197 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -107,6 +110,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 47** — Woodblock grain texture upgrade (horizontal woodblock print grain lines), road journey progress markings (distance stones), ink-wash paint stains on road (persistent sumi-e pools), organic drifting leaves with 6 colors, spinning, and wind gust responsiveness; enhanced vignette with warm paper tone
 **Pass 48** — Journey sky evolution with drifting clouds (16 cloud bands, zone-tinted, continuous drift), dramatic sunset near Ganryu (crimson/amber glow overlay), enhanced Ganryu island detail (pine trees, boat, layered mist), zone-specific sky tint overlay per zone (meadow/forest/mountain/coastal); 177 checks pass
 **Pass 49** — Game balance tuning (reduced enemy ATK across all 7 types, increased ink regen, reduced sprint drain, higher paint waymark damage, lower boss phase scaling); Ganryu duel polish (phase-specific aura glow, dramatic transition VFX with 30 ground-crack/20 ink-swirl particles, increased screen shake); road atmosphere dust motes (floating warm-gold light particles); richer road travelers (merchant type with pack and stick, weighted distribution); enhanced victory ceremony (180 particles, 10-color palette, 40 ink-wash mist wisps); 186 checks pass; fresh screenshots
+**Pass 50** — Zone-specific road surface textures (dirt/stone/gravel/sand per zone); zone-specific roaming enemy spawns matching zone atmosphere; zone-specific duel telegraph tints for combat readability; Ganryu ceremonial torii gate with calligraphy banner and arrival warm glow; zone-specific wind audio frequency per territory; zone-specific milestone stone colors; 197 checks pass; fresh screenshots
 
 ### Known Issues
 - Zone audio cues are oscillator-based — real zone ambience files would be richer

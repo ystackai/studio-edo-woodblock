@@ -221,6 +221,19 @@ checks.push(["boss phase transition particles", html.includes("Phase 3 transitio
 checks.push(["enhanced victory ceremony", html.includes("ci<180") && html.includes("Math.random()*10")]);
 checks.push(["ink-wash victory mist", html.includes("Ink-wash mist victory") && html.includes("vi<40")]);
 
+// Pass 50: Zone-specific road surfaces, roaming enemies, telegraph colors, Ganryu ceremony
+checks.push(["zone surface dirt texture", html.includes("surf===\"dirt\"") && html.includes("roadFill")]);
+checks.push(["zone surface stone texture", html.includes("surf===\"stone\"") && html.includes("ctx.fillRect(w*.5+sx")]);
+checks.push(["zone surface gravel texture", html.includes("surf===\"gravel\"") && html.includes("ctx.beginPath();ctx.arc(w*.5")]);
+checks.push(["zone surface sand texture", html.includes("surf===\"sand\"") && html.includes("roadFill=\"#5a4a38")]);
+checks.push(["zone-specific enemy roaming spawns", html.includes("zoneEnemyTypes") && html.includes("zoneEnemyMax")]);
+checks.push(["zone enemy types per zone", html.includes("meadow:['chaser','prowler']") && html.includes("coastal:['duelist','prowler','sentinel']")]);
+checks.push(["zone-specific duel telegraph tints", html.includes("zone.name==='meadow'?") && html.includes("drawDuelCue") && html.includes("zoneTint")]);
+checks.push(["zone-specific wind frequency audio", html.includes("amb.zoneAmbient.frequency") && html.includes("zfVals")]);
+checks.push(["Ganryu ceremonial torii gate", html.includes("Ceremonial torii") && html.includes("Ganryu") && html.includes("Gate banner") && html.includes('fillText("Ganryu"')]);
+checks.push(["Ganryu arrival warm glow", html.includes("Arrival glow") && html.includes("d7b66f") && html.includes("arc(w*.46,hor-10")]);
+checks.push(["zone-specific milestone stone colors", html.includes("stoneColor=zt.name") && html.includes("\"meadow\"?") && html.includes("stoneTop")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

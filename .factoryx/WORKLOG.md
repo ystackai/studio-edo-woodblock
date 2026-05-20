@@ -401,5 +401,17 @@
 - **186 smoke checks pass** (was 177 — added 9 checks)
 - **Fresh screenshots captured** after all Pass 49 changes
 
+## Pass 50 — Zone-specific road surfaces, roaming enemies, telegraph tints, Ganryu ceremony, wind audio
+
+### What changed
+- **Zone-specific road surface rendering**: each atmosphere zone now has a distinct road texture — meadow dirt (organic earth tones with darker patches), forest stone (small paving stones with subtle rect fill), mountain gravel (scattered pebble arcs with varied roadFill patterns), coastal sand (small shell-like dots with sandy base). Road surface varies visually across zones, making each territory feel physically different underfoot.
+- **Zone-specific roaming enemy spawns**: each zone naturally spawns enemies that match its atmosphere — meadow (chaser, prowler), forest (prowler, chaser, monk), mountain (chaser, prowler, ascetic), coastal (duelist, prowler, sentinel). Spawn limit per zone (6-8) keeps encounters balanced. New roaming enemies patrol the road with zone-appropriate stats.
+- **Zone-specific duel telegraph tints**: drawDuelCue now uses zone-aware colors for the telegraph ring, glow, and blade arc — meadow warm gold, forest amber, mountain cool blue-gray, coastal muted gold — making each zone's combat feel visually distinct.
+- **Ganryu ceremonial torii gate**: a dramatic vermillion torii gate emerges from mist at Ganryu island entrance, with "Ganryu" calligraphy banner, visible as player nears the island (gd>0.5). Warm golden arrival glow at island center intensifies at gd>0.7.
+- **Zone-specific wind audio filtering**: zone ambient noise frequency is now controlled per zone — meadow (180Hz gentle breeze), forest (120Hz deeper hum), mountain (300Hz sharper wind), coastal (90Hz sea wash) — creating distinct ambient texture across territories.
+- **Zone-specific milestone stone colors**: the 5 inscribed milestone pillars now use zone-appropriate stone colors (meadow brown, forest dark, mountain gray, coastal sandy) for deeper visual cohesion.
+- **197 smoke checks pass** (was 186 — added 11 checks: dirt/stone/gravel/sand surfaces, roaming spawns, zone enemy types, telegraph tints, wind frequency, torii gate, arrival glow, milestone stone colors).
+- **Screenshots captured fresh** after all Pass 50 changes.
+
 ## Known Issues
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
