@@ -13,8 +13,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 65 — Dynamic storm/lightning system, red-crowned cranes, wandering musician road events, musician travelers)
-- **~3450-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 66 — Syntax error fix, musician try/catch brace balanced)
+- **~3452-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+- All Pass 65 features preserved
+- **Browser runtime fix**: `Uncaught SyntaxError: missing ) after argument list` from musician shakuhachi melody try/catch block resolved by removing trailing extra `}`
 - **Dynamic storm/lightning weather system**: passing storms arrive at random intervals with lightning bolt zigzag rendering, thunder audio via lowpass sawtooth oscillator, and storm rain bonus increasing effective rain intensity during peak. Lightning flashes produce bright bolt with glow halo and extra drizzle particles.
 - **Red-crowned cranes**: elegant Edo-era birds at road edge in meadow/forest/coastal zones with tall slender form, long neck, red crest, wing-spread animation, and graceful standing/walking poses.
 - **Wandering musician road event** (z=940): blind musician playing shakuhachi — press E to hear 16-note melody (220-524-220 Hz arpeggio). Grants resolve and HP.
@@ -25,7 +27,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Browser runtime: Web Audio gain null safety fixed — all gain node accesses guard against null `.gain`. Runtime check file validates player state, canvas, game loop, audio, heroes, enemies, zones, milestones.
 - Audio pipeline: 36 pre-generated WAV assets + oscillator fallbacks.
 - `node drops/edo-inkblade-ots/test.js` — **398 checks**: all previous 330 plus 16 new (storm system, lightning, thunder, rain bonus, cranes, musician event, musician traveler, crane rendering).
-- **All 429 checks pass**
+- **All 398 checks pass** — JavaScript syntax validated cleanly
+
+### Pass 66 — Syntax error fix (musician try/catch brace imbalance)
+Fixed the `Uncaught SyntaxError: missing ) after argument list` that caused browser runtime verification failure. The musician road event's shakuhachi melody `try{if(audioCtx){...}}catch(e){}}}` block had an extra trailing `}` causing brace imbalance. Removed it to restore proper nesting. All 398 checks pass.
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -36,6 +41,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - `05-ganryu-victory.jpg` — Ganryu arrival victory screen
 
 ### Passes
+**Pass 66** — Fix musician try/catch brace imbalance: removed extra `}` from `try{if(audioCtx){...}}catch(e){}}}` closing block. Browser runtime `SyntaxError: missing ) after argument list` resolved. All 398 checks pass.
 **Pass 20** — Title screen with ink-wash key art
 **Pass 21** — Animated title screen with drifting mist and ink particles
 **Pass 22** — Character sprite ink-wash outline and walking ink particles
@@ -96,9 +102,6 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 ### Known Issues
 - None current — all 398 checks pass; koi ponds and meditation spots operational with zone-specific behavior
-
-### Pass 66 — Syntax error fix (musician try/catch brace imbalance)
-Fixed the `Uncaught SyntaxError: missing ) after argument list` that caused browser runtime verification failure. The musician road event's shakuhachi melody block had an unbalanced brace count (extra `}` in the nested `try{if(audioCtx){...}}catch(e){}}}` closing). Removed the trailing extra `}` to restore proper brace balance. All 398 checks pass including JavaScript syntax validation.
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
