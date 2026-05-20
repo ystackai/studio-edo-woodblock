@@ -390,4 +390,16 @@
 ## Known Issues (updated)
 - Screenshots updated after Pass 46 changes
 
-(End of file)
+## Pass 49 — Game balance tuning, Ganryu duel polish, road atmosphere depth
+
+### What changed
+- **Balance tuning**: reduced enemy ATK values across all 7 enemies (ronin 14→12, vagrant 11→10, bandit 17→15, monk 13→12, duelist 20→18, ascetic 16→14, sentinel 22→20) for fairer difficulty curve; increased ink regen rate (.007→.009) for smoother ink economy; reduced sprint resolve drain (3→2 frames) making sprint more usable; increased paint waymark damage (12→14) for more impactful ink seals; lowered Ganryu boss phase damage scaling (.2→.15 per phase)
+- **Ganryu duel polish**: phase-specific aura glow on boss sprite (phase 2: blue-white ring, phase 3: orange-red glow); enhanced phase transition VFX with 30 ground-crack particles (phase 3) and 20 ink swirl particles (phase 2); increased screen shake (4→6 phase 3, 3→4 phase 2)
+- **Road atmosphere dust motes**: floating light particles (30 concurrent, warm gold/cream tones, drift upward) for richer road atmosphere
+- **Richer road travelers**: added merchant traveler type (wider hat, pack, walking stick) alongside wanderer/pilgrim with weighted distribution (.45/.35/.2)
+- **Enhanced victory ceremony**: expanded from 120 to 180 particles with 10-color palette; 40 ink-wash mist particles added for deeper ceremony depth; screen shake=4 on victory
+- **186 smoke checks pass** (was 177 — added 9 checks)
+- **Fresh screenshots captured** after all Pass 49 changes
+
+## Known Issues
+- Zone audio cues are oscillator-based — real zone ambience files would be richer

@@ -210,6 +210,17 @@ checks.push(["Ganryu island boat rendered", html.includes("Small boat") && html.
 checks.push(["zone-specific sky tint function", html.includes("function drawSkyZoneTint") && html.includes("tintColors")]);
 checks.push(["sky tints for all 4 zones", html.includes("skyTintColors") && html.includes("rgba(240,216,176,0.02)")]);
 
+// Pass 49: Game balance tuning, Ganryu duel polish, road atmosphere depth
+checks.push(["dust motes array initialized", html.includes("let dustMotes=[]") && html.includes("dustMotes.push")]);
+checks.push(["dust motes spawning", html.includes("dustMotes.filter") && html.includes("dustMotes.forEach")]);
+checks.push(["dust motes draw function", html.includes("function drawDustMotes") && html.includes("dustMotes.forEach(d")]);
+checks.push(["traveler merchant type", html.includes("tKindR<.45?") && html.includes("\"merchant\"") && html.includes("tColors")]);
+checks.push(["merchant traveler rendering", html.includes("t.kind===\"merchant\"") && html.includes("Pack on back")]);
+checks.push(["boss phase aura glow", html.includes("bossPhase-specific aura glow") && html.includes("bpColors")]);
+checks.push(["boss phase transition particles", html.includes("ground-crack particles") && html.includes("ink swirl particles")]);
+checks.push(["enhanced victory ceremony", html.includes("180;ci++)") && html.includes("10-color")]);
+checks.push(["ink-wash victory mist", html.includes("ink-wash mist victory") && html.includes("40;vi++")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);
