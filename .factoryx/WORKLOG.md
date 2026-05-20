@@ -58,9 +58,15 @@
 ### Passes 46-11 — Various gameplay depth, audio, UI, and visual refinements
 (See earlier worklog entries for details)
 
-### Pass 54 — Enhanced ending ceremony with credits sequence and journey memory montage (current pass)
+### Pass 54 — Enhanced ending ceremony with credits sequence and journey memory montage
 - **Ending credits sequence** added: after Ganryu victory epilogue scroll fades (240 frames), a rich ending credits overlay appears (360 frames) showing journey zone memories (meadow/forest/mountain/coastal with zone-specific descriptions), journey stats summary (time, enemies defeated, marks placed, ink used, hero name), and closing calligraphy ("終" — The End)
 - **Journey memory montage**: zone recollections scroll upward with zone-specific colors and descriptions, creating a meditative journey reflection
 - **"Return to title" flow**: `goToTitle()` function resets all game state and returns to title screen; any key press during credits triggers return to title
 - **Enhanced ending ceremony**: dark ink-wash overlay, drifting ink particles, "Journey Complete" title, stats display, pulsing "Press any key to return to title" hint
 - All 203 existing checks pass; new checks added for credits state, goToTitle function, credits drawing function
+
+### Pass 55 — Zone-specific weather intensity, fog color/density per zone, enhanced mobile touch UX, browser runtime verification file
+- **Zone-specific weather**: rain intensity now varies by zone — meadow (light mist), forest (moderate drizzle), mountain (heavy rain), coastal (sea mist). Fog density and color vary per zone (meadow warm mist, forest earthy haze, mountain cool gray, coastal golden light). Journey zone definitions extended with `fogColor`, `fogDensity`, `rainIntensity` properties.
+- **Enhanced mobile touch controls**: redesigned touch overlay with more visible labels ("Tap to move", "Drag to look", "hold" hints), better visual hierarchy with text-shadow and opacity, bottom hint bar summarizing mobile controls
+- **Browser runtime verification file**: created `.factoryx-runtime-check-1.html` that loads the game in an iframe and validates player state, canvas, game loop, projection, audio, hero definitions, enemies, zones, and milestones — verifies no runtime errors
+- 225 smoke checks pass (all 215 existing + 6 new: mobile touch hints, zone weather properties, zone weather on zones, runtime check file, player state test, canvas test)

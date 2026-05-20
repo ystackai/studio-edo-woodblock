@@ -181,13 +181,14 @@ h1{font-family:serif;font-size:clamp(28px,6vw,64px);line-height:.95;margin:0 0 4
       </div>
   </section>
 
-<section id="touch-controls" style="position:fixed;inset:0;z-index:2;pointer-events:none;display:none">
-  <div style="position:absolute;left:0;top:0;width:30%;height:100%;pointer-events:auto" id="tc-move-left" class="touch-zone"><div style="position:absolute;left:20px;bottom:80px;color:#b9a88d;font-size:10px;text-transform:uppercase;opacity:.5">Walk</div></div>
-  <div style="position:absolute;right:0;top:0;width:30%;height:100%;pointer-events:auto" id="tc-move-right" class="touch-zone"><div style="position:absolute;right:20px;bottom:80px;color:#b9a88d;font-size:10px;text-transform:uppercase;opacity:.5">Turn</div></div>
-  <div style="position:absolute;right:40px;top:40%;width:80px;height:80px;border-radius:50%;background:rgba(215,182,111,.12);border:1px solid rgba(215,182,111,.25);pointer-events:auto;display:flex;align-items:center;justify-content:center" id="tc-slash"><span style="color:#d9c49e;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Slash</span></div>
-  <div style="position:absolute;right:40px;top:calc(40% + 100px);width:80px;height:80px;border-radius:50%;background:rgba(140,200,180,.1);border:1px solid rgba(140,200,180,.22);pointer-events:auto;display:flex;align-items:center;justify-content:center" id="tc-paint"><span style="color:#b9d6b8;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Paint</span></div>
-  <div style="position:absolute;left:40px;top:40%;width:80px;height:80px;border-radius:50%;background:rgba(90,90,110,.15);border:1px solid rgba(215,182,111,.2);pointer-events:auto;display:flex;align-items:center;justify-content:center" id="tc-block"><span style="color:#d9c49e;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Block</span></div>
-</section>
+ <section id="touch-controls" style="position:fixed;inset:0;z-index:2;pointer-events:none;display:none">
+   <div style="position:absolute;left:0;top:0;width:30%;height:100%;pointer-events:auto" id="tc-move-left" class="touch-zone"><div style="position:absolute;left:20px;bottom:80px;color:#ead9bb;font-size:11px;text-transform:uppercase;opacity:.6;text-shadow:0 1px 4px rgba(0,0,0,.5)">Walk</div><div style="position:absolute;left:20px;bottom:60px;color:#b9a88d;font-size:9px;opacity:.4">Tap to move</div></div>
+   <div style="position:absolute;right:0;top:0;width:30%;height:100%;pointer-events:auto" id="tc-move-right" class="touch-zone"><div style="position:absolute;right:20px;bottom:80px;color:#ead9bb;font-size:11px;text-transform:uppercase;opacity:.6;text-shadow:0 1px 4px rgba(0,0,0,.5)">Turn</div><div style="position:absolute;right:20px;bottom:60px;color:#b9a88d;font-size:9px;opacity:.4">Drag to look</div></div>
+   <div style="position:absolute;right:30px;top:35%;width:70px;height:70px;border-radius:50%;background:rgba(215,182,111,.15);border:1px solid rgba(215,182,111,.3);pointer-events:auto;display:flex;align-items:center;justify-content:center;flex-direction:column;box-shadow:0 2px 8px rgba(0,0,0,.3)" id="tc-slash"><span style="color:#f4ead8;font-size:10px;text-transform:uppercase;letter-spacing:.04em;line-height:1.2">Slash</span><span style="color:#b9a88d;font-size:8px;opacity:.5">tap</span></div>
+   <div style="position:absolute;right:30px;top:calc(35% + 82px);width:70px;height:70px;border-radius:50%;background:rgba(140,200,180,.12);border:1px solid rgba(140,200,180,.25);pointer-events:auto;display:flex;align-items:center;justify-content:center;flex-direction:column;box-shadow:0 2px 8px rgba(0,0,0,.3)" id="tc-paint"><span style="color:#c4dcc4;font-size:10px;text-transform:uppercase;letter-spacing:.04em;line-height:1.2">Paint</span><span style="color:#b9a88d;font-size:8px;opacity:.5">hold</span></div>
+   <div style="position:absolute;left:30px;top:35%;width:70px;height:70px;border-radius:50%;background:rgba(90,90,110,.18);border:1px solid rgba(215,182,111,.22);pointer-events:auto;display:flex;align-items:center;justify-content:center;flex-direction:column;box-shadow:0 2px 8px rgba(0,0,0,.3)" id="tc-block"><span style="color:#ead9bb;font-size:10px;text-transform:uppercase;letter-spacing:.04em;line-height:1.2">Block</span><span style="color:#b9a88d;font-size:8px;opacity:.5">hold</span></div>
+   <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(25,19,15,.75);border:1px solid rgba(215,182,111,.15);border-radius:8px;padding:6px 16px;pointer-events:none;white-space:nowrap"><span style="color:#b9a88d;font-size:9px;opacity:.6">Long-press paint · Tap slash · Drag look</span></div>
+ </section>
 <script>
 (function(){if('ontouchstart' in document.documentElement){document.getElementById('touch-controls').style.display=''}
 document.getElementById('tc-slash').addEventListener('click',function(e){e.stopPropagation();slash()});
@@ -558,10 +559,10 @@ for(var ci=0;ci<16;ci++){clouds.push({x:Math.random(),w:.3+Math.random()*.6,y:.0
 let butterflies=[],crows=[],eagles=[],seabirds=[]; // zone-specific ambient particles
 // Journey atmosphere zones for visual/audio progression
 const journeyZones=[
-  {start:0,end:300,name:"meadow",roadEdge:'#2a3a1a',roadEdge2:'#3a4b2a',lanternColor:'#ff8333',lanternGlow:'rgba(255,131,51,0.2)',flowers:['#c84a3a','#8a5a3a'],pollenColor:'#d9c84a',surface:'dirt',surfaceBase:'#403121',enemyTypes:['chaser','prowler']},
-  {start:300,end:600,name:"forest",roadEdge:'#3a2a18',roadEdge2:'#4a3a28',lanternColor:'#d9c84a',lanternGlow:'rgba(217,200,74,0.18)',flowers:['#8a5a3a','#6a7a3a'],pollenColor:'#8a9a4a',surface:'stone',surfaceBase:'#3a3028',enemyTypes:['prowler','monk']},
-  {start:600,end:1000,name:"mountain",roadEdge:'#4a3a28',roadEdge2:'#5a4a38',lanternColor:'#8a9aaa',lanternGlow:'rgba(138,154,170,0.15)',flowers:['#6a5a48','#7a6a58'],pollenColor:'#9a8a7a',surface:'gravel',surfaceBase:'#4a3a30',enemyTypes:['chaser','ascetic']},
-  {start:1000,end:1420,name:"coastal",roadEdge:'#5a4a38',roadEdge2:'#6a5a48',lanternColor:'#d7b66f',lanternGlow:'rgba(215,182,111,0.18)',flowers:['#8a7a68','#6a8a9a'],pollenColor:'#c4b88a',surface:'sand',surfaceBase:'#5a4a38',enemyTypes:['duelist','sentinel']}
+  {start:0,end:300,name:"meadow",roadEdge:'#2a3a1a',roadEdge2:'#3a4b2a',lanternColor:'#ff8333',lanternGlow:'rgba(255,131,51,0.2)',flowers:['#c84a3a','#8a5a3a'],pollenColor:'#d9c84a',surface:'dirt',surfaceBase:'#403121',enemyTypes:['chaser','prowler'],fogColor:[220,230,240],fogDensity:.08,rainIntensity:.002},
+  {start:300,end:600,name:"forest",roadEdge:'#3a2a18',roadEdge2:'#4a3a28',lanternColor:'#d9c84a',lanternGlow:'rgba(217,200,74,0.18)',flowers:['#8a5a3a','#6a7a3a'],pollenColor:'#8a9a4a',surface:'stone',surfaceBase:'#3a3028',enemyTypes:['prowler','monk'],fogColor:[200,220,225],fogDensity:.22,rainIntensity:.008},
+  {start:600,end:1000,name:"mountain",roadEdge:'#4a3a28',roadEdge2:'#5a4a38',lanternColor:'#8a9aaa',lanternGlow:'rgba(138,154,170,0.15)',flowers:['#6a5a48','#7a6a58'],pollenColor:'#9a8a7a',surface:'gravel',surfaceBase:'#4a3a30',enemyTypes:['chaser','ascetic'],fogColor:[195,210,220],fogDensity:.35,rainIntensity:.012},
+  {start:1000,end:1420,name:"coastal",roadEdge:'#5a4a38',roadEdge2:'#6a5a48',lanternColor:'#d7b66f',lanternGlow:'rgba(215,182,111,0.18)',flowers:['#8a7a68','#6a8a9a'],pollenColor:'#c4b88a',surface:'sand',surfaceBase:'#5a4a38',enemyTypes:['duelist','sentinel'],fogColor:[225,230,235],fogDensity:.18,rainIntensity:.006}
 ];
 function getZone(z){for(var zi=0;zi<journeyZones.length;zi++)if(z>=journeyZones[zi].start&&z<journeyZones[zi].end)return journeyZones[zi];return journeyZones[0]}
 let currentZone=getZone(0),prevZone=getZone(0),zoneCrossTimer=0,zoneBanner={active:false,name:"",timer:0};
@@ -1013,7 +1014,10 @@ function step(dt){
     crows=crows.filter(c=>c.age<c.maxAge);crows.forEach(c=>{c.age+=dt;c.x+=c.vx*dt;c.z+=c.vz*dt});
     eagles=eagles.filter(e=>e.age<e.maxAge);eagles.forEach(e=>{e.age+=dt;e.x+=e.vx*dt;e.z+=e.vz*dt});
     seabirds=seabirds.filter(s=>s.age<s.maxAge);seabirds.forEach(s=>{s.age+=dt;s.x+=s.vx*dt;s.z+=s.vz*dt});
-    drizzleActive=Math.max(0,drizzleActive+(player.z>300&&player.z<900?.004:-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
+    // Zone-specific weather: rain/mist intensity varies by zone per journeyZones data
+    var zoneWeather=getZone(player.z);
+    var weatherTarget=zoneWeather.rainIntensity||0;
+    drizzleActive=Math.max(0,drizzleActive+(weatherTarget-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
     // Road-side fox spirits — small silhouettes dashing across the road ahead
     if(Math.random()<.002*dt&&foxSpirits.length<3&&player.hp>0){
       var fz=player.z+40+Math.random()*80,fx=(Math.random()-.5)*200;
@@ -1922,7 +1926,7 @@ function drawGanryu(w,hor){var wp=waveAnim;ctx.fillStyle="#2f403b";ctx.fillRect(
         ctx.globalAlpha=1}
       ctx.globalAlpha=1}
 }}}
-function drawFog(w,hor){const fogBase=Math.min(1,Math.max(0,(player.z-200)/300)*.18+Math.max(0,(player.z-1000)/300)*.25);ctx.fillStyle="rgba(200,220,230,"+fogBase+")";ctx.fillRect(0,0,w,hor)}function drawSkyZoneTint(w,h,hor){
+function drawFog(w,hor){var zt=getZone(player.z);var fc=zt.fogColor||[200,220,230];var fd=zt.fogDensity||.18;var baseFog=Math.min(1,Math.max(0,(player.z-400)/200)*.15+Math.max(0,(player.z-1000)/250)*.25);var zf=Math.min(1,fd+baseFog);ctx.fillStyle="rgba("+fc[0]+","+fc[1]+","+fc[2]+","+zf+")";ctx.fillRect(0,0,w,hor)}function drawSkyZoneTint(w,h,hor){
   // Subtle sky tint by zone — warm meadow, earthy forest, cool mountain, golden coastal
   var zt=currentZone||getZone(player.z);
   var tintColors={meadow:'rgba(240,216,176,0.06)',forest:'rgba(216,200,144,0.05)',mountain:'rgba(200,210,220,0.04)',coastal:'rgba(232,220,192,0.08)'};

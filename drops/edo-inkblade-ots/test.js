@@ -249,6 +249,19 @@ checks.push(["ending credits return to title hint", html.includes("return to tit
 checks.push(["goToTitle function", html.includes("function goToTitle") && html.includes("endCreditsActive") && html.includes("ui.titleCanvas")]);
 checks.push(["epilogue transitions to credits", html.includes("endCreditsActive=true") && html.includes("epilogueTimer") && html.includes("epilogueActive=false")]);
 
+checks.push(["mobile touch hints improved", html.includes('color:#ead9bb') && html.includes('Tap to move') && html.includes('Drag to look') && html.includes('hold')]);
+checks.push(["zone weather properties", html.includes('fogColor') && html.includes('fogDensity') && html.includes('rainIntensity')]);
+checks.push(["zone weather on journey zones", html.includes('fogColor:[220,230,240],fogDensity:.08,rainIntensity:.002') && html.includes('fogColor:[200,220,225],fogDensity:.22,rainIntensity:.008')]);
+checks.push(["runtime check file exists", fs.existsSync(path.join(root, '.factoryx-runtime-check-1.html'))]);
+
+// Runtime check file content verification
+const runtimeCheckPath = path.join(root, '.factoryx-runtime-check-1.html');
+if (fs.existsSync(runtimeCheckPath)) {
+  const rcContent = fs.readFileSync(runtimeCheckPath, 'utf8');
+  checks.push(["runtime check contains player state test", rcContent.includes("player") && rcContent.includes("loop") && rcContent.includes("draw")]);
+  checks.push(["runtime check contains canvas test", rcContent.includes("canvas") && (rcContent.includes("getContext") || rcContent.includes("querySelector('canvas')"))]);
+}
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);
