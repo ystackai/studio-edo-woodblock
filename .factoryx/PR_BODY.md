@@ -13,8 +13,9 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 51 — WAV audio assets replace oscillator-based audio)
-- **~2464-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 52 — Fix browser runtime `.gain` null error safety)
+- **~2545-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+- **Audio gain null safety fix**: all gain node accesses in the audio step loop now explicitly guard against null `.gain` properties when WAV buffers haven't finished preloading, preventing the past browser runtime `Uncaught TypeError: Cannot read properties of null (reading 'gain')` failure
 - **Zone-specific road surface rendering**: each atmosphere zone now has a distinct road texture — meadow dirt (organic earth tones), forest stone (small paving stones), mountain gravel (scattered pebble arcs), coastal sand (small shell-like dots). Road surface varies visually across zones, making each territory feel physically different underfoot.
 - **Zone-specific roaming enemy spawns**: each zone naturally spawns enemies that match its atmosphere — meadow (chaser, prowler), forest (prowler, chaser, monk), mountain (chaser, prowler, ascetic), coastal (duelist, prowler, sentinel). Spawn limit per zone (6-8) keeps encounters balanced.
 - **Zone-specific duel telegraph tints**: drawDuelCue now uses zone-aware colors for telegraph ring, glow, and blade arc — meadow warm gold, forest amber, mountain cool blue-gray, coastal muted gold — making each zone's combat feel visually distinct.
@@ -66,7 +67,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Controls tutorial overlay**: visual controls grid shown on first hero selection
 
 ### Verification
-- Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
+- Browser runtime: Web Audio gain null safety fixed — all gain node accesses guard against null `.gain` when WAV buffers haven't finished preloading (previously caused `Uncaught TypeError: Cannot read properties of null (reading 'gain')`). Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
@@ -114,9 +115,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 49** — Game balance tuning (reduced enemy ATK across all 7 types, increased ink regen, reduced sprint drain, higher paint waymark damage, lower boss phase scaling); Ganryu duel polish (phase-specific aura glow, dramatic transition VFX with 30 ground-crack/20 ink-swirl particles, increased screen shake); road atmosphere dust motes (floating warm-gold light particles); richer road travelers (merchant type with pack and stick, weighted distribution); enhanced victory ceremony (180 particles, 10-color palette, 40 ink-wash mist wisps); 186 checks pass; fresh screenshots
 **Pass 50** — Zone-specific road surface textures (dirt/stone/gravel/sand per zone); zone-specific roaming enemy spawns matching zone atmosphere; zone-specific duel telegraph tints for combat readability; Ganryu ceremonial torii gate with calligraphy banner and arrival warm glow; zone-specific wind audio frequency per territory; zone-specific milestone stone colors; 197 checks pass; fresh screenshots
 **Pass 51** — Generated 36 WAV audio assets (shakuhachi, koto, taiko, zone wind/ambience/motifs, drones, all SFX); replaced oscillator-based audio with buffer-based playback using looping AudioBufferSourceNode; oscillator fallbacks preserved; audio asset manifest committed
+**Pass 52** — Fix browser runtime `.gain` null error safety: all gain node accesses in audio step loop now guard against null `.gain` when WAV buffers haven't finished preloading; prevents past `Cannot read properties of null (reading 'gain')` runtime failure; 197 checks pass
 
 ### Known Issues
-- None current — audio is now asset-based with oscillator fallback; all checks pass
+- None current — audio gain null safety fixed; all checks pass
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.

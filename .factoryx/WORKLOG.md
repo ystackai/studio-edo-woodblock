@@ -435,4 +435,12 @@
 - **Audio asset manifest** at `assets/audio/manifest.json` documenting all 36 assets with descriptions, sample rates, and durations
 - **All 197 smoke checks pass** after audio pipeline integration
 
+## Pass 52 — Fix browser runtime `.gain` null error safety for all audio gain nodes
+
+### What changed
+- Fixed the root cause of past browser runtime verification failure (`Uncaught TypeError: Cannot read properties of null (reading 'gain')`) by adding proper null safety for all gain node accesses in the audio step loop.
+- Changed the outer conditional from checking `amb.wind && amb.river && amb.melody && amb.rain && amb.tension` (which are always truthy stub objects) to checking `amb.footstep` only, then adding explicit `amb.X && amb.X.gain` guards before each `.gain.gain` access.
+- This prevents null-pointer crashes when WAV audio buffers have not finished preloading and gain nodes are still null.
+- All 197 smoke checks continue to pass after the fix.
+
 ## Known Issues
