@@ -482,6 +482,8 @@ let yoMotifMountain=[4,1,0,3,2,4,1]; // mountain variant — sparse, wind-like
 let yoMotifCoastal=[0,4,3,2,4,0,3];  // coastal variant — wide, sea-like
 let yoKotoMotif=[0,0,1,1,3,3,4,4,2,2]; // koto harmony — slow chord shifts
 let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[],foxSpirits=[];let roadTravelers=[];
+let clouds=[],cloudDrift=0;
+for(var ci=0;ci<16;ci++){clouds.push({x:Math.random(),w:.3+Math.random()*.6,y:.05+Math.random()*.12,s:.4+Math.random()*1.2,a:.06+.04*Math.random(),vx:(Math.random()-.5)*.0008,vy:(Math.random()-.5)*.0001,color:["#f4ead8","#ead9bb","#d4c8a0","#f0e6d0"][Math.floor(Math.random()*4)]})}
 let butterflies=[],crows=[],eagles=[],seabirds=[]; // zone-specific ambient particles
 // Journey atmosphere zones for visual/audio progression
 const journeyZones=[
@@ -855,6 +857,9 @@ function step(dt){
     player.ink=Math.min(hero.ink,player.ink+.007*hero.art*dt*inkRegenMult);
     // Ambient particles
     windDrift+=.003*dt;
+    cloudDrift+=dt*.002;
+    // Cloud life and drift
+    clouds.forEach(function(c){c.x+=c.vx*dt;c.y+=c.vy*dt;if(c.x>1.2)c.x=-.2;if(c.x<-.2)c.x=1.2;if(c.y>.25)c.y=.02;if(c.y<0)c.y=.2});
     // Organic drifting leaves with wind responsiveness — varying colors, spinning, and gust-responsive sway
     var leafColors=["#d98986","#b88c45","#caa45f","#9a7358","#7a5a38","#ead9bb"];
     if(Math.random()<.04*dt&&leaves.length<45)leaves.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.35+Math.sin(windDrift)*.3,vz:Math.random()*.5+.15,age:0,spin:Math.random()*6.28,spinRate:(Math.random()-.5)*.03,color:leafColors[Math.floor(Math.random()*leafColors.length)],size:.8+Math.random()*1.2});
@@ -1390,7 +1395,8 @@ function draw(){
   const skyR=Math.round(sky0[0]+(sky1[0]-sky0[0])*gp),skyG=Math.round(sky0[1]+(sky1[1]-sky0[1])*gp),skyB=Math.round(sky0[2]+(sky1[2]-sky0[2])*gp);
   const skyR2=Math.round(sky2[0]+(sky3[0]-sky2[0])*gp),skyG2=Math.round(sky2[1]+(sky3[1]-sky2[1])*gp),skyB2=Math.round(sky2[2]+(sky3[2]-sky2[2])*gp);
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
-  drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
+  drawSun(w,horizon);drawMountains(w,horizon);drawClouds(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
+  drawSkyZoneTint(w,h,horizon);
   drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();drawDrizzle();
   // Journey milestone stone markers — inscribed pillars at route positions
   drawMilestoneStones(w,h,horizon);
@@ -1674,6 +1680,23 @@ function drawSun(w,hor){
   ctx.fillStyle="rgba(244,163,90,.08)";ctx.beginPath();ctx.arc(w*.78,hor*.45,68,0,7);ctx.fill()
 }
 function drawMountains(w,hor){ctx.fillStyle="#29333c";for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(i*w/5-80,hor);ctx.lineTo(i*w/5+80,hor*(.42+.12*(i%2)));ctx.lineTo(i*w/5+230,hor);ctx.fill()}}
+function drawClouds(w,hor){
+  var jp=Math.min(1,Math.max(0,player.z/1400));
+  var cloudTint=jp<.3?'#f4ead8':jp<.6?'#ead9bb':jp<.9?'#d4c8a0':'#b9a88d';
+  ctx.save();ctx.globalAlpha=.3;
+  clouds.forEach(function(c){
+    var cx=c.x*w,cy=c.y*hor+Math.sin(cloudDrift+c.x*4)*hor*.02;
+    var cw=c.w*w*1.2,ch=cw*.15;
+    ctx.fillStyle=c.color;
+    ctx.globalAlpha=c.a*(.6+.4*Math.sin(cloudDrift*2+c.x*6));
+    ctx.beginPath();ctx.ellipse(cx,cy,cw/2,ch/2,0,0,7);ctx.fill();
+    ctx.globalAlpha=c.a*.6;ctx.beginPath();ctx.ellipse(cx+cw*.2,cy-ch*.15,cw*.3,ch*.35,0,0,7);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx-cw*.15,cy+ch*.1,cw*.25,ch*.3,0,0,7);ctx.fill();
+  });
+  // Cloud color shift toward journey destination — warmer near Ganryu
+  ctx.globalAlpha=jp*.2;ctx.fillStyle=cloudTint;ctx.fillRect(0,0,w,hor);
+  ctx.globalAlpha=1;ctx.restore()
+}
 function drawGanryu(w,hor){var wp=waveAnim;ctx.fillStyle="#2f403b";ctx.fillRect(0,hor+10,w,80);ctx.strokeStyle="rgba(200,220,230,.08)";ctx.lineWidth=1.5;for(var i=0;i<10;i++){var wy=hor+20+i*7+Math.sin(wp+i*1.4)*3;ctx.beginPath();ctx.moveTo(0,wy);for(var x=0;x<w;x+=8){var y=wy+Math.sin(x*.015+wp+i)*2;ctx.lineTo(x,y)};ctx.stroke()};  var ir=Math.min(1,Math.max(0,(player.z-950)/300));if(ir>0){ctx.globalAlpha=ir*.35;ctx.fillStyle="#2a3833";ctx.beginPath();ctx.moveTo(w*.25,hor-10);ctx.lineTo(w*.35,hor-50);ctx.lineTo(w*.42,hor-35);ctx.lineTo(w*.48,hor-55);ctx.lineTo(w*.55,hor-40);ctx.lineTo(w*.65,hor-25);ctx.lineTo(w*.7,hor-10);ctx.closePath();ctx.fill();ctx.fillStyle="rgba(200,215,225,.15)";ctx.beginPath();ctx.moveTo(w*.3,hor-8);ctx.lineTo(w*.38,hor-35);ctx.lineTo(w*.45,hor-25);ctx.lineTo(w*.5,hor-40);ctx.lineTo(w*.58,hor-30);ctx.lineTo(w*.65,hor-8);ctx.closePath();ctx.fill();ctx.globalAlpha=1;if(ir>0.3){ctx.globalAlpha=ir*.35;var gs=Math.min(ir,1)*.8;var gx=w*.46,gy=hor-25;if(SPRITES.ganryu&&SPRITES.ganryu.complete){ctx.drawImage(SPRITES.ganryu,0,0,80,120,gx-40*gs,gy-120*gs,80*gs,120*gs)}else{
   // Ganryu ink-wash silhouette: imposing samurai with wide hat and sword
   ctx.fillStyle="#1a1512";
@@ -1686,9 +1709,37 @@ function drawGanryu(w,hor){var wp=waveAnim;ctx.fillStyle="#2f403b";ctx.fillRect(
   ctx.strokeStyle="#3a2a1a";ctx.lineWidth=3*gs2;
   ctx.beginPath();ctx.moveTo(gx+18*gs2,gy+4*gs2);ctx.lineTo(gx+24*gs2,gy-4*gs2);ctx.stroke();
   ctx.beginPath();ctx.moveTo(gx+24*gs2,gy-4*gs2);ctx.lineTo(gx+32*gs2,gy-14*gs2);ctx.stroke()
-};ctx.globalAlpha=1}}
-}
-function drawFog(w,hor){const fogBase=Math.min(1,Math.max(0,(player.z-200)/300)*.18+Math.max(0,(player.z-1000)/300)*.25);ctx.fillStyle="rgba(200,220,230,"+fogBase+")";ctx.fillRect(0,0,w,hor)}function drawMist(w,hor){ctx.strokeStyle="rgba(245,232,204,.06)";ctx.lineWidth=2;for(let i=0;i<14;i++){ctx.beginPath();ctx.moveTo(0,hor+10+i*16+Math.sin(last*.0008+i)*10);ctx.bezierCurveTo(w*.25,hor+i*12,w*.6,hor+50+i*10,w,hor+20+i*18);ctx.stroke()};// Deep mist at Ganryu approach
+};ctx.globalAlpha=1;if(ir>0.6){
+      // Enhanced Ganryu island detail — trees, pier structures, boat as player nears
+      var gd=Math.min(1,(player.z-1100)/280);
+      ctx.globalAlpha=gd*.45;
+      // Pine trees on island
+      ctx.fillStyle="#1a2a20";
+      for(var pt=0;pt<4;pt++){var tx=w*.36+pt*w*.06,ty=hor-20-pt*3;s=gd*.8;
+        ctx.beginPath();ctx.moveTo(tx-6*s,ty);ctx.lineTo(tx,ty-18*s);ctx.lineTo(tx+6*s,ty);ctx.closePath();ctx.fill();
+        ctx.beginPath();ctx.moveTo(tx-4*s,ty-8*s);ctx.lineTo(tx,ty-22*s);ctx.lineTo(tx+4*s,ty-8*s);ctx.closePath();ctx.fill()};
+      // Small boat near pier
+      ctx.fillStyle="#3a2a18";ctx.globalAlpha=gd*.3;
+      var bx=w*.38,by=hor+4;
+      ctx.beginPath();ctx.moveTo(bx-10*gd,bx+bx*.1?by-2*gd:by);ctx.lineTo(bx+10*gd,bx+bx*.1?by-2*gd:by);ctx.lineTo(bx+12*gd,by+3*gd);ctx.lineTo(bx-12*gd,by+3*gd);ctx.closePath();ctx.fill();
+      ctx.strokeStyle="#2a1a18";ctx.lineWidth=1.5*gd;
+      ctx.beginPath();ctx.moveTo(bx,by-3*gd);ctx.lineTo(bx,by-8*gd);ctx.stroke();
+      ctx.globalAlpha=1}
+}}}
+function drawFog(w,hor){const fogBase=Math.min(1,Math.max(0,(player.z-200)/300)*.18+Math.max(0,(player.z-1000)/300)*.25);ctx.fillStyle="rgba(200,220,230,"+fogBase+")";ctx.fillRect(0,0,w,hor)}function drawSkyZoneTint(w,h,hor){
+  // Subtle sky tint by zone — warm meadow, earthy forest, cool mountain, golden coastal
+  var zt=currentZone||getZone(player.z);
+  var tintColors={meadow:'rgba(240,216,176,0.06)',forest:'rgba(216,200,144,0.05)',mountain:'rgba(200,210,220,0.04)',coastal:'rgba(232,220,192,0.08)'};
+  ctx.save();ctx.globalAlpha=.15;
+  ctx.fillStyle=tintColors[zt.name]||'rgba(240,216,176,0.06)';
+  ctx.fillRect(0,0,w,hor);
+  // Dramatic sunset glow near Ganryu — deepening warm tones
+  var ganryuGlow=Math.min(1,Math.max(0,(player.z-1000)/280));
+  if(ganryuGlow>0){ctx.globalAlpha=ganryuGlow*.25;
+    ctx.fillStyle='rgba(196,100,60,0.15)';ctx.fillRect(0,0,w,hor);
+    ctx.fillStyle='rgba(180,80,50,0.1)';ctx.fillRect(0,0,w,hor*0.6)}
+  ctx.restore()
+}function drawMist(w,hor){ctx.strokeStyle="rgba(245,232,204,.06)";ctx.lineWidth=2;for(let i=0;i<14;i++){ctx.beginPath();ctx.moveTo(0,hor+10+i*16+Math.sin(last*.0008+i)*10);ctx.bezierCurveTo(w*.25,hor+i*12,w*.6,hor+50+i*10,w,hor+20+i*18);ctx.stroke()};// Deep mist at Ganryu approach
 var ganryuMist=Math.min(1,Math.max(0,(player.z-1100)/250));if(ganryuMist>0){ctx.globalAlpha=ganryuMist*.2;ctx.fillStyle="rgba(200,220,230,.6)";ctx.fillRect(0,0,w,hor);ctx.globalAlpha=1}}
 function drawMilestoneGlow(w,hor){
   // Glow rings near each route milestone zone
@@ -1753,6 +1804,13 @@ function drawVignette(w,h){
 }
 
 function drawAtmosphere(w,h){
+  // Zone-aware sky tint overlay for deeper atmospheric identity per territory
+  ctx.save();
+  var zoneSkyTint=currentZone||getZone(player.z);
+  var skyTintColors={meadow:'rgba(240,216,176,0.02)',forest:'rgba(216,200,144,0.025)',mountain:'rgba(200,210,220,0.03)',coastal:'rgba(232,220,192,0.04)'};
+  ctx.fillStyle=skyTintColors[zoneSkyTint.name]||'rgba(240,216,176,0.02)';
+  ctx.fillRect(0,0,w,h);
+  ctx.restore();
   ctx.save();
   // Zone-aware atmosphere color
   var zoneAtm=currentZone||getZone(player.z);

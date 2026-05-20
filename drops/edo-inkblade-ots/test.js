@@ -200,6 +200,16 @@ checks.push(["milestone stone draw function", html.includes("function drawMilest
 checks.push(["zone time tracking", html.includes("journeyZoneTimes") && html.includes("zn]=(journeyZoneTimes[zn]||0)+dt")]);
 checks.push(["diary journey stats summary", html.includes("Defeated: ") && html.includes("enemiesDefeated") && html.includes("marksPlacedTotal")]);
 
+// Pass 48: Journey sky evolution, cloud dynamics, Ganryu approach atmosphere
+checks.push(["cloud array initialized", html.includes("let clouds=[") && html.includes("clouds.push")]);
+checks.push(["cloud drift update", html.includes("cloudDrift") && html.includes("clouds.forEach(function(c){c.x")]);
+checks.push(["cloud drawing function", html.includes("function drawClouds") && html.includes("cloudTint")]);
+checks.push(["dramatic sunset near Ganryu", html.includes("ganryuGlow") && html.includes("rgba(196,100,60,0.15)")]);
+checks.push(["enhanced Ganryu island detail", html.includes("Pine trees") && html.includes("pt=0;pt<4")]);
+checks.push(["Ganryu island boat rendered", html.includes("Small boat") && html.includes("gd*.3")]);
+checks.push(["zone-specific sky tint function", html.includes("function drawSkyZoneTint") && html.includes("tintColors")]);
+checks.push(["sky tints for all 4 zones", html.includes("skyTintColors") && html.includes("rgba(240,216,176,0.02)")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

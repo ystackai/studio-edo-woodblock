@@ -13,10 +13,14 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 47 — Woodblock grain texture, road progress markings, ink-wash stains)
-- **~2310-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 48 — Journey sky evolution, cloud dynamics, Ganryu approach atmosphere)
+- **~2320-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), card clicks/taps wired into game start, hero ability descriptions
+- **Journey sky evolution with drifting clouds**: 16 soft-edged cloud bands with varied sizes, colors, and drift speeds animate across the sky. Cloud tint shifts by zone — warm cream (meadow), golden (forest), cool gray (mountain), deep beige (coastal). Creates a living Edo scroll sky overhead.
+- **Dramatic sunset near Ganryu**: deepening crimson/amber glow overlay intensifies as player crosses z=1000, making the final zone feel climactic.
+- **Enhanced Ganryu island detail**: island silhouette now includes layered pine trees, a small boat moored at the pier, and richer mist — grows more detailed as player approaches.
+- **Zone-specific sky tint overlay**: each zone applies a subtle color wash over the sky (meadow warm, forest earthy, mountain cool, coastal golden) for deeper visual identity.
 - **Woodblock grain upgrade**: horizontal woodblock print grain lines with varying thickness and grain wave for authentic Edo paper feel
 - **Road journey progress markings**: inscribed distance stones on road every 200 units showing remaining journey with "里 Nm" calligraphy
 - **Ink-wash paint stains**: dark sumi-e pools persist on road after marks fade, leaving traces of ink on the world
@@ -56,8 +60,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
-- `node drops/edo-inkblade-ots/test.js` — **169 checks**: all previous plus Pass 47 (horizontal woodblock grain lines, road progress markers, ink-wash paint stains, organic leaf colors+spinning, enhanced vignette warm tone, enhanced leaf rotation)
-- **All 169 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **177 checks**: all previous plus Pass 48 (cloud array, cloud drift, cloud drawing, Ganryu sunset glow, Ganryu island trees, Ganryu boat, sky tint function, 4-zone sky tint colors)
+- **All 177 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -96,8 +100,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 45** — Auto-forward drift when idle for cinematic journey feel; enhanced paint ink-wash ripple rings and paint audio accent; road travelers (wanderer/pilgrim silhouettes) for road atmosphere
 **Pass 46** — Journey milestone stone markers with Japanese calligraphy glyphs at each route position; diary journey stats summary bar; zone time tracking; fixed horizon variable ReferenceError; fresh screenshots
 **Pass 47** — Woodblock grain texture upgrade (horizontal woodblock print grain lines), road journey progress markings (distance stones), ink-wash paint stains on road (persistent sumi-e pools), organic drifting leaves with 6 colors, spinning, and wind gust responsiveness; enhanced vignette with warm paper tone
+**Pass 48** — Journey sky evolution with drifting clouds (16 cloud bands, zone-tinted, continuous drift), dramatic sunset near Ganryu (crimson/amber glow overlay), enhanced Ganryu island detail (pine trees, boat, layered mist), zone-specific sky tint overlay per zone (meadow/forest/mountain/coastal); 177 checks pass
 
 ### Known Issues
+- Screenshots need fresh captures after Pass 48 visual improvements
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
 
 ### FactoryX WorkOrder Context
