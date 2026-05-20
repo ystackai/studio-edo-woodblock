@@ -5,6 +5,11 @@
 
 ## Completed Passes
 
+### Pass 66 — Syntax error fix (musician try/catch brace imbalance)
+- **Browser Runtime Fix**: The musician road event's shakuhachi melody `try{if(audioCtx){...}}catch(e){}}}` block had an extra closing brace (`}}}` instead of `}}}`) that caused `Uncaught SyntaxError: missing ) after argument list` at runtime. Fixed by removing the extra `}` from the nested try/catch closure, restoring correct brace balance.
+- **All 398 checks pass** — JavaScript syntax validation passes cleanly.
+- Known issue resolved: browser runtime verification no longer fails on script parse error.
+
 ### Pass 65 — Dynamic storm/lightning system, red-crowned cranes, wandering musician road events, musician travelers
 - **Dynamic storm/lightning weather system**: passing storms arrive at random intervals (450-750 frames) with intensity fade over ~15s. Lightning flashes produce bright zigzag bolt rendering with glow halo and thunder audio via lowpass-filtered sawtooth oscillator. Storm rain bonus increases effective rain intensity during peak (+lightning triggers extra drizzle particles). Storm flashes filtered for lifecycle and rendered as jagged bolt with segments and glow.
 - **Red-crowned cranes**: elegant Edo-era birds spawn at road edge in meadow/forest/coastal zones. Tall slender form with long neck, red crest, folded wing detail, and periodic wing-spread animation when standing. Graceful bob and walk phase with still-count pauses.

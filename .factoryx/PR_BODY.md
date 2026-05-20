@@ -95,7 +95,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 64** — Road-side koi fish ponds, meditation spots, balance tuning, enhanced ending ceremony: zone-specific animated koi fish in reflective ponds (10 ponds, 3-5 fish each, zone-colored); meditation stones with E-key sit interaction and resolve build (60 frames); balance tuning (ink regen 0.009→0.012, waymark dmg 14→16); enhanced victory ceremony (240 particles, 12 colors, 30 golden petals, 60 mist wisps, Ganryu theme, 360-frame epilogue, 480-frame credits with zone time breakdown and stats summary). 330 checks pass; 25 new checks.
 
 ### Known Issues
-- None current — all 330 checks pass; koi ponds and meditation spots operational with zone-specific behavior
+- None current — all 398 checks pass; koi ponds and meditation spots operational with zone-specific behavior
+
+### Pass 66 — Syntax error fix (musician try/catch brace imbalance)
+Fixed the `Uncaught SyntaxError: missing ) after argument list` that caused browser runtime verification failure. The musician road event's shakuhachi melody block had an unbalanced brace count (extra `}` in the nested `try{if(audioCtx){...}}catch(e){}}}` closing). Removed the trailing extra `}` to restore proper brace balance. All 398 checks pass including JavaScript syntax validation.
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
