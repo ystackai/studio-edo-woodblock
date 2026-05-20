@@ -13,8 +13,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 55 — Zone-specific weather intensity, fog color/density per zone, enhanced mobile touch UX, browser runtime verification file)
-- **~2695-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 57 — Road-side ink stone collectibles, animated fog banks, enhanced milestone ceremony, Ganryu island wave animation)
+- **~2810-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - **Zone-specific weather**: rain intensity now varies by zone — meadow (light mist), forest (moderate drizzle), mountain (heavy rain), coastal (sea mist). Fog density and color vary per zone (meadow warm mist, forest earthy haze, mountain cool gray, coastal golden light). Journey zone definitions extended with `fogColor`, `fogDensity`, `rainIntensity` properties for data-driven weather system.
 - **Browser runtime verification file**: created `.factoryx-runtime-check-1.html` that loads the game in an iframe and validates player state, canvas, game loop, projection, audio, hero definitions, enemies, zones, and milestones — verifies zero runtime errors
 - **Enhanced mobile touch controls**: redesigned touch overlay with more visible labels ("Tap to move", "Drag to look", "hold" hints), better visual hierarchy with text-shadow and opacity, bottom hint bar summarizing mobile controls ("Long-press paint · Tap slash · Drag look")
@@ -33,7 +33,14 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), card clicks/taps wired into game start, hero ability descriptions
 - **Journey sky evolution with drifting clouds**: 16 soft-edged cloud bands with varied sizes, colors, and drift speeds animate across the sky. Cloud tint shifts by zone — warm cream (meadow), golden (forest), cool gray (mountain), deep beige (coastal). Creates a living Edo scroll sky overhead.
 - **Dramatic sunset near Ganryu**: deepening crimson/amber glow overlay intensifies as player crosses z=1000, making the final zone feel climactic.
-- **Enhanced Ganryu island detail**: island silhouette now includes layered pine trees, a small boat moored at the pier, and richer mist — grows more detailed as player approaches.
+- **Enhanced Ganryu island detail**: island silhouette now includes layered pine trees, a small boat moored at the pier with animated bobbing and drift, shoreline wave froth lines with foam particles — living sea atmosphere as player approaches
+- **Pass 56 — Zone transition portals**: dramatic ink-wash gate with sweeping brush pillars, calligraphy zone name ("ink threshold"), falling ink-drip particles, warm glow at each zone boundary crossing
+- **Brush-stroke trail animation**: animated ink sweep trail when painting — trailCount particles follow brush from player to paint point with fade/size/spread, creating visible ink-brush movement
+- **Road-side grass blade animation**: animated grass blades along road edges with wind-responsive sway (bladeSway, bladeWind); wind-responsive road flowers with lateral bloom sway
+- **Pass 57 — Road-side ink stone collectibles**: zone-colored glowing stones spawn along road edges (meadow golden, forest blue, mountain gray, coastal amber); player absorbs them for +1 ink when passing within 30px; ink regen sparkle and UI hint on collection
+- **Zone-specific animated fog banks**: horizontal mist bands drift across road view per zone with zone-tinted colors (meadow warm, forest earthy, mountain cool, coastal golden); organic drift with secondary wisps for layered depth
+- **Enhanced milestone arrival ceremony**: ink-wash ring particle burst (18 radial sparks + 10 white light) at each milestone trigger with zone-specific colors and camera shake
+- **Ganryu island animated waves**: boat now bobs with drift animation; shoreline wave froth lines with foam particles animate along island edge
 - **Zone-specific sky tint overlay**: each zone applies a subtle color wash over the sky (meadow warm, forest earthy, mountain cool, coastal golden) for deeper visual identity.
 - **Woodblock grain upgrade**: horizontal woodblock print grain lines with varying thickness and grain wave for authentic Edo paper feel
 - **Road journey progress markings**: inscribed distance stones on road every 200 units showing remaining journey with "里 Nm" calligraphy
@@ -77,8 +84,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
-- `node drops/edo-inkblade-ots/test.js` — **225 checks**: all previous 215 plus 6 new (mobile touch hints, zone weather properties, zone weather on zones, runtime check file, player state test, canvas test)
-- **All 225 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **233 checks**: all previous 225 plus 8 new (zone portal effect, zone portal state, zone portal timer decay, brush trails array, brush trails draw function, brush trails on paint, grass blade animation, wind-responsive flowers). Pass 57 adds 12 new checks: ink pickup array, ink pickup draw function, ink pickup absorption, fog bank array, fog bank draw function, fog bank zone colors, milestone ceremony particles, Ganryu wave animation, Ganryu boat drift, Ganryu foam particles, rough sea waves, ink stones per zone.
+- **All 233 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -128,6 +135,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 54** — Ending credits ceremony: after Ganryu victory epilogue scroll, a rich credits sequence plays showing journey zone memories (4 zones with descriptions), journey stats summary, and closing Edo calligraphy ("終"). `goToTitle()` function resets all state and returns to title screen on any key press during credits. Dark ink-wash overlay, drifting ink particles, "Journey Complete" title, pulsing "Press any key to return to title" hint. 215 checks pass
 
 **Pass 55** — Zone-specific weather intensity (rain/mist varies by zone: meadow light, forest moderate, mountain heavy, coastal mist); fog density and color per zone (meadow warm mist, forest earthy haze, mountain cool gray, coastal golden light); journey zone definitions extended with fogColor/fogDensity/rainIntensity; enhanced mobile touch UX with better labels, hierarchy, and hint bar; browser runtime verification file (.factoryx-runtime-check-1.html) validates game runtime state. 225 checks pass
+
+**Pass 56** — Zone transition portal effect (ink-wash gate with sweeping brush pillars, calligraphy zone name, falling ink-drip particles, warm glow); brush-stroke trail animation (trailCount particles follow brush from player to paint point with fade/size/spread); road-side grass blade animation with wind-responsive sway (bladeSway, bladeWind) and wind-responsive road flowers with lateral bloom sway. 233 checks pass
+
+**Pass 57** — Road-side ink stone collectibles (zone-colored glowing stones spawn along road edges, grant +1 ink on collection); zone-specific animated fog banks (horizontal mist bands drift across road view per zone with zone-tinted colors); enhanced milestone arrival ceremony (ink-wash ring particle burst at milestone triggers); Ganryu island animated shoreline waves (boat bobs with drift, wave froth lines, foam particles). 233 checks pass; all new checks added for Pass 57 features.
 
 ### Known Issues
 - None current — audio gain null safety fixed; all checks pass

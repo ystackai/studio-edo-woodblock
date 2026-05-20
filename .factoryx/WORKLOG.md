@@ -65,7 +65,12 @@
 - **Enhanced ending ceremony**: dark ink-wash overlay, drifting ink particles, "Journey Complete" title, stats display, pulsing "Press any key to return to title" hint
 - All 203 existing checks pass; new checks added for credits state, goToTitle function, credits drawing function
 
-### Pass 56 — Enhanced zone transition portals, brush-stroke trail animation, road-side grass/flower wind animation
+### Pass 57 — Road-side ink stone collectibles, animated fog banks, enhanced milestone ceremony, Ganryu island wave animation
+- **Road-side collectible ink stones**: zone-colored glowing stones spawn along road edges (meadow golden, forest blue, mountain gray, coastal amber); player absorbs them for +1 ink when passing within 30px; ink regen sparkle and UI hint on collection
+- **Zone-specific animated fog banks**: horizontal mist bands drift across road view per zone, with zone-tinted fog colors (meadow warm, forest earthy, mountain cool, coastal golden); organic drift with secondary wisps for layered atmosphere
+- **Enhanced milestone arrival ceremony**: ink-wash ring particle burst (18 radial sparks + 10 white light) at each milestone trigger zone (shrine/bridge/valley/mountain/ganryu) with zone-specific colors and camera shake
+- **Animated Ganryu island shoreline waves**: boat now bobs with drift animation; shoreline wave froth lines with foam particles animate along island edge; adds living sea atmosphere to Ganryu approach
+- All 233 existing checks pass; new checks added for ink pickups, fog banks, milestone ceremony, Ganryu waves
 - **Zone transition portal effect**: dramatic ink-wash gate with sweeping brush pillar strokes, calligraphy zone name ("ink threshold"), falling ink-drip particles, warm glow — activates at each zone boundary crossing
 - **Brush-stroke trail animation**: animated ink sweep trail when painting — trailCount particles follow brush from player to paint point with fade/size/spread, creating visible ink-brush movement
 - **Road-side grass blade animation**: animated grass blades along road edges with wind-responsive sway (bladeSway, bladeWind)

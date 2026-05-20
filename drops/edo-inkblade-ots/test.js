@@ -272,6 +272,20 @@ if (fs.existsSync(runtimeCheckPath)) {
   checks.push(["runtime check contains canvas test", rcContent.includes("canvas") && (rcContent.includes("getContext") || rcContent.includes("querySelector('canvas')"))]);
 }
 
+// Pass 57 — Road-side ink stone collectibles, animated fog banks, milestone ceremony, Ganryu waves
+checks.push(["ink pickup array initialized", html.includes("let inkPickups=[]") || html.includes("inkPickups=[]")]);
+checks.push(["ink pickup draw function", html.includes("function drawInkPickups") && html.includes("ip.glowPhase")]);
+checks.push(["ink pickup absorption logic", html.includes("ipDist<30") && html.includes("ip.collected") && html.includes("player.ink=Math.min")]);
+checks.push(["fog bank array initialized", html.includes("let fogBanks=[]") || html.includes("fogBanks=[]")]);
+checks.push(["fog bank draw function", html.includes("function drawFogBanks") && html.includes("fb.color")]);
+checks.push(["fog bank zone-specific colors", html.includes("fbColors") && html.includes("meadow") && html.includes("forest") && html.includes("mountain") && html.includes("coastal")]);
+checks.push(["milestone ceremony particles", html.includes("Enhanced milestone ceremony") && html.includes("ringColors") && html.includes("mr=0;mr<18")]);
+checks.push(["Ganryu wave animation", html.includes("swPhase") && html.includes("shoreline") && html.includes("gentle froth")]);
+checks.push(["Ganryu boat drift", html.includes("boatBob") && html.includes("boatDrift") && html.includes("bobbing")]);
+checks.push(["Ganryu foam particles", html.includes("wpi=0;wpi<6") && html.includes("foam")]);
+checks.push(["ink stone pickups reset in goToTitle", html.includes("inkPickups=[];fogBanks=[]")]);
+checks.push(["ink stone colors per zone", html.includes("ipColors") && html.includes("meadow") && html.includes("forest") && html.includes("mountain") && html.includes("coastal")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);
