@@ -254,6 +254,16 @@ checks.push(["zone weather properties", html.includes('fogColor') && html.includ
 checks.push(["zone weather on journey zones", html.includes('fogColor:[220,230,240],fogDensity:.08,rainIntensity:.002') && html.includes('fogColor:[200,220,225],fogDensity:.22,rainIntensity:.008')]);
 checks.push(["runtime check file exists", fs.existsSync(path.join(root, '.factoryx-runtime-check-1.html'))]);
 
+// New checks for Pass 56 — Enhanced zone portal, brush trails, grass animation
+checks.push(["zone portal effect function", html.includes("function drawZonePortal") && html.includes("portalX") && html.includes("ink threshold")]);
+checks.push(["zone portal state variable", html.includes("zonePortal={active:false") && html.includes("inkFlash")]);
+checks.push(["zone portal timer decay", html.includes("zonePortal.timer=Math.max") && html.includes("zonePortal.active=false")]);
+checks.push(["brush trails array", html.includes("let brushTrails") && html.includes("brushTrails=[]")]);
+checks.push(["brush trails draw function", html.includes("function drawBrushTrails") && html.includes("brushTrails.forEach")]);
+checks.push(["brush trails created on paint", html.includes("brushTrails.push") && html.includes("trailCount")]);
+checks.push(["road grass blade animation", html.includes("Animated grass blades") && html.includes("bladeWind") && html.includes("bladeSway")]);
+checks.push(["wind-responsive road flowers", html.includes("flowerSway") && html.includes("windDrift") && html.includes("Math.sin")]);
+
 // Runtime check file content verification
 const runtimeCheckPath = path.join(root, '.factoryx-runtime-check-1.html');
 if (fs.existsSync(runtimeCheckPath)) {

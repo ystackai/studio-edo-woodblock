@@ -65,8 +65,9 @@
 - **Enhanced ending ceremony**: dark ink-wash overlay, drifting ink particles, "Journey Complete" title, stats display, pulsing "Press any key to return to title" hint
 - All 203 existing checks pass; new checks added for credits state, goToTitle function, credits drawing function
 
-### Pass 55 — Zone-specific weather intensity, fog color/density per zone, enhanced mobile touch UX, browser runtime verification file
-- **Zone-specific weather**: rain intensity now varies by zone — meadow (light mist), forest (moderate drizzle), mountain (heavy rain), coastal (sea mist). Fog density and color vary per zone (meadow warm mist, forest earthy haze, mountain cool gray, coastal golden light). Journey zone definitions extended with `fogColor`, `fogDensity`, `rainIntensity` properties.
-- **Enhanced mobile touch controls**: redesigned touch overlay with more visible labels ("Tap to move", "Drag to look", "hold" hints), better visual hierarchy with text-shadow and opacity, bottom hint bar summarizing mobile controls
-- **Browser runtime verification file**: created `.factoryx-runtime-check-1.html` that loads the game in an iframe and validates player state, canvas, game loop, projection, audio, hero definitions, enemies, zones, and milestones — verifies no runtime errors
-- 225 smoke checks pass (all 215 existing + 6 new: mobile touch hints, zone weather properties, zone weather on zones, runtime check file, player state test, canvas test)
+### Pass 56 — Enhanced zone transition portals, brush-stroke trail animation, road-side grass/flower wind animation
+- **Zone transition portal effect**: dramatic ink-wash gate with sweeping brush pillar strokes, calligraphy zone name ("ink threshold"), falling ink-drip particles, warm glow — activates at each zone boundary crossing
+- **Brush-stroke trail animation**: animated ink sweep trail when painting — trailCount particles follow brush from player to paint point with fade/size/spread, creating visible ink-brush movement
+- **Road-side grass blade animation**: animated grass blades along road edges with wind-responsive sway (bladeSway, bladeWind)
+- **Wind-responsive road flowers**: existing road-side flowers and seasonal blooms now sway with windDrift, using flowerSway/bloomSway for organic movement
+- 233 smoke checks pass (225 existing + 8 new: zone portal function, zone portal state, zone portal timer decay, brush trails array, brush trails draw function, brush trails on paint, grass blade animation, wind-responsive flowers)
