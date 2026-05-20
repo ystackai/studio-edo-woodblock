@@ -214,7 +214,7 @@ checks.push(["sky tints for all 4 zones", html.includes("skyTintColors") && html
 checks.push(["dust motes array initialized", html.includes("let dustMotes=[]") && html.includes("dustMotes.push")]);
 checks.push(["dust motes spawning", html.includes("dustMotes.filter") && html.includes("dustMotes.forEach")]);
 checks.push(["dust motes draw function", html.includes("function drawDustMotes") && html.includes("dustMotes.forEach(d")]);
-checks.push(["traveler merchant type", html.includes("tKindR<.45?") && html.includes("\"merchant\"") && html.includes("tColors")]);
+checks.push(["traveler merchant type", html.includes("tKindR<.4?") && html.includes("\"merchant\"") && html.includes("tColors")]);
 checks.push(["merchant traveler rendering", html.includes("t.kind===\"merchant\"") && html.includes("Pack on back")]);
 checks.push(["boss phase aura glow", html.includes("Boss phase-specific aura glow") && html.includes("bpColors")]);
 checks.push(["boss phase transition particles", html.includes("Phase 3 transition") && html.includes("Phase 2 transition")]);
@@ -368,6 +368,20 @@ checks.push(["end credits ink stones display", html.includes("inkstonesCollected
 checks.push(["end credits paintings display", html.includes("paintingsMade")]);
 checks.push(["koi ponds reset in goToTitle", html.includes("koiPonds=[];koiFish=[]")]);
 checks.push(["meditation hint timer", html.includes("_msHintTimer")]);
+checks.push(["storm system variables defined", html.includes("stormTimer") && html.includes("stormIntensity") && html.includes("lightningTimer") && html.includes("stormFlashes")]);
+checks.push(["storm lightning flash rendering", html.includes("function drawStormFlashes") && html.includes("boltSegs")]);
+checks.push(["storm flashed rendered in draw", html.includes("drawStormFlashes()")]);
+checks.push(["storm thunder audio", html.includes("createOscillator") && html.includes("lowpass") && html.includes("sawtooth") && html.includes("Thunder")]);
+checks.push(["storm rain bonus", html.includes("stormRainBonus") && html.includes("weatherTarget+stormRainBonus")]);
+checks.push(["storm lightning bolt particles", html.includes("stormFlashes.filter") && html.includes("sf.age")]);
+checks.push(["crane birds defined", html.includes("cranes=[]")]);
+checks.push(["crane draw function", html.includes("function drawCranes") && html.includes("#d96a3a")]);
+checks.push(["cranes rendered in draw", html.includes("drawCranes()")]);
+checks.push(["cranes spawned in step", html.includes("cranes.push") && html.includes("cZones")]);
+checks.push(["crane lifecycle management", html.includes("cranes=cranes.filter") && html.includes("cranes.forEach")]);
+checks.push(["musician road event type", html.includes("musician") && html.includes("shakuhachi") && html.includes("mNotes")]);
+checks.push(["musician traveler type defined", html.includes('musician') && html.includes("tColors") && html.includes("#8a6a5a")]);
+checks.push(["musician traveler rendering", html.includes("shakuhachi") && html.includes(".kind===") && html.includes("musician")]);
 
 let failed = 0;
 for (const [name, ok] of checks) {

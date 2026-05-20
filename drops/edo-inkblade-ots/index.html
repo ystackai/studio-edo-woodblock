@@ -538,7 +538,7 @@ let ganryuArrival={active:false,timer:0,flag:false}; // Ganryu arrival cinematic
 let firstGameStarted=false,tutorialVisible=false;
 let gameStartTime=0,enemiesDefeated=0,inkUsedTotal=0,marksPlacedTotal=0;
 let messages=["Choose a style, then begin the road."];
-let dustMotes=[],roadDecorations=[];
+let dustMotes=[],roadDecorations=[],stormTimer=0,stormIntensity=0,lightningTimer=0,stormFlashes=[];
 let milestonePopup={active:false,text:"",timer:0};
 // Yo-scale pentatonic note frequencies (D E G A C)
 let yoNotes=[293.7,329.6,392,440,523.3];
@@ -547,7 +547,8 @@ let diaryEntries=[],diaryOpen=false,diaryEntryCount=0;
 let roadEvents=[
   {z:160,type:"spirit",used:false,text:"An old road spirit drifts from the pine — it whispers courage. Press E to receive a blessing.",effect:{resolve:2}},
   {z:420,type:"flowerSeller",used:false,text:"A child by the road holds a wildflower — it smells of the meadow. Press E to accept.",effect:{hp:10}},
-  {z:760,type:"calligrapher",used:false,text:"A wandering calligrapher offers the brush-tip of a master. Press E to receive ink wisdom.",effect:{ink:3}}
+  {z:760,type:"calligrapher",used:false,text:"A wandering calligrapher offers the brush-tip of a master. Press E to receive ink wisdom.",effect:{ink:3}},
+  {z:940,type:"musician",used:false,text:"A blind musician sits by the roadside playing a shakuhachi. Press E to hear a song.",effect:{resolve:2,hp:5}}
 ];
 let roadEventHintTimer=0;
 // Road-side ink painting canvas stations — scenic viewpoints where player creates permanent ink art
@@ -587,7 +588,7 @@ let inkPickups=[]; // Road-side collectible ink stones — zone-colored glowing 
 let fogBanks=[]; // Zone-specific animated fog banks drifting horizontally across road view
 let clouds=[],cloudDrift=0;
 for(var ci=0;ci<16;ci++){clouds.push({x:Math.random(),w:.3+Math.random()*.6,y:.05+Math.random()*.12,s:.4+Math.random()*1.2,a:.06+.04*Math.random(),vx:(Math.random()-.5)*.0008,vy:(Math.random()-.5)*.0001,color:["#f4ead8","#ead9bb","#d4c8a0","#f0e6d0"][Math.floor(Math.random()*4)]})}
-let butterflies=[],crows=[],eagles=[],seabirds=[]; // zone-specific ambient particles
+let butterflies=[],crows=[],eagles=[],seabirds=[],cranes=[]; // zone-specific ambient particles
 // Road-side koi fish ponds — animated Edo-style fish swimming in ponds alongside the road
 let koiPonds=[],koiFish=[];
 let meditationSpots=[],meditationActive=false,meditationTimer=0,meditationResult="";
@@ -917,6 +918,10 @@ addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(endCreditsActiv
       if(re.type==="spirit"){player.resolve=Math.min(15,player.resolve+(re.effect.resolve||2));screenShake=1;say(re.text);burst(player.x,player.z,"#d9c84a","#ead9bb");roadDecorations.push({z:re.z,type:"spirit",age:0,maxAge:3600,color:"#d9c84a",glowPhase:Math.random()*7})}
       else if(re.type==="flowerSeller"){player.hp=Math.min(hero.hp,player.hp+(re.effect.hp||10));screenShake=1;say(re.text);burst(player.x,player.z,"#d98986","#ead9bb");roadDecorations.push({z:re.z,type:"flower",age:0,maxAge:3600,color:"#d98986",bloomPhase:Math.random()*7})}
       else if(re.type==="calligrapher"){player.ink=Math.min(hero.ink,player.ink+(re.effect.ink||3));screenShake=1;say(re.text);burst(player.x,player.z,"#8fc7d6","#ead9bb");roadDecorations.push({z:re.z,type:"calligraphy",age:0,maxAge:3600,color:"#8fc7d6",fadePhase:Math.random()*7})}
+      else if(re.type==="musician"){player.resolve=Math.min(15,player.resolve+(re.effect.resolve||2));player.hp=Math.min(hero.hp,player.hp+(re.effect.hp||5));screenShake=1;say(re.text);
+        // Play a brief shakuhachi melody as musician performs
+        try{if(audioCtx){var mNotes=[220,262,330,392,440,524,392,330,262,330,392,440,524,440,392,330];mNotes.forEach(function(mf,mi){setTimeout(function(){try{if(audioCtx){var ms=audioCtx.createOscillator();ms.type="sine";ms.frequency.value=mf;var mg=audioCtx.createGain();mg.gain.setValueAtTime(.04*window._audioVolSfx,audioCtx.currentTime);mg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.25);ms.connect(mg);mg.connect(window._masterGain);ms.start();ms.stop(audioCtx.currentTime+.25)}}catch(e){}},mi*200)})}}catch(e){}}
+        burst(player.x,player.z,"#ead9bb","#caa45f");roadDecorations.push({z:re.z,type:"spirit",age:0,maxAge:3600,color:"#f4ead8",glowPhase:Math.random()*7})}
       diaryEntries.push({type:"event",event:re.type,text:"Encountered a "+re.type+" on the road."});
     }});
   // Painting canvas interaction: press E near a scenic viewpoint to create permanent ink art
@@ -1144,13 +1149,21 @@ function step(dt){
     if(currentZone.name==="forest"&&Math.random()<.002*dt&&crows.length<4){crows.push({x:player.x+(Math.random()-.5)*100,z:player.z+Math.random()*60-20,age:0,maxAge:120+Math.random()*80,color:'#1a1512',vx:(Math.random()-.5)*.4,vz:-.2-Math.random()*.3})};
     if(currentZone.name==="mountain"&&Math.random()<.0015*dt&&eagles.length<3){eagles.push({x:player.x+(Math.random()-.5)*120,z:player.z+Math.random()*80-10,age:0,maxAge:200+Math.random()*100,color:'#3a2a1a',vx:(Math.random()-.5)*.3,vz:-.1-Math.random()*.2})};
     if(currentZone.name==="coastal"&&Math.random()<.002*dt&&seabirds.length<5){seabirds.push({x:player.x+(Math.random()-.5)*100,z:player.z+Math.random()*60-10,age:0,maxAge:150+Math.random()*100,color:'#2a1a18',vx:(Math.random()-.5)*.35,vz:-.15-Math.random()*.25})};
+    // Road-side red-crowned cranes — elegant Edo-era birds standing gracefully at road edge
+    if(player.hp>0&&Math.random()<.0003*dt&&cranes.length<3){
+      var cZones=["meadow","forest","coastal"];
+      var cZoneName=getZone(player.z).name;
+      if(cZones.includes(cZoneName)){cranes.push({x:player.x+(Math.random()-.5)*160,z:player.z+40+Math.random()*80,age:0,maxAge:300+Math.random()*200,color:'#f4ead8',legColor:'#d98986',crest:'#d96a3a',bobPhase:Math.random()*7,walkPhase:Math.random()*7,wingsUp:0,stillCount:0,maxStill:60+Math.random()*60})}
+    }
+    cranes=cranes.filter(c=>c.age<c.maxAge);
+    cranes.forEach(c=>{c.age+=dt;if(c.wingsUp>0){c.wingsUp=Math.max(0,c.wingsUp-dt);c.z+=.06*dt}else{c.z+=.02*dt};c.bobPhase+=dt*.025;if(c.stillCount<c.maxStill){c.stillCount+=dt}else{c.walkPhase+=dt*.035;if(Math.cos(c.walkPhase*2)<-.99&&c.wingsUp==0){c.wingsUp=30}};if(c.age%200<2)c.stillCount=0});
     riverMist=riverMist.filter(m=>m.alpha>.02);riverMist.forEach(m=>{m.x+=m.vx*dt;m.z+=m.vz*dt;m.alpha=Math.max(0,m.alpha-.006*dt)});
     // Road travelers — distant wanderers with walking silhouettes for road atmosphere
     if(player.hp>0&&Math.random()<.001*dt&&roadTravelers.length<8){
       var tz=player.z+60+Math.random()*100,tx=(Math.random()-.5)*160;
       var tKindR=Math.random();
-      var tKind=tKindR<.45?"wanderer":tKindR<.8?"pilgrim":"merchant";
-      var tColors={wanderer:'#4a3a28',pilgrim:'#6a5038',merchant:'#8a6a42'};
+      var tKind=tKindR<.4?"wanderer":tKindR<.7?"pilgrim":tKindR<.9?"merchant":"musician";
+      var tColors={wanderer:'#4a3a28',pilgrim:'#6a5038',merchant:'#8a6a42',musician:'#8a6a5a'};
       roadTravelers.push({x:tx,z:tz,age:0,maxAge:120+Math.random()*80,kind:tKind,side:Math.random()<.5?1:-1,walkPhase:0,color:tColors[tKind]||'#4a3a28'});
     }
     roadTravelers=roadTravelers.filter(t=>t.age<t.maxAge);roadTravelers.forEach(t=>{t.age+=dt;t.z-=0.15*dt;t.walkPhase+=dt*0.07});
@@ -1162,7 +1175,34 @@ function step(dt){
     // Zone-specific weather: rain/mist intensity varies by zone per journeyZones data
     var zoneWeather=getZone(player.z);
     var weatherTarget=zoneWeather.rainIntensity||0;
-    drizzleActive=Math.max(0,drizzleActive+(weatherTarget-.004)*dt);
+    // Dynamic storm system — passing storms add dramatic weather variation
+    stormTimer+=dt;
+    if(stormTimer>450+Math.random()*300){stormTimer=0;stormIntensity=Math.random()*.4+.2;lightningTimer=0;stormFlashes=[];
+      // Storm arrives — deep wind howl audio gesture
+      if(audioCtx){try{var th=audioCtx.createOscillator();th.type="sine";th.frequency.value=80+Math.random()*40;var tg=audioCtx.createGain();tg.gain.setValueAtTime(.06*window._audioVolSfx,audioCtx.currentTime);tg.gain.linearRampToValueAtTime(0,audioCtx.currentTime+2);th.connect(tg);tg.connect(window._masterGain);th.start();th.stop(audioCtx.currentTime+2)}catch(e){}}}
+    if(stormIntensity>0){
+      stormIntensity=Math.max(0,stormIntensity-.0004*dt); // gradual fade over ~15s
+      // Lightning flashes during storm peak
+      lightningTimer+=dt;
+      if(lightningTimer>40+Math.random()*120&&stormIntensity>.08){
+        lightningTimer=0;
+        var flashX=player.x+(Math.random()-.5)*120,flashZ=player.z-20+Math.random()*60;
+        stormFlashes.push({x:flashX,z:flashZ,age:0,maxAge:6,color:Math.random()>.3?"#fff":"#d9e8ff"});
+        if(Math.random()>.5)stormFlashes.push({x:flashX+(Math.random()-.5)*40,z:flashZ+(Math.random()-.5)*20,age:0,maxAge:4,color:"#ede8ff"});
+        // Thunder audio — low rumble after flash
+        if(audioCtx){try{var tn=audioCtx.createOscillator();tn.type="sawtooth";tn.frequency.value=60+Math.random()*30;var tng=audioCtx.createGain();tng.gain.setValueAtTime(.04*window._audioVolSfx,audioCtx.currentTime);tng.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1.5);var tlf=audioCtx.createBiquadFilter();tlf.type="lowpass";tlf.frequency.value=120;tn.connect(tlf);tlf.connect(tng);tng.connect(window._masterGain);tn.start();tn.stop(audioCtx.currentTime+1.5)}catch(e){}}
+        say("Thunder rolls across the road.");
+        screenShake=Math.max(screenShake,3);
+        // Rain burst during lightning — extra particles
+        for(var ls=0;ls<20;ls++){var la=Math.random()*7,ld=15+Math.random()*60;drizzle.push({x:player.x+Math.cos(la)*ld,z:player.z+Math.sin(la)*ld-20,vx:(Math.random()-.5)*1.5,vy:2+Math.random()*4,len:10+Math.random()*20,age:0})}
+      }
+    }
+    stormFlashes=stormFlashes.filter(function(sf){return sf.age<sf.maxAge});
+    stormFlashes.forEach(function(sf){sf.age+=dt});
+    // Storm downpour increases effective rain intensity
+    var stormRainBonus=stormIntensity>.1?Math.min(1,(stormIntensity-.1)*2):0;
+    var weatherTarget=zoneWeather.rainIntensity||0;
+    drizzleActive=Math.max(0,drizzleActive+(weatherTarget+stormRainBonus-.004)*dt);
     smoothRain+=((drizzleActive-smoothRain)*.06)*dt;
     var rainEffective=smoothRain;
     if(rainEffective>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
@@ -1844,7 +1884,7 @@ function draw(){
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawClouds(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
   drawSkyZoneTint(w,h,horizon);
-  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();drawDustMotes();drawRoadDecorations();drawPaintingCanvases();drawInns();drawDrizzle();drawCampfires();drawCampfireEmbers();drawKoiPonds();drawKoiFish();drawMeditationSpots();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawCranes();drawTravelers();drawDustMotes();drawRoadDecorations();drawPaintingCanvases();drawInns();drawDrizzle();drawCampfires();drawCampfireEmbers();drawKoiPonds();drawKoiFish();drawMeditationSpots();drawStormFlashes();
   // Journey milestone stone markers — inscribed pillars at route positions
   drawMilestoneStones(w,h,horizon);
   // Journey zone transition markers — torii gates at zone boundaries
@@ -2870,6 +2910,22 @@ function drawKoiFish(){koiFish.forEach(function(kf){const p=project(kf.x,kf.z,8)
     ctx.fillStyle=kf.color+'40';
     ctx.beginPath();ctx.arc(p.x+swimOff,p.y,kf.size*s*0.6,0,7);ctx.fill();
     ctx.globalAlpha=1})}
+// Storm lightning flashes — brief bright bolt illuminate road during storms
+function drawStormFlashes(){stormFlashes.forEach(function(sf){const p=project(sf.x,sf.z,50);if(!p)return;
+  var fade=Math.max(0,1-sf.age/sf.maxAge),s=Math.min(p.s,3.5);if(s<.3)return;
+  ctx.globalAlpha=fade*.7;
+  // Bolt core — bright white jagged line
+  ctx.strokeStyle=sf.color;ctx.lineWidth=3.5*s;
+  ctx.beginPath();var boltSegs=5+Math.floor(Math.random()*4);
+  var bx=p.x,by=p.y-20*s;
+  ctx.moveTo(bx,by);
+  for(var bi=0;bi<boltSegs;bi++){bx+=(Math.random()-.5)*15*s;by+=20*s/boltSegs;ctx.lineTo(bx,by)}
+  ctx.stroke();
+  // Glow halo around bolt
+  ctx.globalAlpha=fade*.3;
+  ctx.fillStyle=sf.color;ctx.beginPath();ctx.arc(p.x,p.y-20*s,12*s,0,7);ctx.fill();
+  ctx.globalAlpha=1})}
+
 // Road-side meditation spots — peaceful glow indicators where player can sit and gain resolve
 function drawMeditationSpots(){meditationSpots.forEach(function(ms){if(ms.used)return;
     var p=project(ms.x,ms.z,10);if(!p)return;
@@ -3047,6 +3103,17 @@ function drawTravelers(){roadTravelers.forEach(t=>{const p=project(t.x,t.z,25);i
     ctx.beginPath();ctx.moveTo(p.x-6*s,p.y-6*s+walkOff);ctx.lineTo(p.x-12*s,p.y+walkOff);ctx.stroke();
     // Pack on back
     ctx.fillStyle="#6a4a28";ctx.fillRect(p.x+2*s,p.y-8*s+walkOff,5*s,6*s);
+  }else if(t.kind==="musician"){
+    // Musician traveler — playing a shakuhachi (bamboo flute)
+    ctx.fillStyle="#5a3a28";ctx.beginPath();ctx.arc(p.x,p.y-14*s+walkOff,4.5*s,0,7);ctx.fill();
+    ctx.strokeStyle="#2a1a18";ctx.lineWidth=1.5*s;
+    ctx.beginPath();ctx.moveTo(p.x-5*s,p.y-14*s+walkOff);ctx.lineTo(p.x+5*s,p.y-14*s+walkOff);ctx.stroke();
+    // Shakuhachi flute held at angle
+    ctx.strokeStyle="#8a7a6a";ctx.lineWidth=2.5*s;
+    ctx.beginPath();ctx.moveTo(p.x+4*s,p.y-6*s+walkOff);ctx.quadraticCurveTo(p.x+12*s,p.y-2*s,p.x+18*s,p.y+2*s);ctx.stroke();
+    // Hands holding flute
+    ctx.fillStyle="#4a3a28";ctx.beginPath();ctx.arc(p.x+8*s,p.y-4*s+walkOff,2*s,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(p.x+14*s,p.y+walkOff,2*s,0,7);ctx.fill()
   }else{
     // Pilgrim — staff and straw hat
     ctx.fillStyle="#3a2a1a";ctx.beginPath();ctx.arc(p.x,p.y-14*s+walkOff,5*s,0,7);ctx.fill();
@@ -3074,6 +3141,32 @@ function drawButterflies(){butterflies.forEach(b=>{const p=project(b.x,b.z,15);i
 function drawCrows(){crows.forEach(c=>{const p=project(c.x,c.z,25);if(!p)return;var fade=Math.max(0,1-c.age/c.maxAge),s=Math.min(p.s,3);ctx.globalAlpha=fade*.45*s;ctx.fillStyle=c.color;ctx.beginPath();ctx.moveTo(p.x-6*s,p.y-3*s);ctx.lineTo(p.x-2*s,p.y-8*s);ctx.lineTo(p.x+4*s,p.y-6*s);ctx.lineTo(p.x+8*s,p.y-2*s);ctx.closePath();ctx.fill();ctx.globalAlpha=1})}
 function drawEagles(){eagles.forEach(e=>{const p=project(e.x,e.z,40);if(!p)return;var fade=Math.max(0,1-e.age/e.maxAge),s=Math.min(p.s,3);ctx.globalAlpha=fade*.4*s;ctx.fillStyle=e.color;ctx.beginPath();ctx.moveTo(p.x-10*s,p.y-2*s);ctx.lineTo(p.x-4*s,p.y-10*s);ctx.lineTo(p.x+4*s,p.y-10*s);ctx.lineTo(p.x+10*s,p.y-2*s);ctx.closePath();ctx.fill();ctx.strokeStyle="#3a2a1a";ctx.lineWidth=1*s;ctx.beginPath();ctx.moveTo(p.x-2*s,p.y-4*s);ctx.lineTo(p.x+2*s,p.y-4*s);ctx.stroke();ctx.globalAlpha=1})}
 function drawSeabirds(){seabirds.forEach(s=>{const p=project(s.x,s.z,30);if(!p)return;var fade=Math.max(0,1-s.age/s.maxAge),sp=Math.min(p.s,3);ctx.globalAlpha=fade*.45*sp;ctx.fillStyle=s.color;ctx.beginPath();ctx.moveTo(p.x-8*sp,p.y-2*sp);ctx.lineTo(p.x-3*sp,p.y-8*sp);ctx.lineTo(p.x+5*sp,p.y-6*sp);ctx.lineTo(p.x+10*sp,p.y-2*sp);ctx.closePath();ctx.fill();ctx.globalAlpha=1})}
+function drawCranes(){cranes.forEach(c=>{const p=project(c.x,c.z,25);if(!p)return;var fade=Math.max(0,1-c.age/c.maxAge),s=Math.min(p.s,3);if(s<.4)return;
+  ctx.globalAlpha=fade*.5;
+  // Crane body — elegant long neck, tall slender form
+  var bob=Math.sin(c.bobPhase)*1.5*s;
+  ctx.strokeStyle='#f4ead8';ctx.lineWidth=2*s;
+  // Legs — long slender limbs
+  ctx.beginPath();ctx.moveTo(p.x-3*s,p.y+6*s+bob);ctx.lineTo(p.x-8*s,p.y+20*s+bob);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p.x+3*s,p.y+6*s+bob);ctx.lineTo(p.x+8*s,p.y+20*s+bob);ctx.stroke();
+  // Body — elegant oval
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(p.x,p.y+2*s+bob,8*s,4*s,0,0,7);ctx.fill();
+  // Neck — long curved
+  ctx.strokeStyle='#f4ead8';ctx.lineWidth=2.5*s;
+  ctx.beginPath();ctx.moveTo(p.x+6*s,p.y+bob);ctx.quadraticCurveTo(p.x+10*s,p.y-18*s,p.x+4*s,p.y-28*s);ctx.stroke();
+  // Head — small oval with red crest
+  ctx.fillStyle='#f4ead8';ctx.beginPath();ctx.arc(p.x+4*s,p.y-28*s+bob,3.5*s,0,7);ctx.fill();
+  ctx.fillStyle='#d96a3a';ctx.beginPath();ctx.arc(p.x+4*s,p.y-32*s+bob,2.5*s,0,7);ctx.fill();
+  // Wing detail — subtle feather layers when wings folded
+  ctx.strokeStyle='#e8ddd0';ctx.lineWidth=1.5*s;
+  ctx.beginPath();ctx.moveTo(p.x-4*s,p.y+bob);ctx.lineTo(p.x-10*s,p.y-4*s+bob);ctx.lineTo(p.x-6*s,p.y+2*s+bob);ctx.stroke();
+  // Wing spread animation when wingsUp>0
+  if(c.wingsUp>0){var wf=Math.min(1,c.wingsUp/30);
+    ctx.globalAlpha=fade*.35*wf;
+    ctx.strokeStyle='#e8ddd0';ctx.lineWidth=2*s;
+    ctx.beginPath();ctx.moveTo(p.x-6*s,p.y-4*s+bob);ctx.quadraticCurveTo(p.x-18*s,p.y-14*s*wf,p.x-16*s,p.y-18*s);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p.x+6*s,p.y-4*s+bob);ctx.quadraticCurveTo(p.x+18*s,p.y-14*s*wf,p.x+16*s,p.y-18*s);ctx.stroke()}
+  ctx.globalAlpha=1})}
 function drawMilestoneStones(w,h,hor){
   milestoneStones.forEach(function(ms){
     var dz=Math.abs(player.z-ms.z);
