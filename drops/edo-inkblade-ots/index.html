@@ -553,7 +553,7 @@ let yoMotifForest=[3,2,4,1,0,3,2];  // forest variant — deeper, slower
 let yoMotifMountain=[4,1,0,3,2,4,1]; // mountain variant — sparse, wind-like
 let yoMotifCoastal=[0,4,3,2,4,0,3];  // coastal variant — wide, sea-like
 let yoKotoMotif=[0,0,1,1,3,3,4,4,2,2]; // koto harmony — slow chord shifts
-let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[],foxSpirits=[];let roadTravelers=[];
+let marks=[],sparks=[],leaves=[],fireflies=[],screenShake=0;let riverMist=[],windDrift=0,puddles=[],ripples=[],foxSpirits=[];let roadTravelers=[],campfires=[],smoothRain=0,screenDamageFlash=0;
 let brushTrails=[];
 let inkPickups=[]; // Road-side collectible ink stones — zone-colored glowing stones on road edges that grant ink
 let fogBanks=[]; // Zone-specific animated fog banks drifting horizontally across road view
@@ -933,6 +933,7 @@ function step(dt){
     player.x=Math.max(-280,Math.min(280,player.x));player.z=Math.max(-30,Math.min(1420,player.z));
     player.bobPhase+=dt*(.09*(keys.shift?1.55:1));
     screenShake*=.65;
+    screenDamageFlash=Math.max(0,screenDamageFlash-dt*4);
     // Ink regen: faster base rate, scales with hero.art, sprinting reduces regen
     var inkRegenMult=keys.shift&&player.resolve<2?.4:1;
     player.inkTimer=(player.inkTimer||0)+dt;if(player.ink<hero.ink&&player.inkTimer>=16){initAudio();sfx.inkRegen();player.inkTimer=0}
@@ -1023,7 +1024,10 @@ function step(dt){
     // Zone-specific weather: rain/mist intensity varies by zone per journeyZones data
     var zoneWeather=getZone(player.z);
     var weatherTarget=zoneWeather.rainIntensity||0;
-    drizzleActive=Math.max(0,drizzleActive+(weatherTarget-.004)*dt);if(drizzleActive>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
+    drizzleActive=Math.max(0,drizzleActive+(weatherTarget-.004)*dt);
+    smoothRain+=((drizzleActive-smoothRain)*.06)*dt;
+    var rainEffective=smoothRain;
+    if(rainEffective>.1&&Math.random()<.06*dt){var angle=(Math.random()-.5)*.2;drizzle.push({x:player.x+(Math.random()-.5)*80,z:player.z-30+Math.random()*60,vx:angle*1.5,vy:2+Math.random()*3,len:8+Math.random()*20,age:0})};drizzle=drizzle.filter(d=>d.age<90);drizzle.forEach(d=>{d.x+=d.vx*dt;d.z+=d.vy*dt;d.age+=dt});
     // Road-side fox spirits — small silhouettes dashing across the road ahead
     if(Math.random()<.002*dt&&foxSpirits.length<3&&player.hp>0){
       var fz=player.z+40+Math.random()*80,fx=(Math.random()-.5)*200;
@@ -1037,6 +1041,14 @@ function step(dt){
     }
     dustMotes=dustMotes.filter(d=>d.age<d.maxAge);
     dustMotes.forEach(d=>{d.age+=dt;d.y=(d.y||0)+d.vy*dt;d.x+=d.vx*dt;});
+    // Road-side campfires — warm glowing fire at specific journey points with ember particles
+    if(Math.random()<.0015*dt&&campfires.length<6&&player.hp>0){
+      var cfZone=getZone(player.z);
+      var cfZ=player.z+60+Math.random()*120;
+      campfires.push({x:(Math.random()-.5)*140,z:cfZ,age:0,maxAge:600+Math.random()*200,glowPhase:Math.random()*7,color:cfZone.name==='coastal'?'#d7b66f':'#ff8333'});
+    }
+    campfires=campfires.filter(c=>c.age<c.maxAge);
+    campfires.forEach(c=>{c.age+=dt;c.glowPhase+=dt*.025});
     // Road-side collectible ink stones — zone-colored glowing stones that grant ink when player passes near
     if(Math.random()<.001*dt&&inkPickups.length<12&&player.hp>0){
       var ipZone=getZone(player.z);
@@ -1054,9 +1066,9 @@ function step(dt){
     fogBanks=fogBanks.filter(f=>f.age<f.maxAge);
     fogBanks.forEach(f=>{f.age+=dt;f.x+=f.vx*dt;f.z+=f.vy*dt});
     // Rain puddles on road surface during drizzle
-    if(drizzleActive>.15&&Math.random()<.008*dt&&puddles.length<20){var pw=10+Math.random()*30,ph=4+Math.random()*10;puddles.push({x:player.x+(Math.random()-.5)*120,z:player.z-20+Math.random()*80,w:pw,h:ph,alpha:0,maxAlpha:.25+Math.random()*.15,age:0,maxAge:200+Math.random()*300,ripplePhase:Math.random()*7})};puddles=puddles.filter(p=>p.age<p.maxAge);puddles.forEach(p=>{p.age+=dt;if(p.age<20)p.alpha=Math.min(p.maxAlpha,p.age/20*.25);else if(p.age>p.maxAge-60)p.alpha=Math.max(0,p.alpha-(p.age-(p.maxAge-60))/60);p.ripplePhase+=.02*dt});
+    if(rainEffective>.12&&Math.random()<.008*dt&&puddles.length<20){var pw=10+Math.random()*30,ph=4+Math.random()*10;puddles.push({x:player.x+(Math.random()-.5)*120,z:player.z-20+Math.random()*80,w:pw,h:ph,alpha:0,maxAlpha:.25+Math.random()*.15,age:0,maxAge:200+Math.random()*300,ripplePhase:Math.random()*7})};puddles=puddles.filter(p=>p.age<p.maxAge);puddles.forEach(p=>{p.age+=dt;if(p.age<20)p.alpha=Math.min(p.maxAlpha,p.age/20*.25);else if(p.age>p.maxAge-60)p.alpha=Math.max(0,p.alpha-(p.age-(p.maxAge-60))/60);p.ripplePhase+=.02*dt});
     // Rain drop impact ripples on puddles — drizzle landing near active puddles spawns ripple rings
-    if(drizzleActive>.15&&Math.random()<.01*dt&&ripples.length<30){puddles.filter(p=>p.alpha>0.1).forEach(function(p){if(Math.random()<.3){ripples.push({x:p.x+Math.random()*20,z:p.z+Math.random()*20,age:0,maxAge:40+Math.random()*20,radius:2+Math.random()*4})}})};ripples=ripples.filter(r=>r.age<r.maxAge);ripples.forEach(r=>{r.age+=dt});
+    if(rainEffective>.12&&Math.random()<.01*dt&&ripples.length<30){puddles.filter(p=>p.alpha>0.1).forEach(function(p){if(Math.random()<.3){ripples.push({x:p.x+Math.random()*20,z:p.z+Math.random()*20,age:0,maxAge:40+Math.random()*20,radius:2+Math.random()*4})}})};ripples=ripples.filter(r=>r.age<r.maxAge);ripples.forEach(r=>{r.age+=dt});
   // Ambient: footsteps, wind drift, river near bridge; zone-transition audio cues
   initAudio();var amb=window._amb;
   if(audioCtx&&amb&&amb.footstep){
@@ -1066,7 +1078,7 @@ function step(dt){
   if(amb.river&&amb.river.gain){const riverProx=Math.max(0,1-Math.abs(player.z-460)/180);amb.river.gain.gain.setValueAtTime(riverProx*.035,audioCtx.currentTime)}
   if(player.z>120&&player.z<350&&Math.random()<.003*dt){var bp=180+Math.random()*60;setTimeout(function(){sfx._tone(bp,.15,"sine",.04)},Math.random()*300);setTimeout(function(){sfx._tone(bp-30,.1,"sine",.03)},Math.random()*150+100)}
   if(amb.river&&amb.river.gain)amb.river.gain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+.6);
-  if(amb.rain&&amb.rain.gain){amb.rain.gain.gain.setValueAtTime(drizzleActive*.035,audioCtx.currentTime)}
+  if(amb.rain&&amb.rain.gain){amb.rain.gain.gain.setValueAtTime(rainEffective*.035,audioCtx.currentTime)}
   // Zone ambient layer — noise filtered by zone color with zone-specific wind filtering
   if(amb.zoneAmbient&&amb.zoneAmbient.gain){
     var zaGain=0;var zn=currentZone.name;
@@ -1287,7 +1299,7 @@ function updateEnemies(dt){
         say("Ganryu slams the nodachi into the earth! Tremor shakes the road.");
         burst(e.x,e.z,"#d96a1f","#efe1c0");
         // Area damage if player is close
-        if(dist<120){var tremorDmg=Math.round(18*(3-e.bossPhase)/3);player.hp=Math.max(0,player.hp-tremorDmg);player.damageFlash=12;player.invincible=24;damageNumbers.push({x:e.x,z:e.z,dmg:-tremorDmg,age:0,color:"#d96a1f"})}
+        if(dist<120){var tremorDmg=Math.round(18*(3-e.bossPhase)/3);player.hp=Math.max(0,player.hp-tremorDmg);player.damageFlash=12;player.invincible=24;screenDamageFlash=6;damageNumbers.push({x:e.x,z:e.z,dmg:-tremorDmg,age:0,color:"#d96a1f"})}
       }
       // Basic nodachi slash telegraph when close and not using special attacks
       var bossWindLen=e.bossPhase===1?60:e.bossPhase===2?50:35;
@@ -1308,7 +1320,9 @@ function updateEnemies(dt){
         var dmg=player.blocking?Math.max(1,atkDmg/(3+Math.min(player.blockDecay/10,4))):atkDmg;
         damageNumbers.push({x:player.x,z:player.z,dmg:-dmg,age:0,color:player.blocking?"#d7b66f":"#c85d43"});
         player.hp=Math.max(0,player.hp-dmg);
-        player.damageFlash=player.invincible>0?0:12;
+        player.damageFlash=dmg>12?12:player.invincible>0?0:6;
+        player.invincible=player.invincible>0?player.invincible:24;
+        screenDamageFlash=Math.max(screenDamageFlash,dmg>12?8:5);
       player.invincible=player.invincible>0?player.invincible:30;
       screenShake=dmg>12?4:2;
       hitStop=Math.min(4,dmg>12?3:1);
@@ -1362,6 +1376,7 @@ if(e.attackCount>0){e.attackCount--;if(dist<e.atkRange+25){e.wind=e.attackCount=
       damageNumbers.push({x:player.x,z:player.z,dmg:-dmg,age:0,color:player.blocking?"#d7b66f":"#c85d43"});player.hp=Math.max(0,player.hp-dmg);
       player.damageFlash=player.invincible>0?0:10;
       player.invincible=player.invincible>0?player.invincible:24;
+      screenDamageFlash=Math.max(screenDamageFlash,dmg>12?7:4);
       screenShake=dmg>12?3:1.5;
       hitStop=dmg>10?3:1;
       burst(player.x,player.z,player.blocking?"#d7b66f":"#c85d43");
@@ -1617,7 +1632,7 @@ function draw(){
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawClouds(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
   drawSkyZoneTint(w,h,horizon);
-  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();drawDustMotes();drawDrizzle();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();  drawDustMotes();drawDrizzle();drawCampfires();
   // Journey milestone stone markers — inscribed pillars at route positions
   drawMilestoneStones(w,h,horizon);
   // Journey zone transition markers — torii gates at zone boundaries
@@ -1756,7 +1771,14 @@ function draw(){
   enemies.filter(e=>e.hp>0).forEach(e=>{const p=project(e.x,e.z,54);if(p)visible.push({p,o:e,type:"enemy"})});
   visible.sort((a,b)=>b.p.d-a.p.d).forEach(v=>v.type==="enemy"?drawEnemy(v.o,v.p):v.type==="mark"?drawMark(v.o,v.p):drawScenery(v.o,v.p));
   drawZonePortal();drawGanryuArrival();
-  drawDamageNumbers();drawPlayer();drawSparks();drawBrushTrails();drawInkPickups();drawFogBanks();drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
+  drawDamageNumbers();drawPlayer();drawSparks();drawBrushTrails();drawInkPickups();drawFogBanks();  drawVignette(w,h);drawWoodblockTexture(w,h);drawBloom(w,h);
+  // Screen-edge damage flash overlay — red pulse when player is hit
+  if(screenDamageFlash>0){ctx.save();var dfFade=Math.min(1,screenDamageFlash/12);
+    ctx.globalAlpha=dfFade*.18;ctx.fillStyle='#c85d43';
+    ctx.fillRect(0,0,w,h);
+    ctx.globalAlpha=dfFade*.3;ctx.fillStyle='rgba(200,80,60,0)';
+    ctx.beginPath();ctx.arc(w/2,h/2,Math.max(w,h)*.5,0,7);ctx.arc(w/2,h/2,Math.max(w,h)*.6,0,7);ctx.fill();
+    ctx.globalAlpha=1;ctx.restore()}
   drawAtmosphere(w,h);
   // Zone-name banner — brief overlay on zone entry
   if(zoneBanner.active&&zoneBanner.timer>0){ctx.save();
@@ -2529,6 +2551,25 @@ function drawFogBanks(){fogBanks=fogBanks.filter(function(f){return f.age<f.maxA
     // Secondary wisp
     ctx.globalAlpha=fade*.3;
     ctx.beginPath();ctx.ellipse(p.x+fb.w*.3*s,p.y-fb.h*.2*s,fb.w*.6*s,fb.h*.5*s,0,0,7);ctx.fill();
+    ctx.globalAlpha=1})}
+function drawCampfires(){campfires.forEach(function(cf){const p=project(cf.x,cf.z,10);if(!p)return;
+    var fade=Math.max(0,1-cf.age/cf.maxAge),s=Math.min(p.s,3.5);
+    if(s<.5)return;
+    ctx.globalAlpha=fade*.45*s;
+    // Warm fire glow — radial gradient
+    var grd=ctx.createRadialGradient(p.x,p.y,3*s,p.x,p.y,28*s);
+    grd.addColorStop(0,cf.color+'80');grd.addColorStop(.3,cf.color+'40');grd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(p.x,p.y,28*s,0,7);ctx.fill();
+    // Inner flame — pulsing core
+    var flamePulse=.5+.5*Math.sin(cf.glowPhase);
+    ctx.globalAlpha=fade*.55*s*flamePulse;
+    ctx.fillStyle='#f4ead8';ctx.beginPath();ctx.arc(p.x,p.y,8*s,0,7);ctx.fill();
+    ctx.globalAlpha=fade*.3*s;ctx.fillStyle='#ead9bb';
+    ctx.beginPath();ctx.arc(p.x,p.y,12*s,0,7);ctx.fill();
+    // Ember sparks
+    ctx.globalAlpha=fade*.25*s;
+    for(var ei=0;ei<5;ei++){var ea=ei*1.3+cf.glowPhase*.5,ed=8+Math.sin(cf.glowPhase+ei)*6*s;
+      ctx.fillStyle='#f4ead8';ctx.beginPath();ctx.arc(p.x+Math.cos(ea)*ed,p.y+Math.sin(ea)*ed,2.5*s,0,7);ctx.fill()}
     ctx.globalAlpha=1})}
 function drawLeaves(){leaves.forEach(l=>{const p=project(l.x,l.z,30);if(!p)return;var fade=Math.max(.1,1-l.age/360),s=Math.min(p.s,3);ctx.globalAlpha=fade*.55*s;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(l.spin||0);var leafSize=(l.size||1.5)*s;ctx.fillStyle=l.color||"#d98986";ctx.beginPath();ctx.ellipse(0,0,leafSize,leafSize*.45,0,0,7);ctx.fill();ctx.fillStyle="#ffffff30";ctx.beginPath();ctx.arc(0,0,leafSize*.3,0,7);ctx.fill();ctx.restore();ctx.globalAlpha=1})}
 function drawFireflies(){fireflies.forEach(f=>{const p=project(f.x,f.z,25);if(!p)return;ctx.globalAlpha=f.bright*.35;ctx.fillStyle="#d9e88f";ctx.beginPath();ctx.arc(p.x,p.y,2+Math.sin(Date.now()*.003+f.bright)*1.5,0,7);ctx.fill();ctx.globalAlpha=1})}

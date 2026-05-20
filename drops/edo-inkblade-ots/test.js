@@ -286,6 +286,15 @@ checks.push(["Ganryu foam particles", html.includes("wpi=0;wpi<6") && html.inclu
 checks.push(["ink stone pickups reset in goToTitle", html.includes("inkPickups=[];fogBanks=[]")]);
 checks.push(["ink stone colors per zone", html.includes("ipColors") && html.includes("meadow") && html.includes("forest") && html.includes("mountain") && html.includes("coastal")]);
 
+// Pass 58 — Road-side campfire vignettes, screen-edge damage flash, smooth weather transitions
+checks.push(["campfire array initialized", html.includes("let campfires=[]") || html.includes("campfires=[]")]);
+checks.push(["campfire draw function", html.includes("function drawCampfires") && html.includes("flamePulse") && html.includes("cf.glowPhase")]);
+checks.push(["campfires rendered in draw", html.includes("drawCampfires()")]);
+checks.push(["screen damage flash variable", html.includes("screenDamageFlash") && html.includes("screenDamageFlash=Math.max")]);
+checks.push(["screen damage flash overlay draw", html.includes("screenDamageFlash>0") && html.includes("dfFade") && html.includes("#c85d43")]);
+checks.push(["smooth rain transition", html.includes("smoothRain") && html.includes("rainEffective") && html.includes("rainEffective>.12")]);
+checks.push(["rain effective used for audio", html.includes("rainEffective*.035")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

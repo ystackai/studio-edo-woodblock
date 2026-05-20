@@ -76,3 +76,11 @@
 - **Road-side grass blade animation**: animated grass blades along road edges with wind-responsive sway (bladeSway, bladeWind)
 - **Wind-responsive road flowers**: existing road-side flowers and seasonal blooms now sway with windDrift, using flowerSway/bloomSway for organic movement
 - 233 smoke checks pass (225 existing + 8 new: zone portal function, zone portal state, zone portal timer decay, brush trails array, brush trails draw function, brush trails on paint, grass blade animation, wind-responsive flowers)
+
+### Pass 58 — Road-side campfire vignettes, screen-edge damage flash, smooth zone weather transitions
+- **Road-side campfire vignettes**: warm glowing campfires spawn along the road at journey intervals (up to 6), with zone-appropriate fire colors (meadow/forest/mountain warm orange, coastal golden amber). Each campfire emits a radial glow with pulsing inner flame, floating ember sparks, and ambient warmth that creates rest-stop atmosphere.
+- **Screen-edge damage flash overlay**: when the player takes damage, a red radial pulse flashes at the screen edges with fade decay (`screenDamageFlash`). Larger hits produce stronger, longer flashes. Works alongside `player.damageFlash` for layered combat feedback. Triggered on Ganryu boss attacks (tremor, nodachi slash) and all regular enemy strikes with damage-scaled intensity.
+- **Smooth zone weather transitions**: rain intensity now lerps between zones using `smoothRain` variable with a 0.06*dt smoothing factor, eliminating abrupt weather changes at zone boundaries. Rain effective value (`rainEffective`) controls drizzle spawn rate, puddle formation, ripple effects, and audio rain gain — all transitions feel gradual and organic.
+- 259 checks pass (245 existing + 7 new: campfire array, campfire draw function, campfires rendered in draw, screen damage flash variable, screen damage flash overlay draw, smooth rain transition, rain effective used for audio)
+
+(End of file)

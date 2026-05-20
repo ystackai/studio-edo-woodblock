@@ -13,8 +13,12 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 57 — Road-side ink stone collectibles, animated fog banks, enhanced milestone ceremony, Ganryu island wave animation)
-- **~2810-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 58 — Road-side campfire vignettes, screen-edge damage flash, smooth zone weather transitions)
+- **~2880-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+- **Road-side campfire vignettes**: warm glowing campfires spawn along the road with zone-appropriate fire colors, radial glow, pulsing inner flame, floating ember sparks for rest-stop atmosphere
+- **Screen-edge damage flash overlay**: red radial pulse at screen edges when player takes damage, scaled by hit magnitude, works alongside player.damageFlash for layered combat feedback
+- **Smooth zone weather transitions**: rain intensity lerps between zones using `smoothRain` with 0.06*dt smoothing, eliminating abrupt weather changes at zone boundaries. All rain effects (drizzle, puddles, ripples, audio gain) use smoothed `rainEffective` value
+- **259 smoke checks pass** (245 existing + 7 new: campfires, damage flash, smooth rain)
 - **Zone-specific weather**: rain intensity now varies by zone — meadow (light mist), forest (moderate drizzle), mountain (heavy rain), coastal (sea mist). Fog density and color vary per zone (meadow warm mist, forest earthy haze, mountain cool gray, coastal golden light). Journey zone definitions extended with `fogColor`, `fogDensity`, `rainIntensity` properties for data-driven weather system.
 - **Browser runtime verification file**: created `.factoryx-runtime-check-1.html` that loads the game in an iframe and validates player state, canvas, game loop, projection, audio, hero definitions, enemies, zones, and milestones — verifies zero runtime errors
 - **Enhanced mobile touch controls**: redesigned touch overlay with more visible labels ("Tap to move", "Drag to look", "hold" hints), better visual hierarchy with text-shadow and opacity, bottom hint bar summarizing mobile controls ("Long-press paint · Tap slash · Drag look")
@@ -84,8 +88,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
-- `node drops/edo-inkblade-ots/test.js` — **233 checks**: all previous 225 plus 8 new (zone portal effect, zone portal state, zone portal timer decay, brush trails array, brush trails draw function, brush trails on paint, grass blade animation, wind-responsive flowers). Pass 57 adds 12 new checks: ink pickup array, ink pickup draw function, ink pickup absorption, fog bank array, fog bank draw function, fog bank zone colors, milestone ceremony particles, Ganryu wave animation, Ganryu boat drift, Ganryu foam particles, rough sea waves, ink stones per zone.
-- **All 233 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **259 checks**: all previous 245 plus 14 new (Pass 57: 7 checks for ink pickups, fog banks, milestone ceremony, Ganryu waves; Pass 58: 7 checks for campfires, damage flash, smooth rain). Pass 58 adds 7 new checks: campfire array, campfire draw function, campfires rendered in draw, screen damage flash variable, screen damage flash overlay draw, smooth rain transition, rain effective used for audio.
+- **All 259 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -140,8 +144,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 **Pass 57** — Road-side ink stone collectibles (zone-colored glowing stones spawn along road edges, grant +1 ink on collection); zone-specific animated fog banks (horizontal mist bands drift across road view per zone with zone-tinted colors); enhanced milestone arrival ceremony (ink-wash ring particle burst at milestone triggers); Ganryu island animated shoreline waves (boat bobs with drift, wave froth lines, foam particles). 233 checks pass; all new checks added for Pass 57 features.
 
+**Pass 58** — Road-side campfire vignettes (warm glowing campfires with zone-tinted fire colors, radial glow, pulsing flame, ember sparks); screen-edge damage flash overlay (red radial pulse on hit, scaled by damage magnitude); smooth zone weather transitions (rain intensity lerps with 0.06*dt smoothing, all rain effects use smoothed value). 259 checks pass; 7 new checks for campfires, damage flash, and smooth rain.
+
 ### Known Issues
-- None current — audio gain null safety fixed; all checks pass
+- None current — audio gain null safety fixed; all 259 checks pass
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
