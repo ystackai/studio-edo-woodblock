@@ -528,6 +528,15 @@ var haikuMoments=[
   {z:1150,haiku:"wind tastes of salt\nGanryu pulls closer —\nthe road forgets itself",shown:false}
 ];
 var haikuMoment={active:false,text:"",timer:0,age:0};
+// Journey milestone stone markers — inscribed pillars along the road marking progress
+var milestoneStones=[
+  {z:180,kind:"calligraphy",text:"First Mark",glyph:"一",color:"#d7b66f",inscription:"morning mist lifts"},
+  {z:520,kind:"calligraphy",text:"Bridge Passage",glyph:"橋",color:"#8fc7d6",inscription:"river below carries light"},
+  {z:880,kind:"calligraphy",text:"Valley Gate",glyph:"谷",color:"#d98986",inscription:"valley widens between tides"},
+  {z:1100,kind:"calligraphy",text:"Mountain Pass",glyph:"山",color:"#b9a88d",inscription:"pine wind cuts stone"},
+  {z:1280,kind:"calligraphy",text:"Ganryu Shore",glyph:"岸",color:"#f4ead8",inscription:"sea opens wide"}
+];
+var journeyZoneTimes={}; // tracks time spent per zone
 // Atmosphere particles
 for(let i=0;i<30;i++){leaves.push({x:Math.random()*300-150,z:Math.random()*1200,s:2+Math.random()*3,sp:Math.random()*2+.5,phase:Math.random()*6,color:["#6b8d4a","#b88c45","#8e4f30"][i%3]})}
 for(let i=0;i<20;i++){fireflies.push({x:Math.random()*400-200,z:80+Math.random()*1100,b:Math.random()*6+3,phase:Math.random()*8,speed:.3+Math.random()*.4})}
@@ -853,6 +862,9 @@ function step(dt){
     if(Math.random()<.015*dt&&riverMist.length<12)riverMist.push({x:player.x+(Math.random()-.5)*120,z:player.z-40+Math.random()*100,vx:(Math.random()-.5)*.2,vz:Math.random()*.3+.1,alpha:.6});
     // Journey zone tracking — spawn zone-specific ambient particles
     prevZone=currentZone;currentZone=getZone(player.z);zoneCrossTimer=currentZone===prevZone?Math.min(80,zoneCrossTimer+dt):0;
+    // Track time spent in each zone for diary stats
+    var zn=currentZone.name;
+    journeyZoneTimes[zn]=(journeyZoneTimes[zn]||0)+dt;
     // Zone-entry screen shake AND dramatic particle burst for crossing
     if(currentZone!==prevZone&&player.hp>0){
       screenShake=Math.max(screenShake,3);
@@ -1370,6 +1382,8 @@ function draw(){
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
   drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();drawDrizzle();
+  // Journey milestone stone markers — inscribed pillars at route positions
+  drawMilestoneStones(w,h,horizon);
   // Journey zone transition markers — torii gates at zone boundaries
   var zoneMarkers=[{z:300,name:"forest entrance"},{z:600,name:"mountain gate"},{z:1000,name:"sea gate"}];
   zoneMarkers.forEach(function(zm){var dz=Math.abs(player.z-zm.z);if(dz<60){var gateAlpha=Math.max(0,1-dz/60)*.35,gateP=project(0,zm.z,80);if(gateP){ctx.globalAlpha=gateAlpha;ctx.strokeStyle="#8e1c1c";ctx.lineWidth=10*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-28*gateP.s,gateP.y);ctx.lineTo(gateP.x-28*gateP.s,gateP.y-60*gateP.s);ctx.moveTo(gateP.x+28*gateP.s,gateP.y);ctx.lineTo(gateP.x+28*gateP.s,gateP.y-60*gateP.s);ctx.stroke();ctx.strokeStyle="#b82727";ctx.lineWidth=5*gateP.s;ctx.beginPath();ctx.moveTo(gateP.x-30*gateP.s,gateP.y-62*gateP.s);ctx.lineTo(gateP.x+30*gateP.s,gateP.y-62*gateP.s);ctx.moveTo(gateP.x-26*gateP.s,gateP.y-52*gateP.s);ctx.lineTo(gateP.x+26*gateP.s,gateP.y-52*gateP.s);ctx.stroke();ctx.globalAlpha=1}}});
@@ -1566,7 +1580,7 @@ function draw(){
   [[-158,-36],[-158,22],[158,-36],[158,22]].forEach(c=>{ctx.fillStyle="#caa45f";ctx.globalAlpha=ma*.6;ctx.beginPath();ctx.arc(w/2+c[0],h*.35+c[1],4,0,7);ctx.fill()});ctx.globalAlpha=ma;
   // Filled background with ink-wash texture
   // roadside cherry blossom trees - organic blossoms wrapping trunk
-  for(var bi=0;bi<5;bi++){var bt=hor+(bi+.2)*(h-hor)/5,bw=280*(bi/5)+50;ctx.fillStyle="#7a4a5a";ctx.fillRect(w*.5-bw-80-4,bi%2?0:10,8,bi%2?30:40);ctx.globalAlpha=.18;var bx=w*.5-bw-80,by=bi%2?20:30,bloomCol="#d98986";ctx.fillStyle=bloomCol;for(var pi=0;pi<3;pi++){var px=bx+(pi-1)*10+Math.sin(Date.now()*.002+bi)*4,py=by+Math.sin(Date.now()*.003+pi)*3;ctx.beginPath();ctx.arc(px,py,7+Math.sin(Date.now()*.002+bi+pi)*2,0,7);ctx.fill()};ctx.beginPath();ctx.arc(bx,by,11,0,7);ctx.fill();bx=w*.5+bw+60;for(var pi=0;pi<3;pi++){var px=bx+(pi-1)*10+Math.sin(Date.now()*.002+bi+5)*4,py=by+Math.sin(Date.now()*.003+pi+2)*3;ctx.beginPath();ctx.arc(px,py,7+Math.sin(Date.now()*.002+bi+pi+5)*2,0,7);ctx.fill()};ctx.beginPath();ctx.arc(bx,by,11,0,7);ctx.fill();ctx.globalAlpha=1}
+  for(var bi=0;bi<5;bi++){var bt=horizon+(bi+.2)*(h-horizon)/5,bw=280*(bi/5)+50;ctx.fillStyle="#7a4a5a";ctx.fillRect(w*.5-bw-80-4,bi%2?0:10,8,bi%2?30:40);ctx.globalAlpha=.18;var bx=w*.5-bw-80,by=bi%2?20:30,bloomCol="#d98986";ctx.fillStyle=bloomCol;for(var pi=0;pi<3;pi++){var px=bx+(pi-1)*10+Math.sin(Date.now()*.002+bi)*4,py=by+Math.sin(Date.now()*.003+pi)*3;ctx.beginPath();ctx.arc(px,py,7+Math.sin(Date.now()*.002+bi+pi)*2,0,7);ctx.fill()};ctx.beginPath();ctx.arc(bx,by,11,0,7);ctx.fill();bx=w*.5+bw+60;for(var pi=0;pi<3;pi++){var px=bx+(pi-1)*10+Math.sin(Date.now()*.002+bi+5)*4,py=by+Math.sin(Date.now()*.003+pi+2)*3;ctx.beginPath();ctx.arc(px,py,7+Math.sin(Date.now()*.002+bi+pi+5)*2,0,7);ctx.fill()};ctx.beginPath();ctx.arc(bx,by,11,0,7);ctx.fill();ctx.globalAlpha=1}
   ctx.globalAlpha=ma;ctx.fillStyle="#ead9bb";ctx.font="bold clamp(14px,2.4vw,28px) serif";ctx.textAlign="center";
   // Tip: add decorative scroll mark
   const sw=ctx.measureText(milestonePopup.text).width;
@@ -2121,6 +2135,39 @@ function drawButterflies(){butterflies.forEach(b=>{const p=project(b.x,b.z,15);i
 function drawCrows(){crows.forEach(c=>{const p=project(c.x,c.z,25);if(!p)return;var fade=Math.max(0,1-c.age/c.maxAge),s=Math.min(p.s,3);ctx.globalAlpha=fade*.45*s;ctx.fillStyle=c.color;ctx.beginPath();ctx.moveTo(p.x-6*s,p.y-3*s);ctx.lineTo(p.x-2*s,p.y-8*s);ctx.lineTo(p.x+4*s,p.y-6*s);ctx.lineTo(p.x+8*s,p.y-2*s);ctx.closePath();ctx.fill();ctx.globalAlpha=1})}
 function drawEagles(){eagles.forEach(e=>{const p=project(e.x,e.z,40);if(!p)return;var fade=Math.max(0,1-e.age/e.maxAge),s=Math.min(p.s,3);ctx.globalAlpha=fade*.4*s;ctx.fillStyle=e.color;ctx.beginPath();ctx.moveTo(p.x-10*s,p.y-2*s);ctx.lineTo(p.x-4*s,p.y-10*s);ctx.lineTo(p.x+4*s,p.y-10*s);ctx.lineTo(p.x+10*s,p.y-2*s);ctx.closePath();ctx.fill();ctx.strokeStyle="#3a2a1a";ctx.lineWidth=1*s;ctx.beginPath();ctx.moveTo(p.x-2*s,p.y-4*s);ctx.lineTo(p.x+2*s,p.y-4*s);ctx.stroke();ctx.globalAlpha=1})}
 function drawSeabirds(){seabirds.forEach(s=>{const p=project(s.x,s.z,30);if(!p)return;var fade=Math.max(0,1-s.age/s.maxAge),sp=Math.min(p.s,3);ctx.globalAlpha=fade*.45*sp;ctx.fillStyle=s.color;ctx.beginPath();ctx.moveTo(p.x-8*sp,p.y-2*sp);ctx.lineTo(p.x-3*sp,p.y-8*sp);ctx.lineTo(p.x+5*sp,p.y-6*sp);ctx.lineTo(p.x+10*sp,p.y-2*sp);ctx.closePath();ctx.fill();ctx.globalAlpha=1})}
+function drawMilestoneStones(w,h,hor){
+  milestoneStones.forEach(function(ms){
+    var dz=Math.abs(player.z-ms.z);
+    if(dz>100)return;
+    var p=project(0,ms.z,40);
+    if(!p)return;
+    var s=Math.min(p.s,3.5),fade=Math.max(0,1-dz/100)*.7;
+    var px=p.x,py=p.y;
+    ctx.globalAlpha=fade;
+    // Stone pillar base
+    ctx.fillStyle="#4a3a28";
+    ctx.fillRect(px-10*s,py-40*s,20*s,40*s);
+    // Pillar top slope
+    ctx.fillStyle="#5a4a38";
+    ctx.beginPath();ctx.moveTo(px-10*s,py-40*s);ctx.lineTo(px,py-50*s);ctx.lineTo(px+10*s,py-40*s);ctx.closePath();ctx.fill();
+    // Calligraphy glyph on pillar face
+    ctx.fillStyle=ms.color||"#d7b66f";
+    ctx.font="bold "+(18*s)+"px serif";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(ms.glyph,px,py-32*s);
+    // Inscription line below glyph
+    ctx.fillStyle="#b9a88d";
+    ctx.font="italic "+(9*s)+"px serif";
+    ctx.fillText(ms.inscription,px,py-18*s);
+    // Subtle glow when player is close
+    if(dz<30){
+      ctx.globalAlpha=fade*.25;
+      ctx.fillStyle=ms.color||"#d7b66f";
+      ctx.beginPath();ctx.arc(px,py-32*s,16*s,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  });
+}
 function drawDiary(){
   if(!diaryOpen)return;
   var w=innerWidth,h=innerHeight;
@@ -2148,6 +2195,15 @@ function drawDiary(){
   // Divider
   ctx.fillStyle="#caa45f";ctx.globalAlpha=.35;
   ctx.fillRect(sx+20,sy+62,scrollW-40,1);
+  ctx.globalAlpha=1;
+  // Journey stats summary
+  var statY=sy+72,statH=30;
+  ctx.fillStyle="rgba(20,15,12,.5)";ctx.fillRect(sx+14,statY,scrollW-28,statH);
+  ctx.fillStyle="#ead9bb";ctx.font="11px serif";ctx.textBaseline="middle";
+  ctx.textAlign="left";
+  var totalTime=Math.floor((Date.now()-gameStartTime)/1000);
+  var tmStr=Math.floor(totalTime/60)+"m "+(totalTime%60)+"s";
+  ctx.fillText("⚔ Defeated: "+enemiesDefeated+"  ✦ Marks: "+marksPlacedTotal+"  🖮 Ink: "+inkUsedTotal+"  ⏱ "+tmStr,sx+18,statY+statH/2);
   ctx.globalAlpha=1;
   // Entries list
   var yy=sy+80,maxY=sy+scrollH-20,lineH=22;

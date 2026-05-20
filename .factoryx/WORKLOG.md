@@ -363,7 +363,17 @@
 - **Road travelers**: distant wanderer and pilgrim silhouettes walk along the road ahead — small moving figures in the distance with walking animation, hats, and staff details creating lived-in road atmosphere. Up to 8 concurrent travelers, each with 120-200 frame lifespan.
 - **159 smoke checks pass** (was 154 — added 5 checks: auto-forward drift, ink-wash ripple, paint audio accent, road travelers update+draw, traveler types).
 
+## Pass 46 — Journey milestone stone markers, diary journey stats, visual cohesion
+
+### What changed
+- **Journey milestone stone markers**: 5 inscribed stone pillars along the road at each route milestone position (z=180, 520, 880, 1100, 1280). Each pillar has a unique Japanese calligraphy glyph (一, 橋, 谷, 山, 岸), an inscription line from the milestone haiku, and a subtle glow when the player approaches. Markers render in the draw loop with proper perspective scaling and zone-aware fade.
+- **Diary journey stats summary**: the journey diary (J key) now shows a compact stats bar at the top of the scroll with total enemies defeated, marks placed, ink used, and journey elapsed time. Stats update in real-time.
+- **Zone time tracking**: added `journeyZoneTimes` object that tracks time spent in each zone (meadow/forest/mountain/coastal) for future diary detail.
+- **Fixed `horizon` variable ReferenceError**: the cherry blossom tree section in `draw()` was using an undefined `hor` variable instead of `horizon` — fixed to prevent browser runtime errors.
+- **Fresh screenshots captured** after all changes (01-character-select, 02-mid-journey, 03-paint-combat, 04-combat-duel, 05-ganryu-victory).
+- **163 smoke checks pass** (was 159 — added 4 checks: milestone stones defined, stone draw function, zone time tracking, diary journey stats).
+
 ## Known Issues (updated)
-- Screenshots reflect Pass 44 content — need fresh captures after Pass 45
+- Screenshots updated after Pass 46 changes
 
 (End of file)

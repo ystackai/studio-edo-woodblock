@@ -13,12 +13,14 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 44 — Controls tutorial onboarding, waterwheel/sakeStand scenery)
-- **~2210-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 46 — Journey milestone stone markers, diary journey stats)
+- **~2190-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - Animated title screen: drifting mist bands and ink particles on dedicated canvas, driven by `requestAnimationFrame` loop while title is shown; clean cancel on dismiss; redraws on orientation change
 - Character-select screen: ink-brush frame, woodblock grain, calligraphy accents, 3 heroes (Musashi, Koeda, Yoshino), card clicks/taps wired into game start, hero ability descriptions
 - Road travel with WASD/arrow/mouse/touch (drag + long-press) controls; mouse drag look with sensitivity slider; **auto-forward drift when idle** for cinematic journey feel
 - **4 journey atmosphere zones**: Meadow (z 0-300), Forest (z 300-600), Mountain (z 600-1000), Coastal (z 1000-1420) with zone-specific road colors, lantern palettes, particles, creatures, audio, and torii gate markers
+- **5 journey milestone stone markers** along the road — inscribed stone pillars with Japanese calligraphy glyphs and haiku inscriptions at each route milestone position; glow when player approaches
+- **Journey diary (J key)** with ink-wash scroll: journey entries, milestone haiku, shrine prayers, NPC encounters, Ganryu defeat, victory — now includes compact journey stats bar (enemies defeated, marks placed, ink used, elapsed time)
 - **Death screen ink-wash ceremony**: character-specific death haiku, ink dissolving particle burst, brush divider
 - **Victory ceremony**: expanded 8-color palette, ink-wash victory mist particles after defeating Ganryu
 - **HUD ink-wash decoration**: Edo scroll-style gold-tinged borders, ink stone indicator
@@ -36,7 +38,6 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **Road-side fox spirits**: animated silhouettes dashing across road
 - **Road travelers**: distant wanderer and pilgrim silhouettes walking along the road, creating lived-in atmosphere
 - **Pause menu** with settings: Master/SFX/Music volume sliders, mouse sensitivity slider
-- **Journey diary scroll (J key)**: press J to view ink-wash scroll of journey milestones, haiku, shrine visits, zone entries, NPC encounters, Ganryu defeat, and victory
 - **Road-side events**: 3 atmospheric encounters (Spirit of the Old Road, Flower Seller, Calligrapher) with visual indicators and E-key interaction
 - **Ganryu arrival epilogue**: poetic scroll overlay after victory — "Ink flows back into the tide. The brush rests. The blade sleeps."
 - **Sprint with resolve economy**, **mouse drag camera look**
@@ -50,13 +51,14 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Verification
 - Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
-- `node drops/edo-inkblade-ots/test.js` — **159 checks**: all previous plus Pass 44 (controls tutorial, waterwheel, sakeStand) and Pass 45 (auto-forward drift, enhanced paint ripple, paint audio accent, road travelers)
-- **All 159 checks pass**
+- Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
+- `node drops/edo-inkblade-ots/test.js` — **163 checks**: all previous plus Pass 45 (auto-forward drift, enhanced paint ripple, paint audio accent, road travelers) and Pass 46 (milestone stone markers, stone draw function, zone time tracking, diary journey stats)
+- **All 163 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
 - `01-character-select.jpg` — character select screen with ink-brush frame
-- `02-mid-journey.jpg` — road travel with scenery and sky gradient
+- `02-mid-journey.jpg` — road travel with scenery, sky gradient, and milestone stone markers
 - `03-paint-combat.jpg` — painting ink marks with enemy encounter
 - `04-combat-duel.jpg` — duel telegraph and combat
 - `05-ganryu-victory.jpg` — Ganryu arrival victory screen
@@ -88,10 +90,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 43** — Journey diary scroll (J key), road-side event encounters (Spirit/Flower Seller/Calligrapher), Ganryu arrival epilogue, enhanced journey tracking
 **Pass 44** — Controls tutorial onboarding overlay displayed on first hero selection; 2 new road scenery types (waterwheel, sakeStand)
 **Pass 45** — Auto-forward drift when idle for cinematic journey feel; enhanced paint ink-wash ripple rings and paint audio accent; road travelers (wanderer/pilgrim silhouettes) for road atmosphere
+**Pass 46** — Journey milestone stone markers with Japanese calligraphy glyphs at each route position; diary journey stats summary bar; zone time tracking; fixed horizon variable ReferenceError; fresh screenshots
 
 ### Known Issues
 - Zone audio cues are oscillator-based — real zone ambience files would be richer
-- Screenshots from Pass 44 — need fresh captures after Pass 45 auto-forward drift, paint enhancements, road travelers
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.

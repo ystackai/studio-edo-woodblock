@@ -189,6 +189,12 @@ checks.push(["paint audio accent on ink placement", html.includes("Paint audio a
 checks.push(["road travelers update and draw", html.includes("roadTravelers") && html.includes("function drawTravelers")]);
 checks.push(["travelers have wanderer and pilgrim types", html.includes("wanderer") && html.includes("pilgrim") && html.includes("walkPhase")]);
 
+// Pass 46: Journey milestone stone markers, zone time tracking, diary journey stats
+checks.push(["journey milestone stone markers defined", html.includes("milestoneStones") && html.includes("First Mark") && html.includes("Bridge Passage")]);
+checks.push(["milestone stone draw function", html.includes("function drawMilestoneStones") && html.includes("pillar") && html.includes("glyph")]);
+checks.push(["zone time tracking", html.includes("journeyZoneTimes") && html.includes("zn]=(journeyZoneTimes[zn]||0)+dt")]);
+checks.push(["diary journey stats summary", html.includes("Defeated: ") && html.includes("enemiesDefeated") && html.includes("marksPlacedTotal")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);
