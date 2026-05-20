@@ -218,8 +218,8 @@ checks.push(["traveler merchant type", html.includes("tKindR<.45?") && html.incl
 checks.push(["merchant traveler rendering", html.includes("t.kind===\"merchant\"") && html.includes("Pack on back")]);
 checks.push(["boss phase aura glow", html.includes("Boss phase-specific aura glow") && html.includes("bpColors")]);
 checks.push(["boss phase transition particles", html.includes("Phase 3 transition") && html.includes("Phase 2 transition")]);
-checks.push(["enhanced victory ceremony", html.includes("ci<180") && html.includes("Math.random()*10")]);
-checks.push(["ink-wash victory mist", html.includes("Ink-wash mist victory") && html.includes("vi<40")]);
+checks.push(["enhanced victory ceremony", html.includes("ci<240") && html.includes("Math.random()*12")]);
+checks.push(["ink-wash victory mist", html.includes("vi<60") && html.includes("Ink-wash mist victory")]);
 
 // Pass 50: Zone-specific road surfaces, roaming enemies, telegraph colors, Ganryu ceremony
 checks.push(["zone surface dirt texture", html.includes("surf===\"dirt\"") && html.includes("roadFill")]);
@@ -343,6 +343,31 @@ checks.push(["road inn overlay drawing", html.includes("innName") && html.includ
 checks.push(["road inns reset in goToTitle", html.includes("roadInns.forEach") && html.includes("innOverlayActive=false")]);
 checks.push(["inn hint timer defined", html.includes("innHintTimer")]);
 checks.push(["inn proximity hint E label", html.includes('[E]') && html.includes('ri.name')]);
+
+// Pass 64: Road-side koi fish ponds, meditation spots, balance tuning, enhanced ending ceremony
+checks.push(["koi pond array initialized", html.includes("koiPonds=[]") || html.includes("koiPonds=[")]);
+checks.push(["koi fish array initialized", html.includes("koiFish=[]")]);
+checks.push(["koi pond draw function", html.includes("function drawKoiPonds") && html.includes("pondGrad")]);
+checks.push(["koi fish draw function", html.includes("function drawKoiFish") && html.includes("swimPhase")]);
+checks.push(["koi ponds rendered in draw", html.includes("drawKoiPonds()")]);
+checks.push(["koi fish rendered in draw", html.includes("drawKoiFish()")]);
+checks.push(["pond fish spawning in step", html.includes("koiPonds.push") && html.includes("fishCount")]);
+checks.push(["meditation spots array initialized", html.includes("meditationSpots=[]")]);
+checks.push(["meditation spot draw function", html.includes("function drawMeditationSpots") && html.includes("enso")]);
+checks.push(["meditation spots rendered in draw", html.includes("drawMeditationSpots()")]);
+checks.push(["meditation spots spawn in step", html.includes("meditationSpots.push") && html.includes("msColors")]);
+checks.push(["meditation interaction key E", html.includes("meditationActive") && html.includes("meditationTimer")]);
+checks.push(["meditation grants resolve on completion", html.includes("msGain") && html.includes("player.resolve=Math.min")]);
+checks.push(["meditation reset in goToTitle", html.includes("meditationSpots=[];meditationActive=false")]);
+checks.push(["balance ink regen rate increased", html.includes(".012*hero.art")]);
+checks.push(["balance waymark damage increased", html.includes("Math.round(16*hero.art")]);
+checks.push(["enhanced victory ceremony particles", html.includes("ci<240") && html.includes("12") && html.includes("Math.random()*12")]);
+checks.push(["enhanced victory golden petals", html.includes("Golden petal") && html.includes("gp<30")]);
+checks.push(["enhanced end credits richer memories", html.includes("mem.detail") && html.includes("zoneTimesText")]);
+checks.push(["end credits ink stones display", html.includes("inkstonesCollected")]);
+checks.push(["end credits paintings display", html.includes("paintingsMade")]);
+checks.push(["koi ponds reset in goToTitle", html.includes("koiPonds=[];koiFish=[]")]);
+checks.push(["meditation hint timer", html.includes("_msHintTimer")]);
 
 let failed = 0;
 for (const [name, ok] of checks) {

@@ -13,8 +13,14 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 63 — Road-side inn sanctuaries for rest, blessing, and guidance)
-- **~3180-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 64 — Koi fish ponds, meditation spots, balance tuning, enhanced ending ceremony)
+- **~3220-line single HTML game** with 3D perspective over-the-shoulder rendering
+- **Road-side koi fish ponds**: zone-specific animated koi fish swimming in reflective ponds along the road (up to 10 ponds, 3-5 fish each). Meadow amber koi, forest green koi, mountain gray-blue koi, coastal sea-blue koi. Each pond has reflective water surface with sky-tone gradient, ripple shimmer, and sin-wave swimming with flowing fins.
+- **Road-side meditation spots**: up to 4 meditation stones with zone-specific colors. Press E to sit — resolve builds over 60 frames with zone-specific secondary benefits (ink, hp, resolve). Zen circle (enso) symbol drawn above stone. Diary entry records meditation.
+- **Balance tuning**: ink regen increased (0.012 per art level), waymark paint damage increased (16 per art), smoother progression curve.
+- **Enhanced victory ceremony**: 240 particles with 12-color palette, 30 golden sakura petal particles, 60 ink-wash mist wisps, Ganryu theme on victory. Epilogue 360 frames, end credits 480 frames with detailed journey memories, zone time breakdown, ink stones count, paintings count.
+- **330 checks pass** (305 existing + 25 new: koi ponds, koi fish, meditation spots, balance, enhanced ceremony, end credits richness)
+- **~3220-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - **Road-side inns**: 4 zone-specific rest-stop sanctuaries at zone midpoints (z=200 Meadow Tea House of Morning Brush, z=450 Forest Bamboo Rest of Sixfold Peace, z=800 Mountain Stone Hearth of the Wandering Sage, z=1180 Coastal Lantern Gate of the Sea Path). Each inn has zone-specific roof color, warm lantern glow, hanging 宿 sign, and keeper dialogue.
 - **Inn interaction**: press E when near inn to trigger ink-wash overlay with 3 choices — Rest (restore HP costs 1 ink), Bless (gain +4 resolve), Guidance (zone lore about Ganryu). Paint mode keys disabled during overlay. Only usable once per zone per journey.
 - **Inn overlay UI**: modal showing inn name, keeper description, zone hint, and numbered choice labels (1/2/3). Keys 1/2/3 consumed for choice selection.
@@ -103,8 +109,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
-- `node drops/edo-inkblade-ots/test.js` — **305 checks**: all previous 291 plus 14 new (Pass 63: inn array, zone definitions, draw function, render call, E interaction, choice processing, overlay drawing, goToTitle reset, hint timer, hint label).
-- **All 305 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **330 checks**: all previous 305 plus 25 new (Pass 64: koi ponds, koi fish, meditation spots, balance tuning, enhanced ceremony, end credits richness).
+- **All 330 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -171,8 +177,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 **Pass 63** — Road-side inn sanctuaries for rest, blessing, and guidance: 4 zone-specific rest stops at zone midpoints with zone-specific building visuals and keeper NPCs; ink-wash overlay with 3 choices (Rest/Bless/Guidance); paint mode keys disabled during overlay; inn visits recorded in journey diary; 305 checks pass; 14 new checks.
 
+**Pass 64** — Road-side koi fish ponds, meditation spots, balance tuning, enhanced ending ceremony: zone-specific animated koi fish in reflective ponds (10 ponds, 3-5 fish each, zone-colored); meditation stones with E-key sit interaction and resolve build (60 frames); balance tuning (ink regen 0.009→0.012, waymark dmg 14→16); enhanced victory ceremony (240 particles, 12 colors, 30 golden petals, 60 mist wisps, Ganryu theme, 360-frame epilogue, 480-frame credits with zone time breakdown and stats summary). 330 checks pass; 25 new checks.
+
 ### Known Issues
-- None current — all 305 checks pass; inn sanctuaries operational with choice overlay
+- None current — all 330 checks pass; koi ponds and meditation spots operational with zone-specific behavior
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.

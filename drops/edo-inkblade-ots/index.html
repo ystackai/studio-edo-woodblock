@@ -588,6 +588,9 @@ let fogBanks=[]; // Zone-specific animated fog banks drifting horizontally acros
 let clouds=[],cloudDrift=0;
 for(var ci=0;ci<16;ci++){clouds.push({x:Math.random(),w:.3+Math.random()*.6,y:.05+Math.random()*.12,s:.4+Math.random()*1.2,a:.06+.04*Math.random(),vx:(Math.random()-.5)*.0008,vy:(Math.random()-.5)*.0001,color:["#f4ead8","#ead9bb","#d4c8a0","#f0e6d0"][Math.floor(Math.random()*4)]})}
 let butterflies=[],crows=[],eagles=[],seabirds=[]; // zone-specific ambient particles
+// Road-side koi fish ponds — animated Edo-style fish swimming in ponds alongside the road
+let koiPonds=[],koiFish=[];
+let meditationSpots=[],meditationActive=false,meditationTimer=0,meditationResult="";
 // Journey atmosphere zones for visual/audio progression
 const journeyZones=[
   {start:0,end:300,name:"meadow",roadEdge:'#2a3a1a',roadEdge2:'#3a4b2a',lanternColor:'#ff8333',lanternGlow:'rgba(255,131,51,0.2)',flowers:['#c84a3a','#8a5a3a'],pollenColor:'#d9c84a',surface:'dirt',surfaceBase:'#403121',enemyTypes:['chaser','prowler'],fogColor:[220,230,240],fogDensity:.08,rainIntensity:.002},
@@ -980,6 +983,46 @@ addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(endCreditsActiv
     if(Math.abs(player.z-ri.z)<40){
       if(innHintTimer<=0){say("[E] "+ri.name+" nearby");innHintTimer=180}
     }});
+  // Meditation spot interaction — press E near a meditation spot to sit and gain resolve
+  if(!meditationActive){
+    meditationSpots.forEach(function(ms){
+      if(ms.used)return;
+      if(Math.abs(player.z-ms.z)<30){
+        ms.used=true;
+        initAudio();sfx.mark();
+        meditationActive=true;meditationTimer=0;
+        meditationResult=ms.zone;
+        say("You sit in stillness. The wind carries silence.");
+        burst(player.x,player.z,ms.color,"#f4ead8");
+        screenShake=1;
+        diaryEntries.push({type:"meditation",zone:ms.zone,text:"Found a quiet place to meditate on the "+ms.zone+" road."});
+      }});
+  }
+  // Meditation animation — resolve builds over 60 frames of peaceful stillness
+  if(meditationActive){
+    meditationTimer+=dt;
+    if(meditationTimer>60){
+      var msGain=Math.round(3+Math.random()*2);
+      player.resolve=Math.min(15,player.resolve+msGain);
+      if(meditationResult==="meadow"){player.ink=Math.min(hero.ink,player.ink+1)}
+      else if(meditationResult==="forest"){player.hp=Math.min(hero.hp,player.hp+5)}
+      else if(meditationResult==="mountain"){player.resolve=Math.min(15,player.resolve+2)}
+      else if(meditationResult==="coastal"){player.ink=Math.min(hero.ink,player.ink+2)}
+      say("The meditation settles — resolve restored.");
+      burst(player.x,player.z,"#d7b66f","#ead9bb");
+      screenShake=1;
+      meditationActive=false;
+      diaryEntries.push({type:"meditation",zone:meditationResult,text:"Completed meditation on the "+meditationResult+" road — found peace."});
+    }
+  }
+  // Meditation spot proximity hint
+  var msHintTimer=window._msHintTimer||0;
+  window._msHintTimer=Math.max(0,msHintTimer-dt);
+  meditationSpots.forEach(function(ms){
+    if(ms.used)return;
+    if(Math.abs(player.z-ms.z)<40){
+      if(window._msHintTimer<=0){say("[E] Meditation spot nearby — press E to sit");window._msHintTimer=180}
+    }});
   // Road-side event proximity hint
   roadEventHintTimer=Math.max(0,roadEventHintTimer-dt);
   roadEvents.forEach(function(re){
@@ -1032,7 +1075,7 @@ function step(dt){
     // Ink regen: faster base rate, scales with hero.art, sprinting reduces regen
     var inkRegenMult=keys.shift&&player.resolve<2?.4:1;
     player.inkTimer=(player.inkTimer||0)+dt;if(player.ink<hero.ink&&player.inkTimer>=16){initAudio();sfx.inkRegen();player.inkTimer=0}
-    player.ink=Math.min(hero.ink,player.ink+.009*hero.art*dt*inkRegenMult);
+    player.ink=Math.min(hero.ink,player.ink+.012*hero.art*dt*inkRegenMult);
     // Ambient particles
     windDrift+=.003*dt;
     cloudDrift+=dt*.002;
@@ -1164,6 +1207,32 @@ function step(dt){
     }
     fogBanks=fogBanks.filter(f=>f.age<f.maxAge);
     fogBanks.forEach(f=>{f.age+=dt;f.x+=f.vx*dt;f.z+=f.vy*dt});
+    // Road-side koi fish ponds — Edo-style animated fish swimming in ponds along the road
+    if(Math.random()<.001*dt&&koiPonds.length<10&&player.hp>0){
+      var kpZone=getZone(player.z);
+      var kpColors={meadow:['#d96a3a','#d9893a','#f4a35a'],forest:['#5a8a6a','#6a9a7a','#4a7a5a'],mountain:['#6a7a8a','#8a9aaa','#5a6a7a'],coastal:['#6a8a9a','#8aaaba','#5a7a8a']};
+      var kpCol=kpColors[kpZone.name]||['#d96a3a','#d9893a','#f4a35a'];
+      var kpX=(Math.random()-.5)*280,kpZ=player.z+60+Math.random()*120;
+      // Pond spawns more often in forest/coastal zones (water-rich areas)
+      var pondChance=(kpZone.name==='forest'||kpZone.name==='coastal')?1:0.6;
+      if(Math.random()<pondChance){
+        koiPonds.push({x:kpX,z:kpZ,age:0,maxAge:800+Math.random()*400,color:kpCol[Math.floor(Math.random()*kpCol.length)],w:40+Math.random()*30,h:12+Math.random()*8,fishCount:3+Math.floor(Math.random()*3),glowPhase:Math.random()*7});
+        // Spawn fish for this pond
+        for(var kfi=0;kfi<3+Math.floor(Math.random()*3);kfi++){koiFish.push({x:kpX+(Math.random()-.5)*20,z:kpZ+(Math.random()-.5)*10,pondRef:koiPonds.length-1,color:kpCol[Math.floor(Math.random()*kpCol.length)],age:0,maxAge:800+Math.random()*400,swimPhase:Math.random()*7,swimSpeed:.3+Math.random()*.3,size:4+Math.random()*4,drift:Math.random()*6})}
+      }
+    }
+    koiPonds=koiPonds.filter(p=>p.age<p.maxAge);
+    koiPonds.forEach(p=>{p.age+=dt;p.glowPhase+=dt*.015});
+    koiFish=koiFish.filter(f=>f.age<f.maxAge);
+    koiFish.forEach(f=>{f.age+=dt;f.x+=Math.sin(f.swimPhase)*f.swimSpeed*dt;f.z+=Math.cos(f.swimPhase*0.7)*f.swimSpeed*dt*0.3;f.swimPhase+=dt*.02;f.drift+=Math.sin(f.swimPhase*0.5)*0.2});
+    // Road-side meditation spots — peaceful places to sit, breathe, and gain resolve
+    if(Math.random()<.0008*dt&&meditationSpots.length<4&&player.hp>0){
+      var msZone=getZone(player.z);
+      var msColors={meadow:'#d9c84a',forest:'#8fc7d6',mountain:'#b9a88d',coastal:'#caa45f'};
+      meditationSpots.push({x:(Math.random()-.5)*240,z:player.z+80+Math.random()*120,zone:msZone.name,color:msColors[msZone.name]||'#d9c84a',age:0,maxAge:1200,used:false,glowPhase:Math.random()*7});
+    }
+    meditationSpots=meditationSpots.filter(m=>m.age<m.maxAge);
+    meditationSpots.forEach(m=>{m.age+=dt;m.glowPhase+=dt*.015});
     // Rain puddles on road surface during drizzle
     if(rainEffective>.12&&Math.random()<.008*dt&&puddles.length<20){var pw=10+Math.random()*30,ph=4+Math.random()*10;puddles.push({x:player.x+(Math.random()-.5)*120,z:player.z-20+Math.random()*80,w:pw,h:ph,alpha:0,maxAlpha:.25+Math.random()*.15,age:0,maxAge:200+Math.random()*300,ripplePhase:Math.random()*7})};puddles=puddles.filter(p=>p.age<p.maxAge);puddles.forEach(p=>{p.age+=dt;if(p.age<20)p.alpha=Math.min(p.maxAlpha,p.age/20*.25);else if(p.age>p.maxAge-60)p.alpha=Math.max(0,p.alpha-(p.age-(p.maxAge-60))/60);p.ripplePhase+=.02*dt});
     // Rain drop impact ripples on puddles — drizzle landing near active puddles spawns ripple rings
@@ -1534,7 +1603,7 @@ function paint(){initAudio();
     say(hero.label+" paints an ink blossom — gentle healing radiates from the mark.");
   }else{
     // Waymark seal (default): damages enemies near it
-    enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{var dmg=Math.round(14*hero.art);e.hp-=dmg;if(e.hp<=0){enemiesDefeated+=1;player.resolve+=2;say(e.name+" unravels under the ink seal.")}else{player.resolve+=1;say("The ink mark binds "+e.name+".")}});
+    enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.z-z)<85).forEach(e=>{var dmg=Math.round(16*hero.art);e.hp-=dmg;if(e.hp<=0){enemiesDefeated+=1;player.resolve+=2;say(e.name+" unravels under the ink seal.")}else{player.resolve+=1;say("The ink mark binds "+e.name+".")}});
     marksPlacedTotal+=1;player.resolve+=1;
     marks.push({x,z,age:0,maxAge,color:markColor,style:hero.label,brushSize,kind:"waymark"});
     say(hero.label+" presses a living ink seal into the road.");
@@ -1591,19 +1660,28 @@ function updateQuest(){
     won=true;
     say("Ganryu shore opens. Art and steel find peace.");
     initAudio();sfx.victory();
+    if(audioBuffers['ganryu-theme']){playBuffer('ganryu-theme',{gain:.3,stop:6})}
     burst(player.x,player.z,"#f4ead8","#d7b66f");
-    // Ganryu closing ceremony — layered arrival particles and ink-wash mist
-    for(var ci=0;ci<180;ci++){var ca=Math.random()*7,cd=Math.random()*80+20;victoryParticles.push({x:player.x+Math.cos(ca)*cd,z:player.z+Math.sin(ca)*cd,a:1,vx:(Math.random()-.5)*.6,vy:Math.random()*2+.3,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb","#caa45f","#eca5a0","#d4c8a0","#b9a88d","#fff"][Math.random()*10|0],d:Math.random()*4+2})}
+    screenShake=6;
+    // Enhanced Ganryu closing ceremony — layered arrival particles and ink-wash mist with richer palette
+    for(var ci=0;ci<240;ci++){var ca=Math.random()*7,cd=Math.random()*100+20;victoryParticles.push({x:player.x+Math.cos(ca)*cd,z:player.z+Math.sin(ca)*cd,a:1,vx:(Math.random()-.5)*.8,vy:Math.random()*3+.5,color:["#d7b66f","#f4ead8","#d98986","#8fc7d6","#ead9bb","#caa45f","#eca5a0","#d4c8a0","#b9a88d","#fff","#cdd6e0","#d0a76f"][Math.random()*12|0],d:Math.random()*5+2})}
     // Ink-wash mist victory particles — dark drifting wisps for ceremony depth
-    for(var vi=0;vi<40;vi++){victoryParticles.push({x:player.x+(Math.random()-.5)*100,z:player.z+(Math.random()-.5)*100,a:.6,vx:(Math.random()-.5)*.2,vy:Math.random()*.8+.2,color:"#1a120e",d:Math.random()*6+4})}
-    screenShake=4;
+    for(var vi=0;vi<60;vi++){victoryParticles.push({x:player.x+(Math.random()-.5)*120,z:player.z+(Math.random()-.5)*120,a:.7,vx:(Math.random()-.5)*.3,vy:Math.random()*1+.3,color:"#1a120e",d:Math.random()*8+4})}
+    // Golden petal particles — sakura-like gold flecks drifting down
+    for(var gp=0;gp<30;gp++){victoryParticles.push({x:player.x+(Math.random()-.5)*80,z:player.z+(Math.random()-.5)*80,a:.8,vx:(Math.random()-.5)*.2,vy:-.1-Math.random()*.3,color:"#f4ead8",d:Math.random()*3+1})}
     // Journey haiku per character
     var haikuEl=document.getElementById("v-haiku");
     if(haikuEl){var haikus={musashi:"the ink on the road becomes the river carrying the boat",koeda:"running the long bridge with brush in the belt arrive dry",yoshino:"rain on the road carved into tide arrive wet"};      haikuEl.textContent=haikus[currentHeroKey]||"the road ends and begins with ink";}
     ui.victory.classList.add("show");
-    // Ganryu epilogue — journey scroll overlay after victory
-    epilogueActive=true;epilogueTimer=240;epiloguePage=0;
+    // Enhanced Ganryu epilogue — journey scroll overlay after victory with richer pacing
+    epilogueActive=true;epilogueTimer=360;epiloguePage=0;
     diaryEntries.push({type:"victory",text:"Arrived at Ganryu shore — the journey ends in ink and peace."});
+    // Extended end credits — longer duration for full journey reflection
+    endCreditsTimer=480;
+    // Diary notes from journey stats
+    diaryEntries.push({type:"journey",text:"Traveled through meadow, forest, mountain, and coastal shore."});
+    if(enemiesDefeated>0)diaryEntries.push({type:"journey",text:"Defeated "+enemiesDefeated+" challengers along the road."});
+    diaryEntries.push({type:"journey",text:"Placed "+marksPlacedTotal+" ink marks upon the world."});
   }
   if(won)ui.quest.textContent="Ganryu: the shore holds your prints and the journey is written in ink and steel.";
   else if(painted<4){const remaining=4-painted;if(player.z<200)ui.quest.textContent=`Paint ${remaining} more waymark${remaining===1?"":"s"} near the road. Ink flows as you walk.`;else if(player.z<520)ui.quest.textContent=`The bridge looms ahead. Paint ${remaining} waymark${remaining===1?"":"s"} to make your passage known.`;else if(player.z<1100)ui.quest.textContent=`The road narrows toward Ganryu. Paint ${remaining} waymark${remaining===1?"":"s"} to honor the journey.`;else ui.quest.textContent=`The mountain pass sharpens. Paint ${remaining} final waymark${remaining===1?"":"s"} for Ganryu.`;}
@@ -1766,7 +1844,7 @@ function draw(){
   const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,"#"+skyR.toString(16).padStart(2,'0')+skyG.toString(16).padStart(2,'0')+skyB.toString(16).padStart(2,'0'));sky.addColorStop(.5,"#"+skyR2.toString(16).padStart(2,'0')+skyG2.toString(16).padStart(2,'0')+skyB2.toString(16).padStart(2,'0'));sky.addColorStop(.85,"#b78c54");sky.addColorStop(1,"#d0a76f");ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon);
   drawSun(w,horizon);drawMountains(w,horizon);drawClouds(w,horizon);drawGanryu(w,horizon);ctx.fillStyle="#2b2118";ctx.fillRect(0,horizon,w,h-horizon);
   drawSkyZoneTint(w,h,horizon);
-  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();  drawDustMotes();drawRoadDecorations();drawPaintingCanvases();drawInns();drawDrizzle();drawCampfires();drawCampfireEmbers();
+  drawRoad(w,h,horizon);drawFog(w,horizon);drawMist(w,horizon);drawLanterns(w,horizon);drawPuddles();drawRipples();drawLeaves();drawFoxSpirits();drawFireflies();drawRiverMist();drawButterflies();drawCrows();drawEagles();drawSeabirds();drawTravelers();drawDustMotes();drawRoadDecorations();drawPaintingCanvases();drawInns();drawDrizzle();drawCampfires();drawCampfireEmbers();drawKoiPonds();drawKoiFish();drawMeditationSpots();
   // Journey milestone stone markers — inscribed pillars at route positions
   drawMilestoneStones(w,h,horizon);
   // Journey zone transition markers — torii gates at zone boundaries
@@ -2750,6 +2828,78 @@ function drawFogBanks(){fogBanks=fogBanks.filter(function(f){return f.age<f.maxA
     ctx.globalAlpha=fade*.3;
     ctx.beginPath();ctx.ellipse(p.x+fb.w*.3*s,p.y-fb.h*.2*s,fb.w*.6*s,fb.h*.5*s,0,0,7);ctx.fill();
     ctx.globalAlpha=1})}
+// Road-side koi fish ponds — animated Edo fish swimming in ponds alongside the road
+function drawKoiPonds(){koiPonds.forEach(function(kp){const p=project(kp.x,kp.z,4);if(!p)return;
+    var fade=Math.max(0.1,1-kp.age/kp.maxAge),s=Math.min(p.s,3.2);
+    if(s<.35)return;
+    // Pond water surface — reflective pool with sky tone
+    ctx.globalAlpha=fade*.3*s;
+    var pondGrad=ctx.createLinearGradient(p.x,p.y-kp.h*s,p.x,p.y+kp.h*s);
+    var pondZone=getZone(kp.z);
+    var pondTint=pondZone.name==='coastal'?'#6a8a9a':pondZone.name==='mountain'?'#8a9aaa':'#6a8a6a';
+    pondGrad.addColorStop(0,'rgba(180,200,180,0.15)');
+    pondGrad.addColorStop(.5,pondTint+'30');
+    pondGrad.addColorStop(1,'rgba(60,50,40,0.2)');
+    ctx.fillStyle=pondGrad;
+    ctx.beginPath();ctx.ellipse(p.x,p.y,kp.w*s*0.5,kp.h*s*0.5,0,0,7);ctx.fill();
+    // Pond ripple shimmer
+    ctx.globalAlpha=fade*.2*s*Math.sin(kp.glowPhase);
+    ctx.strokeStyle='#f4ead8';ctx.lineWidth=1.5*s;
+    ctx.beginPath();ctx.ellipse(p.x,p.y,kp.w*s*0.35,kp.h*s*0.25,0,0,7);ctx.stroke();
+    ctx.globalAlpha=1})}
+function drawKoiFish(){koiFish.forEach(function(kf){const p=project(kf.x,kf.z,8);if(!p)return;
+    var fade=Math.max(0.1,1-kf.age/kf.maxAge),s=Math.min(p.s,3);
+    if(s<.4)return;
+    // Koi fish — elegant swimming shape with flowing fins
+    var swimOff=Math.sin(kf.swimPhase)*kf.swimSpeed*6;
+    ctx.globalAlpha=fade*.45*s;
+    // Fish body — elongated ellipse with tail
+    ctx.fillStyle=kf.color;
+    ctx.save();ctx.translate(p.x+swimOff,p.y);
+    ctx.rotate(Math.sin(kf.swimPhase)*.15);
+    ctx.beginPath();ctx.ellipse(0,0,kf.size*s*0.5,kf.size*s*0.18,0,0,7);ctx.fill();
+    // Tail fin
+    ctx.fillStyle=kf.color+'80';
+    ctx.beginPath();ctx.moveTo(-kf.size*s*0.5,0);ctx.lineTo(-kf.size*s*0.8,-kf.size*s*0.15);ctx.lineTo(-kf.size*s*0.8,kf.size*s*0.15);ctx.closePath();ctx.fill();
+    // Dorsal fin
+    ctx.fillStyle=kf.color+'60';
+    ctx.beginPath();ctx.moveTo(kf.size*s*0.1,0);ctx.lineTo(kf.size*s*0.2,-kf.size*s*0.1);ctx.lineTo(kf.size*s*0.3,0);ctx.closePath();ctx.fill();
+    ctx.restore();
+    // Subtle glow around fish
+    ctx.globalAlpha=fade*.15*s;
+    ctx.fillStyle=kf.color+'40';
+    ctx.beginPath();ctx.arc(p.x+swimOff,p.y,kf.size*s*0.6,0,7);ctx.fill();
+    ctx.globalAlpha=1})}
+// Road-side meditation spots — peaceful glow indicators where player can sit and gain resolve
+function drawMeditationSpots(){meditationSpots.forEach(function(ms){if(ms.used)return;
+    var p=project(ms.x,ms.z,10);if(!p)return;
+    var dz=Math.abs(player.z-ms.z),fade=Math.max(0,1-dz/40),s=Math.min(p.s,3.2);
+    if(s<.4||dz>40)return;
+    ctx.globalAlpha=fade*.45*s;
+    // Stone meditation circle — flat rock or worn stone
+    ctx.fillStyle="#5a4a38";
+    ctx.beginPath();ctx.ellipse(p.x,p.y,10*s,4*s,0,0,7);ctx.fill();
+    ctx.fillStyle="#7a6a58";
+    ctx.beginPath();ctx.ellipse(p.x,p.y-2*s,12*s,4*s,0,0,7);ctx.fill();
+    // Inner surface — zone-tinted meditation stone
+    ctx.fillStyle=ms.color+'60';
+    ctx.beginPath();ctx.ellipse(p.x,p.y-3*s,8*s,3*s,0,0,7);ctx.fill();
+    // Warm glow emanating from stone
+    ctx.globalAlpha=fade*.25*s;
+    var msGlow=ctx.createRadialGradient(p.x,p.y-3*s,4*s,p.x,p.y-3*s,24*s);
+    msGlow.addColorStop(0,ms.color+'80');
+    msGlow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=msGlow;
+    ctx.beginPath();ctx.arc(p.x,p.y-3*s,24*s,0,7);ctx.fill();
+    // Zen circle symbol (enso) drawn above meditation stone
+    ctx.globalAlpha=fade*.35*s;
+    ctx.strokeStyle=ms.color;ctx.lineWidth=2*s;
+    ctx.beginPath();ctx.ellipse(p.x,p.y-18*s,8*s,3*s,0,0,7);ctx.stroke();
+    ctx.globalAlpha=1;
+    // Hint label when close
+    if(dz<30){ctx.fillStyle="#ead9bb";ctx.font="bold 11px serif";ctx.textAlign="center";
+      ctx.fillText("[E] Meditate",p.x,p.y-32*s-8)};
+    ctx.globalAlpha=1})}
 function drawCampfires(){campfires.forEach(function(cf){const p=project(cf.x,cf.z,10);if(!p)return;
     var fade=Math.max(0,1-cf.age/cf.maxAge),s=Math.min(p.s,3.5);
     if(s<.5)return;
@@ -3101,6 +3251,8 @@ function goToTitle(){
   messages=["Choose a style, then begin the road."];
   diaryEntries=[];roadEvents.forEach(function(re){re.used=false});inkPickups=[];fogBanks=[];roadDecorations=[];paintingCanvases.forEach(function(pc){pc.used=false});canvasPaintActive=false;canvasPaintTimer=0;canvasPaintResult=null;
   roadInns.forEach(function(ri){ri.used=false});innOverlayActive=false;innOverlayTimer=0;innSelected=false;
+  meditationSpots=[];meditationActive=false;meditationTimer=0;meditationResult="";
+  koiPonds=[];koiFish=[];window._msHintTimer=0;
   enemies.forEach(function(e,i){e.hp=e.max;e.x=e.patrolX;e.z=e.patrolZ;e.patrolAngle=i*1.6;e.wind=0;e.attackWindUp=0;e.attackCount=0;e.deathAge=undefined;e.bossPhase=1;e.inkWaveTimer=0;e.groundPoundTimer=0});
   ganryuArrival={active:false,timer:0,flag:false};
   player={x:0,z:0,heading:0,hp:100,ink:5,resolve:0,blocking:false,blockDecay:0,slashTimer:0,paintTimer:0,paintChain:0,paintHoldTime:0,damageFlash:0,invincible:0,mx:0,mz:0,bobPhase:0,displayHp:100,displayInk:5,deathFade:0};
@@ -3121,15 +3273,24 @@ function drawEndCredits(){
   ctx.fillStyle="rgba(10,8,6,"+(fade*.82)+")";ctx.fillRect(0,0,w,h);
   // Drifting ink particles — slow mist across the credits frame
   ctx.globalAlpha=fade*.25;
-  for(var cpi=0;cpi<30;cpi++){var cAng=Math.random()*7,cRad=40+Math.sin(t*.002+cpi*2)*60;
+  for(var cpi=0;cpi<40;cpi++){var cAng=Math.random()*7,cRad=40+Math.sin(t*.002+cpi*2)*60;
     ctx.fillStyle="#1a1512";ctx.beginPath();ctx.arc(w/2+Math.cos(cAng+cRad*.003)*cRad,h/2+Math.sin(cAng+cRad*.003)*cRad*0.35,2+Math.sin(t*.006+cpi)*1.5,0,7);ctx.fill()}
-  // Scrolling journey memories — zone recollections
+  // Floating calligraphy brush particles — slow drifting glyphs
+  ctx.globalAlpha=fade*.15;
+  var calligGlyphs=['道','風','月','花','海','橋','岸','旅'];
+  for(var cgi=0;cgi<6;cgi++){var cgX=w/2+Math.sin(t*.005+cgi*1.8)*w*0.35;
+    var cgY=h*0.15+Math.sin(t*.004+cgi*2.4)*h*0.1+cgi*30;
+    ctx.fillStyle="#ead9bb";ctx.font="bold 28px serif";ctx.textAlign="center";
+    ctx.globalAlpha=fade*.1;
+    ctx.fillText(calligGlyphs[cgi%calligGlyphs.length],cgX,cgY)};
+  ctx.globalAlpha=1;
+  // Scrolling journey memories — zone recollections with richer detail
   var scrollY=Math.max(0,t-60)*40,showY=h*0.2-scrollY;
   var memories=[
-    {z:"meadow",title:"Meadow Road",desc:"Spring grass underfoot, warm amber light, and the faint scent of wildflowers.",color:"#caa45f"},
-    {z:"forest",title:"Forest Path",desc:"Dappled shade, bamboo rustling, ancient stone markers along the way.",color:"#8fc7d6"},
-    {z:"mountain",title:"Mountain Pass",desc:"Cool mist and gravel paths, wind carving through the ridgeline.",color:"#b9a88d"},
-    {z:"coastal",title:"Coastal Shore",desc:"Sea spray and golden dusk, the road widening toward Ganryu.",color:"#d7b66f"}
+    {z:"meadow",title:"Meadow Road",desc:"Spring grass underfoot, warm amber light, and the faint scent of wildflowers.",color:"#caa45f",detail:"The road began in golden light, with morning brush and first breath."},
+    {z:"forest",title:"Forest Path",desc:"Dappled shade, bamboo rustling, ancient stone markers along the way.",color:"#8fc7d6",detail:"Bamboo rustled as the wind moved through — shadows carried the day's last light."},
+    {z:"mountain",title:"Mountain Pass",desc:"Cool mist and gravel paths, wind carving through the ridgeline.",color:"#b9a88d",detail:"Wind carved through stone, footsteps slow on the old road toward Ganryu."},
+    {z:"coastal",title:"Coastal Shore",desc:"Sea spray and golden dusk, the road widening toward Ganryu.",color:"#d7b66f",detail:"Sea spray and salt wind, the island rising from mist — brush and blade, one."}
   ];
   memories.forEach(function(mem,i){
     var my=showY+i*80;
@@ -3139,24 +3300,46 @@ function drawEndCredits(){
     ctx.fillText(mem.title,w/2,my);
     ctx.fillStyle="#ead9bb";ctx.font="italic 14px serif";
     ctx.fillText(mem.desc,w/2,my+28);
+    // Additional journey detail line
+    ctx.fillStyle="#b9a88d";ctx.font="italic 11px serif";ctx.globalAlpha*=0.6;
+    ctx.fillText(mem.detail,w/2,my+50);
+    ctx.globalAlpha=1
   });
-  // Journey stats summary
+  // Journey stats summary — richer display
   var statsY=h*0.55;
   ctx.globalAlpha=fade*.9;
   ctx.fillStyle="#d7b66f";ctx.font="bold 20px serif";ctx.textAlign="center";ctx.textBaseline="middle";
   ctx.fillText("Journey Complete",w/2,statsY);
   ctx.fillStyle="#f4ead8";ctx.font="16px serif";
   var e2=Math.floor((Date.now()-gameStartTime)/1000),tm2=Math.floor(e2/60)+"m "+(e2%60)+"s";
+  var resolveFinal=player.resolve||0;
   var statsLines=[
     "Time: "+tm2,
     "Enemies Defeated: "+enemiesDefeated,
     "Marks Placed: "+marksPlacedTotal,
     "Ink Used: "+inkUsedTotal,
+    "Final Resolve: "+resolveFinal,
     "Hero: "+(hero?hero.label:"Musashi")
   ];
   statsLines.forEach(function(sl,i){
     ctx.fillStyle="#ead9bb";ctx.globalAlpha=fade*(.5+.1*i);
     ctx.fillText(sl,w/2,statsY+30+i*22)});
+  // Journey reflection — zone time breakdown
+  ctx.globalAlpha=fade*.7;
+  ctx.fillStyle="#b9a88d";ctx.font="italic 12px serif";
+  var zoneTimesText="";
+  Object.keys(journeyZoneTimes).forEach(function(zn,i2){
+    var zt=journeyZoneTimes[zn]||0;
+    var ztm=Math.floor(zt/60)+"s";
+    zoneTimesText+=zn+": "+ztm+(i2<Object.keys(journeyZoneTimes).length-1?", ":"")
+  });
+  if(zoneTimesText){ctx.fillText("Zones: "+zoneTimesText,w/2,statsY+140)}
+  ctx.globalAlpha=fade*.5;
+  ctx.fillStyle="#8a7a6a";ctx.font="11px serif";
+  var inkstonesCollected=inkPickups.filter(function(ip){return ip.collected}).length||0;
+  ctx.fillText("Ink stones gathered: "+inkstonesCollected,w/2,statsY+164);
+  var paintingsMade=paintingCanvases.filter(pc=>pc.used).length||0;
+  ctx.fillText("Paintings created: "+paintingsMade,w/2,statsY+186);
   // Closing calligraphy — "The End" with Edo character
   ctx.globalAlpha=fade*.75;
   ctx.fillStyle="#f4ead8";ctx.font="bold 36px serif";ctx.textAlign="center";ctx.textBaseline="middle";
