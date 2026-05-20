@@ -98,6 +98,15 @@
 - **Updated haiku moments**: refreshed poetic haiku content across all 5 scenic road points with more evocative Edo-era imagery (morning brush, pine shadows, cedar breath, river voice, salt wind).
 - 282 checks pass (272 existing + 10 new: calligraphy paint mode defined, key 4, kanjiChars array, calligraphy mark kind created on paint, calligraphy mark rendered in drawMark, calligraphy UI label, calligraphy controls hint, enhanced brush trail sumi-e rendering, plus calligraphy mode in paint function)
 
+### Pass 63 — Road-side inn sanctuaries for rest, blessing, and guidance
+- **Road-side inns**: 4 zone-specific rest-stop sanctuaries at zone midpoints (z=200 Meadow Tea House of Morning Brush, z=450 Forest Bamboo Rest of Sixfold Peace, z=800 Mountain Stone Hearth of the Wandering Sage, z=1180 Coastal Lantern Gate of the Sea Path). Each inn has zone-specific visual identity with roof color, warm lantern glow, hanging 宿 sign.
+- **Inn interaction**: press E when near an inn to trigger an overlay with 3 choices: Rest (restore HP costs 1 ink), Bless (gain +4 resolve), Guidance (zone lore about Ganryu). Only usable once per zone per journey.
+- **Inn overlay UI**: ink-wash modal showing inn name, keeper description, zone hint, and numbered choice labels (1/2/3). Paint mode switching disabled during overlay. Keys 1/2/3 consumed for choice.
+- **Inn keeper dialogue**: each inn has zone-specific keeper (tea woman, silent monk, weathered pilgrim, salt-haired ferryman) with 3 unique dialogue variants for rest/bless/guide actions.
+- **Diary entries**: inn visits recorded in journey diary with zone and inn name.
+- **Inn proximity hints**: [E] inn name label appears when player walks near an unused inn.
+- **305 checks pass** (291 existing + 14 new: inn array, zone definitions, draw function, render call, E interaction, choice processing, overlay drawing, goToTitle reset, hint timer, hint label)
+
 ### Pass 62 — Road-side ink painting canvas stations, gain null safety fix, runtime check fix
 - **Shakuhachi gain null safety fix**: fixed `amb.shaku.gain||amb.shaku.gain` redundant guard — replaced with proper `amb.shaku.g && amb.shaku.g.gain` check. The previous pattern `amb.shaku.gain||amb.shaku.gain` used same expression on both sides and had `pg.gain.linearRampToValueAtTime` called outside the null guard, creating a latent runtime TypeError if `amb.shaku` preload hadn't completed.
 - **Runtime check DOM ID fix**: character select element check used `getElementById('chars')` but the actual DOM ID is `select`; fixed to prevent false failure in browser runtime verification.

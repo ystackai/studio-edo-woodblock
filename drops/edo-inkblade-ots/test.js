@@ -332,6 +332,18 @@ checks.push(["canvas state variables defined", html.includes("canvasPaintTimer")
 checks.push(["canvas animation completes after 60 frames", html.includes("canvasPaintTimer>60")]);
 checks.push(["canvas paintings reset in goToTitle", html.includes("canvasPaintActive=false") && html.includes("canvasPaintTimer=0")]);
 
+// Pass 63 — Road-side inn sanctuaries for rest, blessing, and guidance
+checks.push(["road inn array initialized", html.includes("roadInns=[") && html.includes("Tea House")]);
+checks.push(["road inn zone-specific definitions", html.includes('z:200') && html.includes('z:450') && html.includes('z:800') && html.includes('z:1180')]);
+checks.push(["road inn draw function", html.includes("function drawInns") && html.includes("ri.roofColor")]);
+checks.push(["road inns rendered in draw", html.includes("drawInns()")]);
+checks.push(["road inn E-key interaction", html.includes("innOverlayActive") && html.includes("innOverlayTimer")]);
+checks.push(["road inn choice processing 1/2/3", html.includes('innChoice==="rest"') && html.includes('innChoice==="bless"') && html.includes('innChoice==="guide"')]);
+checks.push(["road inn overlay drawing", html.includes("innName") && html.includes("innKeeper") && html.includes("innZoneName")]);
+checks.push(["road inns reset in goToTitle", html.includes("roadInns.forEach") && html.includes("innOverlayActive=false")]);
+checks.push(["inn hint timer defined", html.includes("innHintTimer")]);
+checks.push(["inn proximity hint E label", html.includes('[E]') && html.includes('ri.name')]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);
