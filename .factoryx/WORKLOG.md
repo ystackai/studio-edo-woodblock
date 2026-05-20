@@ -413,5 +413,26 @@
 - **197 smoke checks pass** (was 186 — added 11 checks: dirt/stone/gravel/sand surfaces, roaming spawns, zone enemy types, telegraph tints, wind frequency, torii gate, arrival glow, milestone stone colors).
 - **Screenshots captured fresh** after all Pass 50 changes.
 
+## Pass 51 — WAV audio assets replace oscillator-based audio
+
+### What changed
+- **Generated 36 WAV audio assets** via `generate-audio.js` using mathematical synthesis with culturally-informed Edo instrument modeling:
+  - Shakuhachi bamboo flute note samples (all 5 yo-scale pentatonic notes: D4, E4, G4, A4, C5)
+  - Koto string instrument note samples (D4, G4, A4, C5)
+  - Taiko drum impact samples
+  - Zone-specific wind ambiences (meadow/forest/mountain/coastal with different frequency profiles)
+  - River ambience, rain ambience, bass drone, tension drone, Ganryu approach drone, Ganryu bright theme
+  - All SFX (slash, paint, block, hit, death, inkRegen, mark, victory fanfare)
+  - Zone ambient noise layers (amb-meadow/forest/mountain/coastal)
+  - Zone-specific melodic motifs (motif-meadow/forest/mountain/coastal) for musical identity
+- **New audio pipeline** in `initAudio()`:
+  - WAV buffer preloader fetches all assets asynchronously
+  - Ambient sounds (wind, bass drone, rain, river, tension drone, ganryu drone/theme, zone ambients) use looping `AudioBufferSourceNode` instead of oscillators
+  - Shakuhachi and koto voices use note buffers for melodic playback
+  - SFX functions rewritten to use decoded WAV buffers with oscillator fallback when buffers not yet loaded
+  - Melody system uses motif WAV files (`motif-*`) with zone-based gain control
+  - Oscillator functions preserved as `_osc*` fallback for browsers that don't support preloading
+- **Audio asset manifest** at `assets/audio/manifest.json` documenting all 36 assets with descriptions, sample rates, and durations
+- **All 197 smoke checks pass** after audio pipeline integration
+
 ## Known Issues
-- Zone audio cues are oscillator-based — real zone ambience files would be richer

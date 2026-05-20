@@ -1,0 +1,188 @@
+{
+  "description": "Edo Inkblade audio assets — WAV format, generated via mathematical synthesis",
+  "sampleRate": 44100,
+  "bitsPerSample": 16,
+  "channels": 1,
+  "assets": [
+    {
+      "name": "shaku-d4.wav",
+      "description": "Shakuhachi bamboo flute — D4 note (yo-scale pentatonic tonic)",
+      "duration": "2.00s"
+    },
+    {
+      "name": "shaku-e4.wav",
+      "description": "Shakuhachi bamboo flute — E4 note",
+      "duration": "2.00s"
+    },
+    {
+      "name": "shaku-g4.wav",
+      "description": "Shakuhachi bamboo flute — G4 note",
+      "duration": "2.00s"
+    },
+    {
+      "name": "shaku-a4.wav",
+      "description": "Shakuhachi bamboo flute — A4 note",
+      "duration": "2.00s"
+    },
+    {
+      "name": "shaku-c5.wav",
+      "description": "Shakuhachi bamboo flute — C5 note",
+      "duration": "2.00s"
+    },
+    {
+      "name": "koto-d4.wav",
+      "description": "Koto string instrument — D4 note",
+      "duration": "2.00s"
+    },
+    {
+      "name": "koto-a4.wav",
+      "description": "Koto string instrument — A4 note",
+      "duration": "2.00s"
+    },
+    {
+      "name": "koto-c5.wav",
+      "description": "Koto string instrument — C5 note",
+      "duration": "2.00s"
+    },
+    {
+      "name": "koto-g4.wav",
+      "description": "Koto string instrument — G4 note",
+      "duration": "2.00s"
+    },
+    {
+      "name": "taiko.wav",
+      "description": "Taiko drum impact — filtered noise burst with pitch drop",
+      "duration": "0.60s"
+    },
+    {
+      "name": "wind-meadow.wav",
+      "description": "Meadow wind ambience — 180Hz gentle breeze",
+      "duration": "8.00s"
+    },
+    {
+      "name": "wind-forest.wav",
+      "description": "Forest wind ambience — 120Hz deeper hum",
+      "duration": "8.00s"
+    },
+    {
+      "name": "wind-mountain.wav",
+      "description": "Mountain wind ambience — 300Hz sharper wind",
+      "duration": "8.00s"
+    },
+    {
+      "name": "wind-coastal.wav",
+      "description": "Coastal wind ambience — 90Hz sea wash",
+      "duration": "8.00s"
+    },
+    {
+      "name": "river-ambient.wav",
+      "description": "River ambience — filtered noise with 95Hz sine drone",
+      "duration": "8.00s"
+    },
+    {
+      "name": "rain-ambient.wav",
+      "description": "Rain ambience — filtered noise for drizzle zone",
+      "duration": "3.00s"
+    },
+    {
+      "name": "bass-drone.wav",
+      "description": "Bass drone — D2 at 73.4Hz, deep filtered sine",
+      "duration": "8.00s"
+    },
+    {
+      "name": "tension-drone.wav",
+      "description": "Duel tension drone — 55Hz sawtooth, lowpass filtered",
+      "duration": "4.00s"
+    },
+    {
+      "name": "ganryu-drone.wav",
+      "description": "Ganryu approach drone — 60Hz→24Hz descending sine",
+      "duration": "4.00s"
+    },
+    {
+      "name": "ganryu-theme.wav",
+      "description": "Ganryu bright theme — triangle chords at 440/554/659/880 Hz",
+      "duration": "4.00s"
+    },
+    {
+      "name": "sfx-slash.wav",
+      "description": "Slash SFX — bandpass noise + metal ring + body resonance",
+      "duration": "0.10s"
+    },
+    {
+      "name": "sfx-paint.wav",
+      "description": "Paint SFX — bandpass noise with koto pluck accent",
+      "duration": "0.15s"
+    },
+    {
+      "name": "sfx-block.wav",
+      "description": "Block SFX — taiko impact + wood resonance ring",
+      "duration": "0.08s"
+    },
+    {
+      "name": "sfx-hit.wav",
+      "description": "Hit SFX — taiko + low thud + filtered noise",
+      "duration": "0.15s"
+    },
+    {
+      "name": "sfx-death.wav",
+      "description": "Death SFX — layered shakuhachi Dm7 chord + taiko pulse",
+      "duration": "0.60s"
+    },
+    {
+      "name": "sfx-ink-regen.wav",
+      "description": "Ink regen SFX — koto plucks at 440/554 Hz",
+      "duration": "0.25s"
+    },
+    {
+      "name": "sfx-mark.wav",
+      "description": "Mark SFX — koto arpeggio at 350/440/550 Hz",
+      "duration": "0.25s"
+    },
+    {
+      "name": "sfx-victory.wav",
+      "description": "Victory fanfare — shakuhachi ascending notes + koto accompaniment",
+      "duration": "1.20s"
+    },
+    {
+      "name": "amb-meadow.wav",
+      "description": "Meadow zone ambient noise layer — 220Hz gentle",
+      "duration": "4.00s"
+    },
+    {
+      "name": "amb-forest.wav",
+      "description": "Forest zone ambient noise layer — 150Hz deep",
+      "duration": "4.00s"
+    },
+    {
+      "name": "amb-mountain.wav",
+      "description": "Mountain zone ambient noise layer — 350Hz wind",
+      "duration": "4.00s"
+    },
+    {
+      "name": "amb-coastal.wav",
+      "description": "Coastal zone ambient noise layer — 100Hz sea wash",
+      "duration": "4.00s"
+    },
+    {
+      "name": "motif-meadow.wav",
+      "description": "Meadow motif — ascending playful shakuhachi (D G A E C)",
+      "duration": "4.00s"
+    },
+    {
+      "name": "motif-forest.wav",
+      "description": "Forest motif — wandering koto harmony (E A C G D)",
+      "duration": "4.00s"
+    },
+    {
+      "name": "motif-mountain.wav",
+      "description": "Mountain motif — descending shakuhachi (C G E A D)",
+      "duration": "4.00s"
+    },
+    {
+      "name": "motif-coastal.wav",
+      "description": "Coastal motif — hopeful shakuhachi (A C E5 E D)",
+      "duration": "4.00s"
+    }
+  ]
+}

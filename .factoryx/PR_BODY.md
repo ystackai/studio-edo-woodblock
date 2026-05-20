@@ -13,7 +13,7 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 50 — Zone-specific road surfaces, roaming enemies, telegraph tints, Ganryu ceremony, wind audio)
+### Current Artifact State (Pass 51 — WAV audio assets replace oscillator-based audio)
 - **~2464-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
 - **Zone-specific road surface rendering**: each atmosphere zone now has a distinct road texture — meadow dirt (organic earth tones), forest stone (small paving stones), mountain gravel (scattered pebble arcs), coastal sand (small shell-like dots). Road surface varies visually across zones, making each territory feel physically different underfoot.
 - **Zone-specific roaming enemy spawns**: each zone naturally spawns enemies that match its atmosphere — meadow (chaser, prowler), forest (prowler, chaser, monk), mountain (chaser, prowler, ascetic), coastal (duelist, prowler, sentinel). Spawn limit per zone (6-8) keeps encounters balanced.
@@ -46,7 +46,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - **7 enemies over 5 types** plus Ganryu boss with multi-phase fight (nodachi slash/ink wave/ground pound), berserk duelist mode
 - Enemy telegraph, duel focus cues, parry/block system, death ink-dissolve
 - **5 quest milestones** with ink-wash vignettes and Edo haiku
-- **Audio depth**: D-based Yo-scale pentatonic music — shakuhachi bamboo flute, koto harmony, bass drone, zone ambient noise, duel tension drone with proximity gain, dynamic melody tempo
+- **Audio depth**: D-based Yo-scale pentatonic music — 36 pre-generated WAV audio assets (shakuhachi bamboo flute note samples, koto string instrument notes, taiko drum, zone-specific wind/ambience/motif layers, bass drone, tension drone, Ganryu drone/theme, all SFX). Oscillator fallbacks preserved for browsers where preload hasn't completed.
+- **Audio assets**: `assets/audio/` directory with 36 WAV files (~10 MB total), manifest.json documenting all assets with descriptions and specs
 - **Hero-specific abilities**: Musashi Resolve Strike (2x slash), Koeda Wind Step (invincible dash), Yoshino Ink Blessing (faster regen) with visual auras and cooldown UI
 - **Road-side haiku moments**: ambient poetry at scenic positions
 - **Road-side NPCs** (Teahouse Keeper, Traveling Merchant, Wandering Poet) — repeatable with 4 dialogue variants each
@@ -68,7 +69,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Browser runtime: Web Audio API uses valid linearRampToValueAtTime; invalid exponentialSmoothValueAtTime regression-checked. Public browser playthrough covers title -> hero select -> movement -> painting.
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
-- `node drops/edo-inkblade-ots/test.js` — **197 checks**: all previous plus Pass 50 (dirt/stone/gravel/sand road surfaces, roaming spawns, zone enemy types, telegraph tints, wind frequency, torii gate, arrival glow, milestone stone colors)
+- Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
+- `node drops/edo-inkblade-ots/test.js` — **197 checks**: all previous plus Pass 50 (dirt/stone/gravel/sand road surfaces, roaming spawns, zone enemy types, telegraph tints, wind frequency, torii gate, arrival glow, milestone stone colors) and Pass 51 WAV audio buffer integration
 - **All 197 checks pass**
 
 ### Screenshots
@@ -111,9 +113,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 **Pass 48** — Journey sky evolution with drifting clouds (16 cloud bands, zone-tinted, continuous drift), dramatic sunset near Ganryu (crimson/amber glow overlay), enhanced Ganryu island detail (pine trees, boat, layered mist), zone-specific sky tint overlay per zone (meadow/forest/mountain/coastal); 177 checks pass
 **Pass 49** — Game balance tuning (reduced enemy ATK across all 7 types, increased ink regen, reduced sprint drain, higher paint waymark damage, lower boss phase scaling); Ganryu duel polish (phase-specific aura glow, dramatic transition VFX with 30 ground-crack/20 ink-swirl particles, increased screen shake); road atmosphere dust motes (floating warm-gold light particles); richer road travelers (merchant type with pack and stick, weighted distribution); enhanced victory ceremony (180 particles, 10-color palette, 40 ink-wash mist wisps); 186 checks pass; fresh screenshots
 **Pass 50** — Zone-specific road surface textures (dirt/stone/gravel/sand per zone); zone-specific roaming enemy spawns matching zone atmosphere; zone-specific duel telegraph tints for combat readability; Ganryu ceremonial torii gate with calligraphy banner and arrival warm glow; zone-specific wind audio frequency per territory; zone-specific milestone stone colors; 197 checks pass; fresh screenshots
+**Pass 51** — Generated 36 WAV audio assets (shakuhachi, koto, taiko, zone wind/ambience/motifs, drones, all SFX); replaced oscillator-based audio with buffer-based playback using looping AudioBufferSourceNode; oscillator fallbacks preserved; audio asset manifest committed
 
 ### Known Issues
-- Zone audio cues are oscillator-based — real zone ambience files would be richer
+- None current — audio is now asset-based with oscillator fallback; all checks pass
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
