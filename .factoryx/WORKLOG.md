@@ -83,4 +83,8 @@
 - **Smooth zone weather transitions**: rain intensity now lerps between zones using `smoothRain` variable with a 0.06*dt smoothing factor, eliminating abrupt weather changes at zone boundaries. Rain effective value (`rainEffective`) controls drizzle spawn rate, puddle formation, ripple effects, and audio rain gain — all transitions feel gradual and organic.
 - 259 checks pass (245 existing + 7 new: campfire array, campfire draw function, campfires rendered in draw, screen damage flash variable, screen damage flash overlay draw, smooth rain transition, rain effective used for audio)
 
+### Pass 59 — Campfire flying ember particle effects
+- **Flying ember particles**: campfires now produce organic flying ember sparks (campfireEmbers) that rise upward and drift away from the fire. Each ember has a warm white core with orange glow halo, decays naturally in brightness and size, and creates a living fire atmosphere. Embers are cleaned up on game restart alongside campfire arrays.
+- 264 checks pass (259 existing + 5 new: ember array init, ember draw function, embers rendered in draw, embers spawned in step, embers reset on restart)
+
 (End of file)

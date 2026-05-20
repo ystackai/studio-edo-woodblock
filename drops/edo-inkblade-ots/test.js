@@ -295,6 +295,13 @@ checks.push(["screen damage flash overlay draw", html.includes("screenDamageFlas
 checks.push(["smooth rain transition", html.includes("smoothRain") && html.includes("rainEffective") && html.includes("rainEffective>.12")]);
 checks.push(["rain effective used for audio", html.includes("rainEffective*.035")]);
 
+// Pass 59 — Campfire flying ember particle effects
+checks.push(["campfire embers array initialized", html.includes("campfireEmbers=[]")]);
+checks.push(["campfire embers draw function", html.includes("function drawCampfireEmbers") && html.includes("e.size") && html.includes("e.age")]);
+checks.push(["campfire embers rendered in draw", html.includes("drawCampfireEmbers()")]);
+checks.push(["campfire embers spawned in step", html.includes("campfireEmbers.push") && html.includes("campfireEmbers=campfireEmbers.filter")]);
+checks.push(["campfire embers reset on restart", html.includes("campfireEmbers=[];won=false") || html.includes("campfireEmbers=[];won")]);
+
 let failed = 0;
 for (const [name, ok] of checks) {
   if (ok) console.log(`PASS: ${name}`);

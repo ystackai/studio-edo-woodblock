@@ -90,6 +90,11 @@ function loadGame(){
           // Verify route milestones
           if(iw.route&&iw.route.length===5)pass('5 route milestones');
           else fail('Not 5 route milestones');
+          // Check for campfire ember particles
+          if(iw.campfireEmbers){pass('Campfire ember particle array exists');}
+          else{warn('Campfire ember array missing')}
+          if(typeof iw.drawCampfireEmbers==='function'){pass('drawCampfireEmbers function exists');}
+          else{warn('drawCampfireEmbers function missing')}
           // Check for gain null safety - verify amb guards exist
           var src=iw.window._ambGuard||(iw.index.html||'').toString();
           var htmlContent=document.querySelector('iframe').contentDocument.body.innerHTML;

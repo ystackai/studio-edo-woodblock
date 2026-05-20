@@ -13,8 +13,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 ### Preview
 `drops/edo-inkblade-ots/index.html` — opens directly to the game canvas.
 
-### Current Artifact State (Pass 58 — Road-side campfire vignettes, screen-edge damage flash, smooth zone weather transitions)
-- **~2880-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+### Current Artifact State (Pass 59 — Campfire flying ember particle effects)
+- **~2885-line single HTML game** with 2D canvas pseudo-3D over-the-shoulder rendering
+- **Campfire flying ember particles**: active campfires now spawn organic flying ember sparks (`campfireEmbers`) that rise upward and drift away with wind, decaying naturally in brightness and size. Each ember has warm white core with orange glow halo for living fire atmosphere. Embers reset on game restart.
+- **264 smoke checks pass** (259 existing + 5 new: ember array init, ember draw function, embers rendered in draw, embers spawned in step, embers reset on restart)
 - **Road-side campfire vignettes**: warm glowing campfires spawn along the road with zone-appropriate fire colors, radial glow, pulsing inner flame, floating ember sparks for rest-stop atmosphere
 - **Screen-edge damage flash overlay**: red radial pulse at screen edges when player takes damage, scaled by hit magnitude, works alongside player.damageFlash for layered combat feedback
 - **Smooth zone weather transitions**: rain intensity lerps between zones using `smoothRain` with 0.06*dt smoothing, eliminating abrupt weather changes at zone boundaries. All rain effects (drizzle, puddles, ripples, audio gain) use smoothed `rainEffective` value
@@ -88,8 +90,8 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 - Fixed `drawVignette` runtime `ReferenceError` — function was called from draw loop but was never defined. Added ink-wash paper vignette radial gradient.
 - Fixed `horizon` variable ReferenceError — cherry blossom tree section used undefined `hor` instead of `horizon`.
 - Audio pipeline: 36 pre-generated WAV assets loaded asynchronously via fetch+decodeAudioData; oscillator fallbacks preserved; ambient sounds use looping AudioBufferSourceNode
-- `node drops/edo-inkblade-ots/test.js` — **259 checks**: all previous 245 plus 14 new (Pass 57: 7 checks for ink pickups, fog banks, milestone ceremony, Ganryu waves; Pass 58: 7 checks for campfires, damage flash, smooth rain). Pass 58 adds 7 new checks: campfire array, campfire draw function, campfires rendered in draw, screen damage flash variable, screen damage flash overlay draw, smooth rain transition, rain effective used for audio.
-- **All 259 checks pass**
+- `node drops/edo-inkblade-ots/test.js` — **264 checks**: all previous 259 plus 5 new (Pass 59: 5 checks for campfire embers array init, ember draw function, embers rendered in draw, embers spawned in step, embers reset on restart).
+- **All 264 checks pass**
 
 ### Screenshots
 `drops/edo-inkblade-ots/screenshots/`:
@@ -146,8 +148,10 @@ Week-long OTS build of Edo Inkblade: Road to Ganryu — a playable over-the-shou
 
 **Pass 58** — Road-side campfire vignettes (warm glowing campfires with zone-tinted fire colors, radial glow, pulsing flame, ember sparks); screen-edge damage flash overlay (red radial pulse on hit, scaled by damage magnitude); smooth zone weather transitions (rain intensity lerps with 0.06*dt smoothing, all rain effects use smoothed value). 259 checks pass; 7 new checks for campfires, damage flash, and smooth rain.
 
+**Pass 59** — Campfire flying ember particle effects: campfires now spawn organic flying embers (campfireEmbers) that rise and drift away with wind, warm white core with orange glow halo. Embers reset on game restart. Runtime check file updated to verify ember functions. 264 checks pass; 5 new checks.
+
 ### Known Issues
-- None current — audio gain null safety fixed; all 259 checks pass
+- None current — audio gain null safety fixed; all 264 checks pass
 
 ### FactoryX WorkOrder Context
 Full prompt preserved. Delivery branch: `factoryx/factory-edo-woodblock/edo-inkblade-ots`.
