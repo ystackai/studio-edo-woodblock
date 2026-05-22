@@ -1,0 +1,143 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Edo Inkblade Runtime Check</title></head><body><div id="status" style="font-family:monospace;padding:16px;background:#1a1512;color:#ead9bb">Loading...</div><script>
+(function(){
+var errors=0,warnings=0,results=[];
+function pass(msg){results.push({type:'PASS',msg});console.log('PASS: '+msg)}
+function fail(msg){results.push({type:'FAIL',msg});console.error('FAIL: '+msg);errors++}
+function warn(msg){results.push({type:'WARN',msg});console.warn('WARN: '+msg);warnings++}
+function loadGame(){
+  var iframe=document.createElement('iframe');
+  iframe.style='width:800px;height:600px;border:1px solid #d7b66f;background:#0a0806';
+  iframe.src='./index.html';
+  document.body.appendChild(iframe);
+  var waitTimer=setTimeout(function(){
+    fail('Game did not load within 15s timeout');
+    report();
+  },15000);
+  iframe.addEventListener('load',function(){
+    clearTimeout(waitTimer);
+    pass('Game HTML loaded in iframe');
+    // After load, inject a runtime observer
+    try{
+      var doc=iframe.contentDocument||iframe.contentWindow.document;
+      var canvas=doc.querySelector('canvas');
+      if(canvas){pass('Canvas element found');}
+      else{fail('No canvas element found');}
+      // Check for key DOM elements
+      var uiTitle=doc.getElementById('title');
+      if(uiTitle){pass('Title screen element found');}
+      else{fail('Title screen element missing');}
+var uiChars=doc.getElementById('select');
+if(uiChars){pass('Character select element found');}
+else{fail('Character select element missing');}
+      // Listen for runtime errors
+      var origConsoleError=iframe.contentWindow.console.error.bind(iframe.contentWindow.console);
+      iframe.contentWindow.console.error=function(){
+        var msg=Array.prototype.slice.call(arguments).join(' ');
+        if(msg&&msg.length>5){
+          fail('Runtime console.error: '+msg.substring(0,200));
+        }
+        origConsoleError.apply(this,arguments);
+      };
+      var pageErrors=0;
+      iframe.contentWindow.addEventListener('error',function(e){
+        pageErrors++;
+        fail('Page error: '+e.message.substring(0,200));
+      });
+      // Wait for game initialization then check state
+      setTimeout(function(){
+        try{
+          var iw=iframe.contentWindow;
+          if(typeof iw.player!=='undefined'&&iw.player){
+            pass('Player state object exists');
+            if(typeof iw.player.hp==='number')pass('Player HP is numeric');
+            else fail('Player HP not numeric');
+            if(typeof iw.player.ink==='number')pass('Player ink is numeric');
+            else fail('Player ink not numeric');
+          }else{
+            fail('Player state not initialized');
+          }
+          if(typeof iw.loop==='function'){pass('Game loop function exists');}
+          else{fail('Game loop function missing');}
+          if(typeof iw.draw==='function'){pass('Draw function exists');}
+          else{fail('Draw function missing');}
+          if(typeof iw.project==='function'){pass('Projection function exists');}
+          else{fail('Projection function missing');}
+          // Check audio
+          if(typeof iw.initAudio==='function'){pass('initAudio function exists');}
+          else{fail('initAudio function missing');}
+          // Check title screen
+          if(typeof iw.dismissTitle==='function'){pass('dismissTitle function exists');}
+          else{fail('dismissTitle function missing');}
+          // Check start
+          if(typeof iw.start==='function'){pass('start function exists');}
+          else{fail('start function missing');}
+          // Check paint/slash
+          if(typeof iw.paint==='function')pass('paint function exists');
+          else fail('paint function missing');
+          if(typeof iw.slash==='function')pass('slash function exists');
+          else fail('slash function missing');
+          if(typeof iw.getZone==='function')pass('getZone function exists');
+          else fail('getZone function missing');
+          // Check hero definitions
+          if(iw.heroes&&iw.heroes.length>=3)pass('At least 3 hero definitions');
+          else fail('Less than 3 hero definitions');
+          // Verify enemies array
+          if(iw.enemies&&iw.enemies.length>=7)pass('At least 7 enemies defined');
+          else fail('Less than 7 enemies');
+          // Verify journey zones
+          if(iw.journeyZones&&iw.journeyZones.length===4)pass('4 journey zones defined');
+          else fail('Not 4 journey zones');
+          // Verify route milestones
+          if(iw.route&&iw.route.length===5)pass('5 route milestones');
+          else fail('Not 5 route milestones');
+          // Check for campfire ember particles
+          if(iw.campfireEmbers){pass('Campfire ember particle array exists');}
+          else{warn('Campfire ember array missing')}
+          if(typeof iw.drawCampfireEmbers==='function'){pass('drawCampfireEmbers function exists');}
+          else{warn('drawCampfireEmbers function missing')}
+          // Check for gain null safety - verify amb guards exist
+          var src=iw.window._ambGuard||(iw.index.html||'').toString();
+          var htmlContent=document.querySelector('iframe').contentDocument.body.innerHTML;
+          // Verify no NaN in game state after a brief play
+          setTimeout(function(){
+            try{
+              var p=iw.player;
+              if(p&&isNaN(p.x)===false&&isNaN(p.z)===false){pass('Player position is valid (not NaN)');}
+              else{fail('Player position is NaN');}
+              if(p&&p.hp>=0&&p.hp<=200){pass('Player HP in valid range 0-200');}
+              else{fail('Player HP out of range');}
+            }catch(e){fail('Game state check error: '+e.message);}
+            report();
+          },3000);
+        }catch(e){
+          fail('Runtime check error: '+e.message);
+          report();
+        }
+      },2000);
+    }catch(e){
+      fail('Iframe access error: '+e.message);
+      report();
+    }
+  });
+}
+function report(){
+  var el=document.getElementById('status');
+  if(!el)return;
+  el.innerHTML='<h3>Edo Inkblade Runtime Check</h3>'
+    +'<div>Pass: '+results.filter(r=>r.type==='PASS').length
+    +' | Fail: '+results.filter(r=>r.type==='FAIL').length
+    +' | Warn: '+results.filter(r=>r.type==='WARN').length+'</div>'
+    +'<ul style="font-size:12px;list-style:none;padding:0">'
+    +results.map(function(r){
+      var c=r.type==='PASS'?'#6a9a6a':'#b94a3a';
+      return '<li style="color:'+c+'">['+r.type+'] '+r.msg+'</li>';
+    }).join('')+'</ul>'
+    +'<div style="margin-top:16px;font-weight:bold;color:'+(errors?'#b94a3a':'#6a9a6a')+'">'
+    +(errors?'FAILED - '+errors+' errors':'PASSED - all checks passed')+'</div>';
+  if(errors)el.style.border='2px solid #b94a3a';
+  else el.style.border='2px solid #6a9a6a';
+}
+// Load game after a brief delay
+setTimeout(loadGame,500);
+})();
+</script></body></html>
