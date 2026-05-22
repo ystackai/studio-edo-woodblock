@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Way of the Brush and Blade</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden;background:#1a1510;color:#f4ead8;font-family:'Georgia','Times New Roman','YuMincho','Hiragino Mincho ProN','Noto Serif JP',serif}
+body{display:flex;align-items:center;justify-content:center}
+#app{position:relative;width:100%;height:100%;max-width:800px;max-height:1000px;background:#1f1a14;overflow:hidden;display:flex;flex-direction:column}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;transition:opacity .8s}
+.screen.active{display:flex}
+.screen.fade-out{opacity:0;pointer-events:none}
+.screen.fade-in{opacity:1}
+.bg-img{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.25;filter:sepia(.6) saturate(.4) contrast(1.1);z-index:0}
+.bg-img::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,21,16,.7),rgba(26,21,16,.85))}
+.bg-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(139,69,19,.08),transparent 70%);z-index:1}
+.content{position:relative;z-index:2;text-align:center;max-width:600px;width:100%;padding:10px}
+.ink-line{height:2px;background:linear-gradient(90deg,transparent,#8B4513,rgba(139,69,19,.3),transparent);margin:12px auto;width:80%}
+.ink-line-thin{height:1px;background:linear-gradient(90deg,transparent,rgba(244,234,216,.3),transparent);margin:8px auto;width:60%}
+h1{font-size:clamp(28px,7vw,52px);font-weight:700;letter-spacing:.06em;color:#f4ead8;text-shadow:0 2px 20px rgba(0,0,0,.5);line-height:1.2}
+h2{font-size:clamp(20px,5vw,36px);font-weight:600;letter-spacing:.04em;color:#f4ead8}
+h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:6px}
+.subtitle{font-size:clamp(13px,2.5vw,18px);color:#b9a88d;letter-spacing:.08em;margin-bottom:4px}
+.body-text{font-size:clamp(14px,2.2vw,17px);line-height:1.7;color:#cdbb9d;margin:10px 0}
+.btn{appearance:none;border:1px solid rgba(139,69,19,.5);background:rgba(26,21,16,.8);color:#f4ead8;padding:12px 28px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:clamp(14px,2.2vw,17px);letter-spacing:.04em;transition:all .3s;margin:6px;min-width:160px}
+.btn:hover,.btn:focus-visible{background:#8B4513;border-color:#8B4513;color:#fff;outline:none;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-secondary{border-color:rgba(244,234,216,.3);background:rgba(26,21,16,.5);color:#d4c4a8}
+.btn-secondary:hover,.btn-secondary:focus-visible{background:rgba(139,69,19,.4);border-color:rgba(139,69,19,.6)}
+.btn-small{padding:8px 16px;font-size:clamp(12px,1.8vw,14px);min-width:auto}
+.btn-choice{width:100%;max-width:280px;padding:16px 20px;margin:8px auto;display:flex;align-items:center;justify-content:center;gap:10px;text-align:left}
+.btn-choice .icon{font-size:24px}
+.mastery-bar{width:100%;max-width:400px;height:6px;background:rgba(244,234,216,.15);border-radius:3px;overflow:hidden;margin:8px auto}
+.mastery-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:3px;transition:width .6s ease}
+.mastery-label{font-size:11px;color:#b9a88d;letter-spacing:.06em;text-transform:uppercase}
+.vignette-text{margin:16px 0;padding:16px;background:rgba(0,0,0,.2);border-left:3px solid #8B4513;border-radius:0 4px 4px 0;text-align:left;font-style:italic;line-height:1.8;color:#d4c4a8}
+.minigame-area{width:100%;max-width:500px;margin:12px auto;position:relative;min-height:200px}
+.duel-zone{width:100%;height:80px;background:rgba(0,0,0,.3);border:1px solid rgba(139,69,19,.4);border-radius:4px;position:relative;overflow:hidden;margin:10px 0}
+.duel-indicator{position:absolute;top:0;bottom:0;width:3px;background:#d4a05a;transition:left .05s linear;pointer-events:none;z-index:2}
+.duel-target{position:absolute;top:0;bottom:0;width:40px;background:rgba(139,69,19,.3);border-left:2px solid #8B4513;border-right:2px solid #8B4513;pointer-events:none;z-index:1}
+.duel-hit{position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;background:radial-gradient(circle,#d4a05a,transparent);transform:translate(-50%,-50%);pointer-events:none;z-index:3;opacity:0}
+.duel-hit.show{width:120px;height:120px;opacity:.6;transition:all .2s}
+.duel-hit.perfect{background:radial-gradient(circle,#f4ead8,transparent)}
+.duel-result{font-size:20px;font-weight:700;margin:8px 0;min-height:30px}
+.duel-rounds{display:flex;gap:6px;justify-content:center;margin:6px 0}
+.duel-round{width:12px;height:12px;border-radius:50%;border:1px solid rgba(244,234,216,.3);background:transparent}
+.duel-round.hit{background:#8B4513;border-color:#8B4513}
+.duel-round.miss{background:rgba(100,50,30,.3);border-color:rgba(100,50,30,.5)}
+.stroke-tray{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+.stroke-btn{width:70px;height:70px;border:2px solid rgba(244,234,216,.2);border-radius:6px;background:rgba(0,0,0,.2);cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#b9a88d;gap:2px;position:relative}
+.stroke-btn:hover,.stroke-btn:focus-visible{border-color:#8B4513;background:rgba(139,69,19,.15);outline:none}
+.stroke-btn.used{opacity:.3;pointer-events:none}
+.stroke-btn.selected{border-color:#d4a05a;background:rgba(212,160,90,.15)}
+.stroke-btn .stroke-preview{width:50px;height:30px;border-radius:2px;background-size:contain;background-repeat:no-repeat;background-position:center}
+.stroke-btn .stroke-key{position:absolute;top:2px;right:4px;font-size:9px;color:rgba(244,234,216,.3)}
+.stroke-zone{width:100%;height:120px;border:2px dashed rgba(139,69,19,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;margin:8px 0;position:relative;background:rgba(0,0,0,.15);transition:border-color .3s}
+.stroke-zone.drag-over{border-color:#d4a05a;background:rgba(212,160,90,.08)}
+.stroke-zone.placed{border-color:rgba(139,69,19,.5);border-style:solid}
+.stroke-zone .placed-stroke{position:absolute;inset:4px;background-size:contain;background-repeat:no-repeat;background-position:center;opacity:.7}
+.brush-timer{font-size:14px;color:#b9a88d;margin:4px 0;font-variant-numeric:tabular-nums}
+.brush-score{font-size:16px;color:#d4a05a;font-weight:600}
+.painting-scroll{width:100%;max-width:300px;height:200px;background:linear-gradient(180deg,#f5efe0,#e8dcc8);border-radius:4px;margin:10px auto;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.painting-scroll .brush-stroke{position:absolute;pointer-events:none;opacity:.6}
+#ending-scroll{width:100%;max-width:360px;height:500px;background:linear-gradient(180deg,#f5efe0,#e8dcc8);border-radius:4px;margin:12px auto;position:relative;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,.4)}
+.ending-text{font-size:clamp(13px,2vw,16px);line-height:1.8;color:#d4c4a8;max-width:500px;padding:8px}
+.ending-title{font-size:clamp(20px,4vw,32px);color:#f4ead8;margin:6px 0}
+.feint-warning{color:#e8a040;font-size:13px;margin:4px 0;min-height:20px}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media(max-width:480px){.btn-choice{padding:12px 16px}.stroke-btn{width:60px;height:60px}.stroke-btn .stroke-preview{width:40px;height:24px}.painting-scroll{height:150px}}
+</style>
+</head>
+<body>
+<div id="app" role="application" aria-label="Way of the Brush and Blade">
+  <!-- Title Screen -->
+  <div id="screen-title" class="screen active" role="region" aria-label="Title screen">
+    <div class="bg-img" style="background-image:url(assets/pack1-style-frame.png)"></div>
+    <div class="bg-overlay"></div>
+    <div class="content">
+      <div class="ink-line" style="width:40%"></div>
+      <h1>Way of the<br>Brush and Blade</h1>
+      <div class="ink-line"></div>
+      <p class="subtitle">— a wandering swordsman's journey —</p>
+      <div style="margin:20px 0;height:80px;background:rgba(0,0,0,.2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b9a88d;border:1px solid rgba(139,69,19,.2)">
+        <span>Along the old Tōkaidō road,<br>five stops await between dawn and Ganryūjima.</span>
+      </div>
+      <button class="btn" id="btn-start" autofocus>Begin the Journey</button>
+      <button class="btn btn-secondary btn-small" id="btn-resume" style="display:none;margin-top:8px">Continue Previous Journey</button>
+      <p class="body-text" style="font-size:11px;margin-top:12px;color:#8a7a6a">Press ENTER or click to begin</p>
+    </div>
+  </div>
+
+  <!-- Waypoint Screen -->
+  <div id="screen-waypoint" class="screen" role="region" aria-label="Waypoint">
+    <div class="bg-img" id="wp-bg" style="background-image:url(assets/pack1-style-frame.png)"></div>
+    <div class="bg-overlay"></div>
+    <div class="content">
+      <p class="subtitle" id="wp-location">— Location —</p>
+      <div class="ink-line" style="width:30%"></div>
+      <h2 id="wp-title">Waypoint</h2>
+      <div class="vignette-text" id="wp-vignette"></div>
+      <div class="mastery-bar"><div class="mastery-fill" id="wp-mastery-fill" style="width:0%"></div></div>
+      <p class="mastery-label" id="wp-mastery-label">Mastery: 0 / 100</p>
+      <div class="ink-line-thin"></div>
+      <p class="body-text" style="font-size:14px;margin:6px 0">Choose your discipline:</p>
+      <button class="btn btn-choice" id="btn-sword" data-choice="sword"><span class="icon">⚔</span> Draw Your Blade</button>
+      <button class="btn btn-choice btn-secondary" id="btn-brush" data-choice="brush"><span class="icon">🖌</span> Take Up the Brush</button>
+    </div>
+  </div>
+
+  <!-- Sword Minigame Screen -->
+  <div id="screen-sword" class="screen" role="region" aria-label="Sword duel minigame">
+    <div class="bg-img" style="background-image:url(assets/pack2-style-frame.png)"></div>
+    <div class="bg-overlay"></div>
+    <div class="content">
+      <h3>The Draw Cut</h3>
+      <div class="ink-line-thin"></div>
+      <p class="body-text" style="font-size:13px" id="sword-instruction">Wait for the ink stroke to complete, then strike at the perfect moment.</p>
+      <div class="duel-zone" id="duel-zone" role="img" aria-label="Duel timing zone">
+        <div class="duel-target" id="duel-target" style="left:45%"></div>
+        <div class="duel-indicator" id="duel-indicator" style="left:0%"></div>
+        <div class="duel-hit" id="duel-hit"></div>
+      </div>
+      <div class="duel-rounds" id="sword-rounds"></div>
+      <div class="duel-result" id="sword-result"></div>
+      <div class="feint-warning" id="feint-warning"></div>
+      <p class="body-text" style="font-size:11px;color:#8a7a6a">Press SPACE or click/tap at the right moment</p>
+      <button class="btn btn-small btn-secondary" id="btn-sword-skip" style="display:none">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Brush Minigame Screen -->
+  <div id="screen-brush" class="screen" role="region" aria-label="Brush composition minigame">
+    <div class="bg-img" style="background-image:url(assets/pack3-style-frame.png)"></div>
+    <div class="bg-overlay"></div>
+    <div class="content">
+      <h3>Composition</h3>
+      <div class="ink-line-thin"></div>
+      <p class="body-text" style="font-size:13px">Complete the painting — choose strokes and place them in the composition.</p>
+      <div class="brush-timer" id="brush-timer">Time: 30s</div>
+      <div class="brush-score" id="brush-score">Coherence: —</div>
+      <div class="stroke-zone" id="stroke-zone" role="img" aria-label="Composition area">
+        <span style="color:rgba(244,234,216,.15);font-size:12px" id="stroke-zone-label">Place your strokes here</span>
+      </div>
+      <p class="body-text" style="font-size:11px;color:#8a7a6a">Select 3 strokes (press 1-6 or click) then drag to the composition</p>
+      <div class="stroke-tray" id="stroke-tray" role="toolbar" aria-label="Stroke palette"></div>
+      <button class="btn btn-small btn-secondary" id="btn-brush-skip" style="display:none">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Ganryushima Final Duel Screen -->
+  <div id="screen-final" class="screen" role="region" aria-label="Final duel at Ganryushima">
+    <div class="bg-img" style="background-image:url(assets/pack2-style-frame.png)"></div>
+    <div class="bg-overlay"></div>
+    <div class="content">
+      <h2>Ganryūjima</h2>
+      <div class="ink-line" style="width:40%"></div>
+      <p class="body-text" id="final-context"></p>
+      <div class="mastery-bar"><div class="mastery-fill" id="final-mastery-fill" style="width:0%"></div></div>
+      <p class="mastery-label" id="final-mastery-label">Mastery: 0 / 100</p>
+      <div class="duel-zone" id="final-duel-zone" role="img" aria-label="Final duel timing zone">
+        <div class="duel-target" id="final-duel-target" style="left:45%"></div>
+        <div class="duel-indicator" id="final-duel-indicator" style="left:0%"></div>
+        <div class="duel-hit" id="final-duel-hit"></div>
+      </div>
+      <div class="duel-rounds" id="final-rounds"></div>
+      <div class="duel-result" id="final-result"></div>
+      <div class="feint-warning" id="final-feint-warning"></div>
+      <p class="body-text" style="font-size:11px;color:#8a7a6a">Press SPACE or click/tap at the right moment. Watch for feints!</p>
+      <button class="btn btn-small btn-secondary" id="btn-final-skip" style="display:none">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Ending Screen -->
+  <div id="screen-ending" class="screen" role="region" aria-label="Ending">
+    <div class="bg-img" style="background-image:url(assets/pack1-style-frame.png)"></div>
+    <div class="bg-overlay"></div>
+    <div class="content">
+      <h2 class="ending-title" id="ending-title"></h2>
+      <div class="ink-line"></div>
+      <div class="ending-text" id="ending-text"></div>
+      <div id="ending-scroll" style="display:none"></div>
+      <div class="ink-line-thin"></div>
+      <p class="mastery-label" id="ending-mastery-label"></p>
+      <div style="margin-top:16px">
+        <button class="btn" id="btn-restart">Walk the Road Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio elements -->
+  <audio id="audio-ambient" loop preload="auto" style="display:none"></audio>
+  <audio id="audio-sfx" preload="auto" style="display:none"></audio>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const SAVE_KEY = 'edo-musashi-roadmaster-v1';
+const WAYPOINT_COUNT = 5;
+const SWORD_ROUNDS = 3;
+const FINAL_ROUNDS = 5;
+
+// --- Waypoint data ---
+const LOCATIONS = [
+  { id:'temple', title:'Temple Yard at Dawn', bg:'assets/pack1-style-frame.png',
+    vignettes:[
+      'The temple gate stands open, mist curling around weathered stone. A single maple leaf falls, spinning slowly. The air smells of old incense and wet earth. An old monk sweeps the path — he pauses, watching you with eyes that have seen a thousand seasons.',
+      'Dawn light filters through the cedars, painting long shadows across the courtyard. Water drips from a bamboo pipe into a stone basin. The rhythm is steady, patient, like a heartbeat. A crow calls once from the pagoda roof.',
+      'Frost glitters on the moss-covered lanterns. The bell tower is silent. A scroll hangs in the open hall — a single brushstroke, a circle, incomplete. The monk nods toward the road ahead.'
+    ]},
+  { id:'river', title:'River Crossing in Rain', bg:'assets/pack3-style-frame.png',
+    vignettes:[
+      'The river runs fast and brown, swollen by three days of rain. A ferryman waits on the far bank, his lantern a blur through the sheets of water. The wooden bridge groans under the weight of the storm. A woman in a straw cloak hurries past, head down.',
+      'Rain drums on the leaves of the great willow. The stepping stones are slick with moss. A paper umbrella lies abandoned, torn, its ribs showing like the skeleton of a fish. The river voice is a low, constant chant.',
+      'The sky is the colour of old iron. Rain falls in long, straight lines, each drop a tiny brushstroke on the surface of the world. A heron stands motionless in the shallows, patient as a painted thing.'
+    ]},
+  { id:'teahouse', title:'The Mountain Teahouse', bg:'assets/pack2-style-frame.png',
+    vignettes:[
+      'Steam rises from the iron kettle. An old woman pours tea with hands that tremble only slightly. Through the window, the mountains fade into layers of blue-grey. A charcoal sketch of a sparrow is pinned to the wall — it looks alive.',
+      'The teahouse clings to the mountainside like a nest. Inside, a traveller sleeps by the hearth, his straw sandals drying. The hostess hums an old song — something about cherry blossoms and parting. The tea is bitter, then sweet.',
+      'A single camellia floats in a shallow bowl. The room is spare: a scroll, a cushion, the sound of wind in the pines. The host bows and gestures to the seat by the window. Time slows to the pace of breathing.'
+    ]},
+  { id:'pass', title:'Snowbound Pass', bg:'assets/pack1-style-frame.png',
+    vignettes:[
+      'Snow falls without sound, piling on the branches of the pines until they bend. The path has disappeared under a white blanket. A fox crosses ahead, leaving a trail of dark dots. The cold bites through straw and cloth, sharp as a blade.',
+      'The mountain pass is a white corridor between worlds. No birds sing. The only movement is the slow drift of snowflakes. A traveller\'s staff stands upright in a drift — its owner is nowhere in sight. The silence has weight.',
+      'Snow clings to the statue of Jizō by the roadside, a red bib around its neck. The offering cup is filled with white. Further up, the wind has carved the snow into shapes like folded paper — origami of the storm.'
+    ]},
+  { id:'village', title:'Fishing Village at Dusk', bg:'assets/pack3-style-frame.png',
+    vignettes:[
+      'The boats are pulled up on the shingle, their hulls dark with salt and tar. Nets hang like ghosts between poles. A fire burns in a iron basket, and someone is cooking something that smells of the sea. Gulls cry, circling the harbour wall.',
+      'Lanterns glow amber in the windows of the low houses. The tide is out, leaving a mirror of wet sand. An old fisherman mends a net, his fingers moving with the precision of long habit. He does not look up, but he smiles.',
+      'The sea is the colour of ink, streaked with the last light. A cat walks along the stone wall, tail high. From a temple further up the hill, a bell sounds once — a note that hangs in the salt air like a stroke of sumi.'
+    ]}
+];
+
+// --- Brush stroke definitions ---
+const STROKES = [
+  { id:'bamboo', label:'Bamboo', desc:'Slender green stem', css:'background:linear-gradient(180deg,transparent,#4a6741 20%,#3d5a35 60%,transparent);border-radius:0;width:4px;height:80%;margin:auto' },
+  { id:'plum', label:'Plum Blossom', desc:'Five-petal flower', css:'background:radial-gradient(circle at 50% 50%,#d4a0a0 20%,#b87373 40%,transparent 60%);border-radius:50%;width:30px;height:30px;margin:auto' },
+  { id:'pine', label:'Pine Branch', desc:'Twisted evergreen', css:'background:linear-gradient(135deg,#3d5a35,#4a6741 40%,#2d4a25 70%,#1d3a15);border-radius:0;width:6px;height:70%;margin:auto;transform:rotate(15deg)' },
+  { id:'wave', label:'Wave Crest', desc:'Curling foam', css:'background:radial-gradient(ellipse at 50% 100%,#8fc7d6 10%,transparent 70%);border-radius:0;width:50px;height:20px;margin:auto' },
+  { id:'mountain', label:'Mountain Peak', desc:'Distant ridge', css:'background:linear-gradient(135deg,#6b7b8d 30%,#4a5a6a 70%);clip-path:polygon(0 100%,50% 0,100% 100%);width:40px;height:30px;margin:auto' },
+  { id:'bird', label:'Flying Crane', desc:'Wing in motion', css:'background:radial-gradient(ellipse at 70% 50%,#b9a88d 20%,transparent 70%);border-radius:0;width:40px;height:16px;margin:auto;transform:rotate(-20deg)' }
+];
+
+// Stroke coherence pairs (which strokes complement each other)
+const COHERENCE = {
+  bamboo: {plum:8, pine:6, bird:4},
+  plum: {bamboo:8, bird:6, wave:2},
+  pine: {bamboo:6, mountain:8, bird:4},
+  wave: {bird:6, mountain:4, plum:2},
+  mountain: {pine:8, wave:4, bird:6},
+  bird: {plum:6, bamboo:4, mountain:6, wave:6, pine:4}
+};
+
+// --- Game state ---
+let G = null;
+
+function defaultState() {
+  return {
+    waypoint: 0,
+    mastery: 0,
+    phase: 'title', // title, waypoint, sword, brush, final, ending
+    swordResults: [],
+    brushStrokes: [], // accumulated stroke ids for the scroll painting
+    brushScores: [],
+    vignetteIdx: 0, // index into vignette variants
+    finalResult: null,
+    ending: null,
+    completed: false
+  };
+}
+
+// --- DOM refs ---
+const $ = id => document.getElementById(id);
+const screens = {
+  title: $('screen-title'),
+  waypoint: $('screen-waypoint'),
+  sword: $('screen-sword'),
+  brush: $('screen-brush'),
+  final: $('screen-final'),
+  ending: $('screen-ending')
+};
+
+// --- Audio ---
+function playAmbient(src) {
+  const a = $('audio-ambient');
+  if (!src) { a.pause(); a.src = ''; return; }
+  a.src = src;
+  a.volume = 0.3;
+  a.play().catch(()=>{});
+}
+
+function playSfx(src) {
+  const a = $('audio-sfx');
+  a.src = src;
+  a.volume = 0.5;
+  a.play().catch(()=>{});
+}
+
+// --- Save/Load ---
+function saveState() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(G));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data && typeof data.waypoint === 'number' && !data.completed) return data;
+    return null;
+  } catch(e) { return null; }
+}
+
+function clearSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+}
+
+// --- Screen transition ---
+function showScreen(name) {
+  Object.keys(screens).forEach(k => {
+    screens[k].classList.remove('active','fade-in','fade-out');
+    screens[k].style.display = 'none';
+  });
+  const el = screens[name];
+  el.style.display = 'flex';
+  el.classList.add('active','fade-in');
+  G.phase = name;
+  saveState();
+}
+
+// --- Mastery display ---
+function updateMasteryDisplay() {
+  const pct = Math.min(100, Math.max(0, G.mastery));
+  document.querySelectorAll('.mastery-fill').forEach(el => { el.style.width = pct + '%'; });
+  document.querySelectorAll('.mastery-label').forEach(el => {
+    if (el.id !== 'wp-mastery-label' && el.id !== 'final-mastery-label') return;
+    el.textContent = 'Mastery: ' + G.mastery + ' / 100';
+  });
+}
+
+// --- Waypoint ---
+function getLocation(idx) {
+  return LOCATIONS[idx % LOCATIONS.length];
+}
+
+function showWaypoint() {
+  if (G.waypoint >= WAYPOINT_COUNT) {
+    showFinalDuel();
+    return;
+  }
+  const loc = getLocation(G.waypoint);
+  const vIdx = G.vignetteIdx = Math.floor(Math.random() * loc.vignettes.length);
+  $('wp-location').textContent = '— Stop ' + (G.waypoint + 1) + ' of ' + WAYPOINT_COUNT + ' —';
+  $('wp-title').textContent = loc.title;
+  $('wp-vignette').textContent = loc.vignettes[vIdx];
+  $('wp-bg').style.backgroundImage = 'url(' + loc.bg + ')';
+  updateMasteryDisplay();
+  showScreen('waypoint');
+  $('btn-sword').focus();
+}
+
+// --- Sword Minigame ---
+function startSwordMinigame() {
+  showScreen('sword');
+  const isFinal = G.phase === 'final';
+  const rounds = isFinal ? FINAL_ROUNDS : SWORD_ROUNDS;
+  const zone = isFinal ? $('final-duel-zone') : $('duel-zone');
+  const targetEl = isFinal ? $('final-duel-target') : $('duel-target');
+  const indicatorEl = isFinal ? $('final-duel-indicator') : $('duel-indicator');
+  const hitEl = isFinal ? $('final-duel-hit') : $('duel-hit');
+  const roundsEl = isFinal ? $('final-rounds') : $('sword-rounds');
+  const resultEl = isFinal ? $('final-result') : $('sword-result');
+  const skipBtn = isFinal ? $('btn-final-skip') : $('btn-sword-skip');
+  const feintWarn = isFinal ? $('final-feint-warning') : $('feint-warning');
+
+  if (!isFinal) {
+    $('sword-instruction').textContent = 'Wait for the ink stroke to complete, then strike at the perfect moment.';
+  } else {
+    const ctx = G.mastery >= 80 ? 'Your mastery is great. The opponent\'s stance is clear — you can read his intent.' :
+                G.mastery >= 50 ? 'You have trained well. The opponent is strong, but you see the patterns.' :
+                'Your path has been uncertain. The opponent is a storm — you must rely on instinct.';
+    $('final-context').textContent = ctx;
+  }
+
+  let currentRound = 0;
+  let results = [];
+  let active = false;
+  let canHit = false;
+  let animId = null;
+  let feintActive = false;
+  let feintTriggered = false;
+  let strikeTime = 0;
+  let indicatorPos = 0;
+  let speed = isFinal ? 0.8 : 1.2;
+  if (isFinal && G.mastery >= 80) speed = 0.6;
+  else if (isFinal && G.mastery < 50) speed = 1.4;
+
+  skipBtn.style.display = 'none';
+  resultEl.textContent = '';
+  feintWarn.textContent = '';
+  hitEl.classList.remove('show','perfect');
+  roundsEl.innerHTML = '';
+  for (let i = 0; i < rounds; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'duel-round';
+    roundsEl.appendChild(dot);
+  }
+
+  function setTarget() {
+    const zoneW = zone.offsetWidth || 400;
+    // Target is at a random position between 30% and 70%
+    const targetPct = 30 + Math.random() * 40;
+    targetEl.style.left = targetPct + '%';
+    targetEl.style.width = Math.max(30, 50 - G.mastery * 0.2) + 'px';
+    strikeTime = targetPct;
+    // Feint: if final duel, occasionally have a false start
+    feintActive = isFinal && Math.random() < 0.3 && G.mastery < 80;
+    feintTriggered = false;
+    if (feintActive) {
+      feintWarn.textContent = 'He shifts his grip... watch for the feint!';
+    } else {
+      feintWarn.textContent = '';
+    }
+  }
+
+  function startRound() {
+    if (currentRound >= rounds) {
+      finishMinigame();
+      return;
+    }
+    canHit = false;
+    active = true;
+    indicatorPos = 0;
+    indicatorEl.style.left = '0%';
+    setTarget();
+    // Update round dots
+    const dots = roundsEl.querySelectorAll('.duel-round');
+    dots.forEach((d,i) => {
+      if (i < currentRound) d.className = 'duel-round ' + (results[i] ? 'hit' : 'miss');
+      else d.className = 'duel-round';
+    });
+    resultEl.textContent = '';
+    feintWarn.textContent = feintActive ? 'He shifts his grip... watch for the feint!' : '';
+    // Start animation
+    const zoneW = zone.offsetWidth || 400;
+    const startTime = performance.now();
+    let feintFired = false;
+
+    function animate(now) {
+      if (!active) return;
+      const elapsed = (now - startTime) / 1000;
+      indicatorPos = (elapsed * speed * 100);
+      if (indicatorPos > 105) {
+        // Missed
+        active = false;
+        canHit = false;
+        results.push(false);
+        const dots2 = roundsEl.querySelectorAll('.duel-round');
+        dots2[currentRound].className = 'duel-round miss';
+        resultEl.textContent = '✗ Missed';
+        resultEl.style.color = '#a06050';
+        currentRound++;
+        setTimeout(startRound, 800);
+        return;
+      }
+      // Feint logic: if feint active, the indicator pauses or reverses briefly
+      if (feintActive && !feintFired && indicatorPos > strikeTime - 8 && indicatorPos < strikeTime + 8) {
+        feintFired = true;
+        feintTriggered = true;
+        feintWarn.textContent = 'A feint! The stroke was false — the real one follows!';
+        // Reset indicator to simulate the feint
+        indicatorPos = strikeTime - 15;
+        // Speed increases for the real strike
+        speed *= 1.3;
+      }
+      indicatorEl.style.left = indicatorPos + '%';
+      canHit = !feintActive || feintTriggered;
+      animId = requestAnimationFrame(animate);
+    }
+    animId = requestAnimationFrame(animate);
+  }
+
+  function handleStrike() {
+    if (!active || !canHit) return;
+    active = false;
+    if (animId) cancelAnimationFrame(animId);
+    const targetLeft = parseFloat(targetEl.style.left);
+    const targetW = parseFloat(targetEl.style.width) || 40;
+    const diff = Math.abs(indicatorPos - targetLeft);
+    const threshold = targetW / 2 + 5;
+    const hit = diff <= threshold;
+    const perfect = diff <= 8;
+    results.push(hit);
+    const dots = roundsEl.querySelectorAll('.duel-round');
+    dots[currentRound].className = 'duel-round ' + (hit ? 'hit' : 'miss');
+    if (perfect) {
+      hitEl.classList.add('show','perfect');
+      resultEl.textContent = '✦ Perfect strike!';
+      resultEl.style.color = '#d4a05a';
+      playSfx('assets/pack2-sfx.wav');
+    } else if (hit) {
+      hitEl.classList.add('show');
+      resultEl.textContent = '✓ Hit';
+      resultEl.style.color = '#8a9a7a';
+      playSfx('assets/pack2-sfx.wav');
+    } else {
+      resultEl.textContent = '✗ Miss';
+      resultEl.style.color = '#a06050';
+    }
+    setTimeout(() => { hitEl.classList.remove('show','perfect'); }, 300);
+    currentRound++;
+    setTimeout(startRound, 600);
+  }
+
+  function finishMinigame() {
+    const hitCount = results.filter(Boolean).length;
+    const score = Math.round((hitCount / rounds) * 20);
+    const isFinalDuel = isFinal;
+    if (!isFinalDuel) {
+      G.mastery = Math.min(100, G.mastery + score);
+      G.swordResults.push({waypoint:G.waypoint, score});
+    } else {
+      G.finalResult = {hits:hitCount, total:rounds};
+      // Determine ending
+      const won = hitCount >= 3;
+      if (won && G.mastery >= 80) {
+        G.ending = 'wooden-oar';
+      } else if (won && G.mastery >= 50) {
+        G.ending = 'long-path';
+      } else if (won) {
+        G.ending = 'long-path';
+      } else {
+        G.ending = 'other-shore';
+      }
+      G.mastery = Math.min(100, G.mastery + Math.round((hitCount/rounds)*10));
+    }
+    updateMasteryDisplay();
+    saveState();
+
+    const skip = skipBtn;
+    skip.style.display = 'inline-block';
+    skip.textContent = isFinalDuel ? 'See your fate →' : 'Continue →';
+    resultEl.textContent = (isFinalDuel ? 'Duel complete: ' : 'Round complete: ') + hitCount + '/' + rounds + ' hits';
+    skip.onclick = () => {
+      if (isFinalDuel) {
+        showEnding();
+      } else {
+        G.waypoint++;
+        saveState();
+        showWaypoint();
+      }
+    };
+    skip.focus();
+  }
+
+  // Start first round
+  startRound();
+
+  // Event handlers
+  const strikeHandler = (e) => {
+    if (e.type === 'keydown' && e.key !== ' ' && e.key !== 'Spacebar' && e.key !== 'Space') return;
+    e.preventDefault();
+    handleStrike();
+  };
+
+  document.addEventListener('keydown', strikeHandler);
+  zone.addEventListener('click', strikeHandler);
+  zone.addEventListener('touchstart', (e) => { e.preventDefault(); handleStrike(); }, {passive:false});
+
+  // Store cleanup
+  window.__swordCleanup = () => {
+    document.removeEventListener('keydown', strikeHandler);
+    if (animId) cancelAnimationFrame(animId);
+    active = false;
+  };
+}
+
+// --- Brush Minigame ---
+function startBrushMinigame() {
+  showScreen('brush');
+  $('brush-score').textContent = 'Coherence: —';
+  $('brush-timer').textContent = 'Time: 30s';
+  $('btn-brush-skip').style.display = 'none';
+  $('stroke-zone').classList.remove('placed');
+  $('stroke-zone-label').textContent = 'Place your strokes here';
+  $('stroke-zone').querySelector('.placed-stroke')?.remove();
+
+  let timeLeft = 30;
+  let selectedStrokes = [];
+  let placedStrokes = [];
+  let timerId = null;
+  let isPlacing = false;
+
+  const tray = $('stroke-tray');
+  tray.innerHTML = '';
+  STROKES.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'stroke-btn';
+    btn.dataset.strokeId = s.id;
+    btn.dataset.index = i;
+    const preview = document.createElement('div');
+    preview.className = 'stroke-preview';
+    preview.style.cssText = s.css;
+    btn.appendChild(preview);
+    const label = document.createElement('span');
+    label.textContent = s.label;
+    btn.appendChild(label);
+    const key = document.createElement('span');
+    key.className = 'stroke-key';
+    key.textContent = (i + 1);
+    btn.appendChild(key);
+    btn.onclick = () => toggleStrokeSelection(btn, s);
+    btn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStrokeSelection(btn, s); }};
+    tray.appendChild(btn);
+  });
+
+  function toggleStrokeSelection(btn, s) {
+    if (isPlacing) return;
+    const idx = selectedStrokes.indexOf(s.id);
+    if (idx >= 0) {
+      selectedStrokes.splice(idx, 1);
+      btn.classList.remove('selected');
+    } else {
+      if (selectedStrokes.length >= 3) {
+        // Deselect oldest
+        const oldest = selectedStrokes.shift();
+        tray.querySelector(`[data-stroke-id="${oldest}"]`)?.classList.remove('selected');
+      }
+      selectedStrokes.push(s.id);
+      btn.classList.add('selected');
+    }
+    updateCoherencePreview();
+  }
+
+  function updateCoherencePreview() {
+    if (selectedStrokes.length < 2) {
+      $('brush-score').textContent = 'Select 2-3 strokes';
+      return;
+    }
+    let coherence = 0;
+    for (let i = 0; i < selectedStrokes.length; i++) {
+      for (let j = i + 1; j < selectedStrokes.length; j++) {
+        const c = COHERENCE[selectedStrokes[i]];
+        if (c && c[selectedStrokes[j]]) coherence += c[selectedStrokes[j]];
+      }
+    }
+    $('brush-score').textContent = 'Coherence: ' + coherence;
+  }
+
+  function placeStroke(strokeId) {
+    if (isPlacing || placedStrokes.length >= 3) return;
+    isPlacing = true;
+    placedStrokes.push(strokeId);
+    const zone = $('stroke-zone');
+    zone.classList.add('placed');
+    zone.querySelector('.placed-stroke')?.remove();
+    const div = document.createElement('div');
+    div.className = 'placed-stroke';
+    const s = STROKES.find(x => x.id === strokeId);
+    if (s) div.style.cssText = s.css + ';position:absolute;inset:4px;background-size:contain;background-repeat:no-repeat;background-position:center;opacity:.7';
+    zone.appendChild(div);
+    $('stroke-zone-label').textContent = placedStrokes.length + '/3 placed';
+    // Mark stroke as used
+    tray.querySelector(`[data-stroke-id="${strokeId}"]`)?.classList.add('used');
+    // Remove from selection
+    const idx = selectedStrokes.indexOf(strokeId);
+    if (idx >= 0) selectedStrokes.splice(idx, 1);
+    isPlacing = false;
+
+    if (placedStrokes.length >= 3) {
+      finishBrushMinigame();
+    }
+  }
+
+  // Drag and drop for stroke placement
+  tray.addEventListener('dragstart', (e) => {
+    const btn = e.target.closest('.stroke-btn');
+    if (!btn || btn.classList.contains('used')) return;
+    e.dataTransfer.setData('text/plain', btn.dataset.strokeId);
+  });
+
+  const zone = $('stroke-zone');
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const id = e.dataTransfer.getData('text/plain');
+    if (id && selectedStrokes.includes(id) && placedStrokes.length < 3) {
+      placeStroke(id);
+    }
+  });
+
+  // Keyboard: number keys 1-6 to select, then ENTER on zone to place next selected
+  const keyHandler = (e) => {
+    if (e.key >= '1' && e.key <= '6') {
+      const idx = parseInt(e.key) - 1;
+      const btn = tray.querySelector(`[data-index="${idx}"]`);
+      if (btn) btn.click();
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && selectedStrokes.length > 0 && placedStrokes.length < 3) {
+      e.preventDefault();
+      placeStroke(selectedStrokes[0]);
+    }
+  };
+  document.addEventListener('keydown', keyHandler);
+
+  // Click on zone to place next selected
+  zone.onclick = () => {
+    if (selectedStrokes.length > 0 && placedStrokes.length < 3) {
+      placeStroke(selectedStrokes[0]);
+    }
+  };
+
+  function finishBrushMinigame() {
+    if (timerId) clearInterval(timerId);
+    document.removeEventListener('keydown', keyHandler);
+
+    // Calculate score
+    let coherence = 0;
+    for (let i = 0; i < placedStrokes.length; i++) {
+      for (let j = i + 1; j < placedStrokes.length; j++) {
+        const c = COHERENCE[placedStrokes[i]];
+        if (c && c[placedStrokes[j]]) coherence += c[placedStrokes[j]];
+      }
+    }
+    // Timing bonus
+    const timingBonus = timeLeft > 20 ? 5 : timeLeft > 10 ? 3 : timeLeft > 5 ? 1 : 0;
+    const score = Math.min(20, coherence + timingBonus);
+    G.mastery = Math.min(100, G.mastery + score);
+    G.brushStrokes.push(...placedStrokes);
+    G.brushScores.push({waypoint:G.waypoint, score, strokes:[...placedStrokes]});
+    updateMasteryDisplay();
+    saveState();
+
+    $('brush-score').textContent = 'Coherence: ' + coherence + ' + Timing: ' + timingBonus + ' = ' + score;
+    const skip = $('btn-brush-skip');
+    skip.style.display = 'inline-block';
+    skip.onclick = () => {
+      G.waypoint++;
+      saveState();
+      showWaypoint();
+    };
+    skip.focus();
+  }
+
+  // Timer
+  timerId = setInterval(() => {
+    timeLeft--;
+    $('brush-timer').textContent = 'Time: ' + timeLeft + 's';
+    if (timeLeft <= 0) {
+      finishBrushMinigame();
+    }
+  }, 1000);
+
+  // Cleanup
+  window.__brushCleanup = () => {
+    if (timerId) clearInterval(timerId);
+    document.removeEventListener('keydown', keyHandler);
+  };
+}
+
+// --- Final Duel ---
+function showFinalDuel() {
+  G.phase = 'final';
+  showScreen('final');
+  updateMasteryDisplay();
+  startSwordMinigame();
+}
+
+// --- Endings ---
+function showEnding() {
+  showScreen('ending');
+  const title = $('ending-title');
+  const text = $('ending-text');
+  const masteryLabel = $('ending-mastery-label');
+  const scroll = $('ending-scroll');
+
+  masteryLabel.textContent = 'Final Mastery: ' + G.mastery + ' / 100';
+
+  // Build the accumulated painting scroll
+  scroll.style.display = 'block';
+  scroll.innerHTML = '';
+  if (G.brushStrokes.length > 0) {
+    G.brushStrokes.forEach((sid, idx) => {
+      const s = STROKES.find(x => x.id === sid);
+      if (!s) return;
+      const el = document.createElement('div');
+      el.className = 'brush-stroke';
+      el.style.cssText = s.css + ';';
+      el.style.left = (10 + (idx % 3) * 30) + '%';
+      el.style.top = (10 + Math.floor(idx / 3) * 25) + '%';
+      el.style.width = '25%';
+      el.style.height = '20%';
+      el.style.opacity = '0.5';
+      scroll.appendChild(el);
+    });
+  } else {
+    scroll.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b9a88d;font-size:12px;font-style:italic">The scroll remains blank — the brush was never taken up.</div>';
+  }
+
+  switch (G.ending) {
+    case 'wooden-oar':
+      title.textContent = 'The Wooden Oar';
+      text.innerHTML = 'You arrive at Ganryūjima as the sun breaks through the clouds. Sasaki Kojirō awaits, his long nodachi gleaming. But you carry no sword today.<br><br>Instead, you have shaped an oar from driftwood during the journey, carving it with the brush strokes of your art. When he attacks, you meet him not with steel but with the paddle — turning his own momentum against him. The long blade spins into the sea.<br><br>He laughs, and offers tea.<br><br><em>"You have mastered both ways. There is nothing left to prove."</em>';
+      break;
+    case 'long-path':
+      title.textContent = 'The Long Path';
+      text.innerHTML = 'The duel is hard-fought. Kojirō\'s reach is greater, his speed formidable. You take a wound early — a shallow cut across the arm that blooms red against your sleeve.<br><br>But you have walked the road. You have learned patience. You find the opening, and when it comes, you take it. The nodachi falls.<br><br>Kojirō nods once, acknowledging the loss. As you bind your wound, you realise: victory is not the end of the path. It is only another step.<br><br><em>"The road continues,"</em> he says. <em>"There is always another waypoint."</em>';
+      break;
+    case 'other-shore':
+      title.textContent = 'The Other Shore';
+      text.innerHTML = 'Kojirō\'s blade moves like water — you cannot read its flow. The feints confuse you; the true strikes arrive before you are ready.<br><br>You fall to the sand, the cold tide lapping at your feet. The sky above is vast and indifferent. But as you lie there, you see it: the journey was never about winning. It was about the road itself — the temple at dawn, the rain on the river, the old woman\'s tea, the snow, the fishing boats.<br><br>Kojirō sheathes his sword and offers you his hand.<br><br><em>"Get up. The road is still waiting."</em><br><br>You take it. The journey begins again.';
+      break;
+    default:
+      title.textContent = 'The Road Continues';
+      text.innerHTML = 'Your journey along the old road has reached its end — but every ending is a new beginning. The brush and the blade are one.';
+  }
+
+  // Play ambient
+  playAmbient('assets/pack1-music-loop.wav');
+
+  G.completed = true;
+  clearSave();
+  saveState();
+  $('btn-restart').focus();
+}
+
+// --- Restart ---
+function restartGame() {
+  clearSave();
+  G = defaultState();
+  playAmbient('');
+  showTitle();
+}
+
+function showTitle() {
+  showScreen('title');
+  // Check for saved game
+  const saved = loadState();
+  const resumeBtn = $('btn-resume');
+  if (saved && saved.waypoint < WAYPOINT_COUNT) {
+    resumeBtn.style.display = 'inline-block';
+    resumeBtn.onclick = () => {
+      G = saved;
+      showWaypoint();
+    };
+  } else {
+    resumeBtn.style.display = 'none';
+  }
+  playAmbient('assets/pack1-music-loop.wav');
+  $('btn-start').focus();
+}
+
+// --- Init ---
+function init() {
+  G = defaultState();
+  showTitle();
+
+  $('btn-start').onclick = () => {
+    G = defaultState();
+    clearSave();
+    playAmbient('');
+    showWaypoint();
+  };
+
+  $('btn-sword').onclick = () => {
+    startSwordMinigame();
+  };
+
+  $('btn-brush').onclick = () => {
+    startBrushMinigame();
+  };
+
+  $('btn-restart').onclick = () => {
+    restartGame();
+  };
+
+  // Keyboard shortcuts on title
+  document.addEventListener('keydown', (e) => {
+    if (G.phase === 'title' && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      const resumeBtn = $('btn-resume');
+      if (resumeBtn.style.display !== 'none' && e.key === 'Enter') {
+        // If there's a resume option and Enter is pressed, prefer resume
+        // But default to start
+      }
+      $('btn-start').click();
+    }
+  });
+
+  // Cleanup on screen transition
+  const origShowScreen = showScreen;
+  showScreen = function(name) {
+    if (window.__swordCleanup) { window.__swordCleanup(); window.__swordCleanup = null; }
+    if (window.__brushCleanup) { window.__brushCleanup(); window.__brushCleanup = null; }
+    origShowScreen(name);
+  };
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
+</body>
+</html>
