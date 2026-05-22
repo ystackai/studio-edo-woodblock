@@ -28,6 +28,7 @@ A single-file interactive web piece set on the old Tōkaidō road. You play as a
 drops/drop-edo-woodblock-musashi-roadmaster-<timestamp>/
 ├── index.html          # Complete game (single file)
 ├── README.md           # This file
+├── CHANGELOG.md        # Version history
 └── assets/
     ├── pack1-style-frame.png    # Title card / vignette art
     ├── pack1-music-loop.wav     # Ambient music
