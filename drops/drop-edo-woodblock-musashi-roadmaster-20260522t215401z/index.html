@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <title>Way of the Brush and Blade</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;width:100%;overflow:hidden;background:#1a1510;color:#f4ead8;font-family:'Georgia','Times New Roman','YuMincho','Hiragino Mincho ProN','Noto Serif JP',serif}
+html,body{height:100%;width:100%;overflow:hidden;background:#1a1510;color:#f4ead8;font-family:'Noto Serif JP','YuMincho','Hiragino Mincho ProN','Georgia','Times New Roman',serif;font-display:swap}
 body{display:flex;align-items:center;justify-content:center}
 #app{position:relative;width:100%;height:100%;max-width:800px;max-height:1000px;background:#1f1a14;overflow:hidden;display:flex;flex-direction:column}
 .screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;transition:opacity .8s}
@@ -27,7 +30,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .subtitle{font-size:clamp(13px,2.5vw,18px);color:#b9a88d;letter-spacing:.08em;margin-bottom:4px}
 .body-text{font-size:clamp(14px,2.2vw,17px);line-height:1.7;color:#cdbb9d;margin:10px 0}
 .btn{appearance:none;border:1px solid rgba(139,69,19,.5);background:rgba(26,21,16,.8);color:#f4ead8;padding:12px 28px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:clamp(14px,2.2vw,17px);letter-spacing:.04em;transition:all .3s;margin:6px;min-width:160px}
-.btn:hover,.btn:focus-visible{background:#8B4513;border-color:#8B4513;color:#fff;outline:none;transform:translateY(-1px)}
+.btn:hover,.btn:focus-visible{background:#8B4513;border-color:#8B4513;color:#fff;outline:none;transform:translateY(-1px);box-shadow:0 0 20px rgba(139,69,19,.3);transition:all .2s ease}
+.btn-choice:hover,.btn-choice:focus-visible{box-shadow:0 0 30px rgba(139,69,19,.25),inset 0 0 20px rgba(139,69,19,.1)}
 .btn:active{transform:translateY(0)}
 .btn-secondary{border-color:rgba(244,234,216,.3);background:rgba(26,21,16,.5);color:#d4c4a8}
 .btn-secondary:hover,.btn-secondary:focus-visible{background:rgba(139,69,19,.4);border-color:rgba(139,69,19,.6)}
@@ -42,12 +46,15 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .duel-zone{width:100%;height:80px;background:rgba(0,0,0,.3);border:1px solid rgba(139,69,19,.4);border-radius:4px;position:relative;overflow:hidden;margin:10px 0}
 .duel-zone::before{content:'';position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,transparent 0%,rgba(139,69,19,.05) 30%,rgba(139,69,19,.1) 50%,rgba(139,69,19,.05) 70%,transparent 100%);pointer-events:none;z-index:0;opacity:.5}
 .duel-indicator{position:absolute;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#d4a05a,#8B4513);border-radius:2px;transition:left .05s linear;pointer-events:none;z-index:2;box-shadow:0 0 8px rgba(212,160,90,.3)}
+.duel-indicator.feint{background:linear-gradient(180deg,#e8a040,#a06030);box-shadow:0 0 12px rgba(232,160,64,.5);width:5px;animation:feintPulse .3s ease-in-out 3}
 .duel-target{position:absolute;top:0;bottom:0;width:40px;background:rgba(139,69,19,.3);border-left:2px solid #8B4513;border-right:2px solid #8B4513;pointer-events:none;z-index:1}
 .duel-hit{position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;background:radial-gradient(circle,#d4a05a,transparent);transform:translate(-50%,-50%);pointer-events:none;z-index:3;opacity:0}
 .duel-hit.show{width:120px;height:120px;opacity:.6;transition:all .2s}
 .duel-hit.perfect{background:radial-gradient(circle,#f4ead8,transparent)}
 @keyframes splashOut{0%{width:0;height:0;opacity:.8}100%{width:200px;height:200px;opacity:0}}
 @keyframes inkDrop{0%{transform:scaleY(0);opacity:0}50%{transform:scaleY(1.1);opacity:.8}100%{transform:scaleY(1);opacity:1}}
+@keyframes feintPulse{0%{opacity:.6;transform:scaleX(1)}50%{opacity:1;transform:scaleX(1.4)}100%{opacity:.6;transform:scaleX(1)}}
+@keyframes inkDropIdle{0%{height:0;opacity:0}30%{height:6px;opacity:.6}70%{height:6px;opacity:.6}100%{height:0;opacity:0;transform:translateX(-50%) translateY(20px)}}
 .duel-result{font-size:20px;font-weight:700;margin:8px 0;min-height:30px}
 .duel-rounds{display:flex;gap:6px;justify-content:center;margin:6px 0}
 .duel-round{width:12px;height:12px;border-radius:50%;border:1px solid rgba(244,234,216,.3);background:transparent}
@@ -68,12 +75,22 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .brush-score{font-size:16px;color:#d4a05a;font-weight:600}
 .painting-scroll{width:100%;max-width:300px;height:200px;background:linear-gradient(180deg,#f5efe0,#e8dcc8);border-radius:4px;margin:10px auto;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.3)}
 .painting-scroll .brush-stroke{position:absolute;pointer-events:none;opacity:.6}
-#ending-scroll{width:100%;max-width:360px;height:500px;background:linear-gradient(180deg,#f5efe0,#e8dcc8);border-radius:4px;margin:12px auto;position:relative;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,.4)}
+#ending-scroll{width:100%;max-width:320px;height:460px;margin:12px auto;position:relative;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,.5);border-radius:2px;border:1px solid rgba(139,69,19,.3)}
+#ending-scroll .scroll-paper{position:absolute;inset:8px;background:linear-gradient(180deg,#f5efe0,#ece0cc,#f0e4d0);border-radius:1px;overflow:hidden;box-shadow:inset 0 0 40px rgba(139,69,19,.06)}
+#ending-scroll .scroll-rod-top{position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(180deg,#6b4c2a,#8B4513,#6b4c2a);border-radius:2px 2px 0 0;z-index:2}
+#ending-scroll .scroll-rod-bottom{position:absolute;bottom:0;left:0;right:0;height:8px;background:linear-gradient(0deg,#6b4c2a,#8B4513,#6b4c2a);border-radius:0 0 2px 2px;z-index:2}
+#ending-scroll .scroll-roller-end{position:absolute;top:-2px;left:-2px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#a07040,#6b4c2a);box-shadow:0 0 4px rgba(0,0,0,.3);z-index:3}
+#ending-scroll .scroll-roller-end.right{left:auto;right:-2px}
+#ending-scroll .scroll-roller-end.bottom{top:auto;bottom:-2px}
+#ending-scroll .brush-stroke{position:absolute;pointer-events:none;opacity:.55}
 .ending-text{font-size:clamp(13px,2vw,16px);line-height:1.8;color:#d4c4a8;max-width:500px;padding:8px}
 .ending-title{font-size:clamp(20px,4vw,32px);color:#f4ead8;margin:6px 0}
 .feint-warning{color:#e8a040;font-size:13px;margin:4px 0;min-height:20px}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-@media(max-width:480px){.btn-choice{padding:12px 16px}.stroke-btn{width:60px;height:60px}.stroke-btn .stroke-preview{width:40px;height:24px}.painting-scroll{height:150px}}
+.keyboard-user .btn:focus-visible{outline:2px solid #d4a05a;outline-offset:2px}
+.keyboard-user .stroke-btn:focus-visible{outline:2px solid #d4a05a;outline-offset:2px}
+@media(max-width:480px){.btn-choice{padding:12px 16px;max-width:240px;font-size:clamp(12px,3vw,14px)}.stroke-btn{width:56px;height:56px}.stroke-btn .stroke-preview{width:38px;height:22px}.painting-scroll{height:150px}#ending-scroll{max-width:260px;height:360px}.vignette-text{padding:10px;font-size:clamp(12px,2.5vw,14px)}h1{font-size:clamp(24px,8vw,42px)}.duel-zone{height:60px}#stroke-tray{gap:5px}.content{padding:6px}}
+@media(min-width:768px){.stroke-btn{width:80px;height:80px}.stroke-btn .stroke-preview{width:60px;height:36px}.duel-zone{height:100px}}
 </style>
 </head>
 <body>
@@ -86,13 +103,16 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="ink-line" style="width:40%"></div>
       <h1>Way of the<br>Brush and Blade</h1>
       <div class="ink-line"></div>
+      <div style="position:relative;height:6px;margin:4px auto;width:80%;max-width:200px;opacity:.3">
+        <div style="position:absolute;left:50%;top:0;width:2px;height:6px;background:#8B4513;border-radius:0 0 2px 2px;animation:inkDropIdle 4s ease-in-out infinite;transform:translateX(-50%)"></div>
+      </div>
       <p class="subtitle">— a wandering swordsman's journey —</p>
       <div style="margin:20px 0;height:80px;background:rgba(0,0,0,.2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b9a88d;border:1px solid rgba(139,69,19,.2)">
         <span>Along the old Tōkaidō road,<br>five stops await between dawn and Ganryūjima.</span>
       </div>
-      <button class="btn" id="btn-start" autofocus>Begin the Journey</button>
-      <button class="btn btn-secondary btn-small" id="btn-resume" style="display:none;margin-top:8px">Continue Previous Journey</button>
-      <p class="body-text" style="font-size:11px;margin-top:12px;color:#8a7a6a">Press ENTER or click to begin</p>
+      <button class="btn" id="btn-start" autofocus aria-label="Begin the journey, start a new game">Begin the Journey</button>
+      <button class="btn btn-secondary btn-small" id="btn-resume" style="display:none;margin-top:8px" aria-label="Continue your previous journey from where you left off">Continue Previous Journey</button>
+      <p class="body-text" style="font-size:11px;margin-top:12px;color:#8a7a6a" aria-live="polite" id="title-hint">Press ENTER or click to begin</p>
     </div>
   </div>
 
@@ -109,8 +129,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <p class="mastery-label" id="wp-mastery-label">Mastery: 0 / 100</p>
       <div class="ink-line-thin"></div>
       <p class="body-text" style="font-size:14px;margin:6px 0">Choose your discipline:</p>
-      <button class="btn btn-choice" id="btn-sword" data-choice="sword"><span class="icon">⚔</span> Draw Your Blade</button>
-      <button class="btn btn-choice btn-secondary" id="btn-brush" data-choice="brush"><span class="icon">🖌</span> Take Up the Brush</button>
+      <button class="btn btn-choice" id="btn-sword" data-choice="sword" aria-label="Draw your blade and engage in a timing-based duel"><span class="icon">⚔</span> Draw Your Blade</button>
+      <button class="btn btn-choice btn-secondary" id="btn-brush" data-choice="brush" aria-label="Take up the brush and create a sumi-e composition"><span class="icon">🖌</span> Take Up the Brush</button>
     </div>
   </div>
 
@@ -158,6 +178,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
   <div id="screen-final" class="screen" role="region" aria-label="Final duel at Ganryushima">
     <div class="bg-img" style="background-image:url(assets/pack2-style-frame.png)"></div>
     <div class="bg-overlay"></div>
+    <div style="position:absolute;inset:0;background-image:url(assets/pack1-style-frame.png);background-size:cover;background-position:center;opacity:.08;filter:sepia(.8) saturate(.3);z-index:0;mix-blend-mode:multiply"></div>
     <div class="content">
       <h2>Ganryūjima</h2>
       <div class="ink-line" style="width:40%"></div>
@@ -193,6 +214,9 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       </div>
     </div>
   </div>
+
+  <!-- Ink-wash transition overlay -->
+  <div id="ink-overlay" style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(26,21,16,0) 30%,rgba(26,21,16,1) 100%);opacity:0;pointer-events:none;z-index:10;transition:opacity .5s ease"></div>
 
   <!-- Audio elements -->
   <audio id="audio-ambient" loop preload="auto" style="display:none"></audio>
@@ -273,7 +297,8 @@ function defaultState() {
     swordResults: [],
     brushStrokes: [], // accumulated stroke ids for the scroll painting
     brushScores: [],
-    vignetteIdx: 0, // index into vignette variants
+    vignetteForWaypoint: [], // per-waypoint vignette index, persisted for save/resume
+    vignetteIdx: 0,
     finalResult: null,
     ending: null,
     completed: false
@@ -292,12 +317,44 @@ const screens = {
 };
 
 // --- Audio ---
+let _ambientFadeId = null;
 function playAmbient(src) {
   const a = $('audio-ambient');
-  if (!src) { a.pause(); a.src = ''; return; }
-  a.src = src;
-  a.volume = 0.3;
-  a.play().catch(()=>{});
+  if (_ambientFadeId) { clearInterval(_ambientFadeId); _ambientFadeId = null; }
+  if (!src) { a.pause(); a.src = ''; a.volume = 0.3; return; }
+  // Fade out current if playing
+  if (!a.paused && a.src) {
+    let vol = a.volume;
+    _ambientFadeId = setInterval(() => {
+      vol = Math.max(0, vol - 0.05);
+      a.volume = vol;
+      if (vol <= 0) {
+        clearInterval(_ambientFadeId);
+        _ambientFadeId = null;
+        a.pause();
+        a.src = src;
+        a.volume = 0;
+        a.play().catch(()=>{});
+        // Fade in
+        let inVol = 0;
+        _ambientFadeId = setInterval(() => {
+          inVol = Math.min(0.3, inVol + 0.03);
+          a.volume = inVol;
+          if (inVol >= 0.3) { clearInterval(_ambientFadeId); _ambientFadeId = null; }
+        }, 100);
+      }
+    }, 80);
+  } else {
+    a.src = src;
+    a.volume = 0;
+    a.play().catch(()=>{});
+    let inVol = 0;
+    _ambientFadeId = setInterval(() => {
+      inVol = Math.min(0.3, inVol + 0.03);
+      a.volume = inVol;
+      if (inVol >= 0.3) { clearInterval(_ambientFadeId); _ambientFadeId = null; }
+    }, 100);
+  }
 }
 
 function playSfx(src) {
@@ -328,17 +385,27 @@ function clearSave() {
   try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
 }
 
-// --- Screen transition ---
+// --- Screen transition with ink-wash fade ---
+let _inkTimer = null;
 function showScreen(name) {
-  Object.keys(screens).forEach(k => {
-    screens[k].classList.remove('active','fade-in','fade-out');
-    screens[k].style.display = 'none';
-  });
-  const el = screens[name];
-  el.style.display = 'flex';
-  el.classList.add('active','fade-in');
-  G.phase = name;
-  saveState();
+  if (_inkTimer) { clearTimeout(_inkTimer); _inkTimer = null; }
+  const overlay = $('ink-overlay');
+  // Brief ink-wash fade between screens
+  overlay.style.opacity = '1';
+  _inkTimer = setTimeout(() => {
+    Object.keys(screens).forEach(k => {
+      screens[k].classList.remove('active','fade-in','fade-out');
+      screens[k].style.display = 'none';
+    });
+    const el = screens[name];
+    el.style.display = 'flex';
+    el.classList.add('active','fade-in');
+    G.phase = name;
+    saveState();
+    // Fade overlay back out
+    requestAnimationFrame(() => { overlay.style.opacity = '0'; });
+    _inkTimer = null;
+  }, 200);
 }
 
 // --- Mastery display ---
@@ -362,7 +429,12 @@ function showWaypoint() {
     return;
   }
   const loc = getLocation(G.waypoint);
-  const vIdx = G.vignetteIdx = Math.floor(Math.random() * loc.vignettes.length);
+  // Persist vignette choice per waypoint so refresh mid-journey doesn't reroll
+  if (!G.vignetteForWaypoint) G.vignetteForWaypoint = [];
+  if (G.vignetteForWaypoint[G.waypoint] === undefined) {
+    G.vignetteForWaypoint[G.waypoint] = Math.floor(Math.random() * loc.vignettes.length);
+  }
+  const vIdx = G.vignetteIdx = G.vignetteForWaypoint[G.waypoint];
   $('wp-location').textContent = '— Stop ' + (G.waypoint + 1) + ' of ' + WAYPOINT_COUNT + ' —';
   $('wp-title').textContent = loc.title;
   $('wp-vignette').textContent = loc.vignettes[vIdx];
@@ -429,6 +501,7 @@ function startSwordMinigame() {
     // Feint: if final duel, occasionally have a false start
     feintActive = isFinal && Math.random() < 0.3 && G.mastery < 80;
     feintTriggered = false;
+    indicatorEl.classList.toggle('feint', feintActive);
     if (feintActive) {
       feintWarn.textContent = 'He shifts his grip... watch for the feint!';
     } else {
@@ -481,6 +554,8 @@ function startSwordMinigame() {
         feintFired = true;
         feintTriggered = true;
         feintWarn.textContent = 'A feint! The stroke was false — the real one follows!';
+        // Visual: remove feint glow, show normal indicator for the real strike
+        indicatorEl.classList.remove('feint');
         // Reset indicator to simulate the feint
         indicatorPos = strikeTime - 15;
         // Speed increases for the real strike
@@ -691,6 +766,8 @@ function startBrushMinigame() {
     const idx = selectedStrokes.indexOf(strokeId);
     if (idx >= 0) selectedStrokes.splice(idx, 1);
     isPlacing = false;
+    // Play brush stroke sound
+    playSfx('assets/pack3-sfx.wav');
 
     if (placedStrokes.length >= 3) {
       finishBrushMinigame();
@@ -811,18 +888,36 @@ function showEnding() {
 
   masteryLabel.textContent = 'Final Mastery: ' + G.mastery + ' / 100';
 
-  // Build the accumulated painting scroll
+  // Build the accumulated painting scroll — a traditional hanging scroll (kakemono)
   scroll.style.display = 'block';
   scroll.innerHTML = '';
+  // Scroll structure: rods, paper, roller ends
+  const rodTop = document.createElement('div');
+  rodTop.className = 'scroll-rod-top';
+  scroll.appendChild(rodTop);
+  const rodBottom = document.createElement('div');
+  rodBottom.className = 'scroll-rod-bottom';
+  scroll.appendChild(rodBottom);
+  // Roller end caps
+  for (let pos of ['',' right',' bottom',' bottom right']) {
+    const cap = document.createElement('div');
+    cap.className = 'scroll-roller-end' + pos;
+    scroll.appendChild(cap);
+  }
+  // Paper area
+  const paper = document.createElement('div');
+  paper.className = 'scroll-paper';
+  scroll.appendChild(paper);
+
   if (G.brushStrokes.length > 0) {
-    // Layout strokes across the scroll like a traditional hanging scroll
+    // Layout strokes across the scroll like a traditional hanging scroll composition
     const positions = [
-      {left:'15%', top:'8%', width:'30%', height:'22%', rotate:'-3deg'},
-      {left:'50%', top:'18%', width:'28%', height:'20%', rotate:'2deg'},
-      {left:'20%', top:'35%', width:'32%', height:'24%', rotate:'-1deg'},
-      {left:'45%', top:'48%', width:'26%', height:'18%', rotate:'4deg'},
-      {left:'25%', top:'60%', width:'30%', height:'22%', rotate:'-2deg'},
-      {left:'40%', top:'72%', width:'28%', height:'20%', rotate:'1deg'},
+      {left:'12%', top:'6%', width:'35%', height:'24%', rotate:'-4deg'},
+      {left:'48%', top:'16%', width:'32%', height:'22%', rotate:'3deg'},
+      {left:'18%', top:'34%', width:'38%', height:'26%', rotate:'-2deg'},
+      {left:'44%', top:'46%', width:'30%', height:'20%', rotate:'5deg'},
+      {left:'22%', top:'58%', width:'34%', height:'24%', rotate:'-3deg'},
+      {left:'38%', top:'72%', width:'32%', height:'22%', rotate:'2deg'},
     ];
     G.brushStrokes.forEach((sid, idx) => {
       const s = STROKES.find(x => x.id === sid);
@@ -836,15 +931,15 @@ function showEnding() {
       el.style.width = p.width;
       el.style.height = p.height;
       el.style.transform = 'rotate(' + p.rotate + ')';
-      el.style.opacity = Math.min(0.7, 0.4 + idx * 0.06);
-      scroll.appendChild(el);
+      el.style.opacity = Math.min(0.65, 0.35 + idx * 0.05);
+      paper.appendChild(el);
     });
-    // Add a subtle seal/stamp at the bottom
+    // Add a subtle seal/stamp at the bottom of the paper
     const seal = document.createElement('div');
-    seal.style.cssText = 'position:absolute;bottom:12px;right:12px;width:24px;height:24px;border:2px solid #8B4513;border-radius:50%;opacity:.3;';
-    scroll.appendChild(seal);
+    seal.style.cssText = 'position:absolute;bottom:10px;right:10px;width:22px;height:22px;border:2px solid #8B4513;border-radius:50%;opacity:.25;';
+    paper.appendChild(seal);
   } else {
-    scroll.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b9a88d;font-size:12px;font-style:italic">The scroll remains blank — the brush was never taken up.</div>';
+    paper.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b9a88d;font-size:12px;font-style:italic">The scroll remains blank — the brush was never taken up.</div>';
   }
 
   switch (G.ending) {
@@ -923,6 +1018,15 @@ function init() {
   $('btn-restart').onclick = () => {
     restartGame();
   };
+
+  // Keyboard detection — show keyboard-specific hints when keyboard is used
+  let _keyboardUser = false;
+  document.addEventListener('keydown', () => {
+    if (!_keyboardUser) {
+      _keyboardUser = true;
+      document.body.classList.add('keyboard-user');
+    }
+  }, {once: true});
 
   // Keyboard shortcuts on title
   document.addEventListener('keydown', (e) => {
