@@ -371,8 +371,8 @@ function showWaypoint() {
 
 // --- Sword Minigame ---
 function startSwordMinigame() {
-  showScreen('sword');
   const isFinal = G.phase === 'final';
+  showScreen(isFinal ? 'final' : 'sword');
   const rounds = isFinal ? FINAL_ROUNDS : SWORD_ROUNDS;
   const zone = isFinal ? $('final-duel-zone') : $('duel-zone');
   const targetEl = isFinal ? $('final-duel-target') : $('duel-target');
@@ -566,20 +566,23 @@ function startSwordMinigame() {
   // Start first round
   startRound();
 
-  // Event handlers
+  // Event handlers — use named refs so cleanup can remove them
   const strikeHandler = (e) => {
     if (e.type === 'keydown' && e.key !== ' ' && e.key !== 'Spacebar' && e.key !== 'Space') return;
     e.preventDefault();
     handleStrike();
   };
+  const touchHandler = (e) => { e.preventDefault(); handleStrike(); };
 
   document.addEventListener('keydown', strikeHandler);
   zone.addEventListener('click', strikeHandler);
-  zone.addEventListener('touchstart', (e) => { e.preventDefault(); handleStrike(); }, {passive:false});
+  zone.addEventListener('touchstart', touchHandler, {passive:false});
 
   // Store cleanup
   window.__swordCleanup = () => {
     document.removeEventListener('keydown', strikeHandler);
+    zone.removeEventListener('click', strikeHandler);
+    zone.removeEventListener('touchstart', touchHandler);
     if (animId) cancelAnimationFrame(animId);
     active = false;
   };
@@ -682,24 +685,27 @@ function startBrushMinigame() {
     }
   }
 
-  // Drag and drop for stroke placement
-  tray.addEventListener('dragstart', (e) => {
+  const zone = $('stroke-zone');
+  // Drag and drop for stroke placement — use named refs for cleanup
+  const dragStartHandler = (e) => {
     const btn = e.target.closest('.stroke-btn');
     if (!btn || btn.classList.contains('used')) return;
     e.dataTransfer.setData('text/plain', btn.dataset.strokeId);
-  });
-
-  const zone = $('stroke-zone');
-  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
-  zone.addEventListener('drop', (e) => {
+  };
+  const dragOverHandler = (e) => { e.preventDefault(); zone.classList.add('drag-over'); };
+  const dragLeaveHandler = () => { zone.classList.remove('drag-over'); };
+  const dropHandler = (e) => {
     e.preventDefault();
     zone.classList.remove('drag-over');
     const id = e.dataTransfer.getData('text/plain');
     if (id && selectedStrokes.includes(id) && placedStrokes.length < 3) {
       placeStroke(id);
     }
-  });
+  };
+  tray.addEventListener('dragstart', dragStartHandler);
+  zone.addEventListener('dragover', dragOverHandler);
+  zone.addEventListener('dragleave', dragLeaveHandler);
+  zone.addEventListener('drop', dropHandler);
 
   // Keyboard: number keys 1-6 to select, then ENTER on zone to place next selected
   const keyHandler = (e) => {
@@ -767,6 +773,11 @@ function startBrushMinigame() {
   window.__brushCleanup = () => {
     if (timerId) clearInterval(timerId);
     document.removeEventListener('keydown', keyHandler);
+    tray.removeEventListener('dragstart', dragStartHandler);
+    zone.removeEventListener('dragover', dragOverHandler);
+    zone.removeEventListener('dragleave', dragLeaveHandler);
+    zone.removeEventListener('drop', dropHandler);
+    zone.onclick = null;
   };
 }
 
