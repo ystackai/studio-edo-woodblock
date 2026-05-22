@@ -40,11 +40,14 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .vignette-text{margin:16px 0;padding:16px;background:rgba(0,0,0,.2);border-left:3px solid #8B4513;border-radius:0 4px 4px 0;text-align:left;font-style:italic;line-height:1.8;color:#d4c4a8}
 .minigame-area{width:100%;max-width:500px;margin:12px auto;position:relative;min-height:200px}
 .duel-zone{width:100%;height:80px;background:rgba(0,0,0,.3);border:1px solid rgba(139,69,19,.4);border-radius:4px;position:relative;overflow:hidden;margin:10px 0}
-.duel-indicator{position:absolute;top:0;bottom:0;width:3px;background:#d4a05a;transition:left .05s linear;pointer-events:none;z-index:2}
+.duel-zone::before{content:'';position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,transparent 0%,rgba(139,69,19,.05) 30%,rgba(139,69,19,.1) 50%,rgba(139,69,19,.05) 70%,transparent 100%);pointer-events:none;z-index:0;opacity:.5}
+.duel-indicator{position:absolute;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#d4a05a,#8B4513);border-radius:2px;transition:left .05s linear;pointer-events:none;z-index:2;box-shadow:0 0 8px rgba(212,160,90,.3)}
 .duel-target{position:absolute;top:0;bottom:0;width:40px;background:rgba(139,69,19,.3);border-left:2px solid #8B4513;border-right:2px solid #8B4513;pointer-events:none;z-index:1}
 .duel-hit{position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;background:radial-gradient(circle,#d4a05a,transparent);transform:translate(-50%,-50%);pointer-events:none;z-index:3;opacity:0}
 .duel-hit.show{width:120px;height:120px;opacity:.6;transition:all .2s}
 .duel-hit.perfect{background:radial-gradient(circle,#f4ead8,transparent)}
+@keyframes splashOut{0%{width:0;height:0;opacity:.8}100%{width:200px;height:200px;opacity:0}}
+@keyframes inkDrop{0%{transform:scaleY(0);opacity:0}50%{transform:scaleY(1.1);opacity:.8}100%{transform:scaleY(1);opacity:1}}
 .duel-result{font-size:20px;font-weight:700;margin:8px 0;min-height:30px}
 .duel-rounds{display:flex;gap:6px;justify-content:center;margin:6px 0}
 .duel-round{width:12px;height:12px;border-radius:50%;border:1px solid rgba(244,234,216,.3);background:transparent}
@@ -505,11 +508,20 @@ function startSwordMinigame() {
     dots[currentRound].className = 'duel-round ' + (hit ? 'hit' : 'miss');
     if (perfect) {
       hitEl.classList.add('show','perfect');
+      // Add ink splash
+      const splash = document.createElement('div');
+      splash.className = 'ink-splash';
+      hitEl.appendChild(splash);
+      setTimeout(() => splash.remove(), 500);
       resultEl.textContent = '✦ Perfect strike!';
       resultEl.style.color = '#d4a05a';
       playSfx('assets/pack2-sfx.wav');
     } else if (hit) {
       hitEl.classList.add('show');
+      const splash = document.createElement('div');
+      splash.className = 'ink-splash';
+      hitEl.appendChild(splash);
+      setTimeout(() => splash.remove(), 500);
       resultEl.textContent = '✓ Hit';
       resultEl.style.color = '#8a9a7a';
       playSfx('assets/pack2-sfx.wav');
@@ -803,19 +815,34 @@ function showEnding() {
   scroll.style.display = 'block';
   scroll.innerHTML = '';
   if (G.brushStrokes.length > 0) {
+    // Layout strokes across the scroll like a traditional hanging scroll
+    const positions = [
+      {left:'15%', top:'8%', width:'30%', height:'22%', rotate:'-3deg'},
+      {left:'50%', top:'18%', width:'28%', height:'20%', rotate:'2deg'},
+      {left:'20%', top:'35%', width:'32%', height:'24%', rotate:'-1deg'},
+      {left:'45%', top:'48%', width:'26%', height:'18%', rotate:'4deg'},
+      {left:'25%', top:'60%', width:'30%', height:'22%', rotate:'-2deg'},
+      {left:'40%', top:'72%', width:'28%', height:'20%', rotate:'1deg'},
+    ];
     G.brushStrokes.forEach((sid, idx) => {
       const s = STROKES.find(x => x.id === sid);
       if (!s) return;
+      const p = positions[idx % positions.length];
       const el = document.createElement('div');
       el.className = 'brush-stroke';
-      el.style.cssText = s.css + ';';
-      el.style.left = (10 + (idx % 3) * 30) + '%';
-      el.style.top = (10 + Math.floor(idx / 3) * 25) + '%';
-      el.style.width = '25%';
-      el.style.height = '20%';
-      el.style.opacity = '0.5';
+      el.style.cssText = s.css + ';position:absolute';
+      el.style.left = p.left;
+      el.style.top = p.top;
+      el.style.width = p.width;
+      el.style.height = p.height;
+      el.style.transform = 'rotate(' + p.rotate + ')';
+      el.style.opacity = Math.min(0.7, 0.4 + idx * 0.06);
       scroll.appendChild(el);
     });
+    // Add a subtle seal/stamp at the bottom
+    const seal = document.createElement('div');
+    seal.style.cssText = 'position:absolute;bottom:12px;right:12px;width:24px;height:24px;border:2px solid #8B4513;border-radius:50%;opacity:.3;';
+    scroll.appendChild(seal);
   } else {
     scroll.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b9a88d;font-size:12px;font-style:italic">The scroll remains blank — the brush was never taken up.</div>';
   }
