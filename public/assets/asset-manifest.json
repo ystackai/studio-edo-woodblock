@@ -1,0 +1,52 @@
+{
+  "packId": "20260522T155006Z-edo-inkblade-game-assets-1-a-ukiyo-e-style-backg",
+  "game": "Edo Inkblade: Road Opens",
+  "workOrder": "work-order-edo-inkblade-road-opens-assets-20260522",
+  "generatedAt": "2026-05-22T15:50:06Z",
+  "assets": [
+    {
+      "id": "flux-style-frame",
+      "kind": "image",
+      "path": "/edo-woodblock/public/assets/generated-bg.png",
+      "tool": "Flux",
+      "backend": "comfyui",
+      "prompt": "ukiyo-e woodblock print background, Japanese road leading to wooden torii gate at dusk, mountains, cherry blossoms, amber moonlight, 960x540, sumi-e ink wash aesthetic",
+      "intendedUse": "Full-screen game background replacing procedural sky/mountains/road",
+      "status": "in-game",
+      "license": "generated locally through configured model backend",
+      "verification": "loaded in-game as genAssets.backgroundImg; visible in preview; 400KB PNG"
+    },
+    {
+      "id": "mmaudio-action-sfx",
+      "kind": "audio",
+      "path": "/edo-woodblock/public/assets/generated-gate-open.wav",
+      "tool": "MMAudio",
+      "backend": "mmaudio",
+      "prompt": "heavy wooden gate creaking open with atmospheric wind and ambient Edo-period feel, 2 seconds",
+      "intendedUse": "Gate-open sound effect played when the road opens after defeating the guard",
+      "status": "in-game",
+      "license": "generated locally through configured model backend",
+      "verification": "loaded via fetch+decodeAudioData; plays on gate-open event; 62KB WAV"
+    },
+    {
+      "id": "heartmula-loop",
+      "kind": "audio",
+      "path": "/edo-woodblock/public/assets/generated-loop.wav",
+      "tool": "HeartMuLa",
+      "backend": "procedural-smoke",
+      "prompt": "ambient music loop for Edo-period browser game",
+      "intendedUse": "Prototype ambient loop (not yet played in-game; reserved for future polish)",
+      "status": "prototype",
+      "license": "procedural smoke asset; replace with configured model output for production",
+      "verification": "downloaded and stored; not yet connected to game audio system"
+    }
+  ],
+  "unavailable": [
+    {
+      "tool": "Trellis 2",
+      "reason": "Provider unavailable (procedural-smoke backend)",
+      "fallback": "No 3D assets needed for this 2D canvas game; procedural stick figures suffice"
+    }
+  ],
+  "notes": "All in-game assets have graceful procedural fallbacks. If generated-bg.png fails to load, the game uses a procedural sky gradient with clouds and moon. If generated-gate-open.wav fails, the game uses oscillator-based SFX."
+}

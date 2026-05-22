@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edo Inkblade — Road Opens</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #1a1a2e; font-family: 'Segoe UI', sans-serif;
+}
+#game-container {
+  position: relative; width: 100vw; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+canvas {
+  display: block; image-rendering: pixelated;
+  max-width: 100vw; max-height: 100vh;
+}
+#hud {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 10;
+}
+#controls-hint {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(10,15,60,0.85); border: 1px solid rgba(200,180,140,0.4);
+  border-radius: 8px; padding: 8px 18px; color: #e8dcc8;
+  font-size: 13px; text-align: center; line-height: 1.5;
+  white-space: nowrap;
+}
+#controls-hint kbd {
+  display: inline-block; background: rgba(200,180,140,0.2);
+  border: 1px solid rgba(200,180,140,0.5); border-radius: 4px;
+  padding: 1px 6px; margin: 0 2px; font-family: inherit; font-size: 12px;
+}
+#objective {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  background: rgba(10,15,60,0.85); border: 1px solid rgba(200,180,140,0.4);
+  border-radius: 6px; padding: 6px 16px; color: #f0e6d2;
+  font-size: 14px; font-weight: 600; text-align: center;
+}
+#health-bars {
+  position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 40px; align-items: center;
+}
+.health-slot { text-align: center; }
+.health-label { font-size: 11px; color: #c8b48c; margin-bottom: 3px; font-weight: 600; }
+.health-bar-bg {
+  width: 140px; height: 12px; background: rgba(30,30,50,0.8);
+  border: 1px solid rgba(200,180,140,0.3); border-radius: 3px; overflow: hidden;
+}
+.health-bar-fill {
+  height: 100%; transition: width 0.3s; border-radius: 2px;
+}
+#player-health .health-bar-fill { background: linear-gradient(90deg, #4a9eff, #2d7dd2); }
+#guard-health .health-bar-fill { background: linear-gradient(90deg, #e84040, #c03030); }
+
+/* Start overlay */
+#start-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(10,10,30,0.92); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; z-index: 100;
+}
+#start-overlay h1 {
+  font-size: 42px; color: #e8dcc8; margin-bottom: 8px;
+  text-shadow: 0 0 20px rgba(200,180,140,0.3);
+  letter-spacing: 0.05em;
+}
+#start-overlay .subtitle {
+  font-size: 16px; color: #a89880; margin-bottom: 40px;
+}
+#start-btn {
+  pointer-events: all; cursor: pointer;
+  background: #e8dcc8; color: #1a1a2e; border: none;
+  padding: 14px 48px; font-size: 18px; font-weight: 700;
+  border-radius: 6px; letter-spacing: 0.04em;
+  transition: all 0.2s;
+}
+#start-btn:hover { background: #f0e6d2; transform: scale(1.03); }
+
+/* Win overlay */
+#win-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(10,10,30,0.85); display: none; flex-direction: column;
+  align-items: center; justify-content: center; z-index: 100;
+}
+#win-overlay h1 { font-size: 36px; color: #f0e6d2; margin-bottom: 10px; }
+#win-overlay .win-sub { font-size: 16px; color: #a89880; margin-bottom: 30px; }
+#continue-btn {
+  pointer-events: all; cursor: pointer;
+  background: #e8dcc8; color: #1a1a2e; border: none;
+  padding: 12px 40px; font-size: 16px; font-weight: 700;
+  border-radius: 6px;
+}
+#continue-btn:hover { background: #f0e6d2; }
+
+/* Duel timing bar */
+#duel-bar-container {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 300px; height: 24px; background: rgba(20,20,40,0.9);
+  border: 2px solid rgba(200,180,140,0.5); border-radius: 12px;
+  display: none; z-index: 20; overflow: hidden;
+}
+#duel-bar-zone {
+  position: absolute; left: 25%; width: 50%; height: 100%;
+  background: rgba(74,158,255,0.3); border-left: 2px solid #4a9eff;
+  border-right: 2px solid #4a9eff;
+}
+#duel-bar-cursor {
+  position: absolute; top: 2px; width: 4px; height: 20px;
+  background: #fff; border-radius: 2px; left: 0;
+}
+#duel-round {
+  position: absolute; top: 36%; left: 50%; transform: translateX(-50%);
+  color: #e8dcc8; font-size: 14px; font-weight: 600; display: none; z-index: 20;
+}
+#hit-feedback {
+  position: absolute; top: 42%; left: 50%; transform: translateX(-50%);
+  font-size: 22px; font-weight: 800; display: none; z-index: 20;
+}
+</style>
+</head>
+<body>
+<div id="game-container">
+  <canvas id="game-canvas" width="960" height="540"></canvas>
+  <div id="hud">
+    <div id="objective">The road is blocked — defeat the guard to open it.</div>
+    <div id="health-bars">
+      <div class="health-slot" id="player-health">
+        <div class="health-label">YOU</div>
+        <div class="health-bar-bg"><div class="health-bar-fill" style="width:100%"></div></div>
+      </div>
+      <div class="health-slot" id="guard-health">
+        <div class="health-label">GUARD</div>
+        <div class="health-bar-bg"><div class="health-bar-fill" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div id="controls-hint">
+      <kbd>←</kbd> <kbd>→</kbd> Move &nbsp;|&nbsp; <kbd>SPACE</kbd> Strike
+    </div>
+  </div>
+  <div id="duel-bar-container">
+    <div id="duel-bar-zone"></div>
+    <div id="duel-bar-cursor"></div>
+  </div>
+  <div id="duel-round">Round 1/3</div>
+  <div id="hit-feedback"></div>
+  <div id="start-overlay">
+    <h1>Edo Inkblade</h1>
+    <div class="subtitle">Road Opens</div>
+    <button id="start-btn">Begin</button>
+  </div>
+  <div id="win-overlay">
+    <h1>Road Opened!</h1>
+    <div class="win-sub">The path ahead is clear.</div>
+    <button id="continue-btn">Continue</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Edo Inkblade — Road Opens
+// A playable browser game slice
+// ============================================================
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const W = 960, H = 540;
+
+// DOM refs
+const startOverlay = document.getElementById('start-overlay');
+const winOverlay = document.getElementById('win-overlay');
+const startBtn = document.getElementById('start-btn');
+const continueBtn = document.getElementById('continue-btn');
+const objectiveEl = document.getElementById('objective');
+const controlsHint = document.getElementById('controls-hint');
+const playerHealthFill = document.querySelector('#player-health .health-bar-fill');
+const guardHealthFill = document.querySelector('#guard-health .health-bar-fill');
+const duelBarContainer = document.getElementById('duel-bar-container');
+const duelBarCursor = document.getElementById('duel-bar-cursor');
+const duelRoundEl = document.getElementById('duel-round');
+const hitFeedback = document.getElementById('hit-feedback');
+
+// Audio context (initialized on user gesture)
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playTone(freq, dur, vol, type) {
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol || 0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + dur);
+  } catch(e) {}
+}
+
+function playFootstep() { playTone(80, 0.08, 0.06, 'triangle'); }
+function playStrike() { playTone(300, 0.15, 0.2, 'sawtooth'); playTone(150, 0.1, 0.1, 'square'); }
+function playHit() { playTone(100, 0.2, 0.25, 'square'); }
+function playGateOpen() {
+  if (genAssets.gateOpenSfx && audioCtx) {
+     // Use generated gate-open SFX
+    try {
+      const source = audioCtx.createBufferSource();
+      source.buffer = genAssets.gateOpenSfx;
+      source.connect(audioCtx.destination);
+      source.start();
+     } catch(e) { /* fallback to procedural */ }
+    } else {
+     // Procedural fallback
+    playTone(200, 0.8, 0.15, 'sine');
+    setTimeout(() => playTone(300, 0.6, 0.12, 'sine'), 200);
+    setTimeout(() => playTone(400, 0.5, 0.1, 'triangle'), 400);
+    }
+}
+function playWin() {
+  playTone(440, 0.3, 0.15, 'sine');
+  setTimeout(() => playTone(550, 0.3, 0.15, 'sine'), 150);
+  setTimeout(() => playTone(660, 0.4, 0.18, 'sine'), 300);
+}
+
+// ============================================================
+// Game State Machine
+// ============================================================
+const STATES = { START: 0, APPROACH: 1, DUEL: 2, OPENING: 3, CROSS: 4, WIN: 5, LOSE: 6 };
+let gameState = STATES.START;
+
+// Player
+const player = {
+  x: 480, y: 460, w: 28, h: 50,
+  hp: 100, maxHp: 100,
+  speed: 2.5,
+  color: '#2d7dd2',
+  bladeAngle: 0,
+  attacking: false, attackTimer: 0,
+  walkCycle: 0,
+  facingRight: true,
+  visible: true
+};
+
+// Guard
+const guard = {
+  x: 480, y: 310, w: 30, h: 52,
+  hp: 100, maxHp: 100,
+  color: '#c03030',
+  state: 'idle', // idle, windup, attack, hit, dead
+  windupTimer: 0, attackTimer: 0, hitTimer: 0,
+  animTimer: 0,
+  swingPhase: 0
+};
+
+// Gate
+const gate = {
+  x: 380, y: 260, w: 200, h: 100,
+  openAmount: 0, // 0=closed, 1=fully open
+  leftLeaf: { x: 0, targetX: 0 },
+  rightLeaf: { x: 0, targetX: 0 }
+};
+
+// Duel state
+let duelRound = 0;
+let duelMaxRounds = 3;
+let duelCursorPos = 0;
+let duelCursorDir = 1;
+let duelCursorSpeed = 2.5;
+let duelActive = false;
+let guardAttackWindow = false;
+
+// Particles
+let particles = [];
+let inkSplats = [];
+
+// Animation timer
+let gameTime = 0;
+let lastTime = 0;
+
+// Generated assets (loaded after core works)
+let genAssets = {
+  backgroundImg: null,
+  gateOpenSfx: null,
+  loopSfx: null,
+  loaded: false
+};
+
+// ============================================================
+// Input
+// ============================================================
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') e.preventDefault();
+  // Duel counter-strike
+  if (e.code === 'Space' && duelActive && gameState === STATES.DUEL) {
+    triggerDuelStrike();
+  }
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ============================================================
+// Drawing Helpers
+// ============================================================
+function drawInkBrush(x, y, w, h, color, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha || 1;
+  // Main shape
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(x, y, w / 2, h / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ink bleed effect
+  ctx.globalAlpha = (alpha || 1) * 0.3;
+  ctx.beginPath();
+  ctx.ellipse(x, y + 2, w / 2 + 3, h / 2 + 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawStickFigure(x, y, w, h, color, isAttacking, attackDir, walkCycle) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const headY = y - h * 0.7;
+  const bodyY = y - h * 0.3;
+
+  // Head
+  ctx.beginPath();
+  ctx.arc(x, headY, 8, 0, Math.PI * 2);
+  ctx.stroke();
+  // Hat/helmet
+  ctx.beginPath();
+  ctx.arc(x, headY - 2, 10, Math.PI, 0);
+  ctx.stroke();
+
+  // Body
+  ctx.beginPath();
+  ctx.moveTo(x, headY + 8);
+  ctx.lineTo(x, bodyY + h * 0.15);
+  ctx.stroke();
+
+  // Legs with walk animation
+  const legSwing = (walkCycle !== undefined) ? Math.sin(walkCycle) * 12 : 0;
+  const legBaseY = bodyY + h * 0.15;
+  const legEndY = y + 2;
+
+  // Left leg
+  ctx.beginPath();
+  ctx.moveTo(x, legBaseY);
+  ctx.lineTo(x - 6 - legSwing * 0.5, legEndY);
+  ctx.stroke();
+  // Right leg
+  ctx.beginPath();
+  ctx.moveTo(x, legBaseY);
+  ctx.lineTo(x + 6 + legSwing * 0.5, legEndY);
+  ctx.stroke();
+
+  // Arms
+  const shoulderY = headY + 12;
+  if (isAttacking) {
+    // Attack pose - arm extended with blade
+    const armDir = attackDir || 1;
+    ctx.beginPath();
+    ctx.moveTo(x, shoulderY);
+    ctx.lineTo(x + armDir * 30, shoulderY - 5);
+    ctx.stroke();
+    // Blade
+    ctx.strokeStyle = '#e8dcc8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + armDir * 30, shoulderY - 5);
+    ctx.lineTo(x + armDir * 55, shoulderY - 15);
+    ctx.stroke();
+    // Blade glow
+    ctx.strokeStyle = 'rgba(232,220,200,0.3)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x + armDir * 30, shoulderY - 5);
+    ctx.lineTo(x + armDir * 55, shoulderY - 15);
+    ctx.stroke();
+  } else {
+    // Normal stance
+    ctx.beginPath();
+    ctx.moveTo(x, shoulderY);
+    ctx.lineTo(x - 15, shoulderY + 15);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, shoulderY);
+    ctx.lineTo(x + 15, shoulderY + 15);
+    ctx.stroke();
+    // Resting blade
+    ctx.strokeStyle = '#e8dcc8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + 15, shoulderY + 15);
+    ctx.lineTo(x + 10, shoulderY + 35);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ============================================================
+// Scene Drawing
+// ============================================================
+function drawSky() {
+  // Dawn/dusk sky gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+  grad.addColorStop(0, '#1a1a2e');
+  grad.addColorStop(0.5, '#2d2d4a');
+  grad.addColorStop(1, '#4a3f5c');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H * 0.6);
+
+  // Subtle clouds
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  for (let i = 0; i < 5; i++) {
+    const cx = (i * 220 + gameTime * 0.1) % (W + 100) - 50;
+    const cy = 40 + i * 25;
+    ctx.fillStyle = '#c8b48c';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 60 + i * 10, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Moon
+  ctx.save();
+  ctx.globalAlpha = 0.6;
+  ctx.fillStyle = '#f0e6d2';
+  ctx.beginPath();
+  ctx.arc(750, 60, 25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.3;
+  ctx.beginPath();
+  ctx.arc(750, 60, 35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawMountains() {
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = '#2d3a4a';
+
+  // Far mountains
+  ctx.beginPath();
+  ctx.moveTo(0, 220);
+  ctx.quadraticCurveTo(120, 140, 250, 200);
+  ctx.quadraticCurveTo(350, 160, 480, 190);
+  ctx.quadraticCurveTo(600, 130, 750, 180);
+  ctx.quadraticCurveTo(850, 150, W, 200);
+  ctx.lineTo(W, 280);
+  ctx.lineTo(0, 280);
+  ctx.closePath();
+  ctx.fill();
+
+  // Near mountains
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = '#1e2a3a';
+  ctx.beginPath();
+  ctx.moveTo(0, 250);
+  ctx.quadraticCurveTo(200, 200, 400, 240);
+  ctx.quadraticCurveTo(600, 210, W, 250);
+  ctx.lineTo(W, 280);
+  ctx.lineTo(0, 280);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawRoad() {
+  // Road surface - trapezoid perspective
+  ctx.save();
+  ctx.fillStyle = '#3a3530';
+  ctx.beginPath();
+  ctx.moveTo(380, 340); // top left (gate height)
+  ctx.lineTo(580, 340); // top right
+  ctx.lineTo(W * 0.85, H); // bottom right (wider)
+  ctx.lineTo(W * 0.15, H); // bottom left
+  ctx.closePath();
+  ctx.fill();
+
+  // Road texture lines
+  ctx.strokeStyle = 'rgba(100,90,75,0.3)';
+  ctx.lineWidth = 1;
+  for (let y = 360; y < H; y += 20) {
+    const t = (y - 340) / (H - 340);
+    const leftX = 380 + (W * 0.15 - 380) * t;
+    const rightX = 580 + (W * 0.85 - 580) * t;
+    const midX = (leftX + rightX) / 2;
+    // Center dashed line
+    ctx.globalAlpha = 0.2;
+    ctx.beginPath();
+    ctx.moveTo(midX, y);
+    ctx.lineTo(midX, y + 10);
+    ctx.stroke();
+  }
+
+  // Road edges with wooden posts
+  ctx.globalAlpha = 1;
+  const postColor = '#5a4a3a';
+  for (let i = 0; i < 4; i++) {
+    const t = 0.3 + i * 0.2;
+    const y = 340 + t * (H - 340);
+    const leftX = 380 + (W * 0.15 - 380) * t;
+    const rightX = 580 + (W * 0.85 - 580) * t;
+
+    // Left post
+    ctx.fillStyle = postColor;
+    ctx.fillRect(leftX - 3, y - 15, 6, 25);
+    ctx.fillStyle = '#6a5a4a';
+    ctx.fillRect(leftX - 4, y - 17, 8, 5);
+
+    // Right post
+    ctx.fillStyle = postColor;
+    ctx.fillRect(rightX - 3, y - 15, 6, 25);
+    ctx.fillStyle = '#6a5a4a';
+    ctx.fillRect(rightX - 4, y - 17, 8, 5);
+  }
+
+  // Torii/gate at top of road
+  drawGate();
+
+  ctx.restore();
+}
+
+function drawGate() {
+  const gx = 480, gy = gate.y; // 260
+  const gw = gate.w; // 200
+
+  ctx.save();
+
+  // Gate pillars
+  const pillarColor = '#4a3028';
+  const pillarHighlight = '#6a5040';
+  const pillarW = 12;
+
+  // Left pillar
+  ctx.fillStyle = pillarColor;
+  ctx.fillRect(gx - gw / 2 - pillarW / 2, gy, pillarW, gate.h);
+  ctx.fillStyle = pillarHighlight;
+  ctx.fillRect(gx - gw / 2 - pillarW / 2, gy, pillarW, 4);
+
+  // Right pillar
+  ctx.fillStyle = pillarColor;
+  ctx.fillRect(gx + gw / 2 - pillarW / 2, gy, pillarW, gate.h);
+  ctx.fillStyle = pillarHighlight;
+  ctx.fillRect(gx + gw / 2 - pillarW / 2, gy, pillarW, 4);
+
+  // Top beam
+  ctx.fillStyle = '#5a3a2a';
+  ctx.fillRect(gx - gw / 2 - 15, gy - 8, gw + 30, 14);
+  ctx.fillStyle = '#7a5a4a';
+  ctx.fillRect(gx - gw / 2 - 15, gy - 8, gw + 30, 3);
+
+  // Second beam (lower)
+  ctx.fillStyle = '#5a3a2a';
+  ctx.fillRect(gx - gw / 2 - 8, gy + 20, gw + 16, 8);
+
+  // Gate doors (animated open)
+  const doorW = (gw - 20) / 2;
+  const openOffset = gate.openAmount * (doorW + 10);
+
+  // Left door leaf
+  ctx.save();
+  ctx.translate(-openOffset, 0);
+  ctx.fillStyle = '#3a2818';
+  ctx.fillRect(gx - gw / 2 + 8, gy + 28, doorW, gate.h - 36);
+  // Door texture
+  ctx.strokeStyle = 'rgba(100,80,60,0.4)';
+  ctx.lineWidth = 1;
+  for (let yy = gy + 35; yy < gy + gate.h - 10; yy += 12) {
+    ctx.beginPath();
+    ctx.moveTo(gx - gw / 2 + 10, yy);
+    ctx.lineTo(gx - 10, yy);
+    ctx.stroke();
+  }
+  // Door handle
+  ctx.fillStyle = '#c8a86a';
+  ctx.beginPath();
+  ctx.arc(gx - 12, gy + gate.h / 2 + 5, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Right door leaf
+  ctx.save();
+  ctx.translate(openOffset, 0);
+  ctx.fillStyle = '#3a2818';
+  ctx.fillRect(gx + 10, gy + 28, doorW, gate.h - 36);
+  // Door texture
+  ctx.strokeStyle = 'rgba(100,80,60,0.4)';
+  ctx.lineWidth = 1;
+  for (let yy = gy + 35; yy < gy + gate.h - 10; yy += 12) {
+    ctx.beginPath();
+    ctx.moveTo(gx + 12, yy);
+    ctx.lineTo(gx + gw / 2 - 10, yy);
+    ctx.stroke();
+  }
+  // Door handle
+  ctx.fillStyle = '#c8a86a';
+  ctx.beginPath();
+  ctx.arc(gx + 12, gy + gate.h / 2 + 5, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Cherry blossom decorations on gate
+  if (gate.openAmount < 0.5) {
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    drawCherryBlossom(gx - gw / 2 + 5, gy + 5, 6);
+    drawCherryBlossom(gx + gw / 2 - 5, gy + 5, 6);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function drawCherryBlossom(x, y, size) {
+  ctx.save();
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 + gameTime * 0.01;
+    const px = x + Math.cos(angle) * size * 0.5;
+    const py = y + Math.sin(angle) * size * 0.5;
+    ctx.fillStyle = '#e8a0b0';
+    ctx.beginPath();
+    ctx.ellipse(px, py, size * 0.4, size * 0.25, angle, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#f0c8a0';
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGround() {
+  // Ground below the road
+  ctx.fillStyle = '#2a3a2a';
+  ctx.fillRect(0, H * 0.65, W, H * 0.35);
+
+  // Grass tufts
+  ctx.strokeStyle = '#3a5a3a';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 30; i++) {
+    const x = (i * 37 + 10) % W;
+    const y = H * 0.68 + (i * 13) % (H * 0.25);
+    const sway = Math.sin(gameTime * 0.02 + i) * 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + sway, y - 8, x + sway * 1.5, y - 14);
+    ctx.stroke();
+  }
+}
+
+function drawPlayer() {
+  if (!player.visible) return;
+  const isMoving = keys['ArrowLeft'] || keys['ArrowRight'];
+  if (isMoving) player.walkCycle += 0.15;
+
+  drawStickFigure(
+    player.x, player.y, player.w, player.h,
+    player.color,
+    player.attacking,
+    player.facingRight ? 1 : -1,
+    player.walkCycle
+  );
+
+  // Player shadow
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(player.x, player.y + 4, 14, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGuard() {
+  if (guard.hp <= 0 && guard.state === 'dead') {
+    // Fallen guard - drawn on the ground
+    ctx.save();
+    ctx.translate(guard.x, guard.y + 20);
+    ctx.rotate(Math.PI / 2);
+    drawStickFigure(0, 0, guard.w, guard.h, '#5a2020', false, 1, 0);
+    ctx.restore();
+    return;
+  }
+
+  let isAttacking = false;
+  let attackDir = 1;
+
+  if (guard.state === 'windup') {
+    // Windup animation - body leans back
+    const windupProgress = 1 - (guard.windupTimer / 2000);
+    // Telegraph attack direction
+    attackDir = guard.x > player.x ? -1 : 1;
+  } else if (guard.state === 'attack') {
+    isAttacking = true;
+    attackDir = guard.x > player.x ? -1 : 1;
+  }
+
+  drawStickFigure(
+    guard.x, guard.y, guard.w, guard.h,
+    guard.state === 'hit' ? '#ff8844' : guard.color,
+    isAttacking, attackDir,
+    guard.animTimer
+  );
+
+  // Guard shadow
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(guard.x, guard.y + 4, 15, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Warning indicator during windup
+  if (guard.state === 'windup') {
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 2;
+    const ex = guard.x + attackDir * 40;
+    ctx.beginPath();
+    ctx.arc(ex, guard.y - 20, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#ff4444';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('!', ex, guard.y - 16);
+    ctx.restore();
+  }
+}
+
+function drawParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    if (p.type === 'slash') {
+      ctx.lineWidth = p.size;
+      ctx.strokeStyle = p.color;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + p.vx * 3, p.y + p.vy * 3);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function drawInkSplats() {
+  for (const s of inkSplats) {
+    s.alpha *= 0.995;
+    if (s.alpha < 0.01) continue;
+    ctx.save();
+    ctx.globalAlpha = s.alpha;
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y, s.rx, s.ry, s.angle, 0, Math.PI * 2);
+    ctx.fill();
+    // Splatter dots
+    for (let d = 0; d < s.drops.length; d++) {
+      const dr = s.drops[d];
+      ctx.beginPath();
+      ctx.arc(s.x + dr.dx, s.y + dr.dy, dr.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function spawnSlashParticles(x, y, dir) {
+  for (let i = 0; i < 8; i++) {
+    particles.push({
+      x, y: y - 10 + Math.random() * 20,
+      vx: dir * (2 + Math.random() * 4),
+      vy: -2 - Math.random() * 3,
+      life: 1, decay: 0.03,
+      size: 2 + Math.random() * 2,
+      color: '#e8dcc8',
+      type: 'slash'
+    });
+  }
+}
+
+function spawnInkSplat(x, y) {
+  const drops = [];
+  for (let i = 0; i < 6; i++) {
+    drops.push({
+      dx: (Math.random() - 0.5) * 40,
+      dy: (Math.random() - 0.5) * 40,
+      r: 1 + Math.random() * 3
+    });
+  }
+  inkSplats.push({
+    x, y, rx: 10 + Math.random() * 15,
+    ry: 6 + Math.random() * 10,
+    angle: Math.random() * Math.PI,
+    alpha: 0.7,
+    color: '#1a1a2e',
+    drops
+  });
+}
+
+// ============================================================
+// State Update Logic
+// ============================================================
+function updatePlayer(dt) {
+  // Player movement
+  if (gameState === STATES.APPROACH) {
+    if (keys['ArrowLeft']) { player.x -= player.speed; player.facingRight = false; }
+    if (keys['ArrowRight']) { player.x += player.speed; player.facingRight = true; }
+    // Clamp to road bounds
+    const roadLeft = 380 + (W * 0.15 - 380) * ((player.y - 340) / (H - 340));
+    const roadRight = 580 + (W * 0.85 - 580) * ((player.y - 340) / (H - 340));
+    player.x = Math.max(roadLeft + 15, Math.min(roadRight - 15, player.x));
+
+    // Auto-walk toward gate
+    if (player.y > 380) {
+      player.y -= 0.8;
+      if (Math.random() < 0.08) playFootstep();
+    }
+
+    // Trigger duel when near guard
+    if (player.y <= 400 && guard.hp > 0) {
+      gameState = STATES.DUEL;
+      duelRound = 0;
+      startDuelRound();
+      objectiveEl.textContent = 'Guard attacks — press SPACE to counter!';
+      controlsHint.innerHTML = '<kbd>←</kbd> <kbd>→</kbd> Dodge &nbsp;|&nbsp; <kbd>SPACE</kbd> Counter-strike';
+    }
+  }
+
+  if (gameState === STATES.DUEL) {
+    if (keys['ArrowLeft']) player.x -= player.speed * 1.2;
+    if (keys['ArrowRight']) player.x += player.speed * 1.2;
+    player.x = Math.max(300, Math.min(660, player.x));
+  }
+
+  if (gameState === STATES.CROSS) {
+    // Player walks through gate
+    if (player.y > 340) {
+      player.y -= 1.5;
+      if (Math.random() < 0.1) playFootstep();
+    }
+    if (player.y <= 300) {
+      gameState = STATES.WIN;
+      showWin();
+    }
+  }
+
+  // Attack animation
+  if (player.attacking) {
+    player.attackTimer -= dt;
+    if (player.attackTimer <= 0) player.attacking = false;
+  }
+}
+
+function updateGuard(dt) {
+  if (guard.hp <= 0) {
+    guard.state = 'dead';
+    return;
+  }
+
+  if (gameState === STATES.DUEL) {
+    switch (guard.state) {
+      case 'idle':
+        guard.animTimer += 0.05;
+        // Idle patrol
+        guard.x = 480 + Math.sin(gameTime * 0.003) * 30;
+        // Start windup after a delay
+        if (gameTime % 4000 < 20) {
+          guard.state = 'windup';
+          guard.windupTimer = 2000;
+        }
+        break;
+      case 'windup':
+        guard.windupTimer -= dt;
+        guard.animTimer += 0.1;
+        if (guard.windupTimer <= 0) {
+          guard.state = 'attack';
+          guard.attackTimer = 600;
+          playTone(120, 0.2, 0.15, 'square'); // attack sound
+        }
+        break;
+      case 'attack':
+        guard.attackTimer -= dt;
+        // Lunge toward player
+        const lungeDir = player.x > guard.x ? 1 : -1;
+        guard.x += lungeDir * 0.5;
+
+        // Check if player is in hit range
+        if (Math.abs(player.x - guard.x) < 40 && !duelActive) {
+          // Guard hits player
+          player.hp -= 15;
+          updateHealthBars();
+          spawnInkSplat(player.x, player.y - 20);
+          playHit();
+          if (player.hp <= 0) {
+            gameState = STATES.LOSE;
+            objectiveEl.textContent = 'Defeated — try again.';
+            controlsHint.innerHTML = '<kbd>R</kbd> Retry';
+            if (keys['KeyR']) restartGame();
+          }
+          guard.state = 'idle';
+        }
+
+        if (guard.attackTimer <= 0) {
+          guard.state = 'idle';
+        }
+        break;
+      case 'hit':
+        guard.hitTimer -= dt;
+        guard.x += (Math.random() - 0.5) * 4; // stagger
+        if (guard.hitTimer <= 0) {
+          if (guard.hp <= 0) {
+            guard.state = 'dead';
+            gameState = STATES.OPENING;
+            objectiveEl.textContent = 'The road is opening — walk through!';
+            controlsHint.innerHTML = '<kbd>←</kbd> <kbd>→</kbd> Position &nbsp;|&nbsp; Walk forward through the gate';
+          } else {
+            guard.state = 'idle';
+            if (duelRound < duelMaxRounds) {
+              setTimeout(() => {
+                if (gameState === STATES.DUEL) startDuelRound();
+              }, 800);
+            }
+          }
+        }
+        break;
+    }
+  }
+
+  // Guard patrols when player is approaching
+  if (gameState === STATES.APPROACH) {
+    guard.animTimer += 0.03;
+    guard.x = 480 + Math.sin(gameTime * 0.004) * 25;
+  }
+}
+
+function updateDuel(dt) {
+  if (!duelActive) return;
+
+  // Move cursor
+  duelCursorPos += duelCursorDir * duelCursorSpeed;
+  if (duelCursorPos >= 100) { duelCursorPos = 100; duelCursorDir = -1; }
+  if (duelCursorPos <= 0) { duelCursorPos = 0; duelCursorDir = 1; }
+
+  // Update cursor visual
+  const barW = 300;
+  duelBarCursor.style.left = (duelCursorPos / 100 * (barW - 4)) + 'px';
+
+  // Guard initiates attack randomly
+  if (!guardAttackWindow && gameTime - (guard._lastAttackInit || 0) > 2500) {
+      guard._lastAttackInit = gameTime;
+    guardAttackWindow = true;
+    // Player has ~1.5s to press SPACE while cursor is in the green zone
+    setTimeout(() => {
+      if (guardAttackWindow) {
+        guardAttackWindow = false;
+        // Missed the window - guard gets a free hit
+        player.hp -= 10;
+        updateHealthBars();
+        showHitFeedback('Too slow!', '#ff6644');
+        spawnInkSplat(player.x, player.y - 20);
+        playHit();
+        if (player.hp <= 0) {
+          gameState = STATES.LOSE;
+          objectiveEl.textContent = 'Defeated — try again.';
+          controlsHint.innerHTML = '<kbd>R</kbd> Retry';
+        } else if (duelRound < duelMaxRounds) {
+          setTimeout(() => { if (gameState === STATES.DUEL) startDuelRound(); }, 600);
+        }
+      }
+    }, 2500);
+  }
+}
+
+function startDuelRound() {
+  duelRound++;
+  duelActive = true;
+  duelCursorPos = 0;
+  duelCursorDir = 1;
+  duelCursorSpeed = 2 + duelRound * 0.5;
+  guardAttackWindow = false;
+
+  duelBarContainer.style.display = 'block';
+  duelRoundEl.style.display = 'block';
+  duelRoundEl.textContent = 'Round ' + duelRound + '/' + duelMaxRounds;
+
+  // Guard starts attacking behavior
+  guard.state = 'idle';
+  if (gameState === STATES.DUEL) {
+    objectiveEl.textContent = 'Press SPACE when the cursor is in the blue zone!';
+  }
+}
+
+function triggerDuelStrike() {
+  player.attacking = true;
+  player.attackTimer = 300;
+  playStrike();
+
+  if (guardAttackWindow) {
+    // Check if cursor is in the green zone (35%-65%)
+    if (duelCursorPos >= 25 && duelCursorPos <= 75) {
+      // Successful counter!
+      guard.hp -= 34;
+      updateHealthBars();
+      spawnSlashParticles(guard.x, guard.y - 20, player.facingRight ? 1 : -1);
+      spawnInkSplat(guard.x, guard.y - 15);
+      showHitFeedback('Counter!', '#44ff88');
+      guardAttackWindow = false;
+      duelActive = false;
+
+      if (guard.hp <= 0) {
+        guard.state = 'hit';
+        guard.hitTimer = 500;
+        // After hit timer, guard dies and road opens
+        setTimeout(() => {
+          if (guard.hp <= 0) {
+            guard.state = 'dead';
+            duelBarContainer.style.display = 'none';
+            duelRoundEl.style.display = 'none';
+            gameState = STATES.OPENING;
+            objectiveEl.textContent = 'The road is opening — walk through!';
+            controlsHint.innerHTML = 'Walk forward through the gate';
+            startGateOpening();
+          }
+        }, 600);
+      } else {
+        guard.state = 'hit';
+        guard.hitTimer = 600;
+        setTimeout(() => {
+          if (gameState === STATES.DUEL) startDuelRound();
+        }, 1000);
+      }
+    } else {
+      // Bad timing - guard deflects and hits back
+      showHitFeedback('Miss!', '#ff4444');
+      guardAttackWindow = false;
+      player.hp -= 8;
+      updateHealthBars();
+      if (player.hp <= 0) {
+        gameState = STATES.LOSE;
+        objectiveEl.textContent = 'Defeated — try again.';
+        controlsHint.innerHTML = '<kbd>R</kbd> Retry';
+      }
+    }
+  } else {
+    // Swinging without an attack window - waste of time
+    showHitFeedback('...', '#888');
+  }
+}
+
+function startGateOpening() {
+  playGateOpen();
+  // Animate gate open
+  const openInterval = setInterval(() => {
+    gate.openAmount += 0.02;
+    if (gate.openAmount >= 1) {
+      gate.openAmount = 1;
+      clearInterval(openInterval);
+      // Transition to cross phase
+      gameState = STATES.CROSS;
+      objectiveEl.textContent = 'Walk through the opened gate!';
+      controlsHint.innerHTML = 'Move <kbd>←</kbd><kbd>→</kbd> to align, then the player walks through';
+    }
+  }, 16);
+}
+
+function updateHealthBars() {
+  const pPct = Math.max(0, player.hp / player.maxHp * 100);
+  const gPct = Math.max(0, guard.hp / guard.maxHp * 100);
+  playerHealthFill.style.width = pPct + '%';
+  guardHealthFill.style.width = gPct + '%';
+}
+
+function showHitFeedback(text, color) {
+  hitFeedback.textContent = text;
+  hitFeedback.style.color = color;
+  hitFeedback.style.display = 'block';
+  setTimeout(() => { hitFeedback.style.display = 'none'; }, 800);
+}
+
+function showWin() {
+  winOverlay.style.display = 'flex';
+  playWin();
+  objectiveEl.textContent = 'Road opened! Path ahead is clear.';
+  controlsHint.style.display = 'none';
+}
+
+function restartGame() {
+  player.hp = player.maxHp;
+  player.x = 480;
+  player.y = 460;
+  player.attacking = false;
+  guard.hp = guard.maxHp;
+  guard.x = 480;
+  guard.y = 310;
+  guard.state = 'idle';
+  gate.openAmount = 0;
+  duelRound = 0;
+  duelActive = false;
+  guardAttackWindow = false;
+  particles = [];
+  inkSplats = [];
+  duelBarContainer.style.display = 'none';
+  duelRoundEl.style.display = 'none';
+  hitFeedback.style.display = 'none';
+  winOverlay.style.display = 'none';
+  controlsHint.style.display = 'block';
+  updateHealthBars();
+  gameState = STATES.APPROACH;
+  objectiveEl.textContent = 'The road is blocked — defeat the guard to open it.';
+  controlsHint.innerHTML = '<kbd>←</kbd> <kbd>→</kbd> Move &nbsp;|&nbsp; The duel begins when you reach the gate';
+}
+
+// ============================================================
+// Main Loop
+// ============================================================
+function gameLoop(timestamp) {
+  const dt = timestamp - (lastTime || timestamp);
+  lastTime = timestamp;
+  gameTime = timestamp;
+
+  // Clear
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw scene
+  drawSky();
+  drawMountains();
+  drawGround();
+  drawRoad();
+
+  // Draw characters
+  if (gameState !== STATES.START) {
+    drawGuard();
+    drawPlayer();
+  }
+
+  // Draw effects
+  drawParticles();
+  drawInkSplats();
+
+  // Update game state
+  if (gameState === STATES.APPROACH || gameState === STATES.DUEL || gameState === STATES.CROSS) {
+    updatePlayer(dt * 1000);
+    updateGuard(dt * 1000);
+    if (gameState === STATES.DUEL) updateDuel(dt * 1000);
+  }
+
+  // Retry on lose
+  if (gameState === STATES.LOSE && keys['KeyR']) {
+    restartGame();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// Start
+// ============================================================
+startBtn.addEventListener('click', () => {
+  initAudio();
+  startOverlay.style.display = 'none';
+  gameState = STATES.APPROACH;
+  objectiveEl.textContent = 'The road is blocked — defeat the guard to open it.';
+  controlsHint.innerHTML = '<kbd>←</kbd> <kbd>→</kbd> Move &nbsp;|&nbsp; The duel begins when you reach the gate';
+  playTone(220, 0.3, 0.1, 'sine');
+});
+
+continueBtn.addEventListener('click', () => {
+  winOverlay.style.display = 'none';
+  restartGame();
+  playTone(220, 0.2, 0.1, 'sine');
+});
+
+// Kick off render loop (idle until start)
+requestAnimationFrame(gameLoop);
+
+// ============================================================
+// Generated Asset Loading (Phase 2)
+// ============================================================
+function loadGeneratedAssets() {
+  // Try to load generated background
+  const bgImg = new Image();
+  // crossOrigin disabled for local/file protocol
+  bgImg.onload = () => { genAssets.backgroundImg = bgImg; genAssets.loaded = true; };
+  bgImg.onerror = () => {};
+  bgImg.src = '../assets/generated-bg.png';
+
+  // Try to load generated gate-open SFX
+  if (audioCtx) {
+    fetch('../assets/generated-gate-open.wav')
+      .then(r => r.arrayBuffer())
+      .then(buf => audioCtx.decodeAudioData(buf))
+      .then(buffer => { genAssets.gateOpenSfx = buffer; genAssets.loaded = true; })
+      .catch(() => { console.log('Generated SFX failed to load, using procedural.'); });
+  }
+}
+
+// Try loading after 2 seconds
+setTimeout(loadGeneratedAssets, 2000);
+
+// ============================================================
+// Browser Smoke Test Hooks
+// ============================================================
+window.__edoSmoke = {
+  getCanvas: () => canvas,
+  getContext: () => ctx,
+  getState: () => gameState,
+  getStates: () => STATES,
+  getPlayer: () => ({ ...player }),
+  getGuard: () => ({ ...guard }),
+  getGate: () => ({ ...gate }),
+  getDuel: () => ({ cursorPos: duelCursorPos, duelActive, guardAttackWindow }),
+  triggerStart: () => startBtn.click(),
+  restart: () => restartGame(),
+  hasAssets: () => genAssets.loaded
+};
+</script>
+</body>
+</html>
