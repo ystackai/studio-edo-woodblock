@@ -1,0 +1,96 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "FactoryX procedural Trellis-smoke backend"
+  },
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0,
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "proof-pack-road-of-stones-at-dawn-ink-wash-ukiyo-e-distant-"
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0
+          },
+          "indices": 1,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "procedural-proof-material",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.9,
+          0.74,
+          0.42,
+          1.0
+        ],
+        "metallicFactor": 0.05,
+        "roughnessFactor": 0.55
+      }
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "data:application/octet-stream;base64,mpkZvwAAAACamRm/mpkZPwAAAACamRm/mpkZPwAAAACamRk/mpkZvwAAAACamRk/AAAAAM3MjD8AAAAAAAABAAQAAQACAAQAAgADAAQAAwAAAAQAAAADAAIAAAACAAEA",
+      "byteLength": 96
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 60,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 60,
+      "byteLength": 36,
+      "target": 34963
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 5,
+      "type": "VEC3",
+      "min": [
+        -0.6,
+        0.0,
+        -0.6
+      ],
+      "max": [
+        0.6,
+        1.1,
+        0.6
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5123,
+      "count": 18,
+      "type": "SCALAR"
+    }
+  ],
+  "extras": {
+    "prompt": "Road of stones at dawn, ink-wash, ukiyo-e, distant Mt Fuji silhouette",
+    "status": "procedural smoke asset; replace with Trellis 2 output when configured"
+  }
+}
