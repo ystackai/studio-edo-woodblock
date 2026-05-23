@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.23] — 2026-05-22 — Waypoint Choice History
+
+### Added
+- **Waypoint choice history** — the waypoint screen now shows what the player chose at the previous stop (e.g., "Previous: Sword — 2/3 hits" or "Previous: Brush — Coherence 14"), helping players track their journey and plan their next choice
+
+### Technical Debt
+- File: ~1511 lines (still well under 5000-line limit)
+
 ## [v1.22] — 2026-05-22 — Mastery Gain Display on Waypoint Return
 
 ### Added

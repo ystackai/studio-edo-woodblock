@@ -186,6 +186,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="mastery-bar"><div class="mastery-fill" id="wp-mastery-fill" style="width:0%"></div></div>
       <p class="mastery-label" id="wp-mastery-label">Mastery: 0 / 100</p>
       <p style="font-size:11px;color:#d4a05a;margin:2px 0;min-height:18px;transition:opacity .5s" id="mastery-gain" aria-live="polite"></p>
+      <p style="font-size:10px;color:#8a7a6a;margin:2px 0;min-height:16px" id="wp-history" aria-live="polite"></p>
       <div class="progress-dots" id="wp-progress"></div>
       <div class="ink-line-thin"></div>
       <p class="body-text" style="font-size:14px;margin:6px 0">Choose your discipline:</p>
@@ -620,6 +621,21 @@ function showWaypoint() {
   } else if (gainEl) {
     gainEl.textContent = '';
     gainEl.style.opacity = '0';
+  }
+  // Show history from previous waypoint
+  const historyEl = $('wp-history');
+  if (historyEl && G.waypoint > 0) {
+    const prevWp = G.waypoint - 1;
+    const swordResult = G.swordResults.find(r => r.waypoint === prevWp);
+    const brushResult = G.brushScores.find(r => r.waypoint === prevWp);
+    if (swordResult) {
+      const hits = swordResult.score / 20 * 3; // reverse-calc: score = (hits/3)*20
+      historyEl.textContent = 'Previous: Sword — ' + Math.round(hits) + '/3 hits';
+    } else if (brushResult) {
+      historyEl.textContent = 'Previous: Brush — Coherence ' + brushResult.score;
+    }
+  } else if (historyEl) {
+    historyEl.textContent = '';
   }
   // Progress dots
   const progress = $('wp-progress');
