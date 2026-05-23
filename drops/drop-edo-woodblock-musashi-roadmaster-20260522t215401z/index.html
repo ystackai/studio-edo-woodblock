@@ -100,8 +100,9 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 #ending-scroll .scroll-roller-end{position:absolute;top:-2px;left:-2px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#a07040,#6b4c2a);box-shadow:0 0 4px rgba(0,0,0,.3);z-index:3}
 #ending-scroll .scroll-roller-end.right{left:auto;right:-2px}
 #ending-scroll .scroll-roller-end.bottom{top:auto;bottom:-2px}
-#ending-scroll .brush-stroke{position:absolute;pointer-events:none;opacity:.55}
+#ending-scroll .brush-stroke{position:absolute;pointer-events:none;opacity:.55;animation:scrollStrokeIn .6s ease-out forwards}
 #ending-scroll .brush-stroke svg{width:100%;height:100%}
+@keyframes scrollStrokeIn{0%{opacity:0;transform:scale(.7)}100%{opacity:.55;transform:scale(1)}}
 .ending-text{font-size:clamp(13px,2vw,16px);line-height:1.8;color:#d4c4a8;max-width:500px;padding:8px}
 .ending-title{font-size:clamp(20px,4vw,32px);color:#f4ead8;margin:6px 0}
 .feint-warning{color:#e8a040;font-size:13px;margin:4px 0;min-height:20px;font-style:italic;transition:opacity .3s}
@@ -226,6 +227,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       </div>
       <p class="body-text" style="font-size:11px;color:#8a7a6a" id="brush-hint">Select 3 strokes (press 1-6 or click) then click the composition area to place</p>
       <div class="stroke-tray" id="stroke-tray" role="toolbar" aria-label="Stroke palette"></div>
+      <p style="font-size:10px;color:#8a7a6a;margin:2px 0;min-height:16px;transition:color .3s" id="coherence-hint" aria-live="polite"></p>
       <button class="btn btn-small btn-secondary" id="btn-brush-skip" style="display:none">Continue →</button>
     </div>
   </div>
@@ -952,18 +954,35 @@ function startBrushMinigame() {
   }
 
   function updateCoherencePreview() {
+    const hintEl = $('coherence-hint');
     if (selectedStrokes.length < 2) {
       $('brush-score').textContent = 'Select 2-3 strokes';
+      if (hintEl) hintEl.textContent = '';
       return;
     }
     let coherence = 0;
+    let bestPair = null;
+    let bestScore = 0;
     for (let i = 0; i < selectedStrokes.length; i++) {
       for (let j = i + 1; j < selectedStrokes.length; j++) {
         const c = COHERENCE[selectedStrokes[i]];
-        if (c && c[selectedStrokes[j]]) coherence += c[selectedStrokes[j]];
+        if (c && c[selectedStrokes[j]]) {
+          coherence += c[selectedStrokes[j]];
+          if (c[selectedStrokes[j]] > bestScore) {
+            bestScore = c[selectedStrokes[j]];
+            const s1 = STROKES.find(x => x.id === selectedStrokes[i]);
+            const s2 = STROKES.find(x => x.id === selectedStrokes[j]);
+            if (s1 && s2) bestPair = s1.label + ' + ' + s2.label;
+          }
+        }
       }
     }
     $('brush-score').textContent = 'Coherence: ' + coherence;
+    if (hintEl && bestPair && coherence > 0) {
+      const rating = coherence >= 14 ? 'Excellent' : coherence >= 10 ? 'Good' : 'Fair';
+      hintEl.textContent = bestPair + ': ' + rating + ' combination';
+      hintEl.style.color = coherence >= 14 ? '#d4a05a' : coherence >= 10 ? '#b9a88d' : '#8a7a6a';
+    }
   }
 
   function placeStroke(strokeId) {
@@ -1191,7 +1210,8 @@ function showEnding() {
       const el = document.createElement('div');
       el.className = 'brush-stroke';
       el.innerHTML = s.svg;
-      el.style.cssText = 'position:absolute;left:' + p.left + ';top:' + p.top + ';width:' + p.width + ';height:' + p.height + ';transform:rotate(' + p.rotate + ');opacity:' + Math.min(0.65, 0.35 + idx * 0.05);
+      const delay = 0.3 + idx * 0.15;
+      el.style.cssText = 'position:absolute;left:' + p.left + ';top:' + p.top + ';width:' + p.width + ';height:' + p.height + ';transform:rotate(' + p.rotate + ');opacity:' + Math.min(0.65, 0.35 + idx * 0.05) + ';animation-delay:' + delay + 's;animation-fill-mode:backwards';
       paper.appendChild(el);
     });
     // Add a subtle seal/stamp at the bottom of the paper

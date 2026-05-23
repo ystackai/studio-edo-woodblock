@@ -2,6 +2,15 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.19] — 2026-05-22 — Ending Scroll Stroke Animation & Coherence Hints
+
+### Added
+- **Staggered scroll stroke animation** — brush strokes on the ending scroll now fade in one by one with a scale effect and staggered delays (`@keyframes scrollStrokeIn`), creating a dramatic reveal of the accumulated painting
+- **Coherence combination hints** — when selecting strokes in the brush minigame, a hint line below the stroke tray shows the best-matching pair and its rating (Excellent/Good/Fair), helping players learn which strokes complement each other
+
+### Technical Debt
+- File: ~1451 lines (still well under 5000-line limit)
+
 ## [v1.18] — 2026-05-22 — Miss Animation, Narrow-Screen Scroll & Touch Hints
 
 ### Added
