@@ -2,6 +2,23 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.28] — 2026-05-22 — Help Overlay Listener Leak Fix & Robustness Improvements
+
+### Fixed
+- **Help overlay event listener leak** — `_helpBackdropClick` and `_helpTabTrap` were function declarations inside `toggleHelp()`, so each call created new function objects and `removeEventListener` could never remove the original listeners. Moved to `init()` scope for stable references, preventing listener accumulation across help open/close cycles
+- **Dead code in Escape key handler** — removed unreachable Escape condition in the help toggle keydown handler
+
+### Added
+- **`type="button"` to all buttons** — added explicit `type="button"` to all static and dynamically-created buttons to prevent accidental form submission behavior and improve semantic correctness
+- **Dynamic aria-label on stroke zone** — the composition area's `aria-label` now updates to reflect the number of strokes placed (e.g., "Composition area with 2 of 3 strokes placed")
+- **`aria-live="polite"` on final duel context** — the Ganryūjima context text is now announced by screen readers when the final duel screen appears
+
+### Changed
+- **Brush timer interval** — reduced from 200ms to 100ms for smoother timer bar and text display updates
+
+### Technical Debt
+- File: ~1550 lines (still well under 5000-line limit)
+
 ## [v1.27] — 2026-05-22 — Best Mastery Persistence & Title Screen Display
 
 ### Added

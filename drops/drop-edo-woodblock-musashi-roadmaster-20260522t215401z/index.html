@@ -174,8 +174,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div style="margin:20px 0;height:80px;background:rgba(0,0,0,.2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b9a88d;border:1px solid rgba(139,69,19,.2)">
         <span>Along the old Tōkaidō road,<br>five stops await between dawn and Ganryūjima.</span>
       </div>
-      <button class="btn btn-start-glow" id="btn-start" autofocus aria-label="Begin the journey, start a new game">Begin the Journey</button>
-      <button class="btn btn-secondary btn-small" id="btn-resume" style="display:none;margin-top:8px" aria-label="Continue your previous journey from where you left off">Continue Previous Journey</button>
+      <button type="button" class="btn btn-start-glow" id="btn-start" autofocus aria-label="Begin the journey, start a new game">Begin the Journey</button>
+      <button type="button" class="btn btn-secondary btn-small" id="btn-resume" style="display:none;margin-top:8px" aria-label="Continue your previous journey from where you left off">Continue Previous Journey</button>
       <p class="body-text" style="font-size:11px;margin-top:12px;color:#8a7a6a" aria-live="polite" id="title-hint">Press ENTER or click to begin</p>
       <p style="font-size:10px;color:#6a5a4a;margin-top:4px;min-height:16px" id="title-best-mastery"></p>
     </div>
@@ -197,8 +197,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="progress-dots" id="wp-progress"></div>
       <div class="ink-line-thin"></div>
       <p class="body-text" style="font-size:14px;margin:6px 0">Choose your discipline:</p>
-      <button class="btn btn-choice" id="btn-sword" data-choice="sword" aria-label="Draw your blade and engage in a timing-based duel"><span class="icon">⚔</span> Draw Your Blade</button>
-      <button class="btn btn-choice btn-secondary" id="btn-brush" data-choice="brush" aria-label="Take up the brush and create a sumi-e composition"><span class="icon">🖌</span> Take Up the Brush</button>
+      <button type="button" class="btn btn-choice" id="btn-sword" data-choice="sword" aria-label="Draw your blade and engage in a timing-based duel"><span class="icon">⚔</span> Draw Your Blade</button>
+      <button type="button" class="btn btn-choice btn-secondary" id="btn-brush" data-choice="brush" aria-label="Take up the brush and create a sumi-e composition"><span class="icon">🖌</span> Take Up the Brush</button>
     </div>
   </div>
 
@@ -220,7 +220,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="duel-result" id="sword-result" aria-live="polite"></div>
       <div class="feint-warning" id="feint-warning" aria-live="assertive"></div>
       <p class="body-text" style="font-size:11px;color:#8a7a6a" id="sword-hint">Press SPACE or click/tap at the right moment</p>
-      <button class="btn btn-small btn-secondary" id="btn-sword-skip" style="display:none">Continue →</button>
+      <button type="button" class="btn btn-small btn-secondary" id="btn-sword-skip" style="display:none">Continue →</button>
     </div>
   </div>
 
@@ -241,7 +241,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <p class="body-text" style="font-size:11px;color:#8a7a6a" id="brush-hint">Select 3 strokes (press 1-6 or click) then click the composition area to place</p>
       <div class="stroke-tray" id="stroke-tray" role="toolbar" aria-label="Stroke palette"></div>
       <p style="font-size:10px;color:#8a7a6a;margin:2px 0;min-height:16px;transition:color .3s" id="coherence-hint" aria-live="polite"></p>
-      <button class="btn btn-small btn-secondary" id="btn-brush-skip" style="display:none">Continue →</button>
+      <button type="button" class="btn btn-small btn-secondary" id="btn-brush-skip" style="display:none">Continue →</button>
     </div>
   </div>
 
@@ -253,7 +253,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
     <div class="content">
       <h2>Ganryūjima</h2>
       <div class="ink-line" style="width:40%"></div>
-      <p class="body-text" id="final-context"></p>
+      <p class="body-text" id="final-context" aria-live="polite"></p>
       <div class="mastery-bar"><div class="mastery-fill" id="final-mastery-fill" style="width:0%"></div></div>
       <p class="mastery-label" id="final-mastery-label">Mastery: 0 / 100</p>
       <p style="font-size:11px;color:#8a7a6a;margin:2px 0" id="final-round-label" aria-live="polite">Round 1 / 5</p>
@@ -266,7 +266,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="duel-result" id="final-result" aria-live="polite"></div>
       <div class="feint-warning" id="final-feint-warning" aria-live="assertive"></div>
       <p class="body-text" style="font-size:11px;color:#8a7a6a" id="final-hint">Press SPACE or click/tap at the right moment. Watch for feints!</p>
-      <button class="btn btn-small btn-secondary" id="btn-final-skip" style="display:none">Continue →</button>
+      <button type="button" class="btn btn-small btn-secondary" id="btn-final-skip" style="display:none">Continue →</button>
     </div>
   </div>
 
@@ -284,7 +284,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div style="font-size:10px;color:#8a7a6a;margin:4px 0;line-height:1.6;min-height:20px" id="ending-stats" aria-live="polite"></div>
       <p class="body-text" style="font-size:10px;color:#8a7a6a;margin-top:10px;line-height:1.5">Built for Pictures of the Floating World studio.<br>Assets by FactoryX proof-pack pipeline.</p>
       <div style="margin-top:16px">
-        <button class="btn" id="btn-restart">Walk the Road Again</button>
+        <button type="button" class="btn" id="btn-restart">Walk the Road Again</button>
       </div>
     </div>
   </div>
@@ -297,10 +297,10 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
   <audio id="audio-sfx" preload="auto" style="display:none"></audio>
 
   <!-- Help toggle -->
-  <button id="btn-help-toggle" class="help-toggle" aria-label="How to play" aria-expanded="false" title="How to play">?</button>
+  <button type="button" id="btn-help-toggle" class="help-toggle" aria-label="How to play" aria-expanded="false" title="How to play">?</button>
 
   <!-- Mute toggle -->
-  <button id="btn-mute" class="mute-toggle" aria-label="Mute audio" aria-pressed="false" title="Toggle sound">🔊</button>
+  <button type="button" id="btn-mute" class="mute-toggle" aria-label="Mute audio" aria-pressed="false" title="Toggle sound">🔊</button>
 
   <!-- Screen reader live region for announcements -->
   <div id="sr-announce" class="visually-hidden" aria-live="polite" role="status"></div>
@@ -328,7 +328,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <h3>⌨ Shortcuts</h3>
       <p><strong>M</strong> — toggle mute · <strong>?</strong> — toggle help · <strong>ENTER/SPACE</strong> — strike/place · <strong>1-6</strong> — select strokes</p>
     </div>
-    <button class="btn help-close" id="btn-help-close">Got it</button>
+    <button type="button" class="btn help-close" id="btn-help-close">Got it</button>
   </div>
 </div>
 
@@ -965,6 +965,7 @@ function startBrushMinigame() {
   STROKES.forEach((s, i) => {
     const btn = document.createElement('button');
     btn.className = 'stroke-btn';
+    btn.type = 'button';
     btn.draggable = true;
     btn.dataset.strokeId = s.id;
     btn.dataset.index = i;
@@ -1050,6 +1051,7 @@ function startBrushMinigame() {
     if (s) div.innerHTML = s.svg;
     zone.appendChild(div);
     $('stroke-zone-label').textContent = placedStrokes.length + '/3 placed';
+    zone.setAttribute('aria-label', 'Composition area with ' + placedStrokes.length + ' of 3 strokes placed');
     // Mark stroke as used
     tray.querySelector(`[data-stroke-id="${strokeId}"]`)?.classList.add('used');
     // Remove from selection
@@ -1181,7 +1183,7 @@ function startBrushMinigame() {
     }
   }
 
-  timerId = setInterval(tickTimer, 200); // check more frequently for accuracy
+  timerId = setInterval(tickTimer, 100); // check every 100ms for smooth display
 
   // Pause/resume on tab visibility change
   const visHandler = () => {
@@ -1449,28 +1451,7 @@ function init() {
     const overlay = $('help-overlay');
     return overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
   }
-  function toggleHelp() {
-    const overlay = $('help-overlay');
-    const wasActive = overlay.classList.contains('active');
-    overlay.classList.toggle('active');
-    const toggleBtn = $('btn-help-toggle');
-    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', overlay.classList.contains('active') ? 'true' : 'false');
-    if (!wasActive) {
-      // Opening: store current focus, trap inside overlay
-      _helpPrevFocus = document.activeElement;
-      $('btn-help-close').focus();
-      // Listen for Tab trapping at document level so it works even if focus escapes
-      document.addEventListener('keydown', _helpTabTrap);
-      // Click outside content to close (click on overlay backdrop)
-      overlay.addEventListener('click', _helpBackdropClick);
-    } else {
-      // Closing: restore focus
-      document.removeEventListener('keydown', _helpTabTrap);
-      overlay.removeEventListener('click', _helpBackdropClick);
-      if (_helpPrevFocus && _helpPrevFocus.focus) _helpPrevFocus.focus();
-      _helpPrevFocus = null;
-    }
-  }
+  // Stable references for event listener add/remove — prevents listener leak
   function _helpBackdropClick(e) {
     // Close only if clicking the overlay backdrop, not its children
     if (e.target === $('help-overlay')) {
@@ -1494,6 +1475,28 @@ function init() {
       }
     }
   }
+  function toggleHelp() {
+    const overlay = $('help-overlay');
+    const wasActive = overlay.classList.contains('active');
+    overlay.classList.toggle('active');
+    const toggleBtn = $('btn-help-toggle');
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', overlay.classList.contains('active') ? 'true' : 'false');
+    if (!wasActive) {
+      // Opening: store current focus, trap inside overlay
+      _helpPrevFocus = document.activeElement;
+      $('btn-help-close').focus();
+      // Listen for Tab trapping at document level so it works even if focus escapes
+      document.addEventListener('keydown', _helpTabTrap);
+      // Click outside content to close (click on overlay backdrop)
+      overlay.addEventListener('click', _helpBackdropClick);
+    } else {
+      // Closing: restore focus
+      document.removeEventListener('keydown', _helpTabTrap);
+      overlay.removeEventListener('click', _helpBackdropClick);
+      if (_helpPrevFocus && _helpPrevFocus.focus) _helpPrevFocus.focus();
+      _helpPrevFocus = null;
+    }
+  }
   $('btn-help-close').onclick = toggleHelp;
   $('btn-help-toggle').onclick = toggleHelp;
   document.addEventListener('keydown', (e) => {
@@ -1510,7 +1513,7 @@ function init() {
       toggleMute();
       return;
     }
-    if (!helpActive && (e.key === '?' || (e.key === 'Escape' && $('help-overlay').classList.contains('active')))) {
+    if (!helpActive && e.key === '?') {
       e.preventDefault();
       toggleHelp();
     }
