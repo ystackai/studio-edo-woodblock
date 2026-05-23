@@ -41,7 +41,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .mastery-bar{width:100%;max-width:400px;height:6px;background:rgba(244,234,216,.15);border-radius:3px;overflow:hidden;margin:8px auto}
 .mastery-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:3px;transition:width .6s ease}
 .mastery-label{font-size:11px;color:#b9a88d;letter-spacing:.06em;text-transform:uppercase}
-.vignette-text{margin:16px 0;padding:16px;background:rgba(0,0,0,.2);border-left:3px solid #8B4513;border-radius:0 4px 4px 0;text-align:left;font-style:italic;line-height:1.8;color:#d4c4a8}
+.vignette-text{margin:16px 0;padding:16px;background:rgba(0,0,0,.2);border-left:3px solid #8B4513;border-radius:0 4px 4px 0;text-align:left;font-style:italic;line-height:1.8;color:#d4c4a8;animation:vignetteFade .6s ease-out forwards}
 .minigame-area{width:100%;max-width:500px;margin:12px auto;position:relative;min-height:200px}
 .duel-zone{width:100%;height:80px;background:rgba(0,0,0,.3);border:1px solid rgba(139,69,19,.4);border-radius:4px;position:relative;overflow:hidden;margin:10px 0;touch-action:manipulation}
 .duel-zone::before{content:'';position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,transparent 0%,rgba(139,69,19,.05) 30%,rgba(139,69,19,.1) 50%,rgba(139,69,19,.05) 70%,transparent 100%);pointer-events:none;z-index:0;opacity:.5}
@@ -57,6 +57,10 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 @keyframes inkDropIdle{0%{height:0;opacity:0}30%{height:6px;opacity:.6}70%{height:6px;opacity:.6}100%{height:0;opacity:0;transform:translateX(-50%) translateY(20px)}}
 @keyframes inkSplash{0%{width:0;height:0;opacity:.8;transform:translate(-50%,-50%) scale(0)}50%{opacity:.6}100%{width:200px;height:200px;opacity:0;transform:translate(-50%,-50%) scale(1)}}
 @keyframes strokePlace{0%{opacity:0;transform:scale(.6)}50%{opacity:.8;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes vignetteFade{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes timerUrgent{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+.brush-timer.urgent{color:#e8a040}
+.brush-timer.critical{color:#c04040;animation:timerUrgent .6s ease-in-out infinite}
 .ink-splash{position:absolute;top:50%;left:50%;border-radius:50%;background:radial-gradient(circle,rgba(139,69,19,.6),transparent);pointer-events:none;animation:inkSplash .5s ease-out forwards;z-index:4}
 .duel-result{font-size:20px;font-weight:700;margin:8px 0;min-height:30px}
 .duel-rounds{display:flex;gap:6px;justify-content:center;margin:6px 0}
@@ -100,15 +104,16 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .progress-dots{display:flex;gap:6px;justify-content:center;margin:10px 0}
 .progress-dot{width:8px;height:8px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:transparent;transition:all .3s}
 .progress-dot.done{background:#8B4513;border-color:#8B4513}
-.progress-dot.current{background:rgba(139,69,19,.4);border-color:#8B4513;box-shadow:0 0 6px rgba(139,69,19,.3)}
+.progress-dot.current{background:rgba(139,69,19,.4);border-color:#8B4513;box-shadow:0 0 6px rgba(139,69,19,.3);animation:dotPulse 2s ease-in-out infinite}
+@keyframes dotPulse{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
 @media(min-width:768px){.stroke-btn{width:80px;height:80px}.stroke-btn .stroke-preview{width:60px;height:36px}.duel-zone{height:100px}}
 @keyframes scrollUnroll{0%{transform:scaleY(0);opacity:0;transform-origin:top center}40%{opacity:.3}70%{transform:scaleY(1.04);opacity:.9}100%{transform:scaleY(1);opacity:1}}
 #ending-scroll.scroll-entrance{animation:scrollUnroll 1s ease-out forwards}
 @keyframes duelTap{0%{box-shadow:0 0 0 0 rgba(212,160,90,.4)}100%{box-shadow:0 0 0 12px rgba(212,160,90,0)}}
 .duel-zone.tap-feedback{animation:duelTap .3s ease-out forwards}
-.mute-toggle{position:absolute;top:10px;right:10px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700}
+.mute-toggle{position:absolute;top:10px;right:10px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700;touch-action:manipulation}
 .mute-toggle:hover,.mute-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
-.help-toggle{position:absolute;top:10px;right:52px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700}
+.help-toggle{position:absolute;top:10px;right:52px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700;touch-action:manipulation}
 .help-toggle:hover,.help-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
 .timer-bar{width:100%;max-width:300px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:4px auto}
 .timer-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:2px;transition:width .3s linear}
@@ -118,7 +123,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .help-overlay .help-section{margin-bottom:12px;max-width:500px}
 .help-overlay .help-section h3{font-size:clamp(14px,2.5vw,18px);color:#d4a05a;margin-bottom:4px}
 .help-overlay .help-section p{font-size:clamp(12px,2vw,14px);color:#cdbb9d;line-height:1.6}
-.help-overlay .help-close{margin-top:20px}
+.help-overlay .help-close{margin-top:20px;touch-action:manipulation}
 .loading-overlay{position:absolute;inset:0;z-index:40;background:#1f1a14;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
 .loading-overlay.hidden{opacity:0;pointer-events:none}
 .loading-overlay .loader{width:40px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:12px auto}
@@ -1055,9 +1060,18 @@ function startBrushMinigame() {
     if (timerPaused) return;
     const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
     timeLeft = Math.max(0, TIMER_MAX - elapsed);
-    $('brush-timer').textContent = 'Time: ' + timeLeft + 's';
+    const timerEl = $('brush-timer');
+    timerEl.textContent = 'Time: ' + timeLeft + 's';
+    // Urgency classes
+    timerEl.classList.toggle('critical', timeLeft <= 5);
+    timerEl.classList.toggle('urgent', timeLeft > 5 && timeLeft <= 10);
     const fill = $('brush-timer-fill');
-    if (fill) fill.style.width = (timeLeft / TIMER_MAX * 100) + '%';
+    if (fill) {
+      fill.style.width = (timeLeft / TIMER_MAX * 100) + '%';
+      fill.style.background = timeLeft <= 5 ? 'linear-gradient(90deg,#c04040,#e08040)' :
+                             timeLeft <= 10 ? 'linear-gradient(90deg,#e8a040,#d4a05a)' :
+                             'linear-gradient(90deg,#8B4513,#d4a05a)';
+    }
     if (timeLeft <= 0) {
       if (timerId) clearInterval(timerId);
       finishBrushMinigame();

@@ -2,6 +2,17 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.15] — 2026-05-22 — Timer Urgency, Vignette Animation & Touch Consistency
+
+### Added
+- **Timer urgency visual** — brush minigame timer text turns amber at ≤10s and red with pulsing animation at ≤5s; timer bar gradient shifts to match urgency level (amber → red)
+- **Vignette fade-in** — waypoint vignette text now fades in with a subtle upward slide (`@keyframes vignetteFade`) each time a new waypoint is shown
+- **Progress dot pulse** — the current waypoint dot now gently pulses with a scale animation (`@keyframes dotPulse`) to visually distinguish the active stop
+- **`touch-action: manipulation`** — added to mute toggle, help toggle, and help overlay close button to prevent double-tap zoom on mobile
+
+### Technical Debt
+- File: ~1402 lines (still well under 5000-line limit)
+
 ## [v1.14] — 2026-05-22 — Image Preloading, Interactive Semantics & A11y Polish
 
 ### Added
