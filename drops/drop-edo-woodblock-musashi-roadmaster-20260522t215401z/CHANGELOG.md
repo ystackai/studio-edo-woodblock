@@ -2,6 +2,17 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.41] — 2026-05-23 — Enter Key Support for Sword Duels & Resume Mastery Gain Fix
+
+### Added
+- **Enter key support for sword striking** — the sword and final duel minigames now accept both Space and Enter as valid strike keys, improving keyboard accessibility. Hint text and help overlay documentation updated accordingly.
+
+### Fixed
+- **Stale mastery gain display on resume** — when resuming a saved game, `_lastMasteryGain` is now reset to 0 to prevent showing a stale "+X Mastery" message from a previous session.
+
+### Technical Debt
+- File: ~1623 lines (still well under 5000-line limit)
+
 ## [v1.40] — 2026-05-23 — Duel Speed Reset Between Rounds & Ending Scroll Flash Fix
 
 ### Fixed

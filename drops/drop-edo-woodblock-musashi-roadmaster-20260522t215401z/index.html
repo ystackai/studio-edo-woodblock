@@ -311,7 +311,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
     <h2>How to Play</h2>
     <div class="help-section">
       <h3>🎯 Sword Duel</h3>
-      <p>Press <strong>SPACE</strong> or tap when the ink stroke aligns with the target zone. Watch for feints in the final duel — the indicator glows amber and stutters before the real strike. Each stop has 3 rounds; hit as many as you can to build mastery.</p>
+      <p>Press <strong>SPACE</strong> or <strong>ENTER</strong> (or tap) when the ink stroke aligns with the target zone. Watch for feints in the final duel — the indicator glows amber and stutters before the real strike. Each stop has 3 rounds; hit as many as you can to build mastery.</p>
     </div>
     <div class="help-section">
       <h3>🖌 Brush Composition</h3>
@@ -327,7 +327,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
     </div>
     <div class="help-section">
       <h3>⌨ Shortcuts</h3>
-      <p><strong>M</strong> — toggle mute · <strong>?</strong> — toggle help · <strong>ENTER/SPACE</strong> — strike/place · <strong>1-6</strong> — select strokes</p>
+      <p><strong>M</strong> — toggle mute · <strong>?</strong> — toggle help · <strong>SPACE/ENTER</strong> — strike in duel · <strong>1-6</strong> — select strokes · <strong>ENTER</strong> — place strokes in composition</p>
     </div>
     <button type="button" class="btn help-close" id="btn-help-close" aria-label="Close the help overlay">Got it</button>
   </div>
@@ -689,13 +689,13 @@ function startSwordMinigame() {
 
   if (!isFinal) {
     $('sword-instruction').textContent = 'Press SPACE or tap when the moving indicator aligns with the target zone.';
-    $('sword-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment' : 'Press SPACE at the right moment';
+    $('sword-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment' : 'Press SPACE or ENTER at the right moment';
   } else {
     const ctx = G.mastery >= 80 ? 'Your mastery is great. The opponent\'s stance is clear — you can read his intent.' :
                 G.mastery >= 50 ? 'You have trained well. The opponent is strong, but you see the patterns.' :
                 'Your path has been uncertain. The opponent is a storm — you must rely on instinct.';
     $('final-context').textContent = ctx;
-    $('final-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment. Watch for feints!' : 'Press SPACE at the right moment. Watch for feints!';
+    $('final-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment. Watch for feints!' : 'Press SPACE or ENTER at the right moment. Watch for feints!';
   }
 
   let currentRound = 0;
@@ -938,7 +938,7 @@ function startSwordMinigame() {
   // Event handlers — use named refs so cleanup can remove them
   const strikeHandler = (e) => {
     if ($('help-overlay').classList.contains('active')) return;
-    if (e.type === 'keydown' && e.key !== ' ' && e.key !== 'Spacebar' && e.key !== 'Space') return;
+    if (e.type === 'keydown' && e.key !== ' ' && e.key !== 'Spacebar' && e.key !== 'Space' && e.key !== 'Enter') return;
     e.preventDefault();
     handleStrike();
   };
@@ -1410,6 +1410,7 @@ function showTitle() {
     resumeBtn.style.display = 'inline-block';
     resumeBtn.onclick = () => {
       G = saved;
+      _lastMasteryGain = 0; // reset stale mastery gain from previous session
       showWaypoint();
     };
   } else {
