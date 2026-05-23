@@ -2,6 +2,15 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.47] — 2026-05-23 — Loading Progressbar Label & Code Cleanup
+
+### Changed
+- **Loading progressbar `aria-label` now includes game name** — changed from "Loading progress" to "Way of the Brush and Blade loading progress" so screen reader users hear the game title during the initial load.
+- **Removed misleading comment in `showScreen`** — the comment about the ink-overlay element being missing implying the transition would be skipped was inaccurate; the transition proceeds without the ink-wash effect.
+
+### Technical Debt
+- File: ~1630 lines (still well under 5000-line limit)
+
 ## [v1.46] — 2026-05-23 — Fix Perfect Hit Threshold Being Wider Than Hit Threshold
 
 ### Fixed

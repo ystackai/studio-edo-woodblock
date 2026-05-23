@@ -155,7 +155,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 <div id="app" role="application" aria-label="Way of the Brush and Blade">
   <!-- Loading overlay -->
   <div id="loading-overlay" class="loading-overlay">
-    <div class="loader" role="progressbar" aria-label="Loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="loader-fill"></div></div>
+    <div class="loader" role="progressbar" aria-label="Way of the Brush and Blade loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="loader-fill"></div></div>
   </div>
 
   <!-- Title Screen -->
@@ -562,7 +562,6 @@ let _inkTimer = null;
 function showScreen(name) {
   if (_inkTimer) { clearTimeout(_inkTimer); _inkTimer = null; }
   const overlay = $('ink-overlay');
-  if (!overlay) { /* ink-overlay element missing — skip transition */ }
   // Respect prefers-reduced-motion — skip ink-wash fade
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const fadeMs = prefersReduced ? 10 : 500;
