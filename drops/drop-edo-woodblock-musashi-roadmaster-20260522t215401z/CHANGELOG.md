@@ -2,6 +2,18 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.31] — 2026-05-22 — Help Overlay Robustness & Scroll Accessibility
+
+### Fixed
+- **Help overlay focus trap safety** — `_helpTabTrap` now checks for empty focusable list before attempting focus, preventing potential errors if no focusable elements exist in the overlay
+- **Help backdrop click guard** — `_helpBackdropClick` now verifies the overlay is still active before toggling, preventing stale listeners from reopening a closed overlay
+
+### Added
+- **`aria-label` on ending scroll paper** — the scroll paper element now has `aria-label="Journey painting scroll"`, giving screen readers a meaningful description of the visual scroll
+
+### Technical Debt
+- File: ~1572 lines (still well under 5000-line limit)
+
 ## [v1.30] — 2026-05-22 — UX & Instruction Clarifications
 
 ### Added

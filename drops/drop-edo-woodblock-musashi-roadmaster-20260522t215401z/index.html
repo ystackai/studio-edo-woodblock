@@ -1294,6 +1294,7 @@ function showEnding() {
   // Paper area
   const paper = document.createElement('div');
   paper.className = 'scroll-paper';
+  paper.setAttribute('aria-label', 'Journey painting scroll');
   scroll.appendChild(paper);
 
   if (G.brushStrokes.length > 0) {
@@ -1469,14 +1470,16 @@ function init() {
   }
   // Stable references for event listener add/remove — prevents listener leak
   function _helpBackdropClick(e) {
-    // Close only if clicking the overlay backdrop, not its children
-    if (e.target === $('help-overlay')) {
+    // Close only if clicking the overlay backdrop (not its children) and overlay is active
+    const overlay = $('help-overlay');
+    if (e.target === overlay && overlay.classList.contains('active')) {
       toggleHelp();
     }
   }
   function _helpTabTrap(e) {
     if (e.key !== 'Tab') return;
     const focusable = getHelpFocusable();
+    if (focusable.length === 0) return; // safety: no focusable elements
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     if (e.shiftKey) {
