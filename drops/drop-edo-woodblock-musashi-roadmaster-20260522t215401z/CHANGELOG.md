@@ -2,6 +2,18 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.25] — 2026-05-22 — Better Aria-Labels & Scroll Seal Animation
+
+### Added
+- **Descriptive aria-labels for stroke buttons** — each stroke button now has an `aria-label` that includes the stroke name, description, and keyboard shortcut (e.g., "Bamboo: Slender green stem. Press 1 to select"), improving screen reader usability
+- **Scroll seal animation** — the seal/stamp on the ending scroll now appears with a dramatic spin-and-scale animation (`@keyframes sealAppear`) shortly after the scroll unrolls
+
+### Changed
+- **Seal implementation** — replaced inline styles with a CSS class (`.scroll-seal`) for better maintainability and animation support
+
+### Technical Debt
+- File: ~1529 lines (still well under 5000-line limit)
+
 ## [v1.24] — 2026-05-22 — Journey Statistics on Ending Screen
 
 ### Added
