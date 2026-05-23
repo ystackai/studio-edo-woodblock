@@ -2,6 +2,20 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.3] — 2026-05-22 — Audio Controls & Accessibility
+
+### Added
+- **Mute/unmute button** — persistent audio toggle in top-right corner of the app; cycles between 🔊 and 🔇
+- **M keyboard shortcut** — press M to toggle audio mute from any screen
+- **Screen reader announcements** — `aria-live` regions on duel results, brush score, timer, feint warnings, and ending text for assistive technology
+
+### Changed
+- **Audio system** — `playAmbient()` and `playSfx()` now respect `_muted` flag; ambient audio stops immediately when muted
+- **Title screen keyboard handling** — pressing ENTER resumes a saved journey when one exists (previously always started new game)
+
+### Technical Debt
+- File: ~1118 lines (still well under 5000-line limit)
+
 ## [v1.2] — 2026-05-22 — Accessibility & Visual Polish
 
 ### Added
