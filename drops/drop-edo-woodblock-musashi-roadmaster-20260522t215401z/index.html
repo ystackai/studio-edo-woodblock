@@ -215,6 +215,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
         <div class="duel-target" id="duel-target" aria-hidden="true" style="left:45%"></div>
         <div class="duel-indicator" id="duel-indicator" style="left:0%"></div>
         <div class="duel-hit" id="duel-hit"></div>
+        <span class="visually-hidden" id="duel-sr-status" aria-live="polite" role="status"></span>
       </div>
       <div class="duel-rounds" id="sword-rounds"></div>
       <div class="duel-result" id="sword-result" aria-live="polite"></div>
@@ -261,6 +262,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
         <div class="duel-target" id="final-duel-target" aria-hidden="true" style="left:45%"></div>
         <div class="duel-indicator" id="final-duel-indicator" style="left:0%"></div>
         <div class="duel-hit" id="final-duel-hit"></div>
+        <span class="visually-hidden" id="final-duel-sr-status" aria-live="polite" role="status"></span>
       </div>
       <div class="duel-rounds" id="final-rounds"></div>
       <div class="duel-result" id="final-result" aria-live="polite"></div>
@@ -745,6 +747,7 @@ function startSwordMinigame() {
     active = true;
     indicatorPos = 0;
     zone.classList.remove('ready');
+    delete zone.dataset.wasReady;
     indicatorEl.style.left = '0%';
     // Update round label
     const roundLabel = isFinal ? $('final-round-label') : $('sword-round-label');
@@ -801,7 +804,20 @@ function startSwordMinigame() {
       }
       indicatorEl.style.left = indicatorPos + '%';
       canHit = !feintActive || feintTriggered;
-      zone.classList.toggle('ready', canHit && indicatorPos >= strikeTime - 5);
+      const nowReady = canHit && indicatorPos >= strikeTime - 5;
+      zone.classList.toggle('ready', nowReady);
+      // Announce ready state changes for screen readers
+      const srStatusId = zone.id === 'final-duel-zone' ? 'final-duel-sr-status' : 'duel-sr-status';
+      const srStatus = document.getElementById(srStatusId);
+      if (srStatus) {
+        if (nowReady && !zone.dataset.wasReady) {
+          srStatus.textContent = 'Strike now!';
+          zone.dataset.wasReady = '1';
+        } else if (!nowReady && zone.dataset.wasReady) {
+          srStatus.textContent = 'Wait for the indicator';
+          delete zone.dataset.wasReady;
+        }
+      }
       animId = requestAnimationFrame(animate);
     }
     animId = requestAnimationFrame(animate);

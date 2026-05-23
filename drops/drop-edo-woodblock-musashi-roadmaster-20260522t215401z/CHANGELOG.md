@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.36] — 2026-05-22 — Duel Zone Screen Reader Ready State
+
+### Added
+- **Screen reader "Strike now!" announcement** — a visually-hidden `aria-live="polite"` status span has been added inside both the regular and final duel zones. When the indicator enters the target zone and the player can strike, the text updates to "Strike now!"; when it leaves, it updates to "Wait for the indicator". This gives screen reader users real-time awareness of when to press Space or tap
+
+### Technical Debt
+- File: ~1593 lines (still well under 5000-line limit)
+
 ## [v1.35] — 2026-05-22 — Loading Progressbar ARIA & Timer Unpause Fix
 
 ### Added
