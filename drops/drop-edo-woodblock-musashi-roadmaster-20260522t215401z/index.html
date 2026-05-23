@@ -696,6 +696,8 @@ function startSwordMinigame() {
                 'Your path has been uncertain. The opponent is a storm — you must rely on instinct.';
     $('final-context').textContent = ctx;
     $('final-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment. Watch for feints!' : 'Press SPACE or ENTER at the right moment. Watch for feints!';
+    // Explicitly announce context for screen readers — the element has aria-live but may miss due to screen transition timing
+    announceSr(ctx.substring(0, 100) + '. ' + (IS_TOUCH ? 'Tap' : 'Press Space or Enter') + ' to strike. Watch for feints!');
   }
 
   let currentRound = 0;

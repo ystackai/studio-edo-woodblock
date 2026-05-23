@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.43] — 2026-05-23 — Final Duel Context Announcement for Screen Readers
+
+### Added
+- **Final duel context explicitly announced for screen readers** — the Ganryūjima context text (which varies by mastery level) is now explicitly announced via `announceSr()` after being set, ensuring screen reader users hear the atmospheric setup even though the element's `aria-live` announcement may be missed during the screen transition.
+
+### Technical Debt
+- File: ~1627 lines (still well under 5000-line limit)
+
 ## [v1.42] — 2026-05-23 — Keyboard Hint Consistency & Timer Pause Accessibility
 
 ### Changed
