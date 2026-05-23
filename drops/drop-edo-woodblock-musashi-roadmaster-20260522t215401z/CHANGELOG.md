@@ -2,6 +2,17 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.35] — 2026-05-22 — Loading Progressbar ARIA & Timer Unpause Fix
+
+### Added
+- **`role="progressbar"` on loading bar** — the loading animation now has proper ARIA progressbar role with `aria-valuemin`, `aria-valuemax`, and `aria-valuenow` attributes, improving screen reader feedback during initial asset loading
+
+### Fixed
+- **Brush timer announcement after unpause** — `_lastAnnouncedSec` is now reset to -1 when the timer resumes from a tab-visibility pause, ensuring that key thresholds (10s, 5s, 0s) missed during the hidden period can be announced when the user returns
+
+### Technical Debt
+- File: ~1577 lines (still well under 5000-line limit)
+
 ## [v1.34] — 2026-05-22 — Fix Target Zone Width Formula (Inverted Bug)
 
 ### Fixed

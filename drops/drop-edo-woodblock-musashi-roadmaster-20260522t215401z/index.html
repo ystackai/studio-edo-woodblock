@@ -155,7 +155,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
   <!-- Loading overlay -->
   <div id="loading-overlay" class="loading-overlay">
     <h2 style="font-size:clamp(20px,5vw,36px);font-weight:600;color:#f4ead8;letter-spacing:.06em">Way of the Brush and Blade</h2>
-    <div class="loader"><div class="loader-fill"></div></div>
+    <div class="loader" role="progressbar" aria-label="Loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="loader-fill"></div></div>
     <p style="font-size:12px;color:#b9a88d;margin-top:8px;animation:loadPulse 1.5s ease-in-out infinite">Preparing the road...</p>
   </div>
 
@@ -1212,6 +1212,8 @@ function startBrushMinigame() {
       $('brush-timer').textContent = '⏸ Paused';
     } else if (timerPaused) {
       timerPaused = false;
+      // Reset announcement tracker so thresholds missed during pause can be announced
+      _lastAnnouncedSec = -1;
       // Adjust start time to account for time spent hidden
       const hiddenDuration = Date.now() - timerPausedAt;
       timerStartedAt += hiddenDuration;
