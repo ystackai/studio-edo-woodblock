@@ -47,7 +47,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .duel-zone::before{content:'';position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,transparent 0%,rgba(139,69,19,.05) 30%,rgba(139,69,19,.1) 50%,rgba(139,69,19,.05) 70%,transparent 100%);pointer-events:none;z-index:0;opacity:.5}
 .duel-indicator{position:absolute;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#d4a05a,#8B4513);border-radius:2px;transition:left .05s linear;pointer-events:none;z-index:2;box-shadow:0 0 8px rgba(212,160,90,.3)}
 .duel-indicator.feint{background:linear-gradient(180deg,#e8a040,#a06030);box-shadow:0 0 12px rgba(232,160,64,.5);width:5px;animation:feintPulse .3s ease-in-out 3}
-.duel-target{position:absolute;top:0;bottom:0;width:40px;background:rgba(139,69,19,.3);border-left:2px solid #8B4513;border-right:2px solid #8B4513;pointer-events:none;z-index:1}
+.duel-target{position:absolute;top:0;bottom:0;width:40px;background:rgba(139,69,19,.3);border-left:2px solid #8B4513;border-right:2px solid #8B4513;pointer-events:none;z-index:1;box-shadow:inset 0 0 8px rgba(139,69,19,.15)}
 .duel-hit{position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;background:radial-gradient(circle,#d4a05a,transparent);transform:translate(-50%,-50%);pointer-events:none;z-index:3;opacity:0}
 .duel-hit.show{width:120px;height:120px;opacity:.6;transition:all .2s}
 .duel-hit.perfect{background:radial-gradient(circle,#f4ead8,transparent)}
@@ -105,8 +105,9 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 #ending-scroll.scroll-entrance{animation:scrollUnroll 1s ease-out forwards}
 @keyframes duelTap{0%{box-shadow:0 0 0 0 rgba(212,160,90,.4)}100%{box-shadow:0 0 0 12px rgba(212,160,90,0)}}
 .duel-zone.tap-feedback{animation:duelTap .3s ease-out forwards}
-.mute-toggle{position:absolute;top:10px;right:10px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .mute-toggle:hover,.mute-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
+.help-toggle{position:absolute;top:10px;right:52px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700}
+.help-toggle:hover,.help-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
 .timer-bar{width:100%;max-width:300px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:4px auto}
 .timer-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:2px;transition:width .3s linear}
 .help-overlay{position:absolute;inset:0;z-index:30;background:rgba(26,21,16,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:left;opacity:0;pointer-events:none;transition:opacity .4s ease}
@@ -260,6 +261,9 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
   <!-- Audio elements -->
   <audio id="audio-ambient" loop preload="auto" style="display:none"></audio>
   <audio id="audio-sfx" preload="auto" style="display:none"></audio>
+
+  <!-- Help toggle -->
+  <button id="btn-help-toggle" class="help-toggle" aria-label="How to play" title="How to play">?</button>
 
   <!-- Mute toggle -->
   <button id="btn-mute" class="mute-toggle" aria-label="Mute audio" title="Toggle sound">🔊</button>
@@ -1287,6 +1291,7 @@ function init() {
     }
   }
   $('btn-help-close').onclick = toggleHelp;
+  $('btn-help-toggle').onclick = toggleHelp;
   document.addEventListener('keydown', (e) => {
     // Block game shortcuts when help overlay is active
     const helpActive = $('help-overlay').classList.contains('active');

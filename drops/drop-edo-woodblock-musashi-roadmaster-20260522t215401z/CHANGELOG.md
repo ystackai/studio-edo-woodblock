@@ -2,14 +2,18 @@
 
 All notable changes to this drop are tracked here.
 
-## [v1.11] — 2026-05-22 — Reduced Motion Support
+## [v1.12] — 2026-05-22 — Help Button, Target Zone Polish
 
 ### Added
-- **`prefers-reduced-motion` support** — all CSS animations and transitions respect the user's OS-level motion preference; animation durations are reduced to ~0.01s when reduced motion is preferred
-- **Ink-wash transition skip** — the 500ms ink-wash fade between screens is reduced to 10ms when reduced motion is preferred, making navigation instant for users who need it
+- **Visible help button** — a "?" button appears alongside the mute toggle on all screens, making the help overlay discoverable without needing to know the keyboard shortcut
+
+### Changed
+- **Duel target zone visibility** — added subtle inner box-shadow highlight to the target zone, making it more visible against the duel background
 
 ### Technical Debt
-- File: ~1337 lines (still well under 5000-line limit)
+- File: ~1342 lines (still well under 5000-line limit)
+
+## [v1.11] — 2026-05-22 — Reduced Motion Support
 
 ## [v1.10] — 2026-05-22 — Help Overlay Fade, Screen Reader Round Numbers
 
