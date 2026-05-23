@@ -1255,13 +1255,13 @@ function init() {
       // Opening: store current focus, trap inside overlay
       _helpPrevFocus = document.activeElement;
       $('btn-help-close').focus();
-      // Listen for Tab trapping
-      overlay.addEventListener('keydown', _helpTabTrap);
+      // Listen for Tab trapping at document level so it works even if focus escapes
+      document.addEventListener('keydown', _helpTabTrap);
       // Click outside content to close (click on overlay backdrop)
       overlay.addEventListener('click', _helpBackdropClick);
     } else {
       // Closing: restore focus
-      overlay.removeEventListener('keydown', _helpTabTrap);
+      document.removeEventListener('keydown', _helpTabTrap);
       overlay.removeEventListener('click', _helpBackdropClick);
       if (_helpPrevFocus && _helpPrevFocus.focus) _helpPrevFocus.focus();
       _helpPrevFocus = null;

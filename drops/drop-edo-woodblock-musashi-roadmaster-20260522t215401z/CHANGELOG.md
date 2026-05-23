@@ -2,16 +2,15 @@
 
 All notable changes to this drop are tracked here.
 
-## [v1.12] — 2026-05-22 — Help Button, Target Zone Polish
+## [v1.13] — 2026-05-22 — Focus Trap Fix
 
-### Added
-- **Visible help button** — a "?" button appears alongside the mute toggle on all screens, making the help overlay discoverable without needing to know the keyboard shortcut
-
-### Changed
-- **Duel target zone visibility** — added subtle inner box-shadow highlight to the target zone, making it more visible against the duel background
+### Fixed
+- **Help overlay focus trapping** — Tab trap was attached to the overlay element but focus could escape to elements outside the overlay (e.g. mute button), breaking the trap; now attached to `document` so Tab is trapped regardless of where focus is
 
 ### Technical Debt
 - File: ~1342 lines (still well under 5000-line limit)
+
+## [v1.12] — 2026-05-22 — Help Button, Target Zone Polish
 
 ## [v1.11] — 2026-05-22 — Reduced Motion Support
 
