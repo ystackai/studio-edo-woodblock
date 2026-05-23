@@ -105,7 +105,13 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .mute-toggle:hover,.mute-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
 .timer-bar{width:100%;max-width:300px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:4px auto}
 .timer-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:2px;transition:width .3s linear}
-</head>
+.help-overlay{position:absolute;inset:0;z-index:30;background:rgba(26,21,16,.95);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:left}
+.help-overlay.active{display:flex}
+.help-overlay h2{font-size:clamp(18px,4vw,28px);margin-bottom:16px}
+.help-overlay .help-section{margin-bottom:12px;max-width:500px}
+.help-overlay .help-section h3{font-size:clamp(14px,2.5vw,18px);color:#d4a05a;margin-bottom:4px}
+.help-overlay .help-section p{font-size:clamp(12px,2vw,14px);color:#cdbb9d;line-height:1.6}
+.help-overlay .help-close{margin-top:20px}
 <body>
 <div id="app" role="application" aria-label="Way of the Brush and Blade">
   <!-- Title Screen -->
@@ -242,6 +248,28 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 
   <!-- Screen reader live region for announcements -->
   <div id="sr-announce" class="visually-hidden" aria-live="polite" role="status"></div>
+
+  <!-- Help overlay -->
+  <div id="help-overlay" class="help-overlay" role="dialog" aria-label="How to play">
+    <h2>How to Play</h2>
+    <div class="help-section">
+      <h3>🎯 Sword Duel</h3>
+      <p>Press <strong>SPACE</strong> or click/tap when the ink stroke aligns with the target zone. Watch for feints in the final duel — the indicator glows amber and stutters before the real strike.</p>
+    </div>
+    <div class="help-section">
+      <h3>🖌 Brush Composition</h3>
+      <p>Press <strong>1-6</strong> or click to select strokes, then press <strong>ENTER</strong> or click the composition area to place them. Select 3 strokes before time runs out. Coherent combinations score higher.</p>
+    </div>
+    <div class="help-section">
+      <h3>⚔ Final Duel</h3>
+      <p>Five rounds at Ganryūjima. Higher mastery slows the opponent's patterns and widens the target zone. Win 3+ rounds to claim victory.</p>
+    </div>
+    <div class="help-section">
+      <h3>⌨ Shortcuts</h3>
+      <p><strong>M</strong> — toggle mute · <strong>?</strong> — toggle help · <strong>ENTER/SPACE</strong> — strike/place · <strong>1-6</strong> — select strokes</p>
+    </div>
+    <button class="btn help-close" id="btn-help-close">Got it</button>
+  </div>
 </div>
 
 <script>
@@ -1124,6 +1152,31 @@ function init() {
       toggleMute();
     }
   });
+
+  // Help overlay toggle
+  function toggleHelp() {
+    const overlay = $('help-overlay');
+    overlay.classList.toggle('active');
+    if (overlay.classList.contains('active')) {
+      $('btn-help-close').focus();
+    }
+  }
+  $('btn-help-close').onclick = toggleHelp;
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '?' || (e.key === 'Escape' && $('help-overlay').classList.contains('active'))) {
+      e.preventDefault();
+      toggleHelp();
+    }
+  });
+
+  // Restart confirmation
+  const origRestart = restartGame;
+  restartGame = function() {
+    if (G.waypoint > 0 && !G.completed) {
+      if (!confirm('Your journey is in progress. Start a new journey and lose your progress?')) return;
+    }
+    origRestart();
+  };
 
   // Cleanup on screen transition
   const origShowScreen = showScreen;

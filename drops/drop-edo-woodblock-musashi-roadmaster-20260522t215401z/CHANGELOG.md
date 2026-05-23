@@ -2,6 +2,19 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.6] — 2026-05-22 — Help Overlay & Restart Protection
+
+### Added
+- **Help overlay** — press <strong>?</strong> or click to open a how-to-play dialog covering sword duel, brush composition, final duel, and keyboard shortcuts
+- **Restart confirmation** — `confirm()` dialog prevents accidental loss of progress mid-journey; only appears when waypoint > 0 and game not completed
+- **Escape key** — closes the help overlay when active
+
+### Changed
+- **Keyboard shortcut system** — `?` key opens/closes help, `Escape` closes help
+
+### Technical Debt
+- File: ~1199 lines (still well under 5000-line limit)
+
 ## [v1.5] — 2026-05-22 — Haptic Feedback & Image Fallback
 
 ### Added
