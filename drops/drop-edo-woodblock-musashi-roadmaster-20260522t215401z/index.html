@@ -778,8 +778,9 @@ function startSwordMinigame() {
         results.push(false);
         const dots2 = roundsEl.querySelectorAll('.duel-round');
         dots2[currentRound].className = 'duel-round miss';
-        resultEl.textContent = '✗ Missed';
+        resultEl.textContent = '✗ The moment passed — watch the indicator carefully';
         resultEl.style.color = '#a06050';
+        announceSr('Missed — the moment passed');
         currentRound++;
         setTimeout(startRound, 800);
         return;

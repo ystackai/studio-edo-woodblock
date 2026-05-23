@@ -2,6 +2,16 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.32] — 2026-05-22 — Duel Miss Message Clarity & Animation Performance
+
+### Changed
+- **Duel miss message clarified** — when the indicator passes without the player striking, the result now shows "The moment passed — watch the indicator carefully" instead of just "Missed", giving clearer feedback on what went wrong
+- **Screen reader announcement on miss** — added `announceSr('Missed — the moment passed')` so screen reader users also receive clear miss feedback
+- **Duel indicator performance** — added `will-change: left` to the `.duel-indicator` CSS, allowing the browser to optimize the indicator's animation for smoother movement
+
+### Technical Debt
+- File: ~1573 lines (still well under 5000-line limit)
+
 ## [v1.31] — 2026-05-22 — Help Overlay Robustness & Scroll Accessibility
 
 ### Fixed
