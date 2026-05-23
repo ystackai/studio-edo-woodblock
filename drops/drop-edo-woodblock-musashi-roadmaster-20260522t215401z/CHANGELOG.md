@@ -2,8 +2,18 @@
 
 All notable changes to this drop are tracked here.
 
-## [v1.9] — 2026-05-22 — Touch Feedback, Scroll Animation Polish, Title Guard
+## [v1.10] — 2026-05-22 — Help Overlay Fade, Screen Reader Round Numbers
 
+### Added
+- **Help overlay fade transition** — overlay now fades in/out over 0.4s instead of appearing instantly, for a smoother UX
+
+### Changed
+- **Duel result screen reader text** — each round result now includes the round number (e.g. "Round 1: Perfect strike!", "Round 2: Miss") so screen reader users can track duel progress
+
+### Technical Debt
+- File: ~1328 lines (still well under 5000-line limit)
+
+## [v1.9] — 2026-05-22 — Touch Feedback, Scroll Animation Polish, Title Guard
 ### Added
 - **Duel zone tap feedback** — brief golden ripple animation on the duel zone when the player strikes, improving tactile feel on mobile and desktop
 
@@ -15,6 +25,7 @@ All notable changes to this drop are tracked here.
 
 ### Technical Debt
 - File: ~1328 lines (still well under 5000-line limit)
+
 
 ## [v1.8] — 2026-05-22 — Tab-Visibility Pause, Focus Trapping, A11y & Animation
 

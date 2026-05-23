@@ -109,8 +109,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .mute-toggle:hover,.mute-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
 .timer-bar{width:100%;max-width:300px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:4px auto}
 .timer-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:2px;transition:width .3s linear}
-.help-overlay{position:absolute;inset:0;z-index:30;background:rgba(26,21,16,.95);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:left}
-.help-overlay.active{display:flex}
+.help-overlay{position:absolute;inset:0;z-index:30;background:rgba(26,21,16,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:left;opacity:0;pointer-events:none;transition:opacity .4s ease}
+.help-overlay.active{opacity:1;pointer-events:auto}
 .help-overlay h2{font-size:clamp(18px,4vw,28px);margin-bottom:16px}
 .help-overlay .help-section{margin-bottom:12px;max-width:500px}
 .help-overlay .help-section h3{font-size:clamp(14px,2.5vw,18px);color:#d4a05a;margin-bottom:4px}
@@ -719,7 +719,7 @@ function startSwordMinigame() {
       splash.style.height = '160px';
       hitEl.appendChild(splash);
       setTimeout(() => splash.remove(), 500);
-      resultEl.textContent = '✦ Perfect strike!';
+      resultEl.textContent = '✦ Round ' + (currentRound + 1) + ': Perfect strike!';
       resultEl.style.color = '#d4a05a';
       playSfx('assets/pack2-sfx.wav');
     } else if (hit) {
@@ -730,11 +730,11 @@ function startSwordMinigame() {
       splash.style.height = '100px';
       hitEl.appendChild(splash);
       setTimeout(() => splash.remove(), 500);
-      resultEl.textContent = '✓ Hit';
+      resultEl.textContent = '✓ Round ' + (currentRound + 1) + ': Hit';
       resultEl.style.color = '#8a9a7a';
       playSfx('assets/pack2-sfx.wav');
     } else {
-      resultEl.textContent = '✗ Miss';
+      resultEl.textContent = '✗ Round ' + (currentRound + 1) + ': Miss';
       resultEl.style.color = '#a06050';
     }
     setTimeout(() => { hitEl.classList.remove('show','perfect'); }, 300);
