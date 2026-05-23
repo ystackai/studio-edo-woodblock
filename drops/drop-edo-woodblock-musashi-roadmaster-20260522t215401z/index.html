@@ -781,11 +781,16 @@ function startSwordMinigame() {
 
   // Event handlers — use named refs so cleanup can remove them
   const strikeHandler = (e) => {
+    if ($('help-overlay').classList.contains('active')) return;
     if (e.type === 'keydown' && e.key !== ' ' && e.key !== 'Spacebar' && e.key !== 'Space') return;
     e.preventDefault();
     handleStrike();
   };
-  const touchHandler = (e) => { e.preventDefault(); handleStrike(); };
+  const touchHandler = (e) => {
+    if ($('help-overlay').classList.contains('active')) return;
+    e.preventDefault();
+    handleStrike();
+  };
 
   document.addEventListener('keydown', strikeHandler);
   zone.addEventListener('click', strikeHandler);
@@ -928,6 +933,7 @@ function startBrushMinigame() {
 
   // Keyboard: number keys 1-6 to select, then ENTER on zone to place next selected
   const keyHandler = (e) => {
+    if ($('help-overlay').classList.contains('active')) return;
     if (e.key >= '1' && e.key <= '6') {
       const idx = parseInt(e.key) - 1;
       const btn = tray.querySelector(`[data-index="${idx}"]`);
@@ -1005,12 +1011,15 @@ function startBrushMinigame() {
     if (document.hidden) {
       timerPaused = true;
       timerPausedAt = Date.now();
+      $('brush-timer').textContent = '⏸ Paused';
     } else if (timerPaused) {
       timerPaused = false;
       // Adjust start time to account for time spent hidden
       const hiddenDuration = Date.now() - timerPausedAt;
       timerStartedAt += hiddenDuration;
       timerPausedAt = 0;
+      // Refresh display immediately
+      tickTimer();
     }
   };
   document.addEventListener('visibilitychange', visHandler);
@@ -1228,11 +1237,20 @@ function init() {
       $('btn-help-close').focus();
       // Listen for Tab trapping
       overlay.addEventListener('keydown', _helpTabTrap);
+      // Click outside content to close (click on overlay backdrop)
+      overlay.addEventListener('click', _helpBackdropClick);
     } else {
       // Closing: restore focus
       overlay.removeEventListener('keydown', _helpTabTrap);
+      overlay.removeEventListener('click', _helpBackdropClick);
       if (_helpPrevFocus && _helpPrevFocus.focus) _helpPrevFocus.focus();
       _helpPrevFocus = null;
+    }
+  }
+  function _helpBackdropClick(e) {
+    // Close only if clicking the overlay backdrop, not its children
+    if (e.target === $('help-overlay')) {
+      toggleHelp();
     }
   }
   function _helpTabTrap(e) {
