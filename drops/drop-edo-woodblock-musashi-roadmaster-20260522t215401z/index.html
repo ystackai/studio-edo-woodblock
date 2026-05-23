@@ -175,7 +175,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       </div>
       <button type="button" class="btn btn-start-glow" id="btn-start" autofocus aria-label="Begin the journey, start a new game">Begin the Journey</button>
       <button type="button" class="btn btn-secondary btn-small" id="btn-resume" style="display:none;margin-top:8px" aria-label="Continue your previous journey from where you left off">Continue Previous Journey</button>
-      <p class="body-text" style="font-size:11px;margin-top:12px;color:#8a7a6a" aria-live="polite" id="title-hint">Press ENTER or click to begin</p>
+      <p class="body-text" style="font-size:11px;margin-top:12px;color:#8a7a6a" aria-live="polite" id="title-hint">Press ENTER/SPACE or click to begin</p>
       <p style="font-size:10px;color:#6a5a4a;margin-top:4px;min-height:16px" id="title-best-mastery"></p>
     </div>
   </div>
@@ -688,7 +688,7 @@ function startSwordMinigame() {
   const feintWarn = isFinal ? $('final-feint-warning') : $('feint-warning');
 
   if (!isFinal) {
-    $('sword-instruction').textContent = 'Press SPACE or tap when the moving indicator aligns with the target zone.';
+    $('sword-instruction').textContent = 'Press SPACE/ENTER or tap when the moving indicator aligns with the target zone.';
     $('sword-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment' : 'Press SPACE or ENTER at the right moment';
   } else {
     const ctx = G.mastery >= 80 ? 'Your mastery is great. The opponent\'s stance is clear — you can read his intent.' :
@@ -1230,6 +1230,7 @@ function startBrushMinigame() {
       timerPaused = true;
       timerPausedAt = Date.now();
       $('brush-timer').textContent = '⏸ Paused';
+      announceSr('Timer paused');
     } else if (timerPaused) {
       timerPaused = false;
       // Reset announcement tracker so thresholds missed during pause can be announced
@@ -1240,6 +1241,7 @@ function startBrushMinigame() {
       timerPausedAt = 0;
       // Refresh display immediately
       tickTimer();
+      announceSr('Timer resumed, ' + timeLeft + ' seconds remaining');
     }
   };
   document.addEventListener('visibilitychange', visHandler);

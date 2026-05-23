@@ -2,6 +2,18 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.42] — 2026-05-23 — Keyboard Hint Consistency & Timer Pause Accessibility
+
+### Changed
+- **Title screen hint updated** — now reads "Press ENTER/SPACE or click to begin" to match the actual keyboard handler that accepts both keys.
+- **Sword instruction updated** — now reads "Press SPACE/ENTER or tap when the moving indicator aligns with the target zone" for consistency with the updated keyboard handler.
+
+### Added
+- **Screen reader announcements for timer pause/resume** — the brush composition timer now announces "Timer paused" when the tab becomes hidden and "Timer resumed, X seconds remaining" when the user returns, giving screen reader users awareness of time changes during tab switches.
+
+### Technical Debt
+- File: ~1625 lines (still well under 5000-line limit)
+
 ## [v1.41] — 2026-05-23 — Enter Key Support for Sword Duels & Resume Mastery Gain Fix
 
 ### Added
