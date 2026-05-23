@@ -928,12 +928,14 @@ function startBrushMinigame() {
   };
   document.addEventListener('keydown', keyHandler);
 
-  // Click on zone to place next selected
-  zone.onclick = () => {
+  // Click/tap on zone to place next selected
+  const zoneTapHandler = () => {
     if (selectedStrokes.length > 0 && placedStrokes.length < 3) {
       placeStroke(selectedStrokes[0]);
     }
   };
+  zone.onclick = zoneTapHandler;
+  zone.addEventListener('touchstart', zoneTapHandler, {passive: true});
 
   function finishBrushMinigame() {
     if (timerId) clearInterval(timerId);
@@ -988,6 +990,7 @@ function startBrushMinigame() {
     zone.removeEventListener('dragleave', dragLeaveHandler);
     zone.removeEventListener('drop', dropHandler);
     zone.onclick = null;
+    zone.removeEventListener('touchstart', zoneTapHandler);
   };
 }
 
