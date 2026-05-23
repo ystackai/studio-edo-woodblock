@@ -836,9 +836,11 @@ function startSwordMinigame() {
     if (animId) cancelAnimationFrame(animId);
     const targetLeft = parseFloat(targetEl.style.left);
     const targetW = parseFloat(targetEl.style.width) || 40;
+    const zoneW = zone.offsetWidth || 400;
     const diff = Math.abs(indicatorPos - targetLeft);
-    const threshold = targetW / 2 + 5;
-    const hit = diff <= threshold;
+    // Convert pixel-based target width to percentage of zone width for correct comparison
+    const thresholdPct = ((targetW / 2) + 5) / zoneW * 100;
+    const hit = diff <= thresholdPct;
     const perfect = diff <= 8;
     results.push(hit);
     const dots = roundsEl.querySelectorAll('.duel-round');

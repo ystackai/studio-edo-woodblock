@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.44] — 2026-05-23 — Fix Duel Hit Detection Mixing Pixels & Percentages
+
+### Fixed
+- **Duel hit threshold used wrong units** — the hit detection compared `indicatorPos` and `targetLeft` (both in percentage points) against a threshold calculated from `targetW` (in pixels). This made the duel difficulty vary with screen width: easier on narrow screens, harder on wide screens. The threshold is now converted to percentage of the zone width, ensuring consistent difficulty across all screen sizes. The target width scaling with mastery (wider = easier) is preserved.
+
+### Technical Debt
+- File: ~1629 lines (still well under 5000-line limit)
+
 ## [v1.43] — 2026-05-23 — Final Duel Context Announcement for Screen Readers
 
 ### Added
