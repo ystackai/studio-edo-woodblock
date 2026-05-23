@@ -112,8 +112,20 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .help-overlay .help-section h3{font-size:clamp(14px,2.5vw,18px);color:#d4a05a;margin-bottom:4px}
 .help-overlay .help-section p{font-size:clamp(12px,2vw,14px);color:#cdbb9d;line-height:1.6}
 .help-overlay .help-close{margin-top:20px}
+.loading-overlay{position:absolute;inset:0;z-index:40;background:#1f1a14;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
+.loading-overlay.hidden{opacity:0;pointer-events:none}
+.loading-overlay .loader{width:40px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:12px auto}
+.loading-overlay .loader-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:2px;width:0%;animation:loadProgress 1.2s ease-in-out forwards}
+@keyframes loadProgress{0%{width:0%}100%{width:100%}}
 <body>
 <div id="app" role="application" aria-label="Way of the Brush and Blade">
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <h2 style="font-size:clamp(20px,5vw,36px);font-weight:600;color:#f4ead8;letter-spacing:.06em">Way of the Brush and Blade</h2>
+    <div class="loader"><div class="loader-fill"></div></div>
+    <p style="font-size:12px;color:#b9a88d;margin-top:8px">Preparing the road...</p>
+  </div>
+
   <!-- Title Screen -->
   <div id="screen-title" class="screen active" role="region" aria-label="Title screen">
     <div class="bg-img" style="background-image:url(assets/pack1-style-frame.png)"></div>
@@ -230,6 +242,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div id="ending-scroll" style="display:none"></div>
       <div class="ink-line-thin"></div>
       <p class="mastery-label" id="ending-mastery-label"></p>
+      <p class="body-text" style="font-size:10px;color:#8a7a6a;margin-top:10px;line-height:1.5">Built for Pictures of the Floating World studio.<br>Assets by FactoryX proof-pack pipeline.</p>
       <div style="margin-top:16px">
         <button class="btn" id="btn-restart">Walk the Road Again</button>
       </div>
@@ -1102,6 +1115,12 @@ function showTitle() {
 function init() {
   G = defaultState();
   showTitle();
+
+  // Hide loading overlay after a short delay for asset readiness
+  setTimeout(() => {
+    const lo = $('loading-overlay');
+    if (lo) lo.classList.add('hidden');
+  }, 800);
 
   $('btn-start').onclick = () => {
     G = defaultState();

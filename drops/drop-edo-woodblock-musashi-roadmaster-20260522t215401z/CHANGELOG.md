@@ -2,6 +2,16 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.7] — 2026-05-22 — Loading Screen & Credits
+
+### Added
+- **Loading overlay** — initial page load shows "Preparing the road..." with animated progress bar, fades out after 800ms
+- **Credits** — ending screen now shows "Built for Pictures of the Floating World studio. Assets by FactoryX proof-pack pipeline."
+- **Help overlay content** — now includes keyboard shortcut reference (M, ?, ENTER/SPACE, 1-6)
+
+### Technical Debt
+- File: ~1218 lines (still well under 5000-line limit)
+
 ## [v1.6] — 2026-05-22 — Help Overlay & Restart Protection
 
 ### Added
