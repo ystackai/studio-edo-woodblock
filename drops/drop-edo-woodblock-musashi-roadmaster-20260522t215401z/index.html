@@ -121,6 +121,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .loading-overlay .loader{width:40px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:12px auto}
 .loading-overlay .loader-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:2px;width:0%;animation:loadProgress 1.2s ease-in-out forwards}
 @keyframes loadProgress{0%{width:0%}100%{width:100%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#ending-scroll.scroll-entrance{animation:none!important;opacity:1!important}}
 <body>
 <div id="app" role="application" aria-label="Way of the Brush and Blade">
   <!-- Loading overlay -->
@@ -492,8 +493,12 @@ let _inkTimer = null;
 function showScreen(name) {
   if (_inkTimer) { clearTimeout(_inkTimer); _inkTimer = null; }
   const overlay = $('ink-overlay');
-  // Brief ink-wash fade between screens
-  overlay.style.opacity = '1';
+  // Respect prefers-reduced-motion — skip ink-wash fade
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fadeMs = prefersReduced ? 10 : 500;
+  if (!prefersReduced) {
+    overlay.style.opacity = '1';
+  }
   _inkTimer = setTimeout(() => {
     Object.keys(screens).forEach(k => {
       screens[k].classList.remove('active','fade-in','fade-out');
@@ -508,9 +513,13 @@ function showScreen(name) {
     const ann = $('sr-announce');
     if (ann) ann.textContent = 'Screen: ' + name.replace(/-/g, ' ');
     // Fade overlay back out
-    requestAnimationFrame(() => { overlay.style.opacity = '0'; });
+    if (!prefersReduced) {
+      requestAnimationFrame(() => { overlay.style.opacity = '0'; });
+    } else {
+      overlay.style.opacity = '0';
+    }
     _inkTimer = null;
-  }, 500);
+  }, fadeMs);
 }
 
 // --- Mastery display ---

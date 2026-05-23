@@ -2,16 +2,16 @@
 
 All notable changes to this drop are tracked here.
 
-## [v1.10] — 2026-05-22 — Help Overlay Fade, Screen Reader Round Numbers
+## [v1.11] — 2026-05-22 — Reduced Motion Support
 
 ### Added
-- **Help overlay fade transition** — overlay now fades in/out over 0.4s instead of appearing instantly, for a smoother UX
-
-### Changed
-- **Duel result screen reader text** — each round result now includes the round number (e.g. "Round 1: Perfect strike!", "Round 2: Miss") so screen reader users can track duel progress
+- **`prefers-reduced-motion` support** — all CSS animations and transitions respect the user's OS-level motion preference; animation durations are reduced to ~0.01s when reduced motion is preferred
+- **Ink-wash transition skip** — the 500ms ink-wash fade between screens is reduced to 10ms when reduced motion is preferred, making navigation instant for users who need it
 
 ### Technical Debt
-- File: ~1328 lines (still well under 5000-line limit)
+- File: ~1337 lines (still well under 5000-line limit)
+
+## [v1.10] — 2026-05-22 — Help Overlay Fade, Screen Reader Round Numbers
 
 ## [v1.9] — 2026-05-22 — Touch Feedback, Scroll Animation Polish, Title Guard
 ### Added
