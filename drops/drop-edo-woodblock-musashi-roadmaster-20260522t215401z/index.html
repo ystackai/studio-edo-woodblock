@@ -295,15 +295,19 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
     <h2>How to Play</h2>
     <div class="help-section">
       <h3>🎯 Sword Duel</h3>
-      <p>Press <strong>SPACE</strong> or click/tap when the ink stroke aligns with the target zone. Watch for feints in the final duel — the indicator glows amber and stutters before the real strike.</p>
+      <p>Press <strong>SPACE</strong> or tap when the ink stroke aligns with the target zone. Watch for feints in the final duel — the indicator glows amber and stutters before the real strike. Each stop has 3 rounds; hit as many as you can to build mastery.</p>
     </div>
     <div class="help-section">
       <h3>🖌 Brush Composition</h3>
-      <p>Press <strong>1-6</strong> or click to select strokes, then press <strong>ENTER</strong> or click the composition area to place them. Select 3 strokes before time runs out. Coherent combinations score higher.</p>
+      <p>Press <strong>1-6</strong> or tap to select strokes, then press <strong>ENTER</strong> or tap the composition area to place them. Select 3 strokes before time runs out. Coherent combinations score higher — Bamboo + Plum Blossom is a classic pairing, while Mountain + Pine evokes a landscape. The coherence hint below the tray shows your best pair's rating.</p>
     </div>
     <div class="help-section">
       <h3>⚔ Final Duel</h3>
-      <p>Five rounds at Ganryūjima. Higher mastery slows the opponent's patterns and widens the target zone. Win 3+ rounds to claim victory.</p>
+      <p>Five rounds at Ganryūjima. Higher mastery (from earlier stops) slows the opponent's patterns and widens the target zone. Win 3+ rounds to claim victory. Your ending changes based on mastery and duel outcome.</p>
+    </div>
+    <div class="help-section">
+      <h3>📜 Endings</h3>
+      <p><strong>The Wooden Oar</strong> — win the final duel with mastery 80+.<br><strong>The Long Path</strong> — win with lower mastery.<br><strong>The Other Shore</strong> — lose the final duel. Every journey has meaning.</p>
     </div>
     <div class="help-section">
       <h3>⌨ Shortcuts</h3>
@@ -318,6 +322,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 'use strict';
 
 const SAVE_KEY = 'edo-musashi-roadmaster-v1';
+const MUTE_KEY = 'edo-musashi-muted-v1';
 const WAYPOINT_COUNT = 5;
 const SWORD_ROUNDS = 3;
 const FINAL_ROUNDS = 5;
@@ -448,6 +453,7 @@ let _muted = false;
 
 function setMuted(muted) {
   _muted = muted;
+  try { localStorage.setItem(MUTE_KEY, _muted ? '1' : '0'); } catch(e) {}
   const btn = $('btn-mute');
   if (btn) {
     btn.textContent = _muted ? '🔇' : '🔊';
@@ -1289,6 +1295,11 @@ const IS_TOUCH = isTouchDevice();
 function init() {
   G = defaultState();
   preloadImages();
+  // Restore saved mute preference
+  try {
+    const savedMute = localStorage.getItem(MUTE_KEY);
+    if (savedMute === '1') setMuted(true);
+  } catch(e) {}
   showTitle();
 
   // Hide loading overlay after a short delay for asset readiness

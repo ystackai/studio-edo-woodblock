@@ -2,6 +2,19 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.20] — 2026-05-22 — Enhanced Help Overlay & Audio Preference Persistence
+
+### Added
+- **Audio mute persistence** — the mute preference is now saved to localStorage under key `edo-musashi-muted-v1` and restored on page load, so returning players don't need to re-mute
+- **Endings section in help** — the help overlay now explains all three endings and their unlock conditions (Wooden Oar: mastery 80+ and victory; Long Path: victory with lower mastery; Other Shore: loss)
+- **Coherence hints in help** — the brush composition section now mentions specific pairings (Bamboo + Plum Blossom, Mountain + Pine) and the coherence hint UI
+
+### Changed
+- **Help overlay content** — expanded from 4 sections to 5 (added "Endings"), with richer descriptions for each minigame
+
+### Technical Debt
+- File: ~1462 lines (still well under 5000-line limit)
+
 ## [v1.19] — 2026-05-22 — Ending Scroll Stroke Animation & Coherence Hints
 
 ### Added
