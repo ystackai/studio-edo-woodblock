@@ -2,6 +2,23 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.39] — 2026-05-22 — Loading Overlay Fix & Accessibility Refinements
+
+### Fixed
+- **Loading overlay wrapper restored** — the `id="loading-overlay" class="loading-overlay"` wrapper div was accidentally removed in v1.38, causing the `#app` div to close prematurely and leaving all game screens outside the application container. This broke layout, positioning, and max-width constraints. Restored the wrapper with proper ARIA attributes.
+- **Loading overlay `aria-hidden` toggling** — the overlay now dynamically sets `aria-hidden="true"` when hidden (via `.hidden` class), preventing screen readers from accessing invisible loading content.
+
+### Changed
+- **Brush timer `aria-live` removed** — replaced `aria-live="polite"` with bare `role="timer"` (no live region) to eliminate overly chatty screen reader announcements from 100ms updates. Key time thresholds (10s, 5s, 0s) continue to be announced via the dedicated `announceSr()` live region. `aria-atomic` is not needed without a live region.
+- **Screen transition announcements use `announceSr()`** — the `showScreen` function now uses the consistent `announceSr()` helper instead of directly setting `textContent` on the live region, ensuring reliable announcement delivery.
+- **Waypoint vignette announced for screen readers** — the vignette text is now explicitly announced via `announceSr()` when entering a waypoint, giving screen reader users access to the atmospheric descriptions.
+- **Ending scroll paper `aria-label` is dynamic** — the scroll paper's `aria-label` now includes the names of placed brush strokes (e.g., "Journey painting scroll with Bamboo, Plum Blossom, Mountain Peak"), providing screen reader users with a description of their accumulated artwork.
+- **`aria-atomic="true"` on `sr-announce`** — the screen reader announcement live region now has `aria-atomic="true"` to ensure announcements are read as cohesive units.
+- **`prefers-reduced-motion` extended** — the CSS `@media` rule now also disables the loading bar fill animation and the progress-dot pulse animation when reduced motion is preferred.
+
+### Technical Debt
+- File: ~1617 lines (still well under 5000-line limit)
+
 ## [v1.38] — 2026-05-22 — Loading ARIA, Timer Accessibility & Scroll Motion
 
 ### Fixed
