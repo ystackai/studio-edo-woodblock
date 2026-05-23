@@ -2,6 +2,20 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.18] — 2026-05-22 — Miss Animation, Narrow-Screen Scroll & Touch Hints
+
+### Added
+- **Duel miss animation** — when the indicator passes the target without the player striking, the duel zone flashes red (`duel-zone.miss-feedback`), providing clear negative feedback
+- **Narrow-screen stroke tray scroll** — on screens ≤480px wide, the stroke palette switches to a horizontal scroll with snap points, preventing overflow on small devices
+- **Touch device detection** — `IS_TOUCH` flag detects touch capability at startup; sword duel, brush composition, and final duel hints now show device-appropriate text ("Tap the duel zone" vs "Press SPACE", "Tap strokes to select" vs "Press 1-6")
+
+### Changed
+- **Brush minigame hint** — updated to reflect the click-to-place mechanism (removed drag reference, added click/tap instruction)
+- **Timer class reset** — `brush-timer` CSS class is reset when the minigame starts, clearing any leftover urgency styling from a previous round
+
+### Technical Debt
+- File: ~1431 lines (still well under 5000-line limit)
+
 ## [v1.17] — 2026-05-22 — Duel Ready Cue, Result Animation & Title Reveal
 
 ### Added

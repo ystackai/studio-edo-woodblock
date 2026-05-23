@@ -72,6 +72,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .duel-round.hit{background:#8B4513;border-color:#8B4513;box-shadow:0 0 6px rgba(139,69,19,.4)}
 .duel-round.miss{background:rgba(100,50,30,.3);border-color:rgba(100,50,30,.5)}
 .stroke-tray{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+@media(max-width:480px){.stroke-tray{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:4px 0;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}.stroke-tray .stroke-btn{flex-shrink:0;scroll-snap-align:start}}
 .stroke-btn{width:70px;height:70px;border:2px solid rgba(244,234,216,.2);border-radius:6px;background:rgba(0,0,0,.2);cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#b9a88d;gap:2px;position:relative;touch-action:manipulation}
 .stroke-btn:hover,.stroke-btn:focus-visible{border-color:#8B4513;background:rgba(139,69,19,.15);outline:none}
 .stroke-btn.used{opacity:.3;pointer-events:none;cursor:default}
@@ -118,6 +119,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 #ending-scroll.scroll-entrance{animation:scrollUnroll 1s ease-out forwards}
 @keyframes duelTap{0%{box-shadow:0 0 0 0 rgba(212,160,90,.4)}100%{box-shadow:0 0 0 12px rgba(212,160,90,0)}}
 .duel-zone.tap-feedback{animation:duelTap .3s ease-out forwards}
+@keyframes duelMiss{0%{box-shadow:0 0 0 0 rgba(192,64,64,.4)}100%{box-shadow:0 0 0 12px rgba(192,64,64,0)}}
+.duel-zone.miss-feedback{animation:duelMiss .4s ease-out forwards}
 .mute-toggle{position:absolute;top:10px;right:10px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700;touch-action:manipulation}
 .mute-toggle:hover,.mute-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
 .help-toggle{position:absolute;top:10px;right:52px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700;touch-action:manipulation}
@@ -202,7 +205,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="duel-rounds" id="sword-rounds"></div>
       <div class="duel-result" id="sword-result" aria-live="polite"></div>
       <div class="feint-warning" id="feint-warning" aria-live="assertive"></div>
-      <p class="body-text" style="font-size:11px;color:#8a7a6a">Press SPACE or click/tap at the right moment</p>
+      <p class="body-text" style="font-size:11px;color:#8a7a6a" id="sword-hint">Press SPACE or click/tap at the right moment</p>
       <button class="btn btn-small btn-secondary" id="btn-sword-skip" style="display:none">Continue →</button>
     </div>
   </div>
@@ -221,7 +224,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="stroke-zone" id="stroke-zone" role="img" aria-label="Composition area">
         <span style="color:rgba(244,234,216,.15);font-size:12px" id="stroke-zone-label">Place your strokes here</span>
       </div>
-      <p class="body-text" style="font-size:11px;color:#8a7a6a">Select 3 strokes (press 1-6 or click) then drag to the composition</p>
+      <p class="body-text" style="font-size:11px;color:#8a7a6a" id="brush-hint">Select 3 strokes (press 1-6 or click) then click the composition area to place</p>
       <div class="stroke-tray" id="stroke-tray" role="toolbar" aria-label="Stroke palette"></div>
       <button class="btn btn-small btn-secondary" id="btn-brush-skip" style="display:none">Continue →</button>
     </div>
@@ -246,7 +249,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="duel-rounds" id="final-rounds"></div>
       <div class="duel-result" id="final-result" aria-live="polite"></div>
       <div class="feint-warning" id="final-feint-warning" aria-live="assertive"></div>
-      <p class="body-text" style="font-size:11px;color:#8a7a6a">Press SPACE or click/tap at the right moment. Watch for feints!</p>
+      <p class="body-text" style="font-size:11px;color:#8a7a6a" id="final-hint">Press SPACE or click/tap at the right moment. Watch for feints!</p>
       <button class="btn btn-small btn-secondary" id="btn-final-skip" style="display:none">Continue →</button>
     </div>
   </div>
@@ -630,11 +633,13 @@ function startSwordMinigame() {
 
   if (!isFinal) {
     $('sword-instruction').textContent = 'Wait for the ink stroke to complete, then strike at the perfect moment.';
+    $('sword-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment' : 'Press SPACE at the right moment';
   } else {
     const ctx = G.mastery >= 80 ? 'Your mastery is great. The opponent\'s stance is clear — you can read his intent.' :
                 G.mastery >= 50 ? 'You have trained well. The opponent is strong, but you see the patterns.' :
                 'Your path has been uncertain. The opponent is a storm — you must rely on instinct.';
     $('final-context').textContent = ctx;
+    $('final-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment. Watch for feints!' : 'Press SPACE at the right moment. Watch for feints!';
   }
 
   let currentRound = 0;
@@ -711,6 +716,12 @@ function startSwordMinigame() {
         // Missed
         active = false;
         canHit = false;
+        zone.classList.remove('ready');
+        // Miss feedback animation
+        zone.classList.remove('miss-feedback');
+        void zone.offsetWidth;
+        zone.classList.add('miss-feedback');
+        setTimeout(() => zone.classList.remove('miss-feedback'), 500);
         results.push(false);
         const dots2 = roundsEl.querySelectorAll('.duel-round');
         dots2[currentRound].className = 'duel-round miss';
@@ -878,7 +889,9 @@ function startBrushMinigame() {
   showScreen('brush');
   $('brush-score').textContent = 'Coherence: —';
   $('brush-timer').textContent = 'Time: 30s';
+  $('brush-timer').className = 'brush-timer';
   $('btn-brush-skip').style.display = 'none';
+  $('brush-hint').textContent = IS_TOUCH ? 'Tap strokes to select, then tap the composition area to place' : 'Press 1-6 to select strokes, then ENTER to place';
   $('stroke-zone').classList.remove('placed');
   $('stroke-zone-label').textContent = 'Place your strokes here';
   const oldStrokes = $('stroke-zone').querySelectorAll('.placed-stroke');
@@ -1245,6 +1258,12 @@ function showTitle() {
   playAmbient('assets/pack1-music-loop.wav');
   $('btn-start').focus();
 }
+
+// --- Touch device detection ---
+function isTouchDevice() {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+const IS_TOUCH = isTouchDevice();
 
 // --- Init ---
 function init() {
