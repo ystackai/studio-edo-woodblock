@@ -576,7 +576,7 @@
       }
 
       // Chat (3 messages only)
-      fetch(StudioShell.publicUrl('/studio-data/' + d.slug + '/chat.json'))
+      fetch(publicUrl('/studio-data/' + d.slug + '/chat.json'))
         .then(function(r) { return r.json(); })
         .then(function(data) {
           var msgs = ((data && data.messages) || []).slice(-3);
