@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.49] — 2026-05-23 — Keyboard Focus Indicators for Toggle & Close Buttons
+
+### Added
+- **Keyboard focus indicators for mute, help toggle, and help close buttons** — these buttons had `outline:none` on `:focus-visible` but no keyboard-user fallback, making them invisible to keyboard navigators. Added `.keyboard-user` CSS rules to show a visible amber focus ring consistent with other game buttons.
+
+### Technical Debt
+- File: ~1632 lines (still well under 5000-line limit)
+
 ## [v1.48] — 2026-05-23 — Fix Stale Animation Frame on Duel Miss
 
 ### Fixed
