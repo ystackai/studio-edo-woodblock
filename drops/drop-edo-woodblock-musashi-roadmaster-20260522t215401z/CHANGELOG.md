@@ -2,6 +2,20 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.29] — 2026-05-22 — Accessibility Refinements: Decorative aria-hidden & Screen Reader Timer
+
+### Added
+- **`aria-hidden="true"` on decorative elements** — added to all `bg-img`, `bg-overlay`, `ink-line`, `ink-line-thin`, `mastery-bar`, `duel-target`, `timer-bar`, `scroll-rod-top`, `scroll-rod-bottom`, `scroll-roller-end`, `ink-overlay`, and the title screen ink-drop animation container. These elements are purely visual and should be ignored by screen readers
+- **`aria-hidden="true"` on duel-round dots** — dynamically created round indicators now have `aria-hidden="true"` since they are decorative visual progress indicators
+- **`role="timer"` and `aria-atomic="true"` on brush timer** — the composition timer now uses the proper ARIA role for timers, improving semantic accessibility
+- **Key threshold screen reader announcements** — the brush timer now announces at 10s, 5s, and 0s remaining (via `announceSr`) instead of every second, reducing screen reader noise while keeping users informed
+
+### Changed
+- **Brush timer `aria-live` removed** — replaced continuous `aria-live="polite"` on the timer element with targeted announcements at key thresholds, preventing excessive screen reader chatter during the countdown
+
+### Technical Debt
+- File: ~1562 lines (still well under 5000-line limit)
+
 ## [v1.28] — 2026-05-22 — Help Overlay Listener Leak Fix & Robustness Improvements
 
 ### Fixed

@@ -161,13 +161,13 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 
   <!-- Title Screen -->
   <div id="screen-title" class="screen active" role="region" aria-label="Title screen">
-    <div class="bg-img" style="background-image:url(assets/pack1-style-frame.png)"></div>
-    <div class="bg-overlay"></div>
+    <div class="bg-img" aria-hidden="true" style="background-image:url(assets/pack1-style-frame.png)"></div>
+    <div class="bg-overlay" aria-hidden="true"></div>
     <div class="content">
-      <div class="ink-line" style="width:40%"></div>
+      <div class="ink-line" aria-hidden="true" style="width:40%"></div>
       <h1>Way of the<br>Brush and Blade</h1>
-      <div class="ink-line"></div>
-      <div style="position:relative;height:6px;margin:4px auto;width:80%;max-width:200px;opacity:.3">
+      <div class="ink-line" aria-hidden="true"></div>
+      <div aria-hidden="true" style="position:relative;height:6px;margin:4px auto;width:80%;max-width:200px;opacity:.3">
         <div style="position:absolute;left:50%;top:0;width:2px;height:6px;background:#8B4513;border-radius:0 0 2px 2px;animation:inkDropIdle 4s ease-in-out infinite;transform:translateX(-50%)"></div>
       </div>
       <p class="subtitle">— a wandering swordsman's journey —</p>
@@ -183,19 +183,19 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 
   <!-- Waypoint Screen -->
   <div id="screen-waypoint" class="screen" role="region" aria-label="Waypoint">
-    <div class="bg-img" id="wp-bg" style="background-image:url(assets/pack1-style-frame.png)"></div>
-    <div class="bg-overlay"></div>
+    <div class="bg-img" aria-hidden="true" id="wp-bg" style="background-image:url(assets/pack1-style-frame.png)"></div>
+    <div class="bg-overlay" aria-hidden="true"></div>
     <div class="content">
       <p class="subtitle" id="wp-location">— Location —</p>
-      <div class="ink-line" style="width:30%"></div>
+      <div class="ink-line" aria-hidden="true" style="width:30%"></div>
       <h2 id="wp-title">Waypoint</h2>
       <div class="vignette-text" id="wp-vignette"></div>
-      <div class="mastery-bar"><div class="mastery-fill" id="wp-mastery-fill" style="width:0%"></div></div>
+      <div class="mastery-bar" aria-hidden="true"><div class="mastery-fill" id="wp-mastery-fill" style="width:0%"></div></div>
       <p class="mastery-label" id="wp-mastery-label">Mastery: 0 / 100</p>
       <p style="font-size:11px;color:#d4a05a;margin:2px 0;min-height:18px;transition:opacity .5s" id="mastery-gain" aria-live="polite"></p>
       <p style="font-size:10px;color:#8a7a6a;margin:2px 0;min-height:16px" id="wp-history" aria-live="polite"></p>
       <div class="progress-dots" id="wp-progress"></div>
-      <div class="ink-line-thin"></div>
+      <div class="ink-line-thin" aria-hidden="true"></div>
       <p class="body-text" style="font-size:14px;margin:6px 0">Choose your discipline:</p>
       <button type="button" class="btn btn-choice" id="btn-sword" data-choice="sword" aria-label="Draw your blade and engage in a timing-based duel"><span class="icon">⚔</span> Draw Your Blade</button>
       <button type="button" class="btn btn-choice btn-secondary" id="btn-brush" data-choice="brush" aria-label="Take up the brush and create a sumi-e composition"><span class="icon">🖌</span> Take Up the Brush</button>
@@ -204,15 +204,15 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 
   <!-- Sword Minigame Screen -->
   <div id="screen-sword" class="screen" role="region" aria-label="Sword duel minigame">
-    <div class="bg-img" style="background-image:url(assets/pack2-style-frame.png)"></div>
-    <div class="bg-overlay"></div>
+    <div class="bg-img" aria-hidden="true" style="background-image:url(assets/pack2-style-frame.png)"></div>
+    <div class="bg-overlay" aria-hidden="true"></div>
     <div class="content">
       <h3>The Draw Cut</h3>
-      <div class="ink-line-thin"></div>
+      <div class="ink-line-thin" aria-hidden="true"></div>
       <p class="body-text" style="font-size:13px" id="sword-instruction">Wait for the ink stroke to complete, then strike at the perfect moment.</p>
       <p style="font-size:11px;color:#8a7a6a;margin:2px 0" id="sword-round-label" aria-live="polite">Round 1 / 3</p>
       <div class="duel-zone" id="duel-zone" role="application" aria-roledescription="Duel timing zone" aria-label="Sword duel — tap or press Space when the indicator aligns with the target">
-        <div class="duel-target" id="duel-target" style="left:45%"></div>
+        <div class="duel-target" id="duel-target" aria-hidden="true" style="left:45%"></div>
         <div class="duel-indicator" id="duel-indicator" style="left:0%"></div>
         <div class="duel-hit" id="duel-hit"></div>
       </div>
@@ -226,14 +226,14 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 
   <!-- Brush Minigame Screen -->
   <div id="screen-brush" class="screen" role="region" aria-label="Brush composition minigame">
-    <div class="bg-img" style="background-image:url(assets/pack3-style-frame.png)"></div>
-    <div class="bg-overlay"></div>
+    <div class="bg-img" aria-hidden="true" style="background-image:url(assets/pack3-style-frame.png)"></div>
+    <div class="bg-overlay" aria-hidden="true"></div>
     <div class="content">
       <h3>Composition</h3>
-      <div class="ink-line-thin"></div>
+      <div class="ink-line-thin" aria-hidden="true"></div>
       <p class="body-text" style="font-size:13px">Complete the painting — choose strokes and place them in the composition.</p>
-      <div class="brush-timer" id="brush-timer" aria-live="polite">Time: 30s</div>
-      <div class="timer-bar"><div class="timer-fill" id="brush-timer-fill" style="width:100%"></div></div>
+      <div class="brush-timer" id="brush-timer" role="timer" aria-atomic="true">Time: 30s</div>
+      <div class="timer-bar" aria-hidden="true"><div class="timer-fill" id="brush-timer-fill" style="width:100%"></div></div>
       <div class="brush-score" id="brush-score" aria-live="polite">Coherence: —</div>
       <div class="stroke-zone" id="stroke-zone" role="img" aria-label="Composition area">
         <span style="color:rgba(244,234,216,.15);font-size:12px" id="stroke-zone-label">Place your strokes here</span>
@@ -247,18 +247,18 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 
   <!-- Ganryushima Final Duel Screen -->
   <div id="screen-final" class="screen" role="region" aria-label="Final duel at Ganryushima">
-    <div class="bg-img" style="background-image:url(assets/pack2-style-frame.png)"></div>
-    <div class="bg-overlay"></div>
+    <div class="bg-img" aria-hidden="true" style="background-image:url(assets/pack2-style-frame.png)"></div>
+    <div class="bg-overlay" aria-hidden="true"></div>
     <div style="position:absolute;inset:0;background-image:url(assets/pack1-style-frame.png);background-size:cover;background-position:center;opacity:.08;filter:sepia(.8) saturate(.3);z-index:0;mix-blend-mode:multiply"></div>
     <div class="content">
       <h2>Ganryūjima</h2>
-      <div class="ink-line" style="width:40%"></div>
+      <div class="ink-line" aria-hidden="true" style="width:40%"></div>
       <p class="body-text" id="final-context" aria-live="polite"></p>
-      <div class="mastery-bar"><div class="mastery-fill" id="final-mastery-fill" style="width:0%"></div></div>
+      <div class="mastery-bar" aria-hidden="true"><div class="mastery-fill" id="final-mastery-fill" style="width:0%"></div></div>
       <p class="mastery-label" id="final-mastery-label">Mastery: 0 / 100</p>
       <p style="font-size:11px;color:#8a7a6a;margin:2px 0" id="final-round-label" aria-live="polite">Round 1 / 5</p>
       <div class="duel-zone" id="final-duel-zone" role="application" aria-roledescription="Final duel timing zone" aria-label="Final duel at Ganryujima — tap or press Space when the indicator aligns with the target">
-        <div class="duel-target" id="final-duel-target" style="left:45%"></div>
+        <div class="duel-target" id="final-duel-target" aria-hidden="true" style="left:45%"></div>
         <div class="duel-indicator" id="final-duel-indicator" style="left:0%"></div>
         <div class="duel-hit" id="final-duel-hit"></div>
       </div>
@@ -272,14 +272,14 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 
   <!-- Ending Screen -->
   <div id="screen-ending" class="screen" role="region" aria-label="Ending">
-    <div class="bg-img" style="background-image:url(assets/pack1-style-frame.png)"></div>
-    <div class="bg-overlay"></div>
+    <div class="bg-img" aria-hidden="true" style="background-image:url(assets/pack1-style-frame.png)"></div>
+    <div class="bg-overlay" aria-hidden="true"></div>
     <div class="content">
       <h2 class="ending-title" id="ending-title"></h2>
-      <div class="ink-line"></div>
+      <div class="ink-line" aria-hidden="true"></div>
       <div class="ending-text" id="ending-text" aria-live="polite"></div>
       <div id="ending-scroll" style="display:none"></div>
-      <div class="ink-line-thin"></div>
+      <div class="ink-line-thin" aria-hidden="true"></div>
       <p class="mastery-label" id="ending-mastery-label"></p>
       <div style="font-size:10px;color:#8a7a6a;margin:4px 0;line-height:1.6;min-height:20px" id="ending-stats" aria-live="polite"></div>
       <p class="body-text" style="font-size:10px;color:#8a7a6a;margin-top:10px;line-height:1.5">Built for Pictures of the Floating World studio.<br>Assets by FactoryX proof-pack pipeline.</p>
@@ -290,7 +290,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
   </div>
 
   <!-- Ink-wash transition overlay -->
-  <div id="ink-overlay" style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(26,21,16,0) 30%,rgba(26,21,16,1) 100%);opacity:0;pointer-events:none;z-index:10;transition:opacity .5s ease"></div>
+  <div id="ink-overlay" aria-hidden="true" style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(26,21,16,0) 30%,rgba(26,21,16,1) 100%);opacity:0;pointer-events:none;z-index:10;transition:opacity .5s ease"></div>
 
   <!-- Audio elements -->
   <audio id="audio-ambient" loop preload="auto" style="display:none"></audio>
@@ -712,6 +712,7 @@ function startSwordMinigame() {
   for (let i = 0; i < rounds; i++) {
     const dot = document.createElement('div');
     dot.className = 'duel-round';
+    dot.setAttribute('aria-hidden', 'true');
     roundsEl.appendChild(dot);
   }
 
@@ -1154,6 +1155,7 @@ function startBrushMinigame() {
   // Timer — uses Date.now() so tab-visibility pause is accurate
   const TIMER_MAX = 30;
   timerStartedAt = Date.now();
+  let _lastAnnouncedSec = -1; // track last announced second to avoid chatty screen reader updates
 
   function tickTimer() {
     if (timerPaused) return;
@@ -1161,6 +1163,16 @@ function startBrushMinigame() {
     timeLeft = Math.max(0, TIMER_MAX - elapsed);
     const timerEl = $('brush-timer');
     timerEl.textContent = 'Time: ' + timeLeft + 's';
+    // Announce key thresholds for screen readers (10s, 5s, 0s)
+    const announceThresholds = [10, 5, 0];
+    if (announceThresholds.includes(timeLeft) && _lastAnnouncedSec !== timeLeft) {
+      _lastAnnouncedSec = timeLeft;
+      if (timeLeft === 0) {
+        announceSr('Time is up!');
+      } else {
+        announceSr(timeLeft + ' seconds remaining');
+      }
+    }
     // Urgency classes
     timerEl.classList.toggle('critical', timeLeft <= 5);
     timerEl.classList.toggle('urgent', timeLeft > 5 && timeLeft <= 10);
