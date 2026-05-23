@@ -343,6 +343,16 @@ const screens = {
   ending: $('screen-ending')
 };
 
+// --- Background image helper with fallback ---
+function setBgImage(el, url) {
+  if (!el) return;
+  el.style.backgroundImage = 'url(' + url + ')';
+  el.style.backgroundColor = '#1f1a14';
+  const img = new Image();
+  img.onerror = () => { el.style.backgroundImage = 'none'; };
+  img.src = url;
+}
+
 // --- Audio ---
 let _ambientFadeId = null;
 let _muted = false;
@@ -488,7 +498,7 @@ function showWaypoint() {
   $('wp-location').textContent = '— Stop ' + (G.waypoint + 1) + ' of ' + WAYPOINT_COUNT + ' —';
   $('wp-title').textContent = loc.title;
   $('wp-vignette').textContent = loc.vignettes[vIdx];
-  $('wp-bg').style.backgroundImage = 'url(' + loc.bg + ')';
+  setBgImage($('wp-bg'), loc.bg);
   updateMasteryDisplay();
   // Progress dots
   const progress = $('wp-progress');
@@ -641,11 +651,15 @@ function startSwordMinigame() {
     results.push(hit);
     const dots = roundsEl.querySelectorAll('.duel-round');
     dots[currentRound].className = 'duel-round ' + (hit ? 'hit' : 'miss');
+    // Haptic feedback on mobile
+    try { if (navigator.vibrate) navigator.vibrate(hit ? 30 : 15); } catch(e) {}
     if (perfect) {
       hitEl.classList.add('show','perfect');
       // Add ink splash
       const splash = document.createElement('div');
       splash.className = 'ink-splash';
+      splash.style.width = '160px';
+      splash.style.height = '160px';
       hitEl.appendChild(splash);
       setTimeout(() => splash.remove(), 500);
       resultEl.textContent = '✦ Perfect strike!';
@@ -655,6 +669,8 @@ function startSwordMinigame() {
       hitEl.classList.add('show');
       const splash = document.createElement('div');
       splash.className = 'ink-splash';
+      splash.style.width = '100px';
+      splash.style.height = '100px';
       hitEl.appendChild(splash);
       setTimeout(() => splash.remove(), 500);
       resultEl.textContent = '✓ Hit';

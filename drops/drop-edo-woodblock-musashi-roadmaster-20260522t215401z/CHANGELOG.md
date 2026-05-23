@@ -2,6 +2,19 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.5] — 2026-05-22 — Haptic Feedback & Image Fallback
+
+### Added
+- **Haptic feedback** — mobile devices vibrate briefly on sword strikes (30ms on hit, 15ms on miss) via `navigator.vibrate()`
+- **Background image fallback** — `setBgImage()` helper preloads images and falls back to solid color `#1f1a14` on load error
+- **Ink splash size variant** — perfect strikes now show a larger splash (160px) vs normal hits (100px)
+
+### Changed
+- **Background image loading** — waypoint background images now use `setBgImage()` helper with error handling
+
+### Technical Debt
+- File: ~1146 lines (still well under 5000-line limit)
+
 ## [v1.4] — 2026-05-22 — Timer Visuals & Screen Reader Navigation
 
 ### Added
