@@ -286,7 +286,7 @@
       megan: '#fde047'
     };
 
-    function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+    function esc(s) { var d = esc._d || (esc._d = document.createElement('div')); d.textContent = s || ''; return d.innerHTML; }
     function gameUrl(game) {
       return (game && (game.studio_url || game.play_url)) || '#';
     }
@@ -313,7 +313,12 @@
     function renderCrewStrip(cast) {
       var target = document.getElementById('crew-strip');
       if (!target) return;
-      target.innerHTML = (cast || []).map(function(member) {
+      var members = cast || [];
+      if (members.length === 0) {
+        target.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:0.8rem;padding:1rem 0">Crew loading…</div>';
+        return;
+      }
+      target.innerHTML = members.map(function(member) {
         return '<div class="crew-member">'
           + '<div class="rig">'
           + '<div class="portrait"><img src="' + esc(member.avatar_url || '/team/avatars/brad.svg') + '" alt="' + esc(member.display_name || '') + '" loading="lazy" onerror="this.style.display=\'none\'"></div>'
@@ -555,10 +560,16 @@
       }
 
       // Team
-      document.getElementById('team-grid').innerHTML = d.cast.map(Components.teamCard).join('');
+      if (window.Components && typeof Components.teamCard === 'function') {
+        document.getElementById('team-grid').innerHTML = (d.cast || []).map(Components.teamCard).join('');
+      } else {
+        document.getElementById('team-grid').innerHTML = '<p style="color:var(--studio-soft)">Team info unavailable</p>';
+      }
 
       // Footer
-      document.getElementById('footer').innerHTML = Components.footer();
+      if (window.Components && typeof Components.footer === 'function') {
+        document.getElementById('footer').innerHTML = Components.footer();
+      }
 
       // Chat (3 messages only)
       fetch(StudioShell.publicUrl('/studio-data/' + d.slug + '/chat.json'))
