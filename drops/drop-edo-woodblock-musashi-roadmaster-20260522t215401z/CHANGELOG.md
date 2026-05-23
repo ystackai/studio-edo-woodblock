@@ -2,6 +2,16 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.27] — 2026-05-22 — Best Mastery Persistence & Title Screen Display
+
+### Added
+- **Best mastery tracking** — the player's best mastery score is now saved to localStorage (`edo-musashi-best-mastery-v1`) and displayed on both the title screen and ending screen, giving players a long-term goal across play sessions
+- **Title screen best mastery** — shows "Best Mastery: X / 100" below the hint text when a previous best exists
+- **Ending screen best mastery** — shows "Best: X/100" in the journey statistics when the current score isn't the best
+
+### Technical Debt
+- File: ~1547 lines (still well under 5000-line limit)
+
 ## [v1.26] — 2026-05-22 — Title Screen Subtitle Animation & Loading Pulse
 
 ### Added

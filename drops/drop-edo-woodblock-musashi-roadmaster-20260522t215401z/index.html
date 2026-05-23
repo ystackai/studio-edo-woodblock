@@ -177,6 +177,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <button class="btn btn-start-glow" id="btn-start" autofocus aria-label="Begin the journey, start a new game">Begin the Journey</button>
       <button class="btn btn-secondary btn-small" id="btn-resume" style="display:none;margin-top:8px" aria-label="Continue your previous journey from where you left off">Continue Previous Journey</button>
       <p class="body-text" style="font-size:11px;margin-top:12px;color:#8a7a6a" aria-live="polite" id="title-hint">Press ENTER or click to begin</p>
+      <p style="font-size:10px;color:#6a5a4a;margin-top:4px;min-height:16px" id="title-best-mastery"></p>
     </div>
   </div>
 
@@ -1232,6 +1233,15 @@ function showEnding() {
 
   masteryLabel.textContent = 'Final Mastery: ' + G.mastery + ' / 100';
 
+  // Save and show best mastery
+  try {
+    const prevBest = parseInt(localStorage.getItem('edo-musashi-best-mastery-v1')) || 0;
+    if (G.mastery > prevBest) {
+      localStorage.setItem('edo-musashi-best-mastery-v1', String(G.mastery));
+    }
+  } catch(e) {}
+  const bestSaved = parseInt(localStorage.getItem('edo-musashi-best-mastery-v1')) || 0;
+
   // Compute and display journey statistics
   const statsEl = $('ending-stats');
   if (statsEl) {
@@ -1243,6 +1253,7 @@ function showEnding() {
     if (swordCount > 0) parts.push('Sword: ' + Math.round(totalSwordHits) + '/' + (swordCount * 3) + ' hits');
     if (brushCount > 0) parts.push('Brush: ' + brushCount + ' compositions (total ' + totalBrushScore + ' coherence)');
     if (G.finalResult) parts.push('Final duel: ' + G.finalResult.hits + '/' + G.finalResult.total + ' hits');
+    if (bestSaved > 0 && bestSaved !== G.mastery) parts.push('Best: ' + bestSaved + '/100');
     if (parts.length > 0) statsEl.textContent = parts.join(' · ');
   }
 
@@ -1352,6 +1363,9 @@ function showTitle() {
   }
   playAmbient('assets/pack1-music-loop.wav');
   $('btn-start').focus();
+  // Show best mastery
+  const bestEl = $('title-best-mastery');
+  try { const best = parseInt(localStorage.getItem('edo-musashi-best-mastery-v1')) || 0; if (best > 0) bestEl.textContent = 'Best Mastery: ' + best + ' / 100'; } catch(e) {}
 }
 
 // --- Touch device detection ---
