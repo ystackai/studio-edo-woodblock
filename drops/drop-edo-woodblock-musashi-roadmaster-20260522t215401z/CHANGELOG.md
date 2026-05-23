@@ -2,6 +2,19 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.4] — 2026-05-22 — Timer Visuals & Screen Reader Navigation
+
+### Added
+- **Brush minigame timer bar** — visual progress bar below the timer text that depletes from 100% to 0%
+- **Screen transition announcements** — `#sr-announce` live region announces each screen change for screen readers (e.g. "Screen: waypoint", "Screen: sword")
+- **Updated studio.json** — now references the polished drop version (t215401z) instead of the original
+
+### Changed
+- **Timer system** — brush minigame timer now drives both text and a visual progress bar via `#brush-timer-fill`
+
+### Technical Debt
+- File: ~1130 lines (still well under 5000-line limit)
+
 ## [v1.3] — 2026-05-22 — Audio Controls & Accessibility
 
 ### Added
