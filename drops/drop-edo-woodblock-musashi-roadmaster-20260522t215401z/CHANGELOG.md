@@ -2,6 +2,16 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.17] — 2026-05-22 — Duel Ready Cue, Result Animation & Title Reveal
+
+### Added
+- **Duel zone "ready" cue** — when the indicator approaches the target and the player can strike, the duel zone border glows amber with a subtle inner shadow (`duel-zone.ready`), giving a clear visual signal that it's time to press Space or tap
+- **Duel result entrance animation** — round result text now scales in with a brief overshoot (`@keyframes resultAppear`), making hits/misses more satisfying
+- **Waypoint title reveal** — screen titles now fade in with a subtle downward slide (`@keyframes titleReveal`) when a new screen becomes active
+
+### Technical Debt
+- File: ~1412 lines (still well under 5000-line limit)
+
 ## [v1.16] — 2026-05-22 — Multi-Stroke Composition View
 
 ### Changed
