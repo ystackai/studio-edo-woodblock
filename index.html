@@ -230,7 +230,7 @@
       <h2 id="chat-heading">Chat</h2>
       <a id="discord-link" href="#" style="display:none">Join on Discord →</a>
     </div>
-    <div id="chat-feed" aria-live="polite"></div>
+    <div id="chat-feed" role="list" aria-live="polite" aria-label="Recent chat messages"></div>
     <a id="chime-in" href="#" class="chat-cta" style="display:none">Chime in on Discord →</a>
     </section>
 
@@ -537,7 +537,7 @@
             laneHTML += '</a>';
           });
           if (all.length > 3) {
-            laneHTML += '<div style="font-size:0.75rem;color:var(--studio-soft);padding-top:0.25rem">+' + (all.length - 3) + ' more</div>';
+            laneHTML += '<a href="' + esc(d.board_url || issueBaseUrl || '#') + '" target="_blank" style="font-size:0.75rem;color:var(--studio-accent);padding-top:0.25rem;display:inline-block;text-decoration:none">+' + (all.length - 3) + ' more →</a>';
           }
           laneHTML += '</div></div>';
         });
@@ -559,7 +559,7 @@
             var agent = AGENTS[m.author] || {};
             var time = '';
             try { time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch(e) {}
-            return '<div class="chat-item">'
+            return '<div class="chat-item" role="listitem">'
               + ((m.avatar_url || agent.avatar) ? '<img class="chat-avatar" src="' + esc(m.avatar_url || agent.avatar) + '" alt="' + esc(m.author || '') + '">' : '<div class="chat-avatar" style="background:#333;border-radius:50%"></div>')
               + '<div class="chat-body"><div class="chat-head">'
               + '<span class="chat-name" style="color:' + (agent.color || '#999') + '">' + esc(m.author) + '</span>'
