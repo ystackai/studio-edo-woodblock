@@ -2,6 +2,18 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.38] — 2026-05-22 — Loading ARIA, Timer Accessibility & Scroll Motion
+
+### Fixed
+- **Loading overlay `aria-valuenow`** — was hardcoded to `100`; now starts at `0` and is updated progressively via a simulated loading interval, giving screen readers accurate progress feedback
+- **Brush timer `aria-atomic` removed** — the `role="timer"` element no longer has `aria-atomic="true"`, preventing overly chatty screen reader announcements on every 100ms tick; screen readers now announce only when `aria-live="polite"` region content changes at key thresholds (10s, 5s, 0s)
+- **Ending scroll `aria-hidden`** — the decorative scroll container now has `aria-hidden="true"` since its visual content is already described in the ending text
+- **Ending scroll animation respects `prefers-reduced-motion`** — the `scroll-entrance` animation is now skipped when the user's system prefers reduced motion, matching the existing CSS `@media` rule with a JS fallback
+- **Help overlay focus restoration safety** — the `toggleHelp` function now checks `typeof _helpPrevFocus.focus === 'function'` and wraps the call in a `try/catch`, preventing errors when the previously focused element is no longer in the DOM
+
+### Technical Debt
+- File: ~1607 lines (still well under 5000-line limit)
+
 ## [v1.37] — 2026-05-22 — Feint Warning Alert Role & Final Consistency
 
 ### Added

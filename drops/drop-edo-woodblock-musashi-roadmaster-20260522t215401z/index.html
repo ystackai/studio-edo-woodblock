@@ -153,10 +153,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 <body>
 <div id="app" role="application" aria-label="Way of the Brush and Blade">
   <!-- Loading overlay -->
-  <div id="loading-overlay" class="loading-overlay">
-    <h2 style="font-size:clamp(20px,5vw,36px);font-weight:600;color:#f4ead8;letter-spacing:.06em">Way of the Brush and Blade</h2>
-    <div class="loader" role="progressbar" aria-label="Loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="loader-fill"></div></div>
-    <p style="font-size:12px;color:#b9a88d;margin-top:8px;animation:loadPulse 1.5s ease-in-out infinite">Preparing the road...</p>
+    <div class="loader" role="progressbar" aria-label="Loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="loader-fill"></div></div>
   </div>
 
   <!-- Title Screen -->
@@ -233,7 +230,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <h3>Composition</h3>
       <div class="ink-line-thin" aria-hidden="true"></div>
       <p class="body-text" style="font-size:13px">Complete the painting — choose strokes and place them in the composition.</p>
-      <div class="brush-timer" id="brush-timer" role="timer" aria-atomic="true">Time: 30s</div>
+      <div class="brush-timer" id="brush-timer" role="timer" aria-live="polite">Time: 30s</div>
       <div class="timer-bar" aria-hidden="true"><div class="timer-fill" id="brush-timer-fill" style="width:100%"></div></div>
       <div class="brush-score" id="brush-score" aria-live="polite">Coherence: —</div>
       <div class="stroke-zone" id="stroke-zone" role="img" aria-label="Composition area">
@@ -280,7 +277,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <h2 class="ending-title" id="ending-title"></h2>
       <div class="ink-line" aria-hidden="true"></div>
       <div class="ending-text" id="ending-text" aria-live="polite"></div>
-      <div id="ending-scroll" style="display:none"></div>
+      <div id="ending-scroll" style="display:none" aria-hidden="true"></div>
       <div class="ink-line-thin" aria-hidden="true"></div>
       <p class="mastery-label" id="ending-mastery-label"></p>
       <div style="font-size:10px;color:#8a7a6a;margin:4px 0;line-height:1.6;min-height:20px;word-break:break-word" id="ending-stats" aria-live="polite"></div>
@@ -1346,8 +1343,13 @@ function showEnding() {
   } else {
     paper.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b9a88d;font-size:12px;font-style:italic">The scroll remains blank — the brush was never taken up.</div>';
   }
-  // Trigger scroll unroll animation after a brief delay for layout
-  requestAnimationFrame(() => { scroll.classList.add('scroll-entrance'); });
+  // Trigger scroll unroll animation after a brief delay for layout — skip if reduced motion
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) {
+    scroll.style.opacity = '1';
+  } else {
+    requestAnimationFrame(() => { scroll.classList.add('scroll-entrance'); });
+  }
 
   switch (G.ending) {
     case 'wooden-oar':
@@ -1425,11 +1427,22 @@ function init() {
   } catch(e) {}
   showTitle();
 
-  // Hide loading overlay after a short delay for asset readiness
-  setTimeout(() => {
+  // Hide loading overlay after a short delay for asset readiness — update aria-valuenow progressively
+  let loadProgress = 0;
+  const loadInterval = setInterval(() => {
+    loadProgress = Math.min(100, loadProgress + 8 + Math.floor(Math.random() * 12));
     const lo = $('loading-overlay');
-    if (lo) lo.classList.add('hidden');
-  }, 800);
+    if (lo) {
+      const loader = lo.querySelector('[role="progressbar"]');
+      if (loader) loader.setAttribute('aria-valuenow', String(loadProgress));
+    }
+    if (loadProgress >= 100) {
+      clearInterval(loadInterval);
+      setTimeout(() => {
+        if (lo) lo.classList.add('hidden');
+      }, 200);
+    }
+  }, 150);
 
   $('btn-start').onclick = () => {
     G = defaultState();
@@ -1530,10 +1543,12 @@ function init() {
       // Click outside content to close (click on overlay backdrop)
       overlay.addEventListener('click', _helpBackdropClick);
     } else {
-      // Closing: restore focus
+      // Closing: restore focus safely
       document.removeEventListener('keydown', _helpTabTrap);
       overlay.removeEventListener('click', _helpBackdropClick);
-      if (_helpPrevFocus && _helpPrevFocus.focus) _helpPrevFocus.focus();
+      if (_helpPrevFocus && typeof _helpPrevFocus.focus === 'function') {
+        try { _helpPrevFocus.focus(); } catch(e) {}
+      }
       _helpPrevFocus = null;
     }
   }
