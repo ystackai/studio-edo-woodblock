@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.37] — 2026-05-22 — Feint Warning Alert Role & Final Consistency
+
+### Added
+- **`role="alert"` on feint warnings** — both the regular and final duel feint warning elements now have `role="alert"` in addition to `aria-live="assertive"`, ensuring screen readers announce feint information as priority alerts
+
+### Technical Debt
+- File: ~1593 lines (still well under 5000-line limit)
+
 ## [v1.36] — 2026-05-22 — Duel Zone Screen Reader Ready State
 
 ### Added
