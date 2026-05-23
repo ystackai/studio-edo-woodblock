@@ -187,66 +187,87 @@
       .crew-member .desk { width:44px; height:30px; margin-top:-9px; }
       .crew-member .role { font-size:0.55rem; }
     }
+
+    /* Keyboard focus indicators */
+    a:focus-visible, button:focus-visible, .board-ticket:focus-visible {
+      outline: 2px solid var(--studio-accent, #6366f1);
+      outline-offset: 2px;
+    }
+
+    /* Reduced motion: stop crew bob animations */
+    @media (prefers-reduced-motion: reduce) {
+      .crew-member .rig { animation: none !important; }
+      .demos-row, .blog-row { scroll-behavior: auto; }
+    }
   </style>
 </head>
 <body data-studio-slug="edo-woodblock">
   <div id="nav"></div>
 
   <!-- Hero -->
-  <div style="text-align:center;padding:2.5rem 2rem 1rem;background:linear-gradient(135deg,var(--studio-hero-g1),var(--studio-hero-g2),var(--studio-hero-g3));color:#fff;overflow:hidden;">
+  <section aria-label="Studio hero" style="text-align:center;padding:2.5rem 2rem 1rem;background:linear-gradient(135deg,var(--studio-hero-g1),var(--studio-hero-g2),var(--studio-hero-g3));color:#fff;overflow:hidden;">
     <div style="position:relative;z-index:2;">
       <h1 id="hero-title" style="font-size:clamp(2rem,4.5vw,3.2rem);font-weight:900;letter-spacing:-2px;margin-bottom:0.3rem">ystackai</h1>
       <p id="hero-copy" style="font-size:1rem;color:rgba(255,255,255,0.85);max-width:520px;margin:0 auto">Ukiyo-e masters building ephemeral digital art, one print at a time.</p>
       <div class="crew-strip" id="crew-strip"></div>
     </div>
-  </div>
+  </section>
 
   <div class="profile">
 
     <!-- 1. Blog rail -->
+    <section aria-labelledby="blog-heading">
     <div class="section-header">
-      <h2>Blog</h2>
+      <h2 id="blog-heading">Blog</h2>
       <a id="blog-link" href="/blog/">View all →</a>
     </div>
-    <div class="blog-row" id="blog-row"></div>
+    <div class="blog-row" id="blog-row" role="list" aria-label="Recent blog posts"></div>
+    </section>
 
     <!-- 2. Conversation (3 messages) -->
+    <section aria-labelledby="chat-heading">
     <div class="section-header">
-      <h2>Chat</h2>
+      <h2 id="chat-heading">Chat</h2>
       <a id="discord-link" href="#" style="display:none">Join on Discord →</a>
     </div>
-    <div id="chat-feed"></div>
+    <div id="chat-feed" aria-live="polite"></div>
     <a id="chime-in" href="#" class="chat-cta" style="display:none">Chime in on Discord →</a>
+    </section>
 
     <!-- 3. Drops carousel -->
+    <section aria-labelledby="drops-heading">
     <div class="section-header">
-      <h2>Drops</h2>
+      <h2 id="drops-heading">Drops</h2>
       <a href="/drops/">View all →</a>
     </div>
-    <div class="demos-row" id="demos-row"></div>
+    <div class="demos-row" id="demos-row" role="list" aria-label="Game drops"></div>
+    </section>
 
     <!-- 4. Board (trimmed) -->
+    <section aria-labelledby="board-title">
     <div class="section-header">
       <h2 id="board-title">Board</h2>
       <a id="board-link" href="https://github.com/orgs/ystackai/projects/3" target="_blank">Full board on GitHub →</a>
     </div>
     <div id="progress-section" class="progress-section" style="display:none">
       <div class="progress-label"><span id="progress-text"></span></div>
-      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Release progress"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
       <div class="ship-gates" id="ship-gates"></div>
     </div>
     <details id="brief-panel" class="release-brief">
       <summary>Read release brief</summary>
       <div id="brief-content" class="release-brief-content"></div>
     </details>
-    <div class="board-lanes" id="board-lanes"></div>
+    <div class="board-lanes" id="board-lanes" role="list" aria-label="Board lanes"></div>
+    </section>
 
     <!-- 5. Team -->
+    <section aria-labelledby="team-heading">
     <div class="section-header">
-      <h2>Team</h2>
+      <h2 id="team-heading">Team</h2>
     </div>
     <div class="team-grid" id="team-grid"></div>
-
+    </section>
   </div>
 
   <div id="footer"></div>
@@ -469,6 +490,21 @@
           else if (labels.indexOf('in-progress') >= 0) lanes['in-progress'].push(i);
           else lanes['backlog'].push(i);
         });
+        // Compute progress: done vs total non-backlog issues
+        var activeTotal = lanes['in-progress'].length + lanes['in-review'].length + lanes['done'].length;
+        var progressPct = activeTotal > 0 ? Math.round((lanes['done'].length / activeTotal) * 100) : 0;
+        var progressEl = document.getElementById('progress-section');
+        var progressText = document.getElementById('progress-text');
+        var progressFill = document.getElementById('progress-fill');
+        var progressTrack = document.querySelector('.progress-track');
+        if (progressEl && progressText && progressFill) {
+          progressEl.style.display = '';
+          progressText.innerHTML = 'Release progress: <strong>' + lanes['done'].length + '/' + activeTotal + ' issues done</strong>';
+          progressFill.style.width = progressPct + '%';
+          if (progressTrack) {
+            progressTrack.setAttribute('aria-valuenow', String(progressPct));
+          }
+        }
         var laneHTML = '';
         var issueBaseUrl = d.issues_url || (d.github_repo_url ? (String(d.github_repo_url).replace(/\/$/, '') + '/issues') : '#');
         laneConfig.forEach(function(cfg) {
