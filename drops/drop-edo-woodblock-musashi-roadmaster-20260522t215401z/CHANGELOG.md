@@ -2,6 +2,18 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.30] — 2026-05-22 — UX & Instruction Clarifications
+
+### Added
+- **Ending screen restart confirmation** — players who click "Walk the Road Again" on the ending screen now see a confirmation dialog before restarting, preventing accidental loss of the ending view
+- **Brush minigame timeout guidance** — when time runs out with no strokes placed, the score display now shows "No strokes placed — 0 coherence. Try selecting strokes next time!" instead of the default score breakdown, helping players understand what happened
+
+### Changed
+- **Sword minigame instruction clarified** — updated from "Wait for the ink stroke to complete" to "Press SPACE or tap when the moving indicator aligns with the target zone", more accurately describing the timing mechanic
+
+### Technical Debt
+- File: ~1569 lines (still well under 5000-line limit)
+
 ## [v1.29] — 2026-05-22 — Accessibility Refinements: Decorative aria-hidden & Screen Reader Timer
 
 ### Added

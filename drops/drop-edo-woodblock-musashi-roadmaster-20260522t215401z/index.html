@@ -681,7 +681,7 @@ function startSwordMinigame() {
   const feintWarn = isFinal ? $('final-feint-warning') : $('feint-warning');
 
   if (!isFinal) {
-    $('sword-instruction').textContent = 'Wait for the ink stroke to complete, then strike at the perfect moment.';
+    $('sword-instruction').textContent = 'Press SPACE or tap when the moving indicator aligns with the target zone.';
     $('sword-hint').textContent = IS_TOUCH ? 'Tap the duel zone at the right moment' : 'Press SPACE at the right moment';
   } else {
     const ctx = G.mastery >= 80 ? 'Your mastery is great. The opponent\'s stance is clear — you can read his intent.' :
@@ -1139,7 +1139,11 @@ function startBrushMinigame() {
     updateMasteryDisplay();
     saveState();
 
-    $('brush-score').textContent = 'Coherence: ' + coherence + ' + Timing: ' + timingBonus + ' = ' + score;
+    if (placedStrokes.length === 0) {
+      $('brush-score').textContent = 'No strokes placed — 0 coherence. Try selecting strokes next time!';
+    } else {
+      $('brush-score').textContent = 'Coherence: ' + coherence + ' + Timing: ' + timingBonus + ' = ' + score;
+    }
     // Screen reader announcement
     announceSr('Composition complete! Score: ' + score + '. Mastery: ' + G.mastery + '.');
     const skip = $('btn-brush-skip');
@@ -1536,6 +1540,9 @@ function init() {
   restartGame = function() {
     if (G.waypoint > 0 && !G.completed) {
       if (!confirm('Your journey is in progress. Start a new journey and lose your progress?')) return;
+    }
+    if (G.completed) {
+      if (!confirm('Walk the road again? Your previous journey will be left behind.')) return;
     }
     origRestart();
   };
