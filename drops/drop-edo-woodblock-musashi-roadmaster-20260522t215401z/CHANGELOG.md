@@ -2,6 +2,15 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.21] — 2026-05-22 — Time's Up Animation & Round Number Display
+
+### Added
+- **"Time's up!" animation** — when the brush minigame timer expires, the timer text now shows a dramatic "Time's up!" message with a scale-in animation and a 600ms delay before transitioning to the result, giving the player a clear signal that time has run out
+- **Round number label** — sword duel and final duel screens now display the current round number (e.g., "Round 2 / 3") above the duel zone, updated live as each round progresses
+
+### Technical Debt
+- File: ~1476 lines (still well under 5000-line limit)
+
 ## [v1.20] — 2026-05-22 — Enhanced Help Overlay & Audio Preference Persistence
 
 ### Added

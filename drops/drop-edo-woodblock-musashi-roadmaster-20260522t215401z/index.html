@@ -64,6 +64,9 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 @keyframes timerUrgent{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
 .brush-timer.urgent{color:#e8a040}
 .brush-timer.critical{color:#c04040;animation:timerUrgent .6s ease-in-out infinite}
+.brush-timer.timeout{color:#c04040;animation:timerUrgent .3s ease-in-out 3;font-weight:700}
+@keyframes timesUp{0%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.2)}100%{opacity:1;transform:scale(1)}}
+.brush-timer.timesup-text{animation:timesUp .5s ease-out forwards}
 .ink-splash{position:absolute;top:50%;left:50%;border-radius:50%;background:radial-gradient(circle,rgba(139,69,19,.6),transparent);pointer-events:none;animation:inkSplash .5s ease-out forwards;z-index:4}
 .duel-result{font-size:20px;font-weight:700;margin:8px 0;min-height:30px;animation:resultAppear .35s ease-out forwards}
 @keyframes resultAppear{0%{opacity:0;transform:scale(.8)}60%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
@@ -198,6 +201,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <h3>The Draw Cut</h3>
       <div class="ink-line-thin"></div>
       <p class="body-text" style="font-size:13px" id="sword-instruction">Wait for the ink stroke to complete, then strike at the perfect moment.</p>
+      <p style="font-size:11px;color:#8a7a6a;margin:2px 0" id="sword-round-label" aria-live="polite">Round 1 / 3</p>
       <div class="duel-zone" id="duel-zone" role="application" aria-roledescription="Duel timing zone" aria-label="Sword duel — tap or press Space when the indicator aligns with the target">
         <div class="duel-target" id="duel-target" style="left:45%"></div>
         <div class="duel-indicator" id="duel-indicator" style="left:0%"></div>
@@ -243,6 +247,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <p class="body-text" id="final-context"></p>
       <div class="mastery-bar"><div class="mastery-fill" id="final-mastery-fill" style="width:0%"></div></div>
       <p class="mastery-label" id="final-mastery-label">Mastery: 0 / 100</p>
+      <p style="font-size:11px;color:#8a7a6a;margin:2px 0" id="final-round-label" aria-live="polite">Round 1 / 5</p>
       <div class="duel-zone" id="final-duel-zone" role="application" aria-roledescription="Final duel timing zone" aria-label="Final duel at Ganryujima — tap or press Space when the indicator aligns with the target">
         <div class="duel-target" id="final-duel-target" style="left:45%"></div>
         <div class="duel-indicator" id="final-duel-indicator" style="left:0%"></div>
@@ -702,6 +707,9 @@ function startSwordMinigame() {
     indicatorPos = 0;
     zone.classList.remove('ready');
     indicatorEl.style.left = '0%';
+    // Update round label
+    const roundLabel = isFinal ? $('final-round-label') : $('sword-round-label');
+    if (roundLabel) roundLabel.textContent = 'Round ' + (currentRound + 1) + ' / ' + rounds;
     setTarget();
     // Update round dots
     const dots = roundsEl.querySelectorAll('.duel-round');
@@ -1120,9 +1128,15 @@ function startBrushMinigame() {
                              timeLeft <= 10 ? 'linear-gradient(90deg,#e8a040,#d4a05a)' :
                              'linear-gradient(90deg,#8B4513,#d4a05a)';
     }
-    if (timeLeft <= 0) {
+    if (timeLeft <= 0 && !timerPaused) {
       if (timerId) clearInterval(timerId);
-      finishBrushMinigame();
+      timerPaused = true; // prevent re-entry
+      const timerEl = $('brush-timer');
+      timerEl.textContent = 'Time\'s up!';
+      timerEl.className = 'brush-timer timesup-text';
+      const fill = $('brush-timer-fill');
+      if (fill) fill.style.width = '0%';
+      setTimeout(finishBrushMinigame, 600);
     }
   }
 
