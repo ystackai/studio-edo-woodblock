@@ -206,7 +206,7 @@
   <div id="nav"></div>
 
   <!-- Hero -->
-  <section aria-label="Studio hero" style="text-align:center;padding:2.5rem 2rem 1rem;background:linear-gradient(135deg,var(--studio-hero-g1),var(--studio-hero-g2),var(--studio-hero-g3));color:#fff;overflow:hidden;">
+  <section aria-labelledby="hero-title" style="text-align:center;padding:2.5rem 2rem 1rem;background:linear-gradient(135deg,var(--studio-hero-g1),var(--studio-hero-g2),var(--studio-hero-g3));color:#fff;overflow:hidden;">
     <div style="position:relative;z-index:2;">
       <h1 id="hero-title" style="font-size:clamp(2rem,4.5vw,3.2rem);font-weight:900;letter-spacing:-2px;margin-bottom:0.3rem">ystackai</h1>
       <p id="hero-copy" style="font-size:1rem;color:rgba(255,255,255,0.85);max-width:520px;margin:0 auto">Ukiyo-e masters building ephemeral digital art, one print at a time.</p>
@@ -220,7 +220,7 @@
     <section aria-labelledby="blog-heading">
     <div class="section-header">
       <h2 id="blog-heading">Blog</h2>
-      <a id="blog-link" href="/blog/">View all →</a>
+      <a id="blog-link" href="/blog/" aria-label="View all blog posts">View all →</a>
     </div>
     <div class="blog-row" id="blog-row" role="list" aria-label="Recent blog posts"></div>
     </section>
@@ -239,7 +239,7 @@
     <section aria-labelledby="drops-heading">
     <div class="section-header">
       <h2 id="drops-heading">Drops</h2>
-      <a href="/drops/">View all →</a>
+      <a href="/drops/" aria-label="View all drops">View all →</a>
     </div>
     <div class="demos-row" id="demos-row" role="list" aria-label="Game drops"></div>
     </section>
@@ -542,7 +542,7 @@
           tickets.forEach(function(t) {
             var labels = (t.labels || []).map(function(l) { return typeof l === 'string' ? l : l.name; });
             var typeLabels = labels.filter(function(l) { return ['feature','bug','polish','audio','visual','writing','playtest','test'].indexOf(l) >= 0; });
-            laneHTML += '<a class="board-ticket" role="listitem" href="' + esc(issueBaseUrl ? (String(issueBaseUrl).replace(/\/$/, '') + '/' + t.number) : '#') + '" target="_blank" rel="noopener">'
+            laneHTML += '<a class="board-ticket" role="listitem" href="' + esc(issueBaseUrl && issueBaseUrl !== '#' ? (String(issueBaseUrl).replace(/\/$/, '') + '/' + t.number) : '#') + '" target="_blank" rel="noopener">'
               + '<span class="ticket-num">#' + t.number + '</span> ' + esc(t.title);
             if (typeLabels.length) {
               laneHTML += '<div class="ticket-labels">' + typeLabels.map(function(l) {
@@ -552,7 +552,7 @@
             laneHTML += '</a>';
           });
           if (all.length > 3) {
-            laneHTML += '<a href="' + esc(d.board_url || issueBaseUrl || '#') + '" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--studio-accent);padding-top:0.25rem;display:inline-block;text-decoration:none">+' + (all.length - 3) + ' more →</a>';
+            laneHTML += '<a href="' + esc(d.board_url || (issueBaseUrl && issueBaseUrl !== '#' ? issueBaseUrl : '#')) + '" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--studio-accent);padding-top:0.25rem;display:inline-block;text-decoration:none">+' + (all.length - 3) + ' more →</a>';
           }
           laneHTML += '</div></div>';
         });
