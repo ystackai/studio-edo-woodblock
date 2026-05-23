@@ -2,6 +2,27 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.8] — 2026-05-22 — Tab-Visibility Pause, Focus Trapping, A11y & Animation
+
+### Added
+- **Tab-visibility auto-pause** — brush minigame timer pauses when the user switches away from the game tab and resumes accurately when they return, preventing unfair time loss
+- **Help overlay focus trapping** — Tab/Shift+Tab cycles through overlay buttons only; focus returns to the previously focused element when the overlay closes (important a11y improvement)
+- **Ending scroll unroll animation** — the hanging scroll now animates with a smooth vertical unroll effect when the ending screen appears
+- **Progress dot screen reader text** — visually-hidden `aria-live` text announces "Stop X of 5. Y completed." so screen reader users can track journey progress
+
+### Changed
+- **Brush timer accuracy** — timer now uses `Date.now()` delta instead of `setInterval` counting, ensuring accurate elapsed time even under heavy CPU load
+- **Keyboard shortcut isolation** — pressing M, ?, or 1-6 while the help overlay is open no longer triggers game actions behind it
+- **Mute toggle guard** — M key shortcut is disabled when help overlay is active to prevent double-toggle
+
+### Fixed
+- Brush timer continued counting down while the browser tab was hidden; now paused via `visibilitychange` listener
+- Keyboard focus could escape behind the help overlay, breaking keyboard-only navigation
+- Progress dots had no accessible labels for screen readers
+
+### Technical Debt
+- File: ~1303 lines (still well under 5000-line limit)
+
 ## [v1.7] — 2026-05-22 — Loading Screen & Credits
 
 ### Added

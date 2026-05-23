@@ -101,6 +101,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .progress-dot.done{background:#8B4513;border-color:#8B4513}
 .progress-dot.current{background:rgba(139,69,19,.4);border-color:#8B4513;box-shadow:0 0 6px rgba(139,69,19,.3)}
 @media(min-width:768px){.stroke-btn{width:80px;height:80px}.stroke-btn .stroke-preview{width:60px;height:36px}.duel-zone{height:100px}}
+@keyframes scrollUnroll{0%{transform:scaleY(0);opacity:0;transform-origin:top center}60%{transform:scaleY(1.05);opacity:.8}100%{transform:scaleY(1);opacity:1}}
+#ending-scroll.scroll-entrance{animation:scrollUnroll .8s ease-out forwards}
 .mute-toggle{position:absolute;top:10px;right:10px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .mute-toggle:hover,.mute-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
 .timer-bar{width:100%;max-width:300px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:4px auto}
@@ -547,10 +549,17 @@ function showWaypoint() {
   for (let i = 0; i < WAYPOINT_COUNT; i++) {
     const dot = document.createElement('div');
     dot.className = 'progress-dot';
+    dot.setAttribute('aria-hidden', 'true');
     if (i < G.waypoint) dot.classList.add('done');
     if (i === G.waypoint) dot.classList.add('current');
     progress.appendChild(dot);
   }
+  // Screen reader text for progress
+  const srProgress = document.createElement('span');
+  srProgress.className = 'visually-hidden';
+  srProgress.setAttribute('aria-live', 'polite');
+  srProgress.textContent = 'Stop ' + (G.waypoint + 1) + ' of ' + WAYPOINT_COUNT + '. ' + G.waypoint + ' completed.';
+  progress.appendChild(srProgress);
   showScreen('waypoint');
   $('btn-sword').focus();
 }
@@ -803,6 +812,9 @@ function startBrushMinigame() {
   $('stroke-zone').querySelector('.placed-stroke')?.remove();
 
   let timeLeft = 30;
+  let timerStartedAt = Date.now();
+  let timerPaused = false;
+  let timerPausedAt = 0;
   let selectedStrokes = [];
   let placedStrokes = [];
   let timerId = null;
@@ -969,22 +981,45 @@ function startBrushMinigame() {
     skip.focus();
   }
 
-  // Timer
+  // Timer — uses Date.now() so tab-visibility pause is accurate
   const TIMER_MAX = 30;
-  timerId = setInterval(() => {
-    timeLeft--;
+  timerStartedAt = Date.now();
+
+  function tickTimer() {
+    if (timerPaused) return;
+    const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
+    timeLeft = Math.max(0, TIMER_MAX - elapsed);
     $('brush-timer').textContent = 'Time: ' + timeLeft + 's';
     const fill = $('brush-timer-fill');
     if (fill) fill.style.width = (timeLeft / TIMER_MAX * 100) + '%';
     if (timeLeft <= 0) {
+      if (timerId) clearInterval(timerId);
       finishBrushMinigame();
     }
-  }, 1000);
+  }
+
+  timerId = setInterval(tickTimer, 200); // check more frequently for accuracy
+
+  // Pause/resume on tab visibility change
+  const visHandler = () => {
+    if (document.hidden) {
+      timerPaused = true;
+      timerPausedAt = Date.now();
+    } else if (timerPaused) {
+      timerPaused = false;
+      // Adjust start time to account for time spent hidden
+      const hiddenDuration = Date.now() - timerPausedAt;
+      timerStartedAt += hiddenDuration;
+      timerPausedAt = 0;
+    }
+  };
+  document.addEventListener('visibilitychange', visHandler);
 
   // Cleanup
   window.__brushCleanup = () => {
     if (timerId) clearInterval(timerId);
     document.removeEventListener('keydown', keyHandler);
+    document.removeEventListener('visibilitychange', visHandler);
     tray.removeEventListener('dragstart', dragStartHandler);
     zone.removeEventListener('dragover', dragOverHandler);
     zone.removeEventListener('dragleave', dragLeaveHandler);
@@ -1060,6 +1095,8 @@ function showEnding() {
   } else {
     paper.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b9a88d;font-size:12px;font-style:italic">The scroll remains blank — the brush was never taken up.</div>';
   }
+  // Trigger scroll unroll animation after a brief delay for layout
+  requestAnimationFrame(() => { scroll.classList.add('scroll-entrance'); });
 
   switch (G.ending) {
     case 'wooden-oar':
@@ -1169,23 +1206,68 @@ function init() {
   // Mute toggle button and keyboard shortcut (M key)
   $('btn-mute').onclick = toggleMute;
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'm' || e.key === 'M') {
+    if ((e.key === 'm' || e.key === 'M') && !$('help-overlay').classList.contains('active')) {
       e.preventDefault();
       toggleMute();
     }
   });
 
-  // Help overlay toggle
+  // Help overlay toggle with focus trapping
+  let _helpPrevFocus = null;
+  function getHelpFocusable() {
+    const overlay = $('help-overlay');
+    return overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  }
   function toggleHelp() {
     const overlay = $('help-overlay');
+    const wasActive = overlay.classList.contains('active');
     overlay.classList.toggle('active');
-    if (overlay.classList.contains('active')) {
+    if (!wasActive) {
+      // Opening: store current focus, trap inside overlay
+      _helpPrevFocus = document.activeElement;
       $('btn-help-close').focus();
+      // Listen for Tab trapping
+      overlay.addEventListener('keydown', _helpTabTrap);
+    } else {
+      // Closing: restore focus
+      overlay.removeEventListener('keydown', _helpTabTrap);
+      if (_helpPrevFocus && _helpPrevFocus.focus) _helpPrevFocus.focus();
+      _helpPrevFocus = null;
+    }
+  }
+  function _helpTabTrap(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = getHelpFocusable();
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   }
   $('btn-help-close').onclick = toggleHelp;
   document.addEventListener('keydown', (e) => {
-    if (e.key === '?' || (e.key === 'Escape' && $('help-overlay').classList.contains('active'))) {
+    // Block game shortcuts when help overlay is active
+    const helpActive = $('help-overlay').classList.contains('active');
+    if (helpActive && (e.key === '?' || e.key === 'Escape')) {
+      e.preventDefault();
+      toggleHelp();
+      return;
+    }
+    if (helpActive && (e.key === 'm' || e.key === 'M')) {
+      // Allow mute even in help — it's a global control
+      e.preventDefault();
+      toggleMute();
+      return;
+    }
+    if (!helpActive && (e.key === '?' || (e.key === 'Escape' && $('help-overlay').classList.contains('active')))) {
       e.preventDefault();
       toggleHelp();
     }
