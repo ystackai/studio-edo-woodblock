@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.45] — 2026-05-23 — Prevent Stroke Placement After Timer Expires
+
+### Fixed
+- **Brush strokes could be placed after timer expired** — when the composition timer reached 0, the minigame waited 600ms before calling `finishBrushMinigame()`. During this window, players could still click the zone or press Enter to place additional strokes, gaining an unfair advantage. Added `timerPaused` guard to `placeStroke()` and `toggleStrokeSelection()` so all interaction is blocked once time runs out.
+
+### Technical Debt
+- File: ~1629 lines (still well under 5000-line limit)
+
 ## [v1.44] — 2026-05-23 — Fix Duel Hit Detection Mixing Pixels & Percentages
 
 ### Fixed

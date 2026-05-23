@@ -1018,7 +1018,7 @@ function startBrushMinigame() {
   if (firstBtn) setTimeout(() => firstBtn.focus(), 100);
 
   function toggleStrokeSelection(btn, s) {
-    if (isPlacing) return;
+    if (isPlacing || timerPaused) return;
     const idx = selectedStrokes.indexOf(s.id);
     if (idx >= 0) {
       selectedStrokes.splice(idx, 1);
@@ -1068,7 +1068,7 @@ function startBrushMinigame() {
   }
 
   function placeStroke(strokeId) {
-    if (isPlacing || placedStrokes.length >= 3) return;
+    if (isPlacing || placedStrokes.length >= 3 || timerPaused) return;
     isPlacing = true;
     placedStrokes.push(strokeId);
     const zone = $('stroke-zone');
