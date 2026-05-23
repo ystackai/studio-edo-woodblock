@@ -2,6 +2,20 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.9] — 2026-05-22 — Touch Feedback, Scroll Animation Polish, Title Guard
+
+### Added
+- **Duel zone tap feedback** — brief golden ripple animation on the duel zone when the player strikes, improving tactile feel on mobile and desktop
+
+### Changed
+- **Ending scroll animation** — unroll duration increased from 0.8s to 1s with a more gradual opacity ramp (40% opacity at midpoint, slight overshoot at 70%) for a smoother reveal
+
+### Fixed
+- Title screen ENTER/SPACE handler no longer fires when help overlay is active, preventing accidental game start while reading instructions
+
+### Technical Debt
+- File: ~1328 lines (still well under 5000-line limit)
+
 ## [v1.8] — 2026-05-22 — Tab-Visibility Pause, Focus Trapping, A11y & Animation
 
 ### Added
