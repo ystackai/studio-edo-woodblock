@@ -561,10 +561,11 @@ let _inkTimer = null;
 function showScreen(name) {
   if (_inkTimer) { clearTimeout(_inkTimer); _inkTimer = null; }
   const overlay = $('ink-overlay');
+  if (!overlay) { /* ink-overlay element missing — skip transition */ }
   // Respect prefers-reduced-motion — skip ink-wash fade
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const fadeMs = prefersReduced ? 10 : 500;
-  if (!prefersReduced) {
+  if (!prefersReduced && overlay) {
     overlay.style.opacity = '1';
   }
   _inkTimer = setTimeout(() => {
@@ -580,10 +581,12 @@ function showScreen(name) {
     // Announce screen transition for screen readers
     announceSr('Screen: ' + name.replace(/-/g, ' '));
     // Fade overlay back out
-    if (!prefersReduced) {
-      requestAnimationFrame(() => { overlay.style.opacity = '0'; });
-    } else {
-      overlay.style.opacity = '0';
+    if (overlay) {
+      if (!prefersReduced) {
+        requestAnimationFrame(() => { overlay.style.opacity = '0'; });
+      } else {
+        overlay.style.opacity = '0';
+      }
     }
     _inkTimer = null;
   }, fadeMs);
