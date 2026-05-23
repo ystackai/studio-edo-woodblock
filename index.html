@@ -130,6 +130,7 @@
     .release-brief-content h2 { margin:0.9rem 0 0.5rem; font-size:1rem; color:#fff; }
     .release-brief-content p, .release-brief-content li { color:#e2e8f0; line-height:1.6; }
     .release-brief-content ul { margin:0.35rem 0 0.8rem 1.2rem; padding:0; }
+    .release-brief-content code { background:rgba(99,102,241,0.15); padding:1px 5px; border-radius:4px; font-size:0.82rem; color:#a5b4fc; }
     .progress-label { font-size: 0.8rem; color: var(--studio-muted); margin-bottom: 0.4rem; }
     .progress-label strong { color: var(--studio-text); }
     .progress-track { height: 8px; background: rgba(99,102,241,0.1); border-radius: 4px; overflow: hidden; }
@@ -247,7 +248,7 @@
     <section aria-labelledby="board-title">
     <div class="section-header">
       <h2 id="board-title">Board</h2>
-      <a id="board-link" href="https://github.com/orgs/ystackai/projects/3" target="_blank">Full board on GitHub →</a>
+      <a id="board-link" href="https://github.com/orgs/ystackai/projects/3" target="_blank" rel="noopener">Full board on GitHub →</a>
     </div>
     <div id="progress-section" class="progress-section" style="display:none">
       <div class="progress-label"><span id="progress-text"></span></div>
@@ -333,20 +334,29 @@
       var lines = String(md || '').split('\n');
       var html = '';
       var inList = false;
+
+      function inlineFormat(text) {
+        // Apply inline markdown: **bold**, *italic*, `code`
+        return esc(text)
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/`([^`]+)`/g, '<code>$1</code>');
+      }
+
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
         if (line.match(/^#\s/)) continue;
         if (line.match(/^##\s/)) {
           if (inList) { html += '</ul>'; inList = false; }
-          html += '<h2>' + esc(line.replace(/^##\s*/, '')) + '</h2>';
+          html += '<h2>' + inlineFormat(line.replace(/^##\s*/, '')) + '</h2>';
         } else if (line.match(/^-\s/)) {
           if (!inList) { html += '<ul>'; inList = true; }
-          html += '<li>' + esc(line.replace(/^-\s*/, '')) + '</li>';
+          html += '<li>' + inlineFormat(line.replace(/^-\s*/, '')) + '</li>';
         } else if (line.trim() === '') {
           if (inList) { html += '</ul>'; inList = false; }
         } else {
           if (inList) { html += '</ul>'; inList = false; }
-          html += '<p>' + esc(line) + '</p>';
+          html += '<p>' + inlineFormat(line) + '</p>';
         }
       }
       if (inList) html += '</ul>';
@@ -527,7 +537,7 @@
           tickets.forEach(function(t) {
             var labels = (t.labels || []).map(function(l) { return typeof l === 'string' ? l : l.name; });
             var typeLabels = labels.filter(function(l) { return ['feature','bug','polish','audio','visual','writing','playtest','test'].indexOf(l) >= 0; });
-            laneHTML += '<a class="board-ticket" role="listitem" href="' + esc(issueBaseUrl ? (String(issueBaseUrl).replace(/\/$/, '') + '/' + t.number) : '#') + '" target="_blank">'
+            laneHTML += '<a class="board-ticket" role="listitem" href="' + esc(issueBaseUrl ? (String(issueBaseUrl).replace(/\/$/, '') + '/' + t.number) : '#') + '" target="_blank" rel="noopener">'
               + '<span class="ticket-num">#' + t.number + '</span> ' + esc(t.title);
             if (typeLabels.length) {
               laneHTML += '<div class="ticket-labels">' + typeLabels.map(function(l) {
@@ -537,7 +547,7 @@
             laneHTML += '</a>';
           });
           if (all.length > 3) {
-            laneHTML += '<a href="' + esc(d.board_url || issueBaseUrl || '#') + '" target="_blank" style="font-size:0.75rem;color:var(--studio-accent);padding-top:0.25rem;display:inline-block;text-decoration:none">+' + (all.length - 3) + ' more →</a>';
+            laneHTML += '<a href="' + esc(d.board_url || issueBaseUrl || '#') + '" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--studio-accent);padding-top:0.25rem;display:inline-block;text-decoration:none">+' + (all.length - 3) + ' more →</a>';
           }
           laneHTML += '</div></div>';
         });
