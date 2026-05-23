@@ -2,6 +2,15 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.33] — 2026-05-22 — Audio Optimization & Small Screen Polish
+
+### Changed
+- **Ambient audio skip on same src** — `playAmbient` now checks if the requested audio source is already playing and skips the fade cycle, preventing unnecessary volume ramps when transitioning between screens that use the same background music
+- **Ending stats word-break** — added `word-break: break-word` to the journey statistics on the ending screen to prevent text overflow on narrow screens
+
+### Technical Debt
+- File: ~1575 lines (still well under 5000-line limit)
+
 ## [v1.32] — 2026-05-22 — Duel Miss Message Clarity & Animation Performance
 
 ### Changed
