@@ -274,6 +274,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div id="ending-scroll" style="display:none"></div>
       <div class="ink-line-thin"></div>
       <p class="mastery-label" id="ending-mastery-label"></p>
+      <div style="font-size:10px;color:#8a7a6a;margin:4px 0;line-height:1.6;min-height:20px" id="ending-stats" aria-live="polite"></div>
       <p class="body-text" style="font-size:10px;color:#8a7a6a;margin-top:10px;line-height:1.5">Built for Pictures of the Floating World studio.<br>Assets by FactoryX proof-pack pipeline.</p>
       <div style="margin-top:16px">
         <button class="btn" id="btn-restart">Walk the Road Again</button>
@@ -1223,6 +1224,20 @@ function showEnding() {
   const scroll = $('ending-scroll');
 
   masteryLabel.textContent = 'Final Mastery: ' + G.mastery + ' / 100';
+
+  // Compute and display journey statistics
+  const statsEl = $('ending-stats');
+  if (statsEl) {
+    const totalSwordHits = G.swordResults.reduce((sum, r) => sum + r.score, 0) / 20 * 3;
+    const totalBrushScore = G.brushScores.reduce((sum, r) => sum + r.score, 0);
+    const brushCount = G.brushScores.length;
+    const swordCount = G.swordResults.length;
+    const parts = [];
+    if (swordCount > 0) parts.push('Sword: ' + Math.round(totalSwordHits) + '/' + (swordCount * 3) + ' hits');
+    if (brushCount > 0) parts.push('Brush: ' + brushCount + ' compositions (total ' + totalBrushScore + ' coherence)');
+    if (G.finalResult) parts.push('Final duel: ' + G.finalResult.hits + '/' + G.finalResult.total + ' hits');
+    if (parts.length > 0) statsEl.textContent = parts.join(' · ');
+  }
 
   // Build the accumulated painting scroll — a traditional hanging scroll (kakemono)
   scroll.style.display = 'block';

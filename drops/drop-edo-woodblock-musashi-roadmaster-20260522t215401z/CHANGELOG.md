@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.24] — 2026-05-22 — Journey Statistics on Ending Screen
+
+### Added
+- **Journey statistics** — the ending screen now displays a summary of the player's journey, including total sword hits, brush compositions completed, and final duel result, giving players a sense of their overall performance
+
+### Technical Debt
+- File: ~1526 lines (still well under 5000-line limit)
+
 ## [v1.23] — 2026-05-22 — Waypoint Choice History
 
 ### Added
