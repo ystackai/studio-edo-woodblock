@@ -358,6 +358,9 @@
         } else if (line.match(/^##\s/)) {
           if (inList) { html += '</ul>'; inList = false; }
           html += '<h2>' + inlineFormat(line.replace(/^##\s*/, '')) + '</h2>';
+        } else if (line.match(/^---\s*$/)) {
+          if (inList) { html += '</ul>'; inList = false; }
+          html += '<hr aria-hidden="true">';
         } else if (line.match(/^-\s/)) {
           if (!inList) { html += '<ul>'; inList = true; }
           html += '<li>' + inlineFormat(line.replace(/^-\s*/, '')) + '</li>';
