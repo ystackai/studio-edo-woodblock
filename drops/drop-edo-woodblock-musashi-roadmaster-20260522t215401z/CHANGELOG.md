@@ -2,6 +2,16 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.26] — 2026-05-22 — Title Screen Subtitle Animation & Loading Pulse
+
+### Added
+- **Subtitle reveal animation** — the subtitle on the title screen now fades in with a slight upward motion (`@keyframes subtitleReveal`) 0.3s after the screen appears
+- **Loading text pulse** — the "Preparing the road..." text on the loading screen now pulses gently (`@keyframes loadPulse`)
+- **Start button glow** — the "Begin the Journey" button has a subtle amber glow (`btn-start-glow` class) to draw attention
+
+### Technical Debt
+- File: ~1533 lines (still well under 5000-line limit)
+
 ## [v1.25] — 2026-05-22 — Better Aria-Labels & Scroll Seal Animation
 
 ### Added

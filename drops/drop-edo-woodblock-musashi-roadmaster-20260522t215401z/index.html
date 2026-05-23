@@ -30,6 +30,9 @@ h2{font-size:clamp(20px,5vw,36px);font-weight:600;letter-spacing:.04em;color:#f4
 @keyframes titleReveal{0%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:translateY(0)}}
 h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:6px}
 .subtitle{font-size:clamp(13px,2.5vw,18px);color:#b9a88d;letter-spacing:.08em;margin-bottom:4px}
+.screen.active .subtitle{animation:subtitleReveal .8s ease-out forwards;animation-delay:.3s;opacity:0}
+@keyframes subtitleReveal{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:translateY(0)}}
+.btn-start-glow{box-shadow:0 0 30px rgba(139,69,19,.15)}
 .body-text{font-size:clamp(14px,2.2vw,17px);line-height:1.7;color:#cdbb9d;margin:10px 0}
 .btn{appearance:none;border:1px solid rgba(139,69,19,.5);background:rgba(26,21,16,.8);color:#f4ead8;padding:12px 28px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:clamp(14px,2.2vw,17px);letter-spacing:.04em;transition:all .3s;margin:6px;min-width:160px}
 .btn:hover,.btn:focus-visible{background:#8B4513;border-color:#8B4513;color:#fff;outline:none;transform:translateY(-1px);box-shadow:0 0 20px rgba(139,69,19,.3);transition:all .2s ease}
@@ -60,6 +63,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 @keyframes inkDropIdle{0%{height:0;opacity:0}30%{height:6px;opacity:.6}70%{height:6px;opacity:.6}100%{height:0;opacity:0;transform:translateX(-50%) translateY(20px)}}
 @keyframes inkSplash{0%{width:0;height:0;opacity:.8;transform:translate(-50%,-50%) scale(0)}50%{opacity:.6}100%{width:200px;height:200px;opacity:0;transform:translate(-50%,-50%) scale(1)}}
 @keyframes strokePlace{0%{opacity:0;transform:scale(.6)}50%{opacity:.8;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes loadPulse{0%,100%{opacity:.5}50%{opacity:1}}
 @keyframes vignetteFade{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
 @keyframes timerUrgent{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
 .brush-timer.urgent{color:#e8a040}
@@ -152,7 +156,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
   <div id="loading-overlay" class="loading-overlay">
     <h2 style="font-size:clamp(20px,5vw,36px);font-weight:600;color:#f4ead8;letter-spacing:.06em">Way of the Brush and Blade</h2>
     <div class="loader"><div class="loader-fill"></div></div>
-    <p style="font-size:12px;color:#b9a88d;margin-top:8px">Preparing the road...</p>
+    <p style="font-size:12px;color:#b9a88d;margin-top:8px;animation:loadPulse 1.5s ease-in-out infinite">Preparing the road...</p>
   </div>
 
   <!-- Title Screen -->
@@ -170,7 +174,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div style="margin:20px 0;height:80px;background:rgba(0,0,0,.2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b9a88d;border:1px solid rgba(139,69,19,.2)">
         <span>Along the old Tōkaidō road,<br>five stops await between dawn and Ganryūjima.</span>
       </div>
-      <button class="btn" id="btn-start" autofocus aria-label="Begin the journey, start a new game">Begin the Journey</button>
+      <button class="btn btn-start-glow" id="btn-start" autofocus aria-label="Begin the journey, start a new game">Begin the Journey</button>
       <button class="btn btn-secondary btn-small" id="btn-resume" style="display:none;margin-top:8px" aria-label="Continue your previous journey from where you left off">Continue Previous Journey</button>
       <p class="body-text" style="font-size:11px;margin-top:12px;color:#8a7a6a" aria-live="polite" id="title-hint">Press ENTER or click to begin</p>
     </div>
