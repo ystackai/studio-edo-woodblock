@@ -185,6 +185,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="vignette-text" id="wp-vignette"></div>
       <div class="mastery-bar"><div class="mastery-fill" id="wp-mastery-fill" style="width:0%"></div></div>
       <p class="mastery-label" id="wp-mastery-label">Mastery: 0 / 100</p>
+      <p style="font-size:11px;color:#d4a05a;margin:2px 0;min-height:18px;transition:opacity .5s" id="mastery-gain" aria-live="polite"></p>
       <div class="progress-dots" id="wp-progress"></div>
       <div class="ink-line-thin"></div>
       <p class="body-text" style="font-size:14px;margin:6px 0">Choose your discipline:</p>
@@ -394,6 +395,7 @@ const COHERENCE = {
 
 // --- Game state ---
 let G = null;
+let _lastMasteryGain = 0;
 
 function defaultState() {
   return {
@@ -609,6 +611,16 @@ function showWaypoint() {
   $('wp-vignette').textContent = loc.vignettes[vIdx];
   setBgImage($('wp-bg'), loc.bg);
   updateMasteryDisplay();
+  // Show mastery gain from previous minigame
+  const gainEl = $('mastery-gain');
+  if (gainEl && _lastMasteryGain > 0) {
+    gainEl.textContent = '✦ +' + _lastMasteryGain + ' Mastery';
+    gainEl.style.opacity = '1';
+    setTimeout(() => { gainEl.style.opacity = '0'; }, 3000);
+  } else if (gainEl) {
+    gainEl.textContent = '';
+    gainEl.style.opacity = '0';
+  }
   // Progress dots
   const progress = $('wp-progress');
   progress.innerHTML = '';
@@ -831,7 +843,9 @@ function startSwordMinigame() {
     const score = Math.round((hitCount / rounds) * 20);
     const isFinalDuel = isFinal;
     if (!isFinalDuel) {
+      const prevMastery = G.mastery;
       G.mastery = Math.min(100, G.mastery + score);
+      _lastMasteryGain = G.mastery - prevMastery;
       G.swordResults.push({waypoint:G.waypoint, score});
     } else {
       G.finalResult = {hits:hitCount, total:rounds};
@@ -1089,7 +1103,9 @@ function startBrushMinigame() {
     // Timing bonus
     const timingBonus = timeLeft > 20 ? 5 : timeLeft > 10 ? 3 : timeLeft > 5 ? 1 : 0;
     const score = Math.min(20, coherence + timingBonus);
+    const prevMastery = G.mastery;
     G.mastery = Math.min(100, G.mastery + score);
+    _lastMasteryGain = G.mastery - prevMastery;
     G.brushStrokes.push(...placedStrokes);
     G.brushScores.push({waypoint:G.waypoint, score, strokes:[...placedStrokes]});
     updateMasteryDisplay();
@@ -1277,6 +1293,7 @@ function showEnding() {
 function restartGame() {
   clearSave();
   G = defaultState();
+  _lastMasteryGain = 0;
   playAmbient('');
   showTitle();
 }
@@ -1330,10 +1347,12 @@ function init() {
   };
 
   $('btn-sword').onclick = () => {
+    _lastMasteryGain = 0;
     startSwordMinigame();
   };
 
   $('btn-brush').onclick = () => {
+    _lastMasteryGain = 0;
     startBrushMinigame();
   };
 

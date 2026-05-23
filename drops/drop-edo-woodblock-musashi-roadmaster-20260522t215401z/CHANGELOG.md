@@ -2,6 +2,15 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.22] — 2026-05-22 — Mastery Gain Display on Waypoint Return
+
+### Added
+- **Mastery gain notification** — after completing a sword or brush minigame, returning to the waypoint screen now shows a "✦ +X Mastery" message that fades out after 3 seconds, giving players clear feedback on their progression
+- **Mastery tracking** — `_lastMasteryGain` variable tracks the delta between pre- and post-minigame mastery, enabling the gain display
+
+### Technical Debt
+- File: ~1495 lines (still well under 5000-line limit)
+
 ## [v1.21] — 2026-05-22 — Time's Up Animation & Round Number Display
 
 ### Added
