@@ -128,6 +128,7 @@
     .release-brief[open] summary::after { content:'-'; }
     .release-brief-content { padding:0 1rem 1rem; color:#f1f5f9; }
     .release-brief-content h2 { margin:0.9rem 0 0.5rem; font-size:1rem; color:#fff; }
+    .release-brief-content h3 { margin:0.7rem 0 0.4rem; font-size:0.9rem; color:#e2e8f0; }
     .release-brief-content p, .release-brief-content li { color:#e2e8f0; line-height:1.6; }
     .release-brief-content ul { margin:0.35rem 0 0.8rem 1.2rem; padding:0; }
     .release-brief-content code { background:rgba(99,102,241,0.15); padding:1px 5px; border-radius:4px; font-size:0.82rem; color:#a5b4fc; }
@@ -351,7 +352,10 @@
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
         if (line.match(/^#\s/)) continue;
-        if (line.match(/^##\s/)) {
+        if (line.match(/^###\s/)) {
+          if (inList) { html += '</ul>'; inList = false; }
+          html += '<h3>' + inlineFormat(line.replace(/^###\s*/, '')) + '</h3>';
+        } else if (line.match(/^##\s/)) {
           if (inList) { html += '</ul>'; inList = false; }
           html += '<h2>' + inlineFormat(line.replace(/^##\s*/, '')) + '</h2>';
         } else if (line.match(/^-\s/)) {
