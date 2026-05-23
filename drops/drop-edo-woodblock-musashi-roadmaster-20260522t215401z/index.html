@@ -149,10 +149,11 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .loading-overlay .loader{width:40px;height:4px;background:rgba(244,234,216,.12);border-radius:2px;overflow:hidden;margin:12px auto}
 .loading-overlay .loader-fill{height:100%;background:linear-gradient(90deg,#8B4513,#d4a05a);border-radius:2px;width:0%;animation:loadProgress 1.2s ease-in-out forwards}
 @keyframes loadProgress{0%{width:0%}100%{width:100%}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#ending-scroll.scroll-entrance{animation:none!important;opacity:1!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#ending-scroll.scroll-entrance{animation:none!important;opacity:1!important}.loading-overlay .loader-fill{animation:none!important;width:100%!important}.progress-dot.current{animation:none!important}}
 <body>
 <div id="app" role="application" aria-label="Way of the Brush and Blade">
   <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay">
     <div class="loader" role="progressbar" aria-label="Loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="loader-fill"></div></div>
   </div>
 
@@ -230,7 +231,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <h3>Composition</h3>
       <div class="ink-line-thin" aria-hidden="true"></div>
       <p class="body-text" style="font-size:13px">Complete the painting — choose strokes and place them in the composition.</p>
-      <div class="brush-timer" id="brush-timer" role="timer" aria-live="polite">Time: 30s</div>
+      <div class="brush-timer" id="brush-timer" role="timer" aria-atomic="true">Time: 30s</div>
       <div class="timer-bar" aria-hidden="true"><div class="timer-fill" id="brush-timer-fill" style="width:100%"></div></div>
       <div class="brush-score" id="brush-score" aria-live="polite">Coherence: —</div>
       <div class="stroke-zone" id="stroke-zone" role="img" aria-label="Composition area">
@@ -302,7 +303,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
   <button type="button" id="btn-mute" class="mute-toggle" aria-label="Mute audio" aria-pressed="false" title="Toggle sound">🔊</button>
 
   <!-- Screen reader live region for announcements -->
-  <div id="sr-announce" class="visually-hidden" aria-live="polite" role="status"></div>
+  <div id="sr-announce" class="visually-hidden" aria-live="polite" role="status" aria-atomic="true"></div>
 
   <!-- Help overlay -->
   <div id="help-overlay" class="help-overlay" role="dialog" aria-label="How to play">
@@ -577,8 +578,7 @@ function showScreen(name) {
     G.phase = name;
     saveState();
     // Announce screen transition for screen readers
-    const ann = $('sr-announce');
-    if (ann) ann.textContent = 'Screen: ' + name.replace(/-/g, ' ');
+    announceSr('Screen: ' + name.replace(/-/g, ' '));
     // Fade overlay back out
     if (!prefersReduced) {
       requestAnimationFrame(() => { overlay.style.opacity = '0'; });
@@ -664,6 +664,8 @@ function showWaypoint() {
   srProgress.textContent = 'Stop ' + (G.waypoint + 1) + ' of ' + WAYPOINT_COUNT + '. ' + G.waypoint + ' completed.';
   progress.appendChild(srProgress);
   showScreen('waypoint');
+  // Announce vignette for screen readers
+  announceSr('Stop ' + (G.waypoint + 1) + ': ' + loc.title + '. ' + loc.vignettes[vIdx].substring(0, 100));
   $('btn-sword').focus();
 }
 
@@ -1312,7 +1314,12 @@ function showEnding() {
   // Paper area
   const paper = document.createElement('div');
   paper.className = 'scroll-paper';
-  paper.setAttribute('aria-label', 'Journey painting scroll');
+  // Build a descriptive label from placed strokes
+  const strokeLabels = G.brushStrokes.map(function(sid) {
+    var s = STROKES.find(function(x) { return x.id === sid; });
+    return s ? s.label : sid;
+  }).join(', ');
+  paper.setAttribute('aria-label', 'Journey painting scroll' + (strokeLabels ? ' with ' + strokeLabels : ''));
   scroll.appendChild(paper);
 
   if (G.brushStrokes.length > 0) {
@@ -1439,7 +1446,10 @@ function init() {
     if (loadProgress >= 100) {
       clearInterval(loadInterval);
       setTimeout(() => {
-        if (lo) lo.classList.add('hidden');
+        if (lo) {
+          lo.classList.add('hidden');
+          lo.setAttribute('aria-hidden', 'true');
+        }
       }, 200);
     }
   }, 150);
