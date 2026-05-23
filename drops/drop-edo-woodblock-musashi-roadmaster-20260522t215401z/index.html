@@ -45,7 +45,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .minigame-area{width:100%;max-width:500px;margin:12px auto;position:relative;min-height:200px}
 .duel-zone{width:100%;height:80px;background:rgba(0,0,0,.3);border:1px solid rgba(139,69,19,.4);border-radius:4px;position:relative;overflow:hidden;margin:10px 0;touch-action:manipulation}
 .duel-zone::before{content:'';position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,transparent 0%,rgba(139,69,19,.05) 30%,rgba(139,69,19,.1) 50%,rgba(139,69,19,.05) 70%,transparent 100%);pointer-events:none;z-index:0;opacity:.5}
-.duel-indicator{position:absolute;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#d4a05a,#8B4513);border-radius:2px;transition:left .05s linear;pointer-events:none;z-index:2;box-shadow:0 0 8px rgba(212,160,90,.3)}
+.duel-indicator{position:absolute;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#d4a05a,#8B4513);border-radius:2px;transition:left .05s linear;pointer-events:none;z-index:2;box-shadow:0 0 8px rgba(212,160,90,.3);will-change:left}
 .duel-indicator.feint{background:linear-gradient(180deg,#e8a040,#a06030);box-shadow:0 0 12px rgba(232,160,64,.5);width:5px;animation:feintPulse .3s ease-in-out 3}
 .duel-target{position:absolute;top:0;bottom:0;width:40px;background:rgba(139,69,19,.3);border-left:2px solid #8B4513;border-right:2px solid #8B4513;pointer-events:none;z-index:1;box-shadow:inset 0 0 8px rgba(139,69,19,.15)}
 .duel-hit{position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;background:radial-gradient(circle,#d4a05a,transparent);transform:translate(-50%,-50%);pointer-events:none;z-index:3;opacity:0}
@@ -56,6 +56,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 @keyframes feintPulse{0%{opacity:.6;transform:scaleX(1)}50%{opacity:1;transform:scaleX(1.4)}100%{opacity:.6;transform:scaleX(1)}}
 @keyframes inkDropIdle{0%{height:0;opacity:0}30%{height:6px;opacity:.6}70%{height:6px;opacity:.6}100%{height:0;opacity:0;transform:translateX(-50%) translateY(20px)}}
 @keyframes inkSplash{0%{width:0;height:0;opacity:.8;transform:translate(-50%,-50%) scale(0)}50%{opacity:.6}100%{width:200px;height:200px;opacity:0;transform:translate(-50%,-50%) scale(1)}}
+@keyframes strokePlace{0%{opacity:0;transform:scale(.6)}50%{opacity:.8;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
 .ink-splash{position:absolute;top:50%;left:50%;border-radius:50%;background:radial-gradient(circle,rgba(139,69,19,.6),transparent);pointer-events:none;animation:inkSplash .5s ease-out forwards;z-index:4}
 .duel-result{font-size:20px;font-weight:700;margin:8px 0;min-height:30px}
 .duel-rounds{display:flex;gap:6px;justify-content:center;margin:6px 0}
@@ -73,7 +74,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .stroke-zone{width:100%;height:120px;border:2px dashed rgba(139,69,19,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;margin:8px 0;position:relative;background:rgba(0,0,0,.15);transition:border-color .3s,background .3s;touch-action:manipulation;cursor:pointer}
 .stroke-zone.drag-over{border-color:#d4a05a;background:rgba(212,160,90,.08)}
 .stroke-zone.placed{border-color:rgba(139,69,19,.5);border-style:solid;background:rgba(0,0,0,.2)}
-.stroke-zone .placed-stroke{position:absolute;inset:4px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.stroke-zone .placed-stroke{position:absolute;inset:4px;display:flex;align-items:center;justify-content:center;pointer-events:none;animation:strokePlace .4s ease-out forwards}
 .stroke-zone .placed-stroke svg{width:100%;height:100%;max-width:200px;max-height:80px}
 .stroke-zone-label{font-size:12px;color:rgba(244,234,216,.15);pointer-events:none;transition:color .3s}
 .brush-timer{font-size:14px;color:#b9a88d;margin:4px 0;font-variant-numeric:tabular-nums;letter-spacing:.02em}
@@ -105,6 +106,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 #ending-scroll.scroll-entrance{animation:scrollUnroll 1s ease-out forwards}
 @keyframes duelTap{0%{box-shadow:0 0 0 0 rgba(212,160,90,.4)}100%{box-shadow:0 0 0 12px rgba(212,160,90,0)}}
 .duel-zone.tap-feedback{animation:duelTap .3s ease-out forwards}
+.mute-toggle{position:absolute;top:10px;right:10px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700}
 .mute-toggle:hover,.mute-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
 .help-toggle{position:absolute;top:10px;right:52px;z-index:20;width:36px;height:36px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:rgba(26,21,16,.7);color:#f4ead8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:serif;font-weight:700}
 .help-toggle:hover,.help-toggle:focus-visible{background:rgba(139,69,19,.5);border-color:#8B4513;outline:none}
@@ -180,7 +182,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <h3>The Draw Cut</h3>
       <div class="ink-line-thin"></div>
       <p class="body-text" style="font-size:13px" id="sword-instruction">Wait for the ink stroke to complete, then strike at the perfect moment.</p>
-      <div class="duel-zone" id="duel-zone" role="img" aria-label="Duel timing zone">
+      <div class="duel-zone" id="duel-zone" role="application" aria-roledescription="Duel timing zone" aria-label="Sword duel — tap or press Space when the indicator aligns with the target">
         <div class="duel-target" id="duel-target" style="left:45%"></div>
         <div class="duel-indicator" id="duel-indicator" style="left:0%"></div>
         <div class="duel-hit" id="duel-hit"></div>
@@ -224,7 +226,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <p class="body-text" id="final-context"></p>
       <div class="mastery-bar"><div class="mastery-fill" id="final-mastery-fill" style="width:0%"></div></div>
       <p class="mastery-label" id="final-mastery-label">Mastery: 0 / 100</p>
-      <div class="duel-zone" id="final-duel-zone" role="img" aria-label="Final duel timing zone">
+      <div class="duel-zone" id="final-duel-zone" role="application" aria-roledescription="Final duel timing zone" aria-label="Final duel at Ganryujima — tap or press Space when the indicator aligns with the target">
         <div class="duel-target" id="final-duel-target" style="left:45%"></div>
         <div class="duel-indicator" id="final-duel-indicator" style="left:0%"></div>
         <div class="duel-hit" id="final-duel-hit"></div>
@@ -263,10 +265,10 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
   <audio id="audio-sfx" preload="auto" style="display:none"></audio>
 
   <!-- Help toggle -->
-  <button id="btn-help-toggle" class="help-toggle" aria-label="How to play" title="How to play">?</button>
+  <button id="btn-help-toggle" class="help-toggle" aria-label="How to play" aria-expanded="false" title="How to play">?</button>
 
   <!-- Mute toggle -->
-  <button id="btn-mute" class="mute-toggle" aria-label="Mute audio" title="Toggle sound">🔊</button>
+  <button id="btn-mute" class="mute-toggle" aria-label="Mute audio" aria-pressed="false" title="Toggle sound">🔊</button>
 
   <!-- Screen reader live region for announcements -->
   <div id="sr-announce" class="visually-hidden" aria-live="polite" role="status"></div>
@@ -384,6 +386,13 @@ function defaultState() {
 
 // --- DOM refs ---
 const $ = id => document.getElementById(id);
+// Screen reader announcement helper — clears and re-sets to force announcement even for repeated text
+function announceSr(msg) {
+  const el = $('sr-announce');
+  if (!el) return;
+  el.textContent = '';
+  requestAnimationFrame(() => { el.textContent = msg; });
+}
 const screens = {
   title: $('screen-title'),
   waypoint: $('screen-waypoint'),
@@ -403,6 +412,19 @@ function setBgImage(el, url) {
   img.src = url;
 }
 
+// --- Preload background images at startup to prevent flickering ---
+function preloadImages() {
+  const urls = [];
+  LOCATIONS.forEach(loc => { if (loc.bg && urls.indexOf(loc.bg) === -1) urls.push(loc.bg); });
+  // Also preload the style frames used by screens
+  const extra = ['assets/pack1-style-frame.png','assets/pack2-style-frame.png','assets/pack3-style-frame.png'];
+  extra.forEach(u => { if (urls.indexOf(u) === -1) urls.push(u); });
+  urls.forEach(url => {
+    const img = new Image();
+    img.src = url;
+  });
+}
+
 // --- Audio ---
 let _ambientFadeId = null;
 let _muted = false;
@@ -413,6 +435,7 @@ function setMuted(muted) {
   if (btn) {
     btn.textContent = _muted ? '🔇' : '🔊';
     btn.setAttribute('aria-label', _muted ? 'Unmute audio' : 'Mute audio');
+    btn.setAttribute('aria-pressed', _muted ? 'true' : 'false');
     btn.setAttribute('title', _muted ? 'Unmute sound' : 'Toggle sound');
   }
   const a = $('audio-ambient');
@@ -734,6 +757,8 @@ function startSwordMinigame() {
       setTimeout(() => splash.remove(), 500);
       resultEl.textContent = '✦ Round ' + (currentRound + 1) + ': Perfect strike!';
       resultEl.style.color = '#d4a05a';
+      // Screen reader announcement
+      announceSr('Round ' + (currentRound + 1) + ': Perfect strike!');
       playSfx('assets/pack2-sfx.wav');
     } else if (hit) {
       hitEl.classList.add('show');
@@ -745,10 +770,14 @@ function startSwordMinigame() {
       setTimeout(() => splash.remove(), 500);
       resultEl.textContent = '✓ Round ' + (currentRound + 1) + ': Hit';
       resultEl.style.color = '#8a9a7a';
+      // Screen reader announcement
+      announceSr('Round ' + (currentRound + 1) + ': Hit');
       playSfx('assets/pack2-sfx.wav');
     } else {
       resultEl.textContent = '✗ Round ' + (currentRound + 1) + ': Miss';
       resultEl.style.color = '#a06050';
+      // Screen reader announcement
+      announceSr('Round ' + (currentRound + 1) + ': Miss');
     }
     setTimeout(() => { hitEl.classList.remove('show','perfect'); }, 300);
     currentRound++;
@@ -784,6 +813,9 @@ function startSwordMinigame() {
     skip.style.display = 'inline-block';
     skip.textContent = isFinalDuel ? 'See your fate →' : 'Continue →';
     resultEl.textContent = (isFinalDuel ? 'Duel complete: ' : 'Round complete: ') + hitCount + '/' + rounds + ' hits';
+    // Screen reader announcement
+    const duelLabel = isFinalDuel ? 'Final duel' : 'Sword round';
+    announceSr(duelLabel + ' complete: ' + hitCount + ' of ' + rounds + ' hits. Mastery: ' + G.mastery + '.');
     skip.onclick = () => {
       if (isFinalDuel) {
         showEnding();
@@ -868,6 +900,9 @@ function startBrushMinigame() {
     btn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStrokeSelection(btn, s); }};
     tray.appendChild(btn);
   });
+  // Focus the first stroke button for keyboard users
+  const firstBtn = tray.querySelector('.stroke-btn');
+  if (firstBtn) setTimeout(() => firstBtn.focus(), 100);
 
   function toggleStrokeSelection(btn, s) {
     if (isPlacing) return;
@@ -921,6 +956,9 @@ function startBrushMinigame() {
     const idx = selectedStrokes.indexOf(strokeId);
     if (idx >= 0) selectedStrokes.splice(idx, 1);
     isPlacing = false;
+    // Announce to screen readers
+    const strokeName = s ? s.label : strokeId;
+    announceSr('Placed ' + strokeName + '. ' + placedStrokes.length + ' of 3 strokes placed.');
     // Play brush stroke sound
     playSfx('assets/pack3-sfx.wav');
 
@@ -997,6 +1035,8 @@ function startBrushMinigame() {
     saveState();
 
     $('brush-score').textContent = 'Coherence: ' + coherence + ' + Timing: ' + timingBonus + ' = ' + score;
+    // Screen reader announcement
+    announceSr('Composition complete! Score: ' + score + '. Mastery: ' + G.mastery + '.');
     const skip = $('btn-brush-skip');
     skip.style.display = 'inline-block';
     skip.onclick = () => {
@@ -1151,6 +1191,8 @@ function showEnding() {
   G.completed = true;
   clearSave();
   saveState();
+  // Announce ending to screen readers
+  announceSr('Ending: ' + title.textContent + '. ' + text.textContent.substring(0, 120) + '...');
   $('btn-restart').focus();
 }
 
@@ -1183,6 +1225,7 @@ function showTitle() {
 // --- Init ---
 function init() {
   G = defaultState();
+  preloadImages();
   showTitle();
 
   // Hide loading overlay after a short delay for asset readiness
@@ -1251,6 +1294,8 @@ function init() {
     const overlay = $('help-overlay');
     const wasActive = overlay.classList.contains('active');
     overlay.classList.toggle('active');
+    const toggleBtn = $('btn-help-toggle');
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', overlay.classList.contains('active') ? 'true' : 'false');
     if (!wasActive) {
       // Opening: store current focus, trap inside overlay
       _helpPrevFocus = document.activeElement;

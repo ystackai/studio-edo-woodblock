@@ -2,6 +2,24 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.14] — 2026-05-22 — Image Preloading, Interactive Semantics & A11y Polish
+
+### Added
+- **Image preloading** — all waypoint background images and style frames are preloaded at startup via `preloadImages()`, preventing visual flicker when transitioning between screens
+- **Stroke placement animation** — placed strokes in the composition zone now animate in with a smooth scale-and-fade effect (`@keyframes strokePlace`)
+- **Screen reader announcements** — `announceSr()` helper clears and re-sets text content to force announcement of repeated strings; now used for duel round results (perfect/hit/miss), brush stroke placement (stroke name + count), brush minigame completion (score + mastery), and ending reveal (title + excerpt)
+- **`aria-pressed` on mute button** — the mute toggle now reports its pressed state to assistive technology
+- **`aria-expanded` on help toggle** — the help button now reports expanded/collapsed state to assistive technology
+
+### Changed
+- **Duel zone semantics** — changed `role="img"` to `role="application"` with `aria-roledescription="Duel timing zone"` on both regular and final duel zones, since these are interactive timing widgets, not static images
+- **Focus management** — brush minigame now auto-focuses the first stroke button when the tray is populated, improving keyboard navigation
+- **Performance** — added `will-change: left` to `.duel-indicator` for smoother animation compositing
+- **CSS organisation** — added missing base style for `.mute-toggle` (was only defined with hover/focus-visible)
+
+### Technical Debt
+- File: ~1388 lines (still well under 5000-line limit)
+
 ## [v1.13] — 2026-05-22 — Focus Trap Fix
 
 ### Fixed
