@@ -723,7 +723,7 @@ function startSwordMinigame() {
     // Target is at a random position between 30% and 70%
     const targetPct = 30 + Math.random() * 40;
     targetEl.style.left = targetPct + '%';
-    targetEl.style.width = Math.max(30, 50 - G.mastery * 0.2) + 'px';
+    targetEl.style.width = Math.max(30, 30 + G.mastery * 0.2) + 'px';
     strikeTime = targetPct;
     // Feint: if final duel, occasionally have a false start
     feintActive = isFinal && Math.random() < 0.3 && G.mastery < 80;

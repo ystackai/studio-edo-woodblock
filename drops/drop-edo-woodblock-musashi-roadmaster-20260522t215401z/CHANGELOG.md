@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.34] — 2026-05-22 — Fix Target Zone Width Formula (Inverted Bug)
+
+### Fixed
+- **Target zone width formula inverted** — the duel target zone width was calculated as `50 - G.mastery * 0.2`, making it **narrower** with higher mastery (50px at mastery 0 → 30px at mastery 100). Corrected to `30 + G.mastery * 0.2`, which properly **widens** the target zone with higher mastery (30px at mastery 0 → 50px at mastery 100), matching the help text description and making higher mastery correctly grant an advantage
+
+### Technical Debt
+- File: ~1575 lines (still well under 5000-line limit)
+
 ## [v1.33] — 2026-05-22 — Audio Optimization & Small Screen Polish
 
 ### Changed
