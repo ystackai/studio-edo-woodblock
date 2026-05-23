@@ -43,7 +43,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .mastery-label{font-size:11px;color:#b9a88d;letter-spacing:.06em;text-transform:uppercase}
 .vignette-text{margin:16px 0;padding:16px;background:rgba(0,0,0,.2);border-left:3px solid #8B4513;border-radius:0 4px 4px 0;text-align:left;font-style:italic;line-height:1.8;color:#d4c4a8}
 .minigame-area{width:100%;max-width:500px;margin:12px auto;position:relative;min-height:200px}
-.duel-zone{width:100%;height:80px;background:rgba(0,0,0,.3);border:1px solid rgba(139,69,19,.4);border-radius:4px;position:relative;overflow:hidden;margin:10px 0}
+.duel-zone{width:100%;height:80px;background:rgba(0,0,0,.3);border:1px solid rgba(139,69,19,.4);border-radius:4px;position:relative;overflow:hidden;margin:10px 0;touch-action:manipulation}
 .duel-zone::before{content:'';position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,transparent 0%,rgba(139,69,19,.05) 30%,rgba(139,69,19,.1) 50%,rgba(139,69,19,.05) 70%,transparent 100%);pointer-events:none;z-index:0;opacity:.5}
 .duel-indicator{position:absolute;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#d4a05a,#8B4513);border-radius:2px;transition:left .05s linear;pointer-events:none;z-index:2;box-shadow:0 0 8px rgba(212,160,90,.3)}
 .duel-indicator.feint{background:linear-gradient(180deg,#e8a040,#a06030);box-shadow:0 0 12px rgba(232,160,64,.5);width:5px;animation:feintPulse .3s ease-in-out 3}
@@ -55,24 +55,29 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 @keyframes inkDrop{0%{transform:scaleY(0);opacity:0}50%{transform:scaleY(1.1);opacity:.8}100%{transform:scaleY(1);opacity:1}}
 @keyframes feintPulse{0%{opacity:.6;transform:scaleX(1)}50%{opacity:1;transform:scaleX(1.4)}100%{opacity:.6;transform:scaleX(1)}}
 @keyframes inkDropIdle{0%{height:0;opacity:0}30%{height:6px;opacity:.6}70%{height:6px;opacity:.6}100%{height:0;opacity:0;transform:translateX(-50%) translateY(20px)}}
+@keyframes inkSplash{0%{width:0;height:0;opacity:.8;transform:translate(-50%,-50%) scale(0)}50%{opacity:.6}100%{width:200px;height:200px;opacity:0;transform:translate(-50%,-50%) scale(1)}}
+.ink-splash{position:absolute;top:50%;left:50%;border-radius:50%;background:radial-gradient(circle,rgba(139,69,19,.6),transparent);pointer-events:none;animation:inkSplash .5s ease-out forwards;z-index:4}
 .duel-result{font-size:20px;font-weight:700;margin:8px 0;min-height:30px}
 .duel-rounds{display:flex;gap:6px;justify-content:center;margin:6px 0}
-.duel-round{width:12px;height:12px;border-radius:50%;border:1px solid rgba(244,234,216,.3);background:transparent}
-.duel-round.hit{background:#8B4513;border-color:#8B4513}
+.duel-round{width:12px;height:12px;border-radius:50%;border:1px solid rgba(244,234,216,.3);background:transparent;transition:all .3s}
+.duel-round.hit{background:#8B4513;border-color:#8B4513;box-shadow:0 0 6px rgba(139,69,19,.4)}
 .duel-round.miss{background:rgba(100,50,30,.3);border-color:rgba(100,50,30,.5)}
 .stroke-tray{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0}
-.stroke-btn{width:70px;height:70px;border:2px solid rgba(244,234,216,.2);border-radius:6px;background:rgba(0,0,0,.2);cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#b9a88d;gap:2px;position:relative}
+.stroke-btn{width:70px;height:70px;border:2px solid rgba(244,234,216,.2);border-radius:6px;background:rgba(0,0,0,.2);cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#b9a88d;gap:2px;position:relative;touch-action:manipulation}
 .stroke-btn:hover,.stroke-btn:focus-visible{border-color:#8B4513;background:rgba(139,69,19,.15);outline:none}
-.stroke-btn.used{opacity:.3;pointer-events:none}
-.stroke-btn.selected{border-color:#d4a05a;background:rgba(212,160,90,.15)}
-.stroke-btn .stroke-preview{width:50px;height:30px;border-radius:2px;background-size:contain;background-repeat:no-repeat;background-position:center}
+.stroke-btn.used{opacity:.3;pointer-events:none;cursor:default}
+.stroke-btn.selected{border-color:#d4a05a;background:rgba(212,160,90,.15);box-shadow:0 0 8px rgba(212,160,90,.2)}
+.stroke-btn .stroke-preview{width:50px;height:30px;border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.stroke-btn .stroke-preview svg{width:100%;height:100%}
 .stroke-btn .stroke-key{position:absolute;top:2px;right:4px;font-size:9px;color:rgba(244,234,216,.3)}
-.stroke-zone{width:100%;height:120px;border:2px dashed rgba(139,69,19,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;margin:8px 0;position:relative;background:rgba(0,0,0,.15);transition:border-color .3s}
+.stroke-zone{width:100%;height:120px;border:2px dashed rgba(139,69,19,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;margin:8px 0;position:relative;background:rgba(0,0,0,.15);transition:border-color .3s,background .3s;touch-action:manipulation;cursor:pointer}
 .stroke-zone.drag-over{border-color:#d4a05a;background:rgba(212,160,90,.08)}
-.stroke-zone.placed{border-color:rgba(139,69,19,.5);border-style:solid}
-.stroke-zone .placed-stroke{position:absolute;inset:4px;background-size:contain;background-repeat:no-repeat;background-position:center;opacity:.7}
-.brush-timer{font-size:14px;color:#b9a88d;margin:4px 0;font-variant-numeric:tabular-nums}
-.brush-score{font-size:16px;color:#d4a05a;font-weight:600}
+.stroke-zone.placed{border-color:rgba(139,69,19,.5);border-style:solid;background:rgba(0,0,0,.2)}
+.stroke-zone .placed-stroke{position:absolute;inset:4px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.stroke-zone .placed-stroke svg{width:100%;height:100%;max-width:200px;max-height:80px}
+.stroke-zone-label{font-size:12px;color:rgba(244,234,216,.15);pointer-events:none;transition:color .3s}
+.brush-timer{font-size:14px;color:#b9a88d;margin:4px 0;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.brush-score{font-size:16px;color:#d4a05a;font-weight:600;min-height:22px}
 .painting-scroll{width:100%;max-width:300px;height:200px;background:linear-gradient(180deg,#f5efe0,#e8dcc8);border-radius:4px;margin:10px auto;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.3)}
 .painting-scroll .brush-stroke{position:absolute;pointer-events:none;opacity:.6}
 #ending-scroll{width:100%;max-width:320px;height:460px;margin:12px auto;position:relative;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,.5);border-radius:2px;border:1px solid rgba(139,69,19,.3)}
@@ -83,15 +88,20 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 #ending-scroll .scroll-roller-end.right{left:auto;right:-2px}
 #ending-scroll .scroll-roller-end.bottom{top:auto;bottom:-2px}
 #ending-scroll .brush-stroke{position:absolute;pointer-events:none;opacity:.55}
+#ending-scroll .brush-stroke svg{width:100%;height:100%}
 .ending-text{font-size:clamp(13px,2vw,16px);line-height:1.8;color:#d4c4a8;max-width:500px;padding:8px}
 .ending-title{font-size:clamp(20px,4vw,32px);color:#f4ead8;margin:6px 0}
-.feint-warning{color:#e8a040;font-size:13px;margin:4px 0;min-height:20px}
+.feint-warning{color:#e8a040;font-size:13px;margin:4px 0;min-height:20px;font-style:italic;transition:opacity .3s}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .keyboard-user .btn:focus-visible{outline:2px solid #d4a05a;outline-offset:2px}
 .keyboard-user .stroke-btn:focus-visible{outline:2px solid #d4a05a;outline-offset:2px}
-@media(max-width:480px){.btn-choice{padding:12px 16px;max-width:240px;font-size:clamp(12px,3vw,14px)}.stroke-btn{width:56px;height:56px}.stroke-btn .stroke-preview{width:38px;height:22px}.painting-scroll{height:150px}#ending-scroll{max-width:260px;height:360px}.vignette-text{padding:10px;font-size:clamp(12px,2.5vw,14px)}h1{font-size:clamp(24px,8vw,42px)}.duel-zone{height:60px}#stroke-tray{gap:5px}.content{padding:6px}}
+.waypoint-counter{font-size:12px;color:#8a7a6a;letter-spacing:.04em;margin-bottom:2px}
+.progress-dots{display:flex;gap:6px;justify-content:center;margin:10px 0}
+.progress-dot{width:8px;height:8px;border-radius:50%;border:1px solid rgba(244,234,216,.2);background:transparent;transition:all .3s}
+.progress-dot.done{background:#8B4513;border-color:#8B4513}
+.progress-dot.current{background:rgba(139,69,19,.4);border-color:#8B4513;box-shadow:0 0 6px rgba(139,69,19,.3)}
+@media(max-width:480px){.btn-choice{padding:12px 16px;max-width:240px;font-size:clamp(12px,3vw,14px)}.stroke-btn{width:56px;height:56px}.stroke-btn .stroke-preview{width:38px;height:22px}.painting-scroll{height:150px}#ending-scroll{max-width:260px;height:360px}.vignette-text{padding:10px;font-size:clamp(12px,2.5vw,14px)}h1{font-size:clamp(24px,8vw,42px)}.duel-zone{height:60px}#stroke-tray{gap:5px}.content{padding:6px}.progress-dots{gap:4px}}
 @media(min-width:768px){.stroke-btn{width:80px;height:80px}.stroke-btn .stroke-preview{width:60px;height:36px}.duel-zone{height:100px}}
-</style>
 </head>
 <body>
 <div id="app" role="application" aria-label="Way of the Brush and Blade">
@@ -127,6 +137,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <div class="vignette-text" id="wp-vignette"></div>
       <div class="mastery-bar"><div class="mastery-fill" id="wp-mastery-fill" style="width:0%"></div></div>
       <p class="mastery-label" id="wp-mastery-label">Mastery: 0 / 100</p>
+      <div class="progress-dots" id="wp-progress"></div>
       <div class="ink-line-thin"></div>
       <p class="body-text" style="font-size:14px;margin:6px 0">Choose your discipline:</p>
       <button class="btn btn-choice" id="btn-sword" data-choice="sword" aria-label="Draw your blade and engage in a timing-based duel"><span class="icon">⚔</span> Draw Your Blade</button>
@@ -148,8 +159,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
         <div class="duel-hit" id="duel-hit"></div>
       </div>
       <div class="duel-rounds" id="sword-rounds"></div>
-      <div class="duel-result" id="sword-result"></div>
-      <div class="feint-warning" id="feint-warning"></div>
+      <div class="duel-result" id="sword-result" aria-live="polite"></div>
+      <div class="feint-warning" id="feint-warning" aria-live="assertive"></div>
       <p class="body-text" style="font-size:11px;color:#8a7a6a">Press SPACE or click/tap at the right moment</p>
       <button class="btn btn-small btn-secondary" id="btn-sword-skip" style="display:none">Continue →</button>
     </div>
@@ -163,8 +174,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
       <h3>Composition</h3>
       <div class="ink-line-thin"></div>
       <p class="body-text" style="font-size:13px">Complete the painting — choose strokes and place them in the composition.</p>
-      <div class="brush-timer" id="brush-timer">Time: 30s</div>
-      <div class="brush-score" id="brush-score">Coherence: —</div>
+      <div class="brush-timer" id="brush-timer" aria-live="polite">Time: 30s</div>
+      <div class="brush-score" id="brush-score" aria-live="polite">Coherence: —</div>
       <div class="stroke-zone" id="stroke-zone" role="img" aria-label="Composition area">
         <span style="color:rgba(244,234,216,.15);font-size:12px" id="stroke-zone-label">Place your strokes here</span>
       </div>
@@ -191,8 +202,8 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
         <div class="duel-hit" id="final-duel-hit"></div>
       </div>
       <div class="duel-rounds" id="final-rounds"></div>
-      <div class="duel-result" id="final-result"></div>
-      <div class="feint-warning" id="final-feint-warning"></div>
+      <div class="duel-result" id="final-result" aria-live="polite"></div>
+      <div class="feint-warning" id="final-feint-warning" aria-live="assertive"></div>
       <p class="body-text" style="font-size:11px;color:#8a7a6a">Press SPACE or click/tap at the right moment. Watch for feints!</p>
       <button class="btn btn-small btn-secondary" id="btn-final-skip" style="display:none">Continue →</button>
     </div>
@@ -205,7 +216,7 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
     <div class="content">
       <h2 class="ending-title" id="ending-title"></h2>
       <div class="ink-line"></div>
-      <div class="ending-text" id="ending-text"></div>
+      <div class="ending-text" id="ending-text" aria-live="polite"></div>
       <div id="ending-scroll" style="display:none"></div>
       <div class="ink-line-thin"></div>
       <p class="mastery-label" id="ending-mastery-label"></p>
@@ -268,12 +279,18 @@ const LOCATIONS = [
 
 // --- Brush stroke definitions ---
 const STROKES = [
-  { id:'bamboo', label:'Bamboo', desc:'Slender green stem', css:'background:linear-gradient(180deg,transparent,#4a6741 20%,#3d5a35 60%,transparent);border-radius:0;width:4px;height:80%;margin:auto' },
-  { id:'plum', label:'Plum Blossom', desc:'Five-petal flower', css:'background:radial-gradient(circle at 50% 50%,#d4a0a0 20%,#b87373 40%,transparent 60%);border-radius:50%;width:30px;height:30px;margin:auto' },
-  { id:'pine', label:'Pine Branch', desc:'Twisted evergreen', css:'background:linear-gradient(135deg,#3d5a35,#4a6741 40%,#2d4a25 70%,#1d3a15);border-radius:0;width:6px;height:70%;margin:auto;transform:rotate(15deg)' },
-  { id:'wave', label:'Wave Crest', desc:'Curling foam', css:'background:radial-gradient(ellipse at 50% 100%,#8fc7d6 10%,transparent 70%);border-radius:0;width:50px;height:20px;margin:auto' },
-  { id:'mountain', label:'Mountain Peak', desc:'Distant ridge', css:'background:linear-gradient(135deg,#6b7b8d 30%,#4a5a6a 70%);clip-path:polygon(0 100%,50% 0,100% 100%);width:40px;height:30px;margin:auto' },
-  { id:'bird', label:'Flying Crane', desc:'Wing in motion', css:'background:radial-gradient(ellipse at 70% 50%,#b9a88d 20%,transparent 70%);border-radius:0;width:40px;height:16px;margin:auto;transform:rotate(-20deg)' }
+  { id:'bamboo', label:'Bamboo', desc:'Slender green stem',
+    svg:'<svg viewBox="0 0 50 30" xmlns="http://www.w3.org/2000/svg"><path d="M25 2 Q22 8 24 14 Q26 20 23 28" stroke="#4a6741" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M25 2 Q28 8 26 14 Q24 20 27 28" stroke="#3d5a35" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="8" rx="4" ry="2" fill="#5a7a51" opacity="0.5"/><ellipse cx="27" cy="16" rx="3.5" ry="1.5" fill="#5a7a51" opacity="0.5"/><ellipse cx="24" cy="22" rx="3" ry="1.5" fill="#5a7a51" opacity="0.4"/></svg>' },
+  { id:'plum', label:'Plum Blossom', desc:'Five-petal flower',
+    svg:'<svg viewBox="0 0 50 30" xmlns="http://www.w3.org/2000/svg"><circle cx="25" cy="15" r="3" fill="#d4a0a0"/><ellipse cx="22" cy="10" rx="4" ry="2.5" fill="#c48888" transform="rotate(-30 22 10)"/><ellipse cx="28" cy="10" rx="4" ry="2.5" fill="#c48888" transform="rotate(30 28 10)"/><ellipse cx="21" cy="19" rx="4" ry="2.5" fill="#c48888" transform="rotate(-15 21 19)"/><ellipse cx="29" cy="19" rx="4" ry="2.5" fill="#c48888" transform="rotate(15 29 19)"/><circle cx="25" cy="15" r="1.5" fill="#e8c0c0"/></svg>' },
+  { id:'pine', label:'Pine Branch', desc:'Twisted evergreen',
+    svg:'<svg viewBox="0 0 50 30" xmlns="http://www.w3.org/2000/svg"><path d="M5 25 Q15 18 25 15 Q35 12 45 8" stroke="#3d5a35" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="15" cy="18" rx="5" ry="3" fill="#4a6a41" transform="rotate(-20 15 18)"/><ellipse cx="25" cy="14" rx="4.5" ry="2.5" fill="#3d5a35" transform="rotate(-10 25 14)"/><ellipse cx="35" cy="11" rx="4" ry="2" fill="#4a6a41" transform="rotate(5 35 11)"/><ellipse cx="43" cy="8" rx="3.5" ry="2" fill="#3d5a35" transform="rotate(15 43 8)"/></svg>' },
+  { id:'wave', label:'Wave Crest', desc:'Curling foam',
+    svg:'<svg viewBox="0 0 50 30" xmlns="http://www.w3.org/2000/svg"><path d="M0 22 Q10 10 20 18 Q30 26 40 14 Q45 8 50 12" stroke="#7ab8c8" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M0 26 Q12 16 22 22 Q32 28 42 18 Q46 14 50 16" stroke="#8fc7d6" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"/><circle cx="15" cy="17" r="1.5" fill="#a8d8e6" opacity="0.5"/><circle cx="38" cy="13" r="1" fill="#a8d8e6" opacity="0.5"/></svg>' },
+  { id:'mountain', label:'Mountain Peak', desc:'Distant ridge',
+    svg:'<svg viewBox="0 0 50 30" xmlns="http://www.w3.org/2000/svg"><polygon points="0,28 15,4 25,12 35,2 50,28" fill="#6b7b8d" opacity="0.7"/><polygon points="10,28 25,8 32,16 40,6 50,28" fill="#5a6a7a" opacity="0.5"/><line x1="25" y1="12" x2="25" y2="2" stroke="#8a9aaa" stroke-width="1" opacity="0.4"/></svg>' },
+  { id:'bird', label:'Flying Crane', desc:'Wing in motion',
+    svg:'<svg viewBox="0 0 50 30" xmlns="http://www.w3.org/2000/svg"><path d="M5 18 Q15 6 25 14 Q35 22 45 10" stroke="#b9a88d" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M5 18 Q15 22 25 16 Q35 10 45 14" stroke="#a8987d" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"/><circle cx="8" cy="17" r="2" fill="#c4b498" opacity="0.8"/></svg>' }
 ];
 
 // Stroke coherence pairs (which strokes complement each other)
@@ -405,7 +422,7 @@ function showScreen(name) {
     // Fade overlay back out
     requestAnimationFrame(() => { overlay.style.opacity = '0'; });
     _inkTimer = null;
-  }, 200);
+  }, 500);
 }
 
 // --- Mastery display ---
@@ -440,6 +457,16 @@ function showWaypoint() {
   $('wp-vignette').textContent = loc.vignettes[vIdx];
   $('wp-bg').style.backgroundImage = 'url(' + loc.bg + ')';
   updateMasteryDisplay();
+  // Progress dots
+  const progress = $('wp-progress');
+  progress.innerHTML = '';
+  for (let i = 0; i < WAYPOINT_COUNT; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot';
+    if (i < G.waypoint) dot.classList.add('done');
+    if (i === G.waypoint) dot.classList.add('current');
+    progress.appendChild(dot);
+  }
   showScreen('waypoint');
   $('btn-sword').focus();
 }
@@ -696,11 +723,12 @@ function startBrushMinigame() {
   STROKES.forEach((s, i) => {
     const btn = document.createElement('button');
     btn.className = 'stroke-btn';
+    btn.draggable = true;
     btn.dataset.strokeId = s.id;
     btn.dataset.index = i;
     const preview = document.createElement('div');
     preview.className = 'stroke-preview';
-    preview.style.cssText = s.css;
+    preview.innerHTML = s.svg;
     btn.appendChild(preview);
     const label = document.createElement('span');
     label.textContent = s.label;
@@ -757,7 +785,7 @@ function startBrushMinigame() {
     const div = document.createElement('div');
     div.className = 'placed-stroke';
     const s = STROKES.find(x => x.id === strokeId);
-    if (s) div.style.cssText = s.css + ';position:absolute;inset:4px;background-size:contain;background-repeat:no-repeat;background-position:center;opacity:.7';
+    if (s) div.innerHTML = s.svg;
     zone.appendChild(div);
     $('stroke-zone-label').textContent = placedStrokes.length + '/3 placed';
     // Mark stroke as used
@@ -925,13 +953,8 @@ function showEnding() {
       const p = positions[idx % positions.length];
       const el = document.createElement('div');
       el.className = 'brush-stroke';
-      el.style.cssText = s.css + ';position:absolute';
-      el.style.left = p.left;
-      el.style.top = p.top;
-      el.style.width = p.width;
-      el.style.height = p.height;
-      el.style.transform = 'rotate(' + p.rotate + ')';
-      el.style.opacity = Math.min(0.65, 0.35 + idx * 0.05);
+      el.innerHTML = s.svg;
+      el.style.cssText = 'position:absolute;left:' + p.left + ';top:' + p.top + ';width:' + p.width + ';height:' + p.height + ';transform:rotate(' + p.rotate + ');opacity:' + Math.min(0.65, 0.35 + idx * 0.05);
       paper.appendChild(el);
     });
     // Add a subtle seal/stamp at the bottom of the paper
@@ -1028,16 +1051,16 @@ function init() {
     }
   }, {once: true});
 
-  // Keyboard shortcuts on title
+  // Keyboard shortcuts on title — prefer resume if a saved game exists
   document.addEventListener('keydown', (e) => {
     if (G.phase === 'title' && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       const resumeBtn = $('btn-resume');
       if (resumeBtn.style.display !== 'none' && e.key === 'Enter') {
-        // If there's a resume option and Enter is pressed, prefer resume
-        // But default to start
+        resumeBtn.click();
+      } else {
+        $('btn-start').click();
       }
-      $('btn-start').click();
     }
   });
 

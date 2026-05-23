@@ -2,6 +2,35 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.2] — 2026-05-22 — Accessibility & Visual Polish
+
+### Added
+- **SVG-based stroke rendering** — brush strokes now render as detailed SVGs (bamboo, plum blossom, pine, wave crest, mountain peak, flying crane) instead of CSS gradients, improving visual quality at all sizes
+- **Waypoint progress dots** — five dots show completed, current, and upcoming waypoints at a glance
+- **Aria-live regions** — `aria-live="polite"` on duel results, brush score, timer, and ending text; `aria-live="assertive"` on feint warnings for screen reader announcements
+- **`touch-action: manipulation`** — on duel zones and stroke buttons to prevent double-tap zoom on mobile
+- **Ink splash effect** — missing `.ink-splash` CSS class and `@keyframes inkSplash` restored; now visible on sword hits and perfect strikes
+- **Drag-and-drop** — stroke buttons now have `draggable="true"`, enabling HTML5 drag-and-drop to the composition zone
+
+### Changed
+- **Ink-wash transition timing** — overlay fade timeout increased from 200ms to 500ms to match CSS transition duration (0.5s), preventing visual glitch
+- **Title screen keyboard handling** — pressing ENTER now resumes a saved journey instead of always starting a new game
+- **Stroke button styling** — `.stroke-btn.used` adds `cursor:default`, `.stroke-btn.selected` adds `box-shadow` for better visual feedback
+- **Duel round dots** — added `box-shadow` on hit rounds for subtle glow effect
+- **Feint warning** — added `font-style:italic` and `opacity` transition for smoother text changes
+
+### Fixed
+- `.ink-splash` CSS class was missing from v1.1 (present in v1.0); ink splash effects are now visible on sword strikes
+- Stroke previews used CSS gradients that didn't render consistently; now use inline SVGs
+- HTML5 drag-and-drop was broken because stroke buttons lacked `draggable="true"`
+- Ink-wash overlay timeout (200ms) was shorter than CSS transition (500ms), causing abrupt screen transitions
+- Title screen ENTER key always started new game even when a saved journey existed
+- Duplicate `feint-warning` and `brush-score` elements in HTML cleaned up
+
+### Technical Debt
+- File: ~1085 lines (still well under 5000-line limit)
+- No external CDN dependency beyond Google Fonts
+
 ## [v1.1] — 2026-05-22 — Polish Pass
 
 ### Added
