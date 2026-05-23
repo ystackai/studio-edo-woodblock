@@ -407,7 +407,7 @@
       // Blog rail
       var posts = (d.blog_posts || []).slice(0, 4);
       var blogCards = posts.map(function(post) {
-        return '<a class="blog-card" href="' + esc(post.url || '#') + '">'
+        return '<a class="blog-card" role="listitem" href="' + esc(post.url || '#') + '">'
           + '<div class="blog-date">' + esc(post.date || '') + '</div>'
           + '<h3>' + esc(post.title || '') + '</h3>'
           + '<p>' + esc(post.teaser || '') + '</p>'
@@ -421,7 +421,7 @@
       var building = d.active_drop && d.active_drop.id ? d.active_drop : (d.games && d.games.upcoming);
       var demos = [];
       if (building && building.title && building.status !== 'shipped') {
-        demos.push('<a class="demo-card" href="' + esc(gameUrl(building)) + '">'
+        demos.push('<a class="demo-card" role="listitem" href="' + esc(gameUrl(building)) + '">'
           + '<div class="demo-thumb"><img src="' + esc(gameScreenshot(building)) + '" alt="" onerror="this.style.display=\'none\'"></div>'
           + '<div class="demo-info"><h3>' + esc(building.title) + '</h3>'
           + '<div class="mashup">' + esc(building.homepage_takeover ? 'homepage takeover' : 'now building') + '</div>'
@@ -429,7 +429,7 @@
       }
       shipped.forEach(function(g) {
         var playUrl = gameUrl(g);
-        demos.push('<a class="demo-card" href="' + esc(playUrl) + '">'
+        demos.push('<a class="demo-card" role="listitem" href="' + esc(playUrl) + '">'
           + '<div class="demo-thumb"><img src="' + esc(gameScreenshot(g)) + '" alt="" onerror="this.style.display=\'none\'"></div>'
           + '<div class="demo-info"><h3>' + esc(g.title) + '</h3>'
           + '<div class="mashup">' + esc((g.tags || []).join(' · ') || g.mashup || '') + '</div>'
@@ -522,7 +522,7 @@
           tickets.forEach(function(t) {
             var labels = (t.labels || []).map(function(l) { return typeof l === 'string' ? l : l.name; });
             var typeLabels = labels.filter(function(l) { return ['feature','bug','polish','audio','visual','writing','playtest','test'].indexOf(l) >= 0; });
-            laneHTML += '<a class="board-ticket" href="' + esc(issueBaseUrl ? (String(issueBaseUrl).replace(/\/$/, '') + '/' + t.number) : '#') + '" target="_blank">'
+            laneHTML += '<a class="board-ticket" role="listitem" href="' + esc(issueBaseUrl ? (String(issueBaseUrl).replace(/\/$/, '') + '/' + t.number) : '#') + '" target="_blank">'
               + '<span class="ticket-num">#' + t.number + '</span> ' + esc(t.title);
             if (typeLabels.length) {
               laneHTML += '<div class="ticket-labels">' + typeLabels.map(function(l) {
