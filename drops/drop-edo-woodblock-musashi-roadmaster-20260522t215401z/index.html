@@ -490,6 +490,7 @@ function toggleMute() {
 function playAmbient(src) {
   if (_muted) return;
   const a = $('audio-ambient');
+  if (!a) return;
   // Skip if same src is already playing (avoids unnecessary fade-out/fade-in)
   if (src && a.src && !a.paused && a.src.indexOf(src) !== -1) return;
   if (_ambientFadeId) { clearInterval(_ambientFadeId); _ambientFadeId = null; }
@@ -532,6 +533,7 @@ function playAmbient(src) {
 function playSfx(src) {
   if (_muted) return;
   const a = $('audio-sfx');
+  if (!a) return;
   a.src = src;
   a.volume = 0.5;
   a.play().catch(()=>{});

@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.50] — 2026-05-23 — Defensive Null Checks for Audio Elements
+
+### Fixed
+- **Missing null checks in audio functions** — `playAmbient` and `playSfx` accessed `.src` on the audio element without checking if it existed. Added null-return guards to prevent runtime errors if the audio elements are removed from the DOM.
+
+### Technical Debt
+- File: ~1634 lines (still well under 5000-line limit)
+
 ## [v1.49] — 2026-05-23 — Keyboard Focus Indicators for Toggle & Close Buttons
 
 ### Added
