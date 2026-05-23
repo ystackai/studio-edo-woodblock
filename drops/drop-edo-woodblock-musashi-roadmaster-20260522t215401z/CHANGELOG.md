@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.48] — 2026-05-23 — Fix Stale Animation Frame on Duel Miss
+
+### Fixed
+- **Stale animation frame callback could fire during next round** — when the duel indicator passed 105% (miss), the animation frame was not cancelled. If a previously-requested frame fired after the next round started, it would use stale closure values and potentially trigger a second miss, corrupting the round state. Added `cancelAnimationFrame(animId)` in the miss handler to prevent stale callbacks.
+
+### Technical Debt
+- File: ~1631 lines (still well under 5000-line limit)
+
 ## [v1.47] — 2026-05-23 — Loading Progressbar Label & Code Cleanup
 
 ### Changed

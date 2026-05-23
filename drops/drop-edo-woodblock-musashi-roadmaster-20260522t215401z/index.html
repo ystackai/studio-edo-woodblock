@@ -776,7 +776,8 @@ function startSwordMinigame() {
       const elapsed = (now - startTime) / 1000;
       indicatorPos = (elapsed * speed * 100);
       if (indicatorPos > 105) {
-        // Missed
+        // Missed — cancel animation frame to prevent stale callbacks interfering with next round
+        if (animId) { cancelAnimationFrame(animId); animId = null; }
         active = false;
         canHit = false;
         zone.classList.remove('ready');
