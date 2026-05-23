@@ -2,7 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
-## [v1.39] — 2026-05-22 — Loading Overlay Fix & Accessibility Refinements
+## [v1.40] — 2026-05-23 — Duel Speed Reset Between Rounds & Ending Scroll Flash Fix
+
+### Fixed
+- **Duel speed not resetting between rounds** — the `speed` variable was defined once in the minigame scope and persisted across all rounds. When a feint fired in one round, `speed *= 1.3` permanently increased the indicator speed for all subsequent rounds, making them unfairly harder. Moved the speed calculation inside `startRound()` so each round uses the intended base speed, with feint acceleration applying only to the current round.
+- **Ending scroll flash before animation** — the scroll element was briefly visible at full size before the `scroll-entrance` animation class was applied (which waits one animation frame). Added default CSS `opacity:0; transform:scaleY(0)` to `#ending-scroll` so it starts hidden, and the animation fill correctly reveals it. Also extended the `prefers-reduced-motion` rule to cover the default state, ensuring scroll visibility when animations are disabled.
+
+### Technical Debt
+- File: ~1622 lines (still well under 5000-line limit)
 
 ### Fixed
 - **Loading overlay wrapper restored** — the `id="loading-overlay" class="loading-overlay"` wrapper div was accidentally removed in v1.38, causing the `#app` div to close prematurely and leaving all game screens outside the application container. This broke layout, positioning, and max-width constraints. Restored the wrapper with proper ARIA attributes.
