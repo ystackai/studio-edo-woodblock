@@ -2,6 +2,14 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.46] — 2026-05-23 — Fix Perfect Hit Threshold Being Wider Than Hit Threshold
+
+### Fixed
+- **Perfect hit threshold was too generous** — the perfect hit check used a raw `diff <= 8` (8 percentage points), while the converted hit threshold was narrower (~5% at typical zone widths). This meant every hit was also scored as a perfect hit, making the "Perfect strike!" message meaningless. Changed perfect threshold to `((targetW / 4) + 2) / zoneW * 100`, requiring the indicator to be within the inner quarter of the target zone plus a 2px buffer. This scales correctly with mastery (wider targets make perfects easier) and is always stricter than the hit threshold.
+
+### Technical Debt
+- File: ~1631 lines (still well under 5000-line limit)
+
 ## [v1.45] — 2026-05-23 — Prevent Stroke Placement After Timer Expires
 
 ### Fixed

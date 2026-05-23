@@ -841,7 +841,9 @@ function startSwordMinigame() {
     // Convert pixel-based target width to percentage of zone width for correct comparison
     const thresholdPct = ((targetW / 2) + 5) / zoneW * 100;
     const hit = diff <= thresholdPct;
-    const perfect = diff <= 8;
+    // Perfect requires the indicator to be within the inner half of the target + 2px buffer
+    const perfectPct = ((targetW / 4) + 2) / zoneW * 100;
+    const perfect = diff <= perfectPct;
     results.push(hit);
     const dots = roundsEl.querySelectorAll('.duel-round');
     dots[currentRound].className = 'duel-round ' + (hit ? 'hit' : 'miss');
