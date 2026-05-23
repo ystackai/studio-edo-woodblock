@@ -78,8 +78,11 @@ h3{font-size:clamp(16px,3.5vw,24px);font-weight:500;color:#d4c4a8;margin-bottom:
 .stroke-zone{width:100%;height:120px;border:2px dashed rgba(139,69,19,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;margin:8px 0;position:relative;background:rgba(0,0,0,.15);transition:border-color .3s,background .3s;touch-action:manipulation;cursor:pointer}
 .stroke-zone.drag-over{border-color:#d4a05a;background:rgba(212,160,90,.08)}
 .stroke-zone.placed{border-color:rgba(139,69,19,.5);border-style:solid;background:rgba(0,0,0,.2)}
-.stroke-zone .placed-stroke{position:absolute;inset:4px;display:flex;align-items:center;justify-content:center;pointer-events:none;animation:strokePlace .4s ease-out forwards}
-.stroke-zone .placed-stroke svg{width:100%;height:100%;max-width:200px;max-height:80px}
+.stroke-zone .placed-stroke{position:absolute;display:flex;align-items:center;justify-content:center;pointer-events:none;animation:strokePlace .4s ease-out forwards;width:80px;height:50px}
+.stroke-zone .placed-stroke:nth-child(1){left:5%;top:10%}
+.stroke-zone .placed-stroke:nth-child(2){left:35%;top:25%}
+.stroke-zone .placed-stroke:nth-child(3){left:60%;top:5%}
+.stroke-zone .placed-stroke svg{width:100%;height:100%;max-width:80px;max-height:50px}
 .stroke-zone-label{font-size:12px;color:rgba(244,234,216,.15);pointer-events:none;transition:color .3s}
 .brush-timer{font-size:14px;color:#b9a88d;margin:4px 0;font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .brush-score{font-size:16px;color:#d4a05a;font-weight:600;min-height:22px}
@@ -871,7 +874,8 @@ function startBrushMinigame() {
   $('btn-brush-skip').style.display = 'none';
   $('stroke-zone').classList.remove('placed');
   $('stroke-zone-label').textContent = 'Place your strokes here';
-  $('stroke-zone').querySelector('.placed-stroke')?.remove();
+  const oldStrokes = $('stroke-zone').querySelectorAll('.placed-stroke');
+  oldStrokes.forEach(el => el.remove());
 
   let timeLeft = 30;
   let timerStartedAt = Date.now();
@@ -948,10 +952,9 @@ function startBrushMinigame() {
     placedStrokes.push(strokeId);
     const zone = $('stroke-zone');
     zone.classList.add('placed');
-    zone.querySelector('.placed-stroke')?.remove();
+    const s = STROKES.find(x => x.id === strokeId);
     const div = document.createElement('div');
     div.className = 'placed-stroke';
-    const s = STROKES.find(x => x.id === strokeId);
     if (s) div.innerHTML = s.svg;
     zone.appendChild(div);
     $('stroke-zone-label').textContent = placedStrokes.length + '/3 placed';

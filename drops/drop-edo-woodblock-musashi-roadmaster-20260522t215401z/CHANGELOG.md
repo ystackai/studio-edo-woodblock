@@ -2,6 +2,15 @@
 
 All notable changes to this drop are tracked here.
 
+## [v1.16] — 2026-05-22 — Multi-Stroke Composition View
+
+### Changed
+- **Brush composition zone now shows all placed strokes** — previously only the latest stroke was visible in the composition area; now all 3 placed strokes remain visible, arranged in a triptych-like layout so the player can see their full composition building up
+- **Stroke cleanup** — `startBrushMinigame()` now removes all `.placed-stroke` elements instead of only the first, preventing stale strokes from persisting between rounds
+
+### Technical Debt
+- File: ~1405 lines (still well under 5000-line limit)
+
 ## [v1.15] — 2026-05-22 — Timer Urgency, Vignette Animation & Touch Consistency
 
 ### Added
