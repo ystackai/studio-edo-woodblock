@@ -1211,11 +1211,11 @@ function loadGeneratedAssets() {
   // crossOrigin disabled for local/file protocol
   bgImg.onload = () => { genAssets.backgroundImg = bgImg; genAssets.loaded = true; };
   bgImg.onerror = () => {};
-  bgImg.src = '../assets/generated-bg.png';
+  bgImg.src = '../../public/assets/generated-bg.png';
 
   // Try to load generated gate-open SFX
   if (audioCtx) {
-    fetch('../assets/generated-gate-open.wav')
+    fetch('../../public/assets/generated-gate-open.wav')
       .then(r => r.arrayBuffer())
       .then(buf => audioCtx.decodeAudioData(buf))
       .then(buffer => { genAssets.gateOpenSfx = buffer; genAssets.loaded = true; })
