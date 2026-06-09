@@ -1,0 +1,112 @@
+/* The Weight of the Stone — Ukiyo-e woodblock aesthetic */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0c0e14;
+  font-family: 'Georgia', serif;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+#water-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#stone-container {
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  will-change: transform;
+}
+
+#stone {
+  width: 120px;
+  height: 100px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  /* Ukiyo-e inspired woodblock texture via layered gradients */
+  background:
+    radial-gradient(ellipse at 35% 30%, rgba(60, 55, 45, 0.6) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 70%, rgba(40, 30, 20, 0.5) 0%, transparent 40%),
+    radial-gradient(circle at 45% 45%, rgba(255, 180, 80, 0.15) 0%, transparent 30%),
+    linear-gradient(160deg, #1a2030 0%, #2c2c38 30%, #3a3028 60%, #22222c 100%);
+  /* Matte stone texture - rough surface via border trick */
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.6),
+    inset 0 -2px 6px rgba(255, 200, 100, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  /* Woodblock-style noise texture */
+  border: 1px solid rgba(80, 70, 50, 0.3);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+#stone:active {
+  cursor: grabbing;
+}
+
+/* Grip state: subtle scale and warmth to invite touch */
+#stone.gripe {
+  transform: scale(1.06);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.7),
+    inset 0 -2px 6px rgba(255, 200, 100, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.05s ease;
+}
+
+#stone.drop {
+  transition: none;
+}
+
+#state-indicator {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  font-size: 0.85rem;
+  color: rgba(200, 180, 140, 0.5);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'Courier New', monospace;
+  transition: opacity 0.4s ease;
+}
+
+#state-indicator.hidden {
+  opacity: 0;
+}
+
+#instructions {
+  position: fixed;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  font-size: 0.75rem;
+  color: rgba(180, 160, 120, 0.6);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 600px) {
+  #stone {
+    width: 100px;
+    height: 85px;
+  }
+}
