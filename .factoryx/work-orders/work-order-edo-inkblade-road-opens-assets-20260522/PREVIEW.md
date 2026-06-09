@@ -2,7 +2,7 @@
 
 ## How to Play
 
-1. Open the game at `games/inkblade/index.html` (or the `games/` redirect).
+1. Open the game at `games/inkblade/index.html` (or via `games/` index page).
 2. Click **Begin** on the title screen.
 3. The player (blue inkblade samurai) auto-walks toward the torii gate.
 4. When you reach the guard (red figure at the gate), the **duel** begins.
@@ -22,7 +22,7 @@
 ## Visual Design
 
 - **Ukiyo-e aesthetic**: Woodblock print style with sumi-e ink wash feel.
-- **Generated background**: A Flux-generated image of a Japanese road leading to a torii gate at dusk, with mountains, cherry blossoms, and amber moonlight (960×540 PNG).
+- **Generated background**: A Flux-generated image of a Japanese road leading to a torii gate at dusk (960×540 PNG).
 - **Characters**: Stick-figure samurai with bold colors (blue = player, red = guard).
 - **Gate**: Animated wooden doors that swing open after the guard is defeated.
 
@@ -37,6 +37,6 @@
 |-------|------|--------|
 | Background image (generated-bg.png) | Flux (ComfyUI) | ✅ In-game |
 | Gate-open SFX (generated-gate-open.wav) | MMAudio | ✅ In-game |
-| Ambient loop (generated-loop.wav) | HeartMuLa (procedural-smoke) | Prototype (stored, not yet played) |
+| Ambient loop (generated-loop.wav) | HeartMuLa (smoke) | Prototype (stored, not yet played) |
 
 See `public/assets/asset-manifest.json` for full details.
