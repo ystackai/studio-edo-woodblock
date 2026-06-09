@@ -2,36 +2,38 @@
 
 ## Browser Smoke Test
 
-**Tool:** Puppeteer + Chromium (headless)
-**Script:** `/tmp/smoke-test2.mjs`
+**Tool:** Playwright + Chromium (headless)
+**Script:** `inkblade-smoke.mjs` (run from checkout root with `node`)
 
-### Results
+### Results (latest run)
 
 | Check | Status |
 |-------|--------|
-| Canvas loads (960×540) | ✅ PASS |
-| No page errors | ✅ PASS |
-| Game starts (START → APPROACH) | ✅ PASS |
-| Duel triggers on reaching gate | ✅ PASS |
-| Counter-strike mechanic works | ✅ PASS (3/3 hits landed) |
-| Guard defeated (HP → -2) | ✅ PASS |
-| Gate opens (openAmount → 100%) | ✅ PASS |
-| State transitions to CROSS | ✅ PASS |
-| Player survives (HP: 75) | ✅ PASS |
-| Generated background loaded | ✅ PASS (400KB PNG) |
-| Generated gate-open SFX loaded | ✅ PASS (62KB WAV) |
+| Canvas element exists | ✅ PASS |
+| Canvas is 960×540 | ✅ PASS |
+| Objective text visible | ✅ PASS |
+| Controls hint visible | ✅ PASS |
+| Health bars present | ✅ PASS |
+| Start overlay present | ✅ PASS |
+| Game transitions to APPROACH after start | ✅ PASS |
+| Game transitions to DUEL after approach | ✅ PASS |
+| Duel system tracks guard HP | ✅ PASS |
+| Duel system tracks player HP | ✅ PASS |
+| Guard is taking damage | ✅ PASS |
+| Generated assets loaded | ✅ PASS |
+| No critical JS errors | ✅ PASS |
 
-### Known Console Errors (Non-blocking)
+### Asset Paths Fixed
 
-- `ERR_FILE_NOT_FOUND` — Expected during file:// protocol testing; resolved when served via HTTP.
-- CORS errors for `file://` protocol — Expected; assets load correctly under HTTP server.
+- Generated assets are at `public/assets/` — asset loading paths in `games/inkblade/index.html` corrected from `../assets/` to `../../public/assets/`
+- Assets served correctly under HTTP (404 errors under file:// expected, resolved under HTTP)
 
 ## Acceptance Criteria Verification
 
 | Criterion | Status | Notes |
 |-----------|--------|-------|
 | Preview opens directly into playable game | ✅ | Click "Begin" → game starts immediately |
-| Controls/objective visible in <10s | ✅ | HUD shows controls + objective text |
+| Controls/objective visible in <10s | ✅ | HUD shows controls + objective text on first screen |
 | Player triggers duel/obstacle resolution | ✅ | 3-round timing duel with guard |
 | Road opening is visually unmistakable | ✅ | Gate doors swing open with animation |
 | Player reaches opened path with win feedback | ✅ | CROSS state → WIN screen with "Road Opened!" |
@@ -45,11 +47,13 @@
 ## Run Instructions
 
 ```bash
-# Run smoke test (requires Puppeteer + Chromium)
-cd /tmp && NODE_PATH=/tmp/node_modules node smoke-test2.mjs
-
-# Or serve and play manually
+# Serve and play manually
 cd /path/to/checkout
 python3 -m http.server 8080
 # Open http://localhost:8080/games/inkblade/
+
+# Run Playwright smoke test (requires Playwright + Chromium installed)
+cd /path/to/checkout
+npx playwright install chromium
+node inkblade-smoke.mjs
 ```

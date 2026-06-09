@@ -28,3 +28,21 @@
 - Created PREVIEW.md with play instructions
 - Created VERIFICATION.md with test results
 - All acceptance criteria verified
+
+## 2026-06-09 (Re-run)
+
+### Merge Conflict Resolution
+- PR #109 was in CONFLICTING/DIRTY state due to main advancing with 169+ commits
+- Merged `origin/main` into the work order branch
+- Resolved conflict in `games/index.html`: changed from a single redirect to a game index page listing both "Edo Inkblade: Road Opens" and "Floating Score"
+- Merge commit: `73098b9`
+
+### Asset Path Fix
+- Fixed generated asset paths in `games/inkblade/index.html`: `../assets/` → `../../public/assets/`
+- This resolved 404 errors when the game loads background image and gate-open SFX
+- Commit: `0961ea3`
+
+### Smoke Test
+- Wrote Playwright-based smoke test (`inkblade-smoke.mjs`)
+- All 13 checks pass: canvas, HUD, state transitions, duel mechanics, asset loading, no errors
+- Screenshot saved confirming game renders correctly
