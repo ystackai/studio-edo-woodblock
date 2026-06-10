@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Living Print — Edo Woodblock</title>
+<style>
+   *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#ede5d8}
+  canvas#print{display:block;width:100%;height:100%;cursor:none;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="print"></canvas>
+<script>
+(function(){
+"use strict";
+
+/* ── palette ─────────────────────────────────────────── */
+const PAPER        = {r:237, g:229, b:216};
+const INK_DEEP     = {r:18,  g:28,  b:58};
+const INK_MID      = {r:48,  g:58,  b:95};
+const INK_LIGHT    = {r:85,  g:96,  b:132};
+const MIST_CLR     = {r:222, g:219, b:210};
+const SKY_TOP      = {r:230, g:226, b:218};
+const INDIGO_ACC   = {r:38,  g:48,  b:88};
+
+/* ── state ───────────────────────────────────────────── */
+const canvas = document.getElementById('print');
+const ctx    = canvas.getContext('2d');
+let W, H, horizonY, dpr;
+
+let pressDepth = 0;
+let pressTarget= 0;
+let pressVel   = 0;
+let pressDown  = false;
+let pressAge   = 0;
+let brushX = 0, brushY = 0;
+let audioCtx   = null;
+let audioStarted= false;
+let inkRipples = [];
+let totalPressTime = 0;  // cumulative — how deeply the print has been worked
+let t = 0;               // global time ms
+
+/* ── mist ────────────────────────────────────────────── */
+const NUM_MIST = 60;
+const mist = [];
+function initMist(){
+  mist.length = 0;
+  for(let i=0;i<NUM_MIST;i++){
+    mist.push({
+      x:     Math.random()*W*1.6 - W*0.3,
+      y:     horizonY*0.2 + Math.random()*H*0.7,
+      w:     110+Math.random()*260,
+      h:      8+Math.random()*24,
+      speed:  0.06+Math.random()*0.25,
+      op:     0.02+Math.random()*0.12,
+      phase:  Math.random()*Math.PI*2,
+      vDrift: Math.random()*0.012
+     });
+   }
+}
+
+/* ── paper grain (baked once per resize) ─────────────── */
+let grainCvs, grainCtx;
+function bakeGrain(){
+  grainCvs = document.createElement('canvas');
+  grainCvs.width = W; grainCvs.height = H;
+  grainCtx = grainCvs.getContext('2d');
+  const img = grainCtx.createImageData(W, H);
+  const d = img.data;
+  for(let i=0; i<d.length; i+=4){
+    const n  = (Math.random()-0.5)*11;
+    const fb = Math.random()<0.004 ? -9 : 0;  // fiber strand
+    d[i]   = PAPER.r + n + fb;
+    d[i+1] = PAPER.g + n + fb;
+    d[i+2] = PAPER.b + n + fb;
+    d[i+3] = 36;
+   }
+  grainCtx.putImageData(img, 0, 0);
+   /* subtle fold marks — three horizontal lines */
+  grainCtx.save();
+  grainCtx.globalAlpha = 0.035;
+  for(let i=0;i<3;i++){
+    const y = H*(0.32+i*0.22)+Math.random()*25;
+    const g = grainCtx.createLinearGradient(0,y-18,0,y+18);
+    g.addColorStop(0,'rgba(175,170,158,0)');
+    g.addColorStop(0.5,'rgba(175,170,158,1)');
+    g.addColorStop(1,'rgba(175,170,158,0)');
+    grainCtx.fillStyle = g;
+    grainCtx.fillRect(0,y-18,W,36);
+   }
+  grainCtx.restore();
+}
+
+/* ── wave geometry — Hokusai-inspired single form ─────── */
+function waveY(x, time, depth){
+  const nx = x/W;
+   /* primary form: one decisive crest */
+  const peakX = 0.56;
+  const bell = Math.exp(-3.8*(nx-peakX)*(nx-peakX));
+   /* motion: two sine layers, different frequency */
+  const breathe =
+    Math.sin(time*0.38 + nx*3.5)*0.28 +
+    Math.sin(time*0.16 - nx*2.2)*0.14 +
+    Math.sin(time*0.62 + nx*6.0)*0.06;
+   /* depth modulates how far the wave rises */
+  return bell * (10 + breathe * 60) * depth;
+}
+
+function waveY2(x, time, depth){
+  const nx = x/W;
+  const bell = Math.exp(-3.0*(nx-0.28)*(nx-0.28));
+  const b = Math.sin(time*0.30+nx*3.0)*0.22 + Math.sin(time*0.13-nx*1.8)*0.10;
+  return bell * (6 + b*28) * depth;
+}
+
+/* ── ink ripple: appears when baren presses ───────────── */
+function addRipple(x, y){
+  inkRipples.push({x, y, age:0, life:1800+Math.random()*2000, maxR:30+Math.random()*50});
+  if(inkRipples.length>40) inkRipples.splice(0,4);
+}
+
+/* ── resize ───────────────────────────────────────────── */
+function resize(){
+  dpr = Math.min(window.devicePixelRatio||1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width  = W*dpr;
+  canvas.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  horizonY = H * 0.50;
+  brushX = W/2; brushY = H/2;
+  initMist();
+  bakeGrain();
+}
+
+/* ── audio ────────────────────────────────────────────── */
+function initAudio(){
+  if(audioStarted) return; audioStarted=true;
+  try{ audioCtx = new(window.AudioContext||window.webkitAudioContext)(); }
+  catch(e){}
+}
+
+function playBreath(){
+  if(!audioCtx) return;
+  try{
+    const t0 = audioCtx.currentTime;
+    const sr = audioCtx.sampleRate;
+    const buf = audioCtx.createBuffer(1, sr*1.6, sr);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){
+      const env = Math.exp(-i/(sr*0.8));
+      d[i] = (Math.random()*2-1)*env*0.03;
+     }
+    const src = audioCtx.createBufferSource(); src.buffer=buf;
+    const lp  = audioCtx.createBiquadFilter();
+    lp.type='lowpass'; lp.frequency.value=260;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.13, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0+1.6);
+    src.connect(lp).connect(g).connect(audioCtx.destination);
+    src.start(t0);
+   }catch(e){}
+}
+
+function playPressClick(){
+  if(!audioCtx) return;
+  try{
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    o.type='triangle';
+    o.frequency.setValueAtTime(130, t0);
+    o.frequency.exponentialRampToValueAtTime(70, t0+0.18);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.05, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0+0.22);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t0); o.stop(t0+0.22);
+   }catch(e){}
+}
+
+/* ── draw ─────────────────────────────────────────────── */
+function draw(t){
+  /* === SKY === */
+  const sky = ctx.createLinearGradient(0,0,0,horizonY+5);
+  sky.addColorStop(0,    'rgb('+SKY_TOP.r+','+SKY_TOP.g+','+SKY_TOP.b+')');
+  sky.addColorStop(0.7,'rgb(224,220,210)');
+  sky.addColorStop(1,    'rgb(214,210,198)');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0,0,W,horizonY+6);
+
+  /* === HORIZON LINE — thin, precise, slightly organic === */
+  ctx.save();
+  ctx.strokeStyle = 'rgba(65,75,108,0.22)';
+  ctx.lineWidth   = 0.8;
+  ctx.beginPath();
+  for(let x=0;x<=W;x+=3){
+    const y = horizonY + Math.sin(t*0.0012 + x*0.004)*0.8;
+    x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+   }
+  ctx.stroke();
+  ctx.restore();
+
+  /* === SEA BASE === */
+  const sea = ctx.createLinearGradient(0,horizonY,0,H);
+  sea.addColorStop(0,   'rgba(50,60,95,0.28)');
+  sea.addColorStop(0.3,'rgba(38,48,85,0.42)');
+  sea.addColorStop(0.7,'rgba(26,36,68,0.55)');
+  sea.addColorStop(1,   'rgba(16,26,52,0.68)');
+  ctx.fillStyle = sea;
+  ctx.fillRect(0,horizonY,W,H-horizonY);
+
+  /* === SECONDARY WAVE (behind, distant) === */
+  ctx.save();
+  const d2Depth = 0.5 + pressDepth*0.3;
+  ctx.beginPath();
+  ctx.moveTo(0, horizonY+12);
+  for(let x=0;x<=W;x+=3){
+    const y = horizonY+12 + waveY2(x, t*0.001, d2Depth);
+    ctx.lineTo(x, y);
+   }
+  ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+  ctx.fillStyle   = 'rgba(40,52,90,0.30)';
+  ctx.filter      = 'blur(5px)';
+  ctx.fill();
+  ctx.filter = 'none';
+  ctx.restore();
+
+  /* === PRIMARY WAVE — the ink wash === */
+  ctx.save();
+  const depth = 0.55 + pressDepth*0.45;
+  ctx.beginPath();
+  ctx.moveTo(0, horizonY);
+  for(let x=0;x<=W;x+=2){
+    const y = horizonY + waveY(x, t*0.001, depth);
+    ctx.lineTo(x, y);
+   }
+  ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+
+  /* wave gradient: deep indigo at top → fading at bottom */
+  const ri = Math.floor(INK_DEEP.r  + pressDepth*8);
+  const gi = Math.floor(INK_DEEP.g  + pressDepth*6);
+  const bi = Math.floor(INK_DEEP.b  + pressDepth*12);
+  const wGrad = ctx.createLinearGradient(0,horizonY-45,0,horizonY+120);
+  wGrad.addColorStop(0,    'rgba('+ri+','+gi+','+bi+','+(0.85*depth)+')');
+  wGrad.addColorStop(0.12,'rgba('+Math.floor(INK_MID.r-3)+','+Math.floor(INK_MID.g)+','+Math.floor(INK_MID.b)+','+(0.70*depth)+')');
+  wGrad.addColorStop(0.35,'rgba('+Math.floor(INK_LIGHT.r-10)+','+Math.floor(INK_LIGHT.g-8)+','+Math.floor(INK_LIGHT.b-8)+','+(0.45*depth)+')');
+  wGrad.addColorStop(0.7, 'rgba('+Math.floor(INK_LIGHT.r)+','+Math.floor(INK_LIGHT.g)+','+Math.floor(INK_LIGHT.b)+','+(0.22*depth)+')');
+  wGrad.addColorStop(1,    'rgba('+Math.floor(INK_LIGHT.r+20)+','+Math.floor(INK_LIGHT.g+15)+','+Math.floor(INK_LIGHT.b)+',0.07)');
+
+  ctx.fillStyle = wGrad;
+  ctx.filter    = 'blur('+(2.0 - pressDepth*1.5)+'px)';
+  ctx.fill();
+  ctx.filter    = 'none';
+
+  /* === WAVE CREST: foam + spray === */
+  const crestX = Math.floor(W*0.56);
+  const crestH = waveY(crestX, t*0.001, depth);
+  const sprayCount = 5 + Math.floor(pressDepth*22);
+  for(let i=0;i<sprayCount;i++){
+    const sx = crestX + (Math.random()-0.5)*(60+pressDepth*110);
+    const sy = horizonY+crestH - Math.random()*22 - pressDepth*28
+               + Math.sin(t*0.003+i*2.1)*9;
+    const sr = 1+Math.random()*3;
+    ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(212,218,228,'+(0.10+pressDepth*0.28)+')';
+    ctx.fill();
+   }
+
+  /* === PRESS INDENTATION on the wave surface === */
+  if(pressDepth > 0.15){
+    /* the area near the brush gets a darker ink wash mark */
+    const indentR = 50 + pressDepth*70;
+    const ig = ctx.createRadialGradient(brushX, brushY, 0, brushX, brushY, indentR);
+    ig.addColorStop(0, 'rgba('+INDIGO_ACC.r+','+INDIGO_ACC.g+','+INDIGO_ACC.b+','+(pressDepth*0.18)+')');
+    ig.addColorStop(0.6,'rgba('+INDIGO_ACC.r+','+INDIGO_ACC.g+','+INDIGO_ACC.b+','+(pressDepth*0.06)+')');
+    ig.addColorStop(1,  'rgba('+INDIGO_ACC.r+','+INDIGO_ACC.g+','+INDIGO_ACC.b+',0)');
+    ctx.fillStyle = ig;
+    ctx.beginPath(); ctx.arc(brushX,brushY,indentR,0,Math.PI*2);
+    ctx.fill();
+   }
+  ctx.restore();
+
+  /* === INK RIPPLES === */
+  for(const rp of inkRipples){
+    const lifeRatio = rp.age / rp.life;
+    const r = rp.maxR * lifeRatio;
+    const alpha = (1-lifeRatio) * 0.12;
+    ctx.save();
+    ctx.strokeStyle = 'rgba('+INDIGO_ACC.r+','+INDIGO_ACC.g+','+INDIGO_ACC.b+','+alpha+')';
+    ctx.lineWidth   = 1 + (1-lifeRatio)*2;
+    ctx.beginPath();
+    ctx.arc(rp.x, rp.y, r, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+   }
+
+  /* === MIST LAYERS === */
+  for(const m of mist){
+    const mx = ((m.x + t*m.speed*0.014) % (W*1.6)) - W*0.3;
+    const my = m.y + Math.sin(t*0.0004+m.phase)*9 + Math.sin(t*0.0007+m.phase*1.3)*m.vDrift*H;
+    const mo = m.op * (0.5 + Math.sin(t*0.0003+m.phase)*0.5);
+    const mg = ctx.createRadialGradient(mx,my,0,mx,my,m.w*0.5);
+    mg.addColorStop(0,'rgba('+MIST_CLR.r+','+MIST_CLR.g+','+MIST_CLR.b+','+mo+')');
+    mg.addColorStop(1,'rgba('+MIST_CLR.r+','+MIST_CLR.g+','+MIST_CLR.b+',0)');
+    ctx.fillStyle = mg;
+    ctx.fillRect(mx-m.w*0.5, my-m.h*1.6, m.w, m.h*3.2);
+   }
+
+  /* === PAPER GRAIN OVERLAY === */
+  ctx.save();
+  ctx.globalAlpha = 0.30 + pressDepth*0.08;
+  ctx.drawImage(grainCvs, 0, 0, W, H);
+  ctx.restore();
+
+  /* === EDGE VIGNETTE === */
+  const vig = ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.25,W/2,H/2,Math.max(W,H)*0.78);
+  vig.addColorStop(0,  'rgba(0,0,0,0)');
+  vig.addColorStop(0.7,'rgba(16,12,8,0.07)');
+  vig.addColorStop(1,  'rgba(16,12,8,0.22)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0,0,W,H);
+
+  /* === BRUSH CURSOR === */
+  if(!pressDown){
+    ctx.beginPath();
+    ctx.arc(brushX, brushY, 3.5, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(50,40,30,0.28)';
+    ctx.fill();
+   } else if(pressDepth > 0.05){
+    /* pulsing circle while pressing */
+    const pR = 22 + pressDepth*40 + Math.sin(t*0.006)*5;
+    ctx.beginPath();
+    ctx.arc(brushX, brushY, pR, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba('+INDIGO_ACC.r+','+INDIGO_ACC.g+','+INDIGO_ACC.b+','+(pressDepth*0.15)+')';
+    ctx.lineWidth   = 1.2;
+    ctx.stroke();
+   }
+}
+
+/* ── baren physics === spring-damper with resistance === */
+function updatePress(dt){
+  if(pressDown){
+    pressAge += dt;
+    totalPressTime += dt;
+    pressTarget = Math.min(1, pressAge / 3000);
+    const err = pressTarget - pressDepth;
+    pressVel += err * 3.0 * dt * 0.001;
+    pressVel *= 0.85;
+    pressDepth = Math.max(0, Math.min(1, pressDepth + pressVel));
+     /* spawn ink ripples occasionally */
+    if(pressDepth > 0.15 && Math.random() < 0.006 * dt * 0.01){
+      addRipple(brushX+(Math.random()-0.5)*80, brushY+(Math.random()-0.5)*80);
+      }
+   } else {
+    pressTarget = 0;
+    const err = pressTarget - pressDepth;
+    pressVel += err * 1.5 * dt * 0.001;
+    pressVel *= 0.91;
+    pressDepth = Math.max(0, pressDepth + pressVel);
+    if(pressDepth < 0.003) pressDepth = 0;
+   }
+}
+
+/* ── input === pointer + mouse + touch === */
+function pDown(e){
+  e.preventDefault();
+  pressDown=true; pressAge=0; pressVel=0;
+  const p=pos(e); brushX=p.x; brushY=p.y;
+  initAudio(); playBreath();
+  setTimeout(playPressClick, 90);
+}
+function pMove(e){
+  e.preventDefault();
+  const p=pos(e); brushX=p.x; brushY=p.y;
+}
+function pUp(e){
+  e.preventDefault(); pressDown=false;
+}
+function pos(e){
+  if(e.touches&&e.touches.length>0)
+    return{x:e.touches[0].clientX,y:e.touches[0].clientY};
+  return{x:e.clientX,y:e.clientY};
+}
+
+canvas.addEventListener('pointerdown',   pDown,  {passive:false});
+canvas.addEventListener('pointermove',   pMove,  {passive:false});
+canvas.addEventListener('pointerup',     pUp,    {passive:false});
+canvas.addEventListener('pointercancel', pUp,    {passive:false});
+canvas.addEventListener('mousedown',     function(e){pDown(e);},{passive:false});
+canvas.addEventListener('mousemove',     function(e){pMove(e);});
+canvas.addEventListener('mouseup',       function(e){pUp(e);});
+
+/* ── loop === 60fps target === */
+let lastT = 0;
+function loop(now){
+  const dt = Math.min(now-lastT, 50);
+  lastT = now; t = now;
+   /* age ripples */
+  for(const rp of inkRipples) rp.age += dt;
+   /* cull dead ripples */
+  while(inkRipples.length && inkRipples[0].age >= inkRipples[0].life)
+    inkRipples.shift();
+  updatePress(dt);
+  draw(now);
+  requestAnimationFrame(loop);
+}
+
+/* ── boot === immediate, no loading === */
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
