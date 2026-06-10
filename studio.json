@@ -55,7 +55,13 @@
   },
   "games": {
     "shipped": [],
-    "upcoming": {},
+    "upcoming": {
+      "slug": "quiet-opening",
+      "title": "Quiet Opening",
+      "summary": "A lone pine on a sea cliff in fog. The first screen is a finished print.",
+      "play_url": "games/quiet-opening/",
+      "studio_url": "/edo-woodblock/games/quiet-opening/"
+    },
     "building": {}
   },
   "blog_posts": [],
