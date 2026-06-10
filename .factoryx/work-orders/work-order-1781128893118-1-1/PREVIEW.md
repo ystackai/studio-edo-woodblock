@@ -20,3 +20,4 @@ A single wave-form horizon in deep indigo ink on warm handmade paper. Mist drift
 - Single self-contained `index.html`, ~16 KB, zero external dependencies.
 - Canvas-based rendering at `requestAnimationFrame`.
 - All assets (paper grain, ink texture) generated procedurally.
+- Browser-verified: 8/8 runtime checks pass in headless Chromium.

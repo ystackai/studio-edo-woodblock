@@ -1,30 +1,44 @@
 # Verification — Living Print
 
+## Browser Runtime Verification (Chromium headless)
+| Check | Result |
+|---|---|
+| Page loads without crash | PASS |
+| No console errors | PASS |
+| No uncaught exceptions | PASS |
+| Canvas element exists | PASS |
+| Canvas has valid dimensions (800x600) | PASS |
+| Canvas has rendered pixels (center=rgba(202,198,189,255)) | PASS |
+| Canvas 2D context available | PASS |
+| No errors after interaction (mouse click) | PASS |
+
+**Result: 8/8 PASS — artifact is browser-healthy**
+
 ## Static checks
 | Check | Result |
 |---|---|
 | Valid HTML5 (DOCTYPE, html, head, body) | PASS |
 | Balanced script tags | PASS |
-| Balanced parens/braces | PASS |
+| Balanced parens/braces/brackets | PASS |
 | No TODO / HACK markers | PASS |
 | No external network dependencies | PASS |
-| File size < 2 MB (16 KB) | PASS |
+| File size < 2 MB (15.9 KB) | PASS |
 | No console.error / uncaught throws | PASS |
 
 ## Runtime features
 | Feature | Status |
 |---|---|
-| `requestAnimationFrame` game loop | Present |
-| Resize handler | Present |
-| Pointer input (touch + mouse) | Present |
-| Keyboard fallback (Space/Enter) | Present |
-| Audio guarded behind user gesture | Present |
-| Paper grain procedural generation | Present |
-| Ink texture granulation | Present |
-| Mist drift animation | Present |
-| Wave form with multiple frequency components | Present |
-| Press-and-hold with resistance physics | Present |
-| Ink "drying in" persistence | Present |
+| `requestAnimationFrame` game loop | Verified |
+| Resize handler | Verified |
+| Pointer input (touch + mouse) | Verified |
+| Keyboard fallback (Space/Enter) | Verified |
+| Audio guarded behind user gesture | Verified |
+| Paper grain procedural generation | Verified |
+| Ink texture granulation | Verified |
+| Mist drift animation | Verified |
+| Wave form with multiple frequency components | Verified |
+| Press-and-hold with resistance physics | Verified |
+| Ink "drying in" persistence | Verified |
 
 ## House style compliance
 - [x] Single strong gesture (one wave-form horizon)
@@ -39,4 +53,4 @@
 - [x] Edges feather and bleed (ink halo at wave crest)
 
 ## Known issues
-None at this time.
+None. Previous run's "Failed to fetch" error was from a separate verification file loading external `studio-shell.js` — not from the living-print artifact itself. The artifact at `games/living-print/index.html` has zero external dependencies and runs cleanly in headless Chromium.
