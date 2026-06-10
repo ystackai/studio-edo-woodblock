@@ -54,10 +54,106 @@
     "last_reset_at": ""
   },
   "games": {
-    "shipped": [],
+    "shipped": [
+      {
+        "title": "Floating Moment",
+        "slug": "floating-moment",
+        "summary": "Capture ephemeral beauty. Click or press keys 1-5 to choose a flower bloom, watch it drift and fade like a woodblock print. Each bloom is a unique, fleeting moment.",
+        "mashup": "ukiyo-e \u00b7 ephemeral blooms \u00b7 floating world",
+        "play_url": "/edo-woodblock/drops/floating-moment/",
+        "studio_url": "/edo-woodblock/drops/floating-moment/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "ephemeral",
+          "generative"
+        ]
+      },
+      {
+        "title": "Floating World",
+        "slug": "floating-world",
+        "summary": "Drag through the seasons of a ukiyo-e landscape. Each touch changes the scene \u2014 cherry blossoms, summer greens, autumn maples, winter snow. A haiku follows your brush.",
+        "mashup": "ukiyo-e \u00b7 seasonal passage \u00b7 floating world",
+        "play_url": "/edo-woodblock/drops/floating-world/",
+        "studio_url": "/edo-woodblock/drops/floating-world/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "seasonal"
+        ]
+      },
+      {
+        "title": "Ukiyo-e Printer",
+        "slug": "ukiyo-e-printer",
+        "summary": "Learn the four-block woodprint process. Click key, red, blue, and yellow blocks in order to build a complete ukiyo-e scene with Mt. Fuji, waves, and blossoms.",
+        "mashup": "ukiyo-e \u00b7 woodblock process \u00b7 four-block print",
+        "play_url": "/edo-woodblock/drops/ukiyo-e-printer/",
+        "studio_url": "/edo-woodblock/drops/ukiyo-e-printer/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "woodblock",
+          "educational"
+        ]
+      },
+      {
+        "title": "Floating Press",
+        "slug": "floating-press",
+        "summary": "An interactive ukiyo-e printmaker. Tap anywhere to create a unique ephemeral composition of waves, blossoms, mountains, clouds, and birds \u2014 each one a fleeting picture of the floating world.",
+        "mashup": "modern canvas \u00b7 ukiyo-e palette",
+        "play_url": "/edo-woodblock/drops/floating-press/",
+        "studio_url": "/edo-woodblock/drops/floating-press/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "generative"
+        ]
+      },
+      {
+        "title": "Floating Score",
+        "slug": "floating-score",
+        "summary": "Catch ukiyo-e elements as they drift across the canvas. Score points, build streaks, level up through faster rounds. A timed collection game in the floating world.",
+        "mashup": "catch \u00b7 score \u00b7 streaks \u00b7 levels",
+        "play_url": "/edo-woodblock/drops/floating-score/",
+        "studio_url": "/edo-woodblock/drops/floating-score/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "game",
+          "scoring",
+          "progression"
+        ]
+      }
+    ],
     "upcoming": {},
     "building": {}
   },
   "blog_posts": [],
-  "drops": []
+  "drops": [],
+  "assets": [
+    {
+      "slug": "floating-world",
+      "title": "Floating World"
+    },
+    {
+      "slug": "ukiyo-e-printer",
+      "title": "Ukiyo-e Printer"
+    },
+    {
+      "slug": "wind-impressions",
+      "title": "Wind Impressions"
+    },
+    {
+      "slug": "floating-moment",
+      "title": "Floating Moment"
+    },
+    {
+      "slug": "floating-press",
+      "title": "Floating Press"
+    },
+    {
+      "slug": "floating-score",
+      "title": "Floating Score"
+    }
+  ]
 }

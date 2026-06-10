@@ -1,0 +1,28 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #101724;
+}
+
+canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;
+}
+
+.repair-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(239, 246, 255, 0.3);
+  background: rgba(8, 13, 20, 0.72);
+  color: rgba(239, 246, 255, 0.9);
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0;
+}
