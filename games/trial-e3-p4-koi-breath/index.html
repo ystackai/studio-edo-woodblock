@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Koi Breath — trial e3/35b</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0f14; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#hint {
+  position: fixed; bottom: 8%; left: 0; right: 0; text-align: center;
+  color: rgba(180,200,210,0.45); font-family: 'Noto Serif', 'Hiragino Mincho Pro', serif;
+  font-size: clamp(12px, 2.5vw, 18px); letter-spacing: 0.08em;
+  pointer-events: none; transition: opacity 2s ease;
+}
+#hint.hidden { opacity: 0; }
+</style>
+</head>
+<body>
+<canvas id="pond"></canvas>
+<div id="hint">Press and hold to breathe ink into the pond</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var canvas = document.getElementById('pond');
+  var ctx = canvas.getContext('2d');
+  var hint = document.getElementById('hint');
+  var W, H;
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  var inkBlooms = [];
+  var ripples = [];
+  var koi = [];
+  var PRESS_DURATION_THRESHOLD = 300;
+  var pressStart = null;
+  var pressPos = null;
+  var isPressing = false;
+  var firstPress = true;
+
+  var PALETTES = [
+    [[15,20,30],[40,55,70],[70,85,100],[100,115,130]],
+    [[20,30,45],[50,65,80],[80,95,110],[110,125,140]],
+    [[10,15,25],[35,50,65],[65,80,95],[95,110,125]],
+    [[25,35,50],[55,70,85],[85,100,115],[120,130,145]],
+  ];
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+  function Ripple(x, y) {
+    this.x = x; this.y = y;
+    this.radius = 0;
+    this.maxRadius = rand(120, 250);
+    this.life = 1;
+    this.speed = rand(30, 60);
+  }
+  Ripple.prototype.update = function(dt) {
+    this.radius += this.speed * dt;
+    this.life = 1 - (this.radius / this.maxRadius);
+    return this.life > 0;
+  };
+  Ripple.prototype.draw = function(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.life * 0.15;
+    ctx.strokeStyle = 'rgba(180,210,220,0.6)';
+    ctx.lineWidth = 1.2 * this.life;
+    ctx.beginPath();
+    ctx.ellipse(this.x, this.y, this.radius, this.radius * 0.45, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  function InkBloom(x, y, holdDuration) {
+    this.x = x; this.y = y;
+    this.birth = performance.now();
+    this.holdDuration = holdDuration;
+
+    var intensity = Math.min(holdDuration / 3000, 1);
+    this.maxRadius = lerp(40, 180, intensity);
+    this.life = 1;
+    this.fadeStart = 2000 + holdDuration * 0.5;
+    this.totalLife = 6000 + holdDuration * 2;
+
+    var palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
+    this.colors = [];
+    var colorCount = Math.floor(lerp(3, 8, intensity)) + 1;
+    for (var ci = 0; ci < colorCount; ci++) {
+      this.colors.push(palette[Math.floor(Math.random() * palette.length)]);
+    }
+
+    this.tendrils = [];
+    var tendrilCount = Math.floor(lerp(4, 16, intensity));
+    for (var ti = 0; ti < tendrilCount; ti++) {
+      this.tendrils.push({
+        angle: rand(0, Math.PI * 2),
+        length: rand(20, 120) * (0.5 + intensity),
+        branches: Math.floor(rand(1, 1 + Math.floor(intensity * 3)))
+      });
+    }
+
+    this.particleCount = Math.floor(lerp(10, 60, intensity));
+    this.particles = [];
+    for (var pi = 0; pi < this.particleCount; pi++) {
+      this.particles.push({
+        angle: rand(0, Math.PI * 2),
+        dist: rand(0, 1),
+        speed: rand(0.5, 3) * (0.3 + intensity),
+        size: rand(0.5, 3) * (0.5 + intensity),
+        drift: rand(-0.5, 0.5),
+        color: this.colors[Math.floor(Math.random() * this.colors.length)],
+        phase: rand(0, Math.PI * 2)
+      });
+    }
+
+    this.growDuration = lerp(1500, 400, intensity);
+    this.growProgress = 0;
+  }
+
+  InkBloom.prototype.getAge = function() { return performance.now() - this.birth; };
+  InkBloom.prototype.isAlive = function() { return this.getAge() < this.totalLife; };
+
+  InkBloom.prototype.update = function(dt) {
+    var t = this.getAge() / this.totalLife;
+    if (this.getAge() < this.growDuration) {
+      this.growProgress = easeOutCubic(this.getAge() / this.growDuration);
+    } else if (this.getAge() < this.fadeStart) {
+      this.growProgress = 1;
+    } else {
+      var fadeT = (this.getAge() - this.fadeStart) / (this.totalLife - this.fadeStart);
+      this.growProgress = 1 - easeInOutCubic(fadeT);
+    }
+    this.life = Math.max(0, this.growProgress);
+    return this.isAlive();
+  };
+
+  InkBloom.prototype.draw = function(ctx) {
+    if (this.life <= 0) return;
+    var r = this.maxRadius * this.life;
+    var alpha = this.life * 0.7;
+    var c0 = this.colors[0] || [15, 20, 30];
+
+    var grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, r);
+    grad.addColorStop(0, 'rgba(' + (c0[0] + 30) + ',' + (c0[1] + 30) + ',' + (c0[2] + 30) + ',' + (alpha * 0.8) + ')');
+    grad.addColorStop(0.4, 'rgba(' + c0[0] + ',' + c0[1] + ',' + c0[2] + ',' + (alpha * 0.5) + ')');
+    grad.addColorStop(1, 'rgba(' + c0[0] + ',' + c0[1] + ',' + c0[2] + ',0)');
+
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(this.x, this.y, r, r * 0.9, this.getAge() * 0.0001, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = alpha * 0.6;
+    ctx.strokeStyle = 'rgba(' + (c0[0] + 10) + ',' + (c0[1] + 10) + ',' + (c0[2] + 10) + ',' + (alpha * 0.5) + ')';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+
+    for (var ti = 0; ti < this.tendrils.length; ti++) {
+      this.drawTendril(ctx, this.x, this.y, this.tendrils[ti].angle, this.tendrils[ti].length * this.life, 2);
+    }
+
+    ctx.globalAlpha = alpha * 0.8;
+    for (var pi = 0; pi < this.particles.length; pi++) {
+      var p = this.particles[pi];
+      var px = this.x + Math.cos(p.angle + this.getAge() * 0.001 * p.speed) * r * p.dist * this.life;
+      var py = this.y + Math.sin(p.angle + this.getAge() * 0.001 * p.speed) * r * 0.9 * p.dist * this.life;
+      var pulse = 0.5 + 0.5 * Math.sin(this.getAge() * 0.003 + p.phase);
+      ctx.globalAlpha = alpha * pulse * 0.6;
+      ctx.fillStyle = 'rgb(' + (p.color[0] + 40) + ',' + (p.color[1] + 40) + ',' + (p.color[2] + 40) + ')';
+      ctx.beginPath();
+      ctx.arc(px, py, p.size * (0.5 + pulse * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  };
+
+  InkBloom.prototype.drawTendril = function(ctx, x, y, angle, length, width) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    var cx = 0, cy = 0;
+    var steps = 12;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    for (var i = 0; i < steps; i++) {
+      cx += Math.cos(angle + Math.sin(i * 1.7) * 0.4) * (length / steps);
+      cy += Math.sin(angle + Math.cos(i * 1.3) * 0.3) * (length / steps) * 0.5;
+      ctx.lineTo(cx, cy);
+    }
+    ctx.lineWidth = width * (1 - length / (120 * (0.5 + Math.min(this.holdDuration / 3000, 1))));
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  function Koi() {
+    this.reset();
+    this.age = rand(0, 10000);
+  }
+
+  Koi.prototype.reset = function() {
+    var side = Math.floor(Math.random() * 4);
+    if (side === 0) { this.x = -50; this.y = rand(0, H); }
+    else if (side === 1) { this.x = W + 50; this.y = rand(0, H); }
+    else if (side === 2) { this.x = rand(0, W); this.y = -50; }
+    else { this.x = rand(0, W); this.y = H + 50; }
+
+    var targetX = rand(80, W - 80);
+    var targetY = rand(80, H - 80);
+    var dx = targetX - this.x;
+    var dy = targetY - this.y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    this.vx = (dx / dist) * rand(15, 35);
+    this.vy = (dy / dist) * rand(15, 35);
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.turnTimer = rand(2000, 6000);
+    this.size = rand(15, 35);
+
+    var type = Math.floor(Math.random() * 3);
+    if (type === 0) {
+      this.bodyColor = [230, 235, 240];
+      this.markColor = [200, 60, 50];
+    } else if (type === 1) {
+      this.bodyColor = [210, 160, 80];
+      this.markColor = [240, 200, 120];
+    } else {
+      this.bodyColor = [30, 35, 45];
+      this.markColor = [220, 180, 60];
+    }
+    if (Math.random() < 0.3) {
+      var tmp = this.bodyColor;
+      this.bodyColor = this.markColor;
+      this.markColor = tmp;
+    }
+  };
+
+  Koi.prototype.update = function(dt, time) {
+    this.age += dt;
+    this.turnTimer -= dt;
+    var dx = this.targetX - this.x;
+    var dy = this.targetY - this.y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 40 || this.turnTimer <= 0) {
+      this.targetX = rand(80, W - 80);
+      this.targetY = rand(80, H - 80);
+      this.turnTimer = rand(2000, 6000);
+    }
+
+    var angle = Math.atan2(dy, dx);
+    var currentAngle = Math.atan2(this.vy, this.vx);
+    var angleDiff = angle - currentAngle;
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    var newAngle = currentAngle + angleDiff * Math.min(dt * 0.002, 1);
+    var speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+    var targetSpeed = rand(10, 25);
+    var newSpeed = lerp(speed, targetSpeed, dt * 0.001);
+    this.vx = Math.cos(newAngle) * newSpeed;
+    this.vy = Math.sin(newAngle) * newSpeed;
+    this.x += this.vx * dt * 0.06;
+    this.y += this.vy * dt * 0.06;
+
+    if (this.x < -60) this.x = W + 60;
+    if (this.x > W + 60) this.x = -60;
+    if (this.y < -60) this.y = H + 60;
+    if (this.y > H + 60) this.y = -60;
+
+    for (var bi = 0; bi < inkBlooms.length; bi++) {
+      var bloom = inkBlooms[bi];
+      var bdx = this.x - bloom.x;
+      var bdy = this.y - bloom.y;
+      var bDist = Math.sqrt(bdx * bdx + bdy * bdy);
+      var bloomR = bloom.maxRadius * bloom.life;
+      if (bDist < bloomR + 40) {
+        var pushStrength = (1 - bDist / (bloomR + 40)) * 0.3;
+        this.vx += (bdx / bDist) * pushStrength * 30;
+        this.vy += (bdy / bDist) * pushStrength * 30;
+      }
+    }
+    return true;
+  };
+
+  Koi.prototype.draw = function(ctx, time) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    var angle = Math.atan2(this.vy, this.vx);
+    ctx.rotate(angle);
+    var s = this.size;
+    var tailWag = Math.sin(time * 0.005 + this.age) * 0.3;
+
+    ctx.save();
+    ctx.translate(-s * 0.6, 0);
+    ctx.rotate(tailWag);
+    ctx.fillStyle = 'rgba(' + this.markColor[0] + ',' + this.markColor[1] + ',' + this.markColor[2] + ',0.8)';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(-s * 0.5, -s * 0.3, -s * 0.8, -s * 0.15);
+    ctx.quadraticCurveTo(-s * 0.6, 0, -s * 0.8, s * 0.15);
+    ctx.quadraticCurveTo(-s * 0.5, s * 0.3, 0, 0);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = 'rgb(' + this.bodyColor[0] + ',' + this.bodyColor[1] + ',' + this.bodyColor[2] + ')';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 0.7, s * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(' + this.markColor[0] + ',' + this.markColor[1] + ',' + this.markColor[2] + ',0.6)';
+    ctx.beginPath();
+    ctx.ellipse(s * 0.1, -s * 0.05, s * 0.25, s * 0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(s * 0.45, -s * 0.05, s * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  function drawCaustics(ctx, time) {
+    ctx.save();
+    ctx.globalAlpha = 0.03;
+    ctx.globalCompositeOperation = 'lighter';
+    var gridSize = 60;
+    for (var x = 0; x < W; x += gridSize) {
+      for (var y = 0; y < H; y += gridSize) {
+        var dx = x - W / 2;
+        var dy = y - H / 2;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        var wave = Math.sin(time * 0.0008 + dist * 0.02) * 0.5 + 0.5;
+        if (wave > 0.7) {
+          ctx.fillStyle = 'rgba(140,180,200,' + (wave * 0.15) + ')';
+          ctx.beginPath();
+          ctx.arc(x, y, 15 * wave, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  for (var ki = 0; ki < 7; ki++) {
+    koi.push(new Koi());
+  }
+
+  function getPos(e) {
+    if (e.touches) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function onStart(e) {
+    e.preventDefault();
+    if (firstPress) {
+      firstPress = false;
+      hint.classList.add('hidden');
+    }
+    var pos = getPos(e);
+    pressStart = performance.now();
+    pressPos = pos;
+    isPressing = true;
+  }
+
+  function onMove(e) {
+    if (!isPressing) return;
+    e.preventDefault();
+    var pos = getPos(e);
+    pressPos = pos;
+  }
+
+  function onEnd(e) {
+    if (!isPressing) return;
+    e.preventDefault();
+    var holdDuration = performance.now() - pressStart;
+    if (holdDuration < PRESS_DURATION_THRESHOLD) {
+      isPressing = false;
+      pressStart = null;
+      return;
+    }
+    var intensity = Math.min(holdDuration / 5000, 1);
+    for (var ri = 0; ri < 2 + Math.floor(intensity * 3); ri++) {
+      ripples.push(new Ripple(pressPos.x, pressPos.y));
+    }
+    var bloom = new InkBloom(pressPos.x, pressPos.y, holdDuration);
+    inkBlooms.push(bloom);
+    isPressing = false;
+    pressStart = null;
+  }
+
+  canvas.addEventListener('mousedown', onStart);
+  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('mouseup', onEnd);
+  canvas.addEventListener('mouseleave', onEnd);
+  canvas.addEventListener('touchstart', onStart, { passive: false });
+  canvas.addEventListener('touchmove', onMove, { passive: false });
+  canvas.addEventListener('touchend', onEnd, { passive: false });
+  canvas.addEventListener('touchcancel', onEnd, { passive: false });
+
+  function drawWater(ctx) {
+    var grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#0e1620');
+    grad.addColorStop(0.3, '#0c1418');
+    grad.addColorStop(0.7, '#0a1016');
+    grad.addColorStop(1, '#080e12');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawPressIndicator(ctx, time) {
+    if (!isPressing || !pressPos) return;
+    var holdDuration = time - pressStart;
+    var progress = Math.min(holdDuration / PRESS_DURATION_THRESHOLD, 1);
+    var easedProgress = easeOutCubic(progress);
+    ctx.save();
+    ctx.globalAlpha = easedProgress * 0.2;
+    var grad = ctx.createRadialGradient(
+      pressPos.x, pressPos.y, 0,
+      pressPos.x, pressPos.y, 60 * easedProgress
+    );
+    grad.addColorStop(0, 'rgba(120,160,180,0.4)');
+    grad.addColorStop(1, 'rgba(120,160,180,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(pressPos.x, pressPos.y, 60 * easedProgress, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  var lastTime = performance.now();
+
+  function loop() {
+    var now = performance.now();
+    var dt = Math.min(now - lastTime, 50);
+    lastTime = now;
+
+    drawWater(ctx);
+    drawCaustics(ctx, now);
+
+    for (var ri = ripples.length - 1; ri >= 0; ri--) {
+      if (!ripples[ri].update(dt)) {
+        ripples.splice(ri, 1);
+      } else {
+        ripples[ri].draw(ctx);
+      }
+    }
+
+    for (var bi = inkBlooms.length - 1; bi >= 0; bi--) {
+      if (!inkBlooms[bi].update(dt)) {
+        inkBlooms.splice(bi, 1);
+      } else {
+        inkBlooms[bi].draw(ctx);
+      }
+    }
+
+    drawPressIndicator(ctx, now);
+
+    for (var ki = 0; ki < koi.length; ki++) {
+      koi[ki].update(dt, now);
+      koi[ki].draw(ctx, now);
+    }
+
+    var vignetteGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.75);
+    vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    vignetteGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = vignetteGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
