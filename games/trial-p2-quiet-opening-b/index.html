@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>松 — Pine</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #e6dec9; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ================================================================
+// 松 — A lone pine on a sea cliff in fog
+// Edo Woodblock studio — single-file woodblock print
+//
+// The composition: strong cliff left-center, windswept pine,
+// vast indigo sea to the right, thick fog at the horizon.
+// The pointer breathes on the print — fog parts gently.
+// ================================================================
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, dpr;
+let mouseX = -9999, mouseY = -9999;
+let smoothX = -9999, smoothY = -9999;
+let active = false;
+let time = 0;
+let paperTex;
+
+// ================================================================
+// INIT
+// ================================================================
+function init() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  makePaper();
+}
+
+// ================================================================
+// PAPER TEXTURE
+// ================================================================
+function makePaper() {
+  const sz = 512;
+  paperTex = document.createElement('canvas');
+  paperTex.width = sz;
+  paperTex.height = sz;
+  const c = paperTex.getContext('2d');
+
+  c.fillStyle = '#e6dec9';
+  c.fillRect(0, 0, sz, sz);
+
+  const id = c.getImageData(0, 0, sz, sz);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const px = (i / 4) % sz;
+    const py = Math.floor(i / 4 / sz);
+    let n = (Math.random() - 0.5) * 10;
+    n += Math.sin(px * 0.035 + py * 0.012 + Math.random() * 3) * 2.5;
+    const w = (Math.random() - 0.5) * 3.5;
+    d[i]     = clamp(d[i] + n, 0, 255);
+    d[i+1]   = clamp(d[i+1] + n - w, 0, 255);
+    d[i+2]   = clamp(d[i+2] + n - w * 1.5, 0, 255);
+  }
+  c.putImageData(id, 0, 0);
+
+  // Fiber strands
+  c.strokeStyle = 'rgba(160,150,130,0.08)';
+  c.lineWidth = 0.5;
+  for (let i = 0; i < 180; i++) {
+    const y = Math.random() * sz;
+    const l = 8 + Math.random() * 50;
+    c.beginPath();
+    c.moveTo(Math.random() * sz, y);
+    c.lineTo(Math.random() * sz, y + (Math.random() - 0.5) * 5);
+    c.stroke();
+  }
+
+  // Dark flecks
+  c.fillStyle = 'rgba(150,140,120,0.06)';
+  for (let i = 0; i < 30; i++) {
+    c.beginPath();
+    c.ellipse(Math.random()*sz, Math.random()*sz,
+       2+Math.random()*9, 1+Math.random()*3, Math.random()*Math.PI, 0, Math.PI*2);
+    c.fill();
+  }
+}
+
+// ================================================================
+// SKY
+// ================================================================
+function drawSky() {
+  const g = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+  g.addColorStop(0,   '#b0a898');
+  g.addColorStop(0.3, '#bab2a4');
+  g.addColorStop(0.7, '#c8c0b2');
+  g.addColorStop(1,   '#d2cabd');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H * 0.62);
+}
+
+// ================================================================
+// DISTANT LAND
+// ================================================================
+function drawDistantLand() {
+  ctx.save();
+  const f = 0.85 + Math.sin(time * 0.08) * 0.15;
+  const by = H * 0.57;
+
+  // Main ridge
+  ctx.globalAlpha = 0.07 * f;
+  ctx.fillStyle = '#8a847c';
+  ctx.beginPath();
+  ctx.moveTo(W*0.52, by+35);
+  ctx.quadraticCurveTo(W*0.63, by-50, W*0.73, by-12);
+  ctx.quadraticCurveTo(W*0.81, by+6, W*0.89, by+18);
+  ctx.quadraticCurveTo(W*0.96, by-12, W, by+8);
+  ctx.lineTo(W, by+40);
+  ctx.lineTo(W*0.52, by+40);
+  ctx.closePath();
+  ctx.fill();
+
+  // Secondary ridge
+  ctx.globalAlpha = 0.035 * f;
+  ctx.fillStyle = '#9a948c';
+  ctx.beginPath();
+  ctx.moveTo(W*0.6, by+22);
+  ctx.quadraticCurveTo(W*0.7, by-28, W*0.79, by-6);
+  ctx.quadraticCurveTo(W*0.89, by+10, W, by+5);
+  ctx.lineTo(W, by+30);
+  ctx.lineTo(W*0.6, by+30);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ================================================================
+// BIRDS
+// ================================================================
+function drawBirds() {
+  ctx.save();
+  ctx.strokeStyle = '#3a3834';
+  ctx.lineWidth = 1.1;
+  ctx.lineCap = 'round';
+
+  const bds = [
+      { x: 0.64, y: 0.17, sz: 2.3, p: 0 },
+      { x: 0.70, y: 0.14, sz: 1.7, p: 2.1 },
+  ];
+
+  for (const b of bds) {
+    const bx = W * (b.x + Math.sin(time * 0.07 + b.p) * 0.025);
+    const by = H * (b.y + Math.sin(time * 0.055 + b.p + 1.5) * 0.006);
+    const wing = Math.sin(time * 1.6 + b.p) * b.sz * 0.45;
+    ctx.globalAlpha = 0.32;
+    ctx.beginPath();
+    ctx.moveTo(bx - b.sz*1.3, by + wing);
+    ctx.quadraticCurveTo(bx - b.sz*0.25, by - Math.abs(wing)*0.35, bx, by);
+    ctx.quadraticCurveTo(bx + b.sz*0.25, by - Math.abs(wing)*0.35, bx + b.sz*1.3, by + wing);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ================================================================
+// SEA
+// ================================================================
+function drawSea() {
+  const top = H * 0.57;
+
+  // Deep water base
+  const sg = ctx.createLinearGradient(0, top, 0, H);
+  sg.addColorStop(0,   '#7a848c');
+  sg.addColorStop(0.3, '#6a747c');
+  sg.addColorStop(0.7, '#5a646c');
+  sg.addColorStop(1,   '#4a545c');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, top, W, H - top);
+
+  // Wave layers
+  const waves = [
+      { y: 0.59, a: 1.0, f: 0.003, s: 0.12, p: 0,   c: 'rgba(148,156,162,0.16)' },
+      { y: 0.62, a: 1.8, f: 0.0035,s: 0.20, p: 1.3, c: 'rgba(138,146,152,0.20)' },
+      { y: 0.66, a: 2.6, f: 0.0032,s: 0.15, p: 2.7, c: 'rgba(128,136,142,0.24)' },
+      { y: 0.70, a: 3.4, f: 0.004, s: 0.28, p: 0.6, c: 'rgba(118,126,132,0.26)' },
+      { y: 0.75, a: 4.4, f: 0.0045,s: 0.32, p: 3.4, c: 'rgba(108,116,122,0.22)' },
+      { y: 0.81, a: 5.4, f: 0.005, s: 0.22, p: 1.9, c: 'rgba(98,106,112,0.18)' },
+      { y: 0.87, a: 6.8, f: 0.0055,s: 0.25, p: 4.1, c: 'rgba(88,96,102,0.15)' },
+  ];
+
+  for (const w of waves) {
+    const wy = H * w.y;
+    ctx.beginPath();
+    ctx.moveTo(0, wy);
+    for (let x = 0; x <= W; x += 2) {
+      const p1 = Math.sin(x * w.f + time * w.s + w.p) * w.a;
+      const p2 = Math.sin(x * w.f * 2.2 + time * w.s * 0.65 + w.p * 1.3) * w.a * 0.3;
+      const p3 = Math.sin(x * w.f * 0.4 + time * w.s * 1.1 + w.p * 0.8) * w.a * 0.18;
+      ctx.lineTo(x, wy + p1 + p2 + p3);
+    }
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+    ctx.fillStyle = w.c;
+    ctx.fill();
+  }
+
+  // Foam
+  ctx.save();
+  ctx.strokeStyle = 'rgba(218,213,203,0.1)';
+  ctx.lineWidth = 0.6;
+  for (let i = 0; i < 4; i++) {
+    const fy = H * (0.65 + i * 0.06);
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 2) {
+      const wave = Math.sin(x * 0.0035 + time * (0.25 + i * 0.04)) * (2 + i * 1.2);
+      x === 0 ? ctx.moveTo(x, fy + wave) : ctx.lineTo(x, fy + wave);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ================================================================
+// SEA SPRAY
+// ================================================================
+function drawSeaSpray() {
+  ctx.save();
+  const sx = W * 0.46;
+  const sy = H * 0.63;
+  for (let i = 0; i < 12; i++) {
+    const px = sx + Math.sin(time * 0.4 + i * 2.1) * 22;
+    const py = sy + Math.cos(time * 0.25 + i * 1.5) * 11;
+    const pr = 0.4 + Math.sin(time * 0.7 + i * 2.8) * 0.25;
+    if (pr > 0) {
+      ctx.globalAlpha = 0.1 + Math.sin(time * 0.5 + i * 1.1) * 0.07;
+      ctx.fillStyle = 'rgba(220,215,205,1)';
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// ================================================================
+// CLIFF
+// ================================================================
+function drawCliff() {
+  ctx.save();
+
+  const left = W * 0.02;
+  const right = W * 0.46;
+  const topY = H * 0.41;
+
+  ctx.beginPath();
+  ctx.moveTo(left, H);
+  ctx.lineTo(left, topY + 18);
+
+  // Cliff top — jagged, organic
+  const segs = 50;
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    const x = left + t * (right - left);
+    const r = Math.sin(t*14)*5.5 + Math.sin(t*32)*2.8
+      + Math.sin(t*7+2)*4 + Math.sin(t*48)*1.2;
+    const dip = Math.sin(t * Math.PI) * 9;
+    ctx.lineTo(x, topY + r + dip);
+  }
+
+  // Right face drops down
+  ctx.lineTo(right + 4, topY + 42);
+  const fs = 10;
+  for (let i = 0; i <= fs; i++) {
+    const t = i / fs;
+    const x = right + 4 + t * 18 + Math.sin(t * 8.5) * 7;
+    const y = topY + 42 + t * (H - topY - 42);
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(right + 22, H);
+  ctx.closePath();
+
+  // Ink gradient
+  const cg = ctx.createLinearGradient(left, topY, left, H);
+  cg.addColorStop(0,   '#2a2520');
+  cg.addColorStop(0.15,'#241f18');
+  cg.addColorStop(0.4, '#1e1a14');
+  cg.addColorStop(0.75,'#15110e');
+  cg.addColorStop(1,   '#0e0c0a');
+  ctx.fillStyle = cg;
+  ctx.fill();
+
+  // Striations
+  ctx.globalAlpha = 0.09;
+  ctx.strokeStyle = '#3a352d';
+  ctx.lineWidth = 0.7;
+  for (let i = 0; i < 32; i++) {
+    const y = topY + 15 + Math.random() * (H - topY - 25);
+    const x = left + Math.random() * (right - left) * 0.8;
+    const l = 12 + Math.random() * 50;
+    const tilt = (Math.random() - 0.5) * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + l, y + l * tilt);
+    ctx.stroke();
+  }
+
+  // Fissures
+  ctx.globalAlpha = 0.16;
+  ctx.strokeStyle = '#0a0806';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    const y = topY + 32 + Math.random() * (H - topY - 50);
+    const x = left + 15 + Math.random() * (right - left) * 0.6;
+    const d = 15 + Math.random() * 35;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.random()*4 - 2, y + d);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ================================================================
+// PINE TREE
+// ================================================================
+function drawPine() {
+  ctx.save();
+
+  const bx = W * 0.34;
+  const by = H * 0.38;
+
+  // ---- TRUNK ----
+  ctx.strokeStyle = '#1a1814';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Thick base
+  ctx.lineWidth = 11;
+  ctx.beginPath();
+  ctx.moveTo(bx - 5, by + 10);
+  ctx.bezierCurveTo(bx + 1, by - 8, bx + 3, by - 20, bx + 6, by - 35);
+  ctx.stroke();
+
+  // Main trunk tapering up, leaning right
+  ctx.lineWidth = 7.5;
+  ctx.beginPath();
+  ctx.moveTo(bx - 5, by + 10);
+  ctx.bezierCurveTo(bx, by - 12, bx + 6, by - 52, bx + 15, by - 92);
+  ctx.stroke();
+
+  // Upper trunk (thinner)
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(bx + 10, by - 65);
+  ctx.bezierCurveTo(bx + 12, by - 78, bx + 14, by - 88, bx + 15, by - 92);
+  ctx.stroke();
+
+  // Bark texture
+  ctx.lineWidth = 0.6;
+  ctx.globalAlpha = 0.28;
+  ctx.strokeStyle = '#2a2824';
+  for (let i = 0; i < 14; i++) {
+    const t = 0.05 + (i/14) * 0.9;
+    const tx = bx - 5 + t * 20;
+    const ty = by + 10 - t * 102;
+    const l = 5 + Math.random() * 9;
+    ctx.beginPath();
+    ctx.moveTo(tx - 2, ty);
+    ctx.quadraticCurveTo(tx + Math.random()*3-1.5, ty - l*0.5, tx + (Math.random()-0.5)*2, ty - l);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // ---- NEEDLE CLUSTER ----
+  function needles(cx, cy, sz, spr, al) {
+    const cnt = 3 + Math.floor(spr * 5);
+    for (let i = 0; i < cnt; i++) {
+      const ox = Math.sin(i*2.7 + cx*0.004) * spr * sz * 0.45;
+      const oy = Math.cos(i*3.1 + cy*0.004) * spr * sz * 0.18;
+      const rx = sz * (0.35 + Math.random() * 0.65);
+      const ry = sz * (0.1 + Math.random() * 0.2);
+      ctx.globalAlpha = al * (0.5 + Math.random() * 0.5);
+      ctx.fillStyle = '#1a1814';
+      ctx.beginPath();
+      ctx.ellipse(cx+ox, cy+oy, rx, ry, -0.1+Math.random()*0.06, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // ---- BRANCHES ----
+  const branches = [
+      [ -10,  25, 38, 18, 0.38],
+      [ -22,  30, 46, 23, 0.48],
+      [ -35,  35, 52, 26, 0.52],
+      [ -48,  38, 56, 29, 0.58],
+      [ -60,  40, 54, 27, 0.55],
+      [ -72,  38, 50, 24, 0.50],
+      [ -82,  36, 46, 21, 0.46],
+      [ -92,  33, 40, 18, 0.42],
+      [ -103, 28, 33, 14, 0.36],
+      [ -113, 24, 26, 10, 0.30],
+      [ -122, 18, 18, 7,  0.24],
+  ];
+
+  ctx.strokeStyle = '#1a1814';
+  for (const [yo, lx, len, nsz, spr] of branches) {
+    const sx = bx + 2 + Math.abs(yo) * 0.14;
+    const sy = by + yo;
+    ctx.lineWidth = 2.2 - Math.abs(yo) / 180;
+
+    // Branch line
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    const ex = sx + lx + Math.sin(yo * 0.07) * 5;
+    const ey = sy - 2 + Math.sin(yo * 0.05) * 2.5;
+    ctx.quadraticCurveTo(sx + lx * 0.5, sy - 1, ex, ey);
+    ctx.stroke();
+
+    // Needle clusters
+    needles(ex, ey, nsz, spr, 0.75);
+    needles(sx + lx*0.5, sy, nsz*0.55, spr*0.7, 0.6);
+    needles(sx + lx*0.25, sy, nsz*0.35, spr*0.5, 0.5);
+  }
+
+  // Crown
+  needles(bx + 15, by - 132, 9, 0.28, 0.62);
+
+  // Small left branch
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(bx + 8, by - 50);
+  ctx.quadraticCurveTo(bx - 8, by - 46, bx - 24, by - 48);
+  ctx.stroke();
+  needles(bx - 26, by - 49, 8, 0.26, 0.55);
+
+  // Ink splatter
+  ctx.fillStyle = '#1a1814';
+  for (let i = 0; i < 8; i++) {
+    const sx = bx + Math.sin(i*5.3) * 50;
+    const sy = by - 20 + Math.cos(i*3.7) * 65;
+    const sr = 0.3 + Math.random() * 1.1;
+    ctx.globalAlpha = 0.05 + Math.random() * 0.09;
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+}
+
+// ================================================================
+// SEAWEED TUFTS
+// ================================================================
+function drawSeaweed() {
+  ctx.save();
+  const bx = W * 0.34;
+  const by = H * 0.385;
+
+  ctx.strokeStyle = '#1e1a14';
+  ctx.lineWidth = 0.8;
+  ctx.lineCap = 'round';
+
+  const tufts = [
+      [bx-30, by+7, 3], [bx-6, by+5, 2],
+      [bx+44, by+9, 3], [bx+60, by+6, 2], [bx+72, by+10, 2],
+  ];
+
+  for (const [tx, ty, cnt] of tufts) {
+    const sw = Math.sin(time * 1.3 + tx * 0.04) * 3.5;
+    for (let s = 0; s < cnt; s++) {
+      ctx.beginPath();
+      ctx.moveTo(tx + s*3.5, ty);
+      const ex = tx + s*3.5 + 10 + sw + Math.sin(s*1.7)*3;
+      const ey = ty + 6 + s*2;
+      ctx.quadraticCurveTo(tx + s*3.5 + 4.5 + sw*0.5, ty + 2.5, ex, ey);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// ================================================================
+// FOG
+// ================================================================
+function drawFog() {
+  ctx.save();
+
+  const blobs = [
+      // High wisps
+      { cx:0.18, cy:0.27, rx:0.32, ry:0.07, sp:0.08, op:0.10, ph:0 },
+      { cx:0.52, cy:0.23, rx:0.26, ry:0.06, sp:0.06, op:0.09, ph:1.2 },
+      { cx:0.78, cy:0.32, rx:0.30, ry:0.08, sp:0.09, op:0.12, ph:2.4 },
+      // Mid
+      { cx:0.34, cy:0.42, rx:0.23, ry:0.05, sp:0.12, op:0.16, ph:3.6 },
+      { cx:0.58, cy:0.39, rx:0.29, ry:0.06, sp:0.10, op:0.14, ph:4.8 },
+      { cx:0.84, cy:0.45, rx:0.25, ry:0.05, sp:0.14, op:0.13, ph:6.0 },
+      // Horizon — densest
+      { cx:0.16, cy:0.53, rx:0.38, ry:0.07, sp:0.15, op:0.24, ph:7.2 },
+      { cx:0.48, cy:0.51, rx:0.32, ry:0.06, sp:0.13, op:0.22, ph:8.4 },
+      { cx:0.74, cy:0.55, rx:0.28, ry:0.06, sp:0.16, op:0.26, ph:9.6 },
+      { cx:0.96, cy:0.52, rx:0.24, ry:0.05, sp:0.11, op:0.18, ph:10.8 },
+      // Low sea fog
+      { cx:0.54, cy:0.61, rx:0.34, ry:0.04, sp:0.18, op:0.14, ph:12.0 },
+      { cx:0.26, cy:0.59, rx:0.27, ry:0.03, sp:0.20, op:0.11, ph:13.2 },
+  ];
+
+  for (const b of blobs) {
+    const bx = W * (b.cx + Math.sin(time * b.sp + b.ph) * 0.05);
+    const by = H * (b.cy + Math.sin(time * b.sp * 0.45 + b.ph + 2) * 0.016);
+    const brx = W * b.rx;
+    const bry = H * b.ry;
+
+      // Pointer parts the fog
+    const dx = bx - smoothX;
+    const dy = by - smoothY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    let opMod = 1;
+    if (active && dist < 150) {
+      opMod = easeOutCubic(clamp(dist / 150, 0, 1)) * 0.12;
+    }
+
+    const g = ctx.createRadialGradient(bx, by, 0, bx, by, brx);
+    const baseOp = b.op * opMod * (0.85 + Math.sin(time * 0.14 + b.ph) * 0.15);
+    g.addColorStop(0,     `rgba(237,231,220,${baseOp})`);
+    g.addColorStop(0.45, `rgba(234,228,217,${baseOp*0.6})`);
+    g.addColorStop(0.75, `rgba(232,226,215,${baseOp*0.2})`);
+    g.addColorStop(1,     'rgba(232,226,215,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Horizon band
+  const hy = H * 0.54;
+  const hh = H * 0.18;
+  const hg = ctx.createLinearGradient(0, hy - hh/2, 0, hy + hh/2);
+  const hd = Math.abs(hy - smoothY);
+  let ho = 0.36;
+  if (active && hd < 170) {
+    ho *= easeOutCubic(clamp(hd / 170, 0, 1)) * 0.18;
+  }
+  ho *= (0.87 + Math.sin(time * 0.11) * 0.13);
+  hg.addColorStop(0,   'rgba(235,229,218,0)');
+  hg.addColorStop(0.3, `rgba(235,229,218,${ho})`);
+  hg.addColorStop(0.7, `rgba(235,229,218,${ho})`);
+  hg.addColorStop(1,   'rgba(235,229,218,0)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(0, hy - hh/2, W, hh);
+
+  ctx.restore();
+}
+
+// ================================================================
+// POINTER GLOW
+// ================================================================
+function drawPointerGlow() {
+  if (!active) return;
+  const g = ctx.createRadialGradient(smoothX, smoothY, 0, smoothX, smoothY, 120);
+  g.addColorStop(0,   'rgba(250,244,234,0.045)');
+  g.addColorStop(0.5, 'rgba(250,244,234,0.012)');
+  g.addColorStop(1,   'rgba(250,244,234,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(smoothX, smoothY, 120, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ================================================================
+// PAPER OVERLAY
+// ================================================================
+function drawPaperOverlay() {
+  ctx.save();
+  ctx.globalAlpha = 0.48;
+  const pat = ctx.createPattern(paperTex, 'repeat');
+  ctx.fillStyle = pat;
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
+
+  // Vignette
+  const v = ctx.createRadialGradient(W/2, H/2, W*0.16, W/2, H/2, W*0.72);
+  v.addColorStop(0,   'rgba(205,195,175,0)');
+  v.addColorStop(0.6, 'rgba(190,180,160,0.05)');
+  v.addColorStop(1,   'rgba(160,150,130,0.18)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+
+  // Ink imperfections
+  ctx.fillStyle = '#1a1814';
+  for (let i = 0; i < 6; i++) {
+    const sx = ((Math.sin(i*7.3)*0.5+0.5)*W+0.5)|0;
+    const sy = ((Math.cos(i*5.1)*0.5+0.5)*H+0.5)|0;
+    const sr = 0.3 + Math.sin(i*3.7) * 0.6;
+    if (sr > 0) {
+      ctx.globalAlpha = 0.03 + Math.random() * 0.04;
+      ctx.beginPath();
+      ctx.arc(sx, sy, Math.abs(sr), 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ================================================================
+// RENDER LOOP
+// ================================================================
+let lastT = 0;
+function render(ts) {
+  const dt = Math.min((ts - lastT)/1000, 0.05);
+  lastT = ts;
+  time += dt;
+  smoothX += (mouseX - smoothX) * 0.06;
+  smoothY += (mouseY - smoothY) * 0.06;
+
+  ctx.clearRect(0, 0, W, H);
+  drawSky();
+  drawDistantLand();
+  drawBirds();
+  drawSea();
+  drawSeaSpray();
+  drawCliff();
+  drawSeaweed();
+  drawPine();
+  drawFog();
+  drawPointerGlow();
+  drawPaperOverlay();
+
+  requestAnimationFrame(render);
+}
+
+// ================================================================
+// INPUT
+// ================================================================
+function pos(e) { const t = e.touches ? e.touches[0] : e; return [t.clientX, t.clientY]; }
+canvas.addEventListener('mousemove', e => { [mouseX, mouseY] = pos(e); active = true; });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); [mouseX, mouseY] = pos(e); active = true; }, {passive:false});
+canvas.addEventListener('mouseleave', () => setTimeout(() => { active = false; smoothX = smoothY = -9999; }, 1000));
+canvas.addEventListener('touchend', () => setTimeout(() => { active = false; }, 800));
+window.addEventListener('resize', init);
+
+// ================================================================
+// HELPERS
+// ================================================================
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+// ================================================================
+// START
+// ================================================================
+init();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
