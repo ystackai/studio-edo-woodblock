@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>崖の松 &mdash; Lone Pine in the Mist</title>
+<style>
+     * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #ede6d4; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+(function() {
+     'use strict';
+
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, dpr;
+
+   function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    buildPaperGrain();
+    rebuildScene();
+     }
+
+    /* ── Paper Grain ────────────────────────────────────── */
+  let paperPattern;
+  function buildPaperGrain() {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 512;
+    const cx = c.getContext('2d');
+    const img = cx.createImageData(512, 512);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (Math.random() - 0.5) * 16;
+      d[i]      = Math.min(255, Math.max(0, 243 + n * 0.25));
+      d[i + 1] = Math.min(255, Math.max(0, 234 + n * 0.3));
+      d[i + 2] = Math.min(255, Math.max(0, 218 + n * 0.35));
+      d[i + 3] = 30 + Math.random() * 25;
+       }
+    cx.putImageData(img, 0, 0);
+    paperPattern = ctx.createPattern(c, 'repeat');
+     }
+
+    /* ── Pointer ────────────────────────────────────────── */
+  let mx = W / 2, my = H / 2;
+  let hasMouse = false;
+  const fogPartR = Math.min(150, Math.min(W, H) * 0.14);
+
+  function onMove(e) {
+    mx = e.clientX !== undefined ? e.clientX : mx;
+    my = e.clientY !== undefined ? e.clientY : my;
+    hasMouse = true;
+     }
+  function onLeave() { hasMouse = false; }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerleave', onLeave);
+  window.addEventListener('resize', resize);
+
+    /* ── Palette ────────────────────────────────────────── */
+  const PAL = {
+    paper:    '#ede6d4',
+    skyTop:   '#c8c0ac',
+    skyMid:   '#d8d0bc',
+    skyBot:   '#ece6d6',
+    ink:      '#1e1a16',
+    indigo:   '#4a6070',
+    vermilion:'#c04838',
+     };
+
+    /* ── Scene State ────────────────────────────────────── */
+  let S = {};
+
+  function rebuildScene() {
+    const px = W * 0.22, py = H * 0.62;
+    const ps = Math.min(W, H) * 0.11;
+    S.pine = genPine(px, py, ps);
+    S.cliff = genCliff();
+    S.mtnFar    = genMountains(W, H * 0.38, 0.40, 14);
+    S.mtnMid    = genMountains(W, H * 0.44, 0.50, 9);
+    S.mtnNear = genMountains(W, H * 0.50, 0.35, 6);
+
+    S.fog = [
+       { y: H*0.15, h: H*0.55, spd: 0.12, op: 0.55, s: 1.4, off: 0     },
+       { y: H*0.25, h: H*0.45, spd: 0.22, op: 0.45, s: 0.9, off: 150 },
+       { y: H*0.10, h: H*0.65, spd: 0.35, op: 0.30, s: 2.0, off: 350 },
+       { y: H*0.55, h: H*0.30, spd: 0.08, op: 0.50, s: 1.1, off: 80    },
+       { y: H*0.05, h: H*0.80, spd: 0.18, op: 0.20, s: 2.5, off: 500 },
+      ];
+
+    S.waves = [];
+    for (let i = 0; i < 20; i++) {
+      S.waves.push({
+        y: H*0.53 + i*H*0.018,
+        amp: 1.5 + Math.random()*2.5,
+        freq: 0.004 + Math.random()*0.01,
+        spd: 0.25 + Math.random()*0.4,
+        ph: Math.random()*Math.PI*2,
+        op: 0.08 + (i/20)*0.22,
+         });
+       }
+
+    S.seaMist = [];
+    for (let i = 0; i < 5; i++) {
+      S.seaMist.push({
+        x: Math.random()*W*1.5 - W*0.25,
+        y: H*0.52 + Math.random()*H*0.12,
+        w: 150 + Math.random()*250,
+        h: 15 + Math.random()*35,
+        spd: 0.08 + Math.random()*0.2,
+        op: 0.08 + Math.random()*0.15,
+         });
+       }
+
+    S.wisps = [];
+    for (let i = 0; i < 10; i++) {
+      S.wisps.push({
+        x: Math.random()*W,
+        y: H*0.25 + Math.random()*H*0.4,
+        r: 50 + Math.random()*130,
+        spd: 0.04 + Math.random()*0.3,
+        vspd: (Math.random()-0.5)*0.05,
+        op: 0.03 + Math.random()*0.1,
+        ph: Math.random()*Math.PI*2,
+         });
+       }
+
+    S.stars = [];
+    for (let i = 0; i < 25; i++) {
+      S.stars.push({
+        x: Math.random()*W,
+        y: Math.random()*H*0.38,
+        r: 0.3 + Math.random()*0.7,
+        op: 0.04 + Math.random()*0.12,
+         });
+       }
+     }
+
+    /* ── Pine Tree ──────────────────────────────────────── */
+  function genPine(bx, by, sz) {
+    const trunk = { x: bx, y: by, len: sz*1.6, thick: sz*0.10 };
+    const branches = [];
+    const count = 10 + Math.floor(Math.random()*4);
+    for (let i = 0; i < count; i++) {
+      const t = 0.20 + (i/count)*0.75;
+      const side = (i%2===0) ? 1 : -1;
+      const blen = sz*(0.35+Math.random()*0.55)*(1-Math.abs(t-0.55)*0.5);
+      branches.push({ parentT:t, side, blen, thick:sz*0.04*(1-t*0.55), droop:0.12+Math.random()*0.25 });
+       }
+    return { trunk, branches };
+     }
+
+  function pineTrunk(ctx, trunk, wind) {
+    ctx.save();
+    ctx.strokeStyle = PAL.ink;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = trunk.thick * 2;
+    const segs = 24;
+    ctx.beginPath();
+    for (let i = 0; i <= segs; i++) {
+      const t = i/segs;
+      const curve = Math.sin(t*Math.PI*0.9)*wind*(1-t*0.4);
+      ctx.lineTo(trunk.x+curve, trunk.y-t*trunk.len);
+      if (i===0) ctx.moveTo(trunk.x+curve, trunk.y-t*trunk.len);
+       }
+    ctx.stroke();
+
+     // Bark texture
+    ctx.strokeStyle = 'rgba(60,55,46,0.25)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < segs; i += 2) {
+      const t = i/segs;
+      const curve = Math.sin(t*Math.PI*0.9)*wind*(1-t*0.4);
+      ctx.beginPath();
+      ctx.moveTo(trunk.x+curve-trunk.thick*0.4, trunk.y-t*trunk.len);
+      ctx.lineTo(trunk.x+curve-trunk.thick*0.4+2, trunk.y-(t+2/segs)*trunk.len);
+      ctx.stroke();
+       }
+    ctx.restore();
+     }
+
+  function pineBranch(ctx, b, parent, wind) {
+    ctx.save();
+    ctx.strokeStyle = PAL.ink;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = b.thick;
+    const dx = b.side*b.blen*0.75;
+    const dy = -b.blen*b.droop;
+    ctx.beginPath();
+    ctx.moveTo(parent.x, parent.y);
+    const c1x = parent.x+dx*0.35, c1y = parent.y+dy*0.3;
+    const c2x = parent.x+dx*0.65, c2y = parent.y+dy*0.65;
+    const ex = parent.x+dx, ey = parent.y+dy;
+    ctx.bezierCurveTo(c1x,c1y, c2x,c2y, ex,ey);
+    ctx.stroke();
+    ctx.restore();
+    return { x: ex, y: ey };
+     }
+
+  function pineFoliage(ctx, x, y, size, wind) {
+    ctx.save();
+    ctx.fillStyle = PAL.ink;
+    ctx.globalAlpha = 0.82;
+    const clusters = 3 + Math.floor(Math.random()*2);
+    for (let c = 0; c < clusters; c++) {
+      const cx = x+(Math.random()-0.5)*size*0.3;
+      const cy = y+(Math.random()-0.5)*size*0.15;
+      const cr = size*(0.3+Math.random()*0.25);
+      drawFoliageBlob(ctx, cx, cy, cr, wind);
+       }
+    ctx.restore();
+     }
+
+  function drawFoliageBlob(ctx, cx, cy, r, wind) {
+    ctx.beginPath();
+    const pts = 14;
+    for (let i = 0; i <= pts; i++) {
+      const t = i/pts;
+      const a = Math.PI+t*Math.PI;
+      const rb = r*(0.55+Math.sin(t*6+cx)*0.18);
+      ctx.lineTo(cx+Math.cos(a)*rb*1.8+wind*0.2, cy+Math.sin(a)*rb*0.5);
+       }
+    ctx.closePath();
+    ctx.fill();
+     }
+
+    /* ── Cliff ──────────────────────────────────────────── */
+  function genCliff() {
+    const pts = [];
+    const cw = W*0.28, ct = H*0.55;
+    for (let x = 0; x <= cw; x += 2) {
+      const t = x/cw;
+      pts.push({ x, y: ct+Math.sin(t*10)*4+Math.sin(t*22)*2 });
+       }
+    for (let y = ct; y <= H; y += 2) {
+      const t = (y-ct)/(H-ct);
+      pts.push({ x: cw+Math.sin(t*5)*12-t*20, y });
+       }
+    for (let x = cw-25; x >= 0; x -= 2) {
+      const t = (cw-x)/25;
+      pts.push({ x, y: H+Math.sin(t*5)*6 });
+       }
+    for (let y = H; y >= ct; y -= 2) {
+      pts.push({ x: 0, y });
+       }
+    return { pts, cw, ct };
+     }
+
+    /* ── Mountains ──────────────────────────────────────── */
+  function genMountains(W, baseY, hf, peaks) {
+    const pts = [];
+    const step = W/(peaks*3.5);
+    for (let x = -60; x <= W+60; x += step) {
+      let y = baseY;
+      for (let p = 0; p < peaks; p++) {
+        const px2 = W*0.08+(p/peaks)*W*0.84;
+        const d = Math.abs(x-px2)/(W*0.07);
+        y -= Math.exp(-d*d*2.2)*H*hf*(0.45+Math.random()*0.55);
+         }
+      pts.push({ x, y });
+       }
+    return pts;
+     }
+
+    /* ── Fog ────────────────────────────────────────────── */
+  function drawFog(ctx, time) {
+     // Horizontal fog layers
+    for (let i = 0; i < S.fog.length; i++) {
+      const f = S.fog[i];
+      f.off += f.spd;
+      const gx = f.off%(W*f.s)-W*f.s;
+      const g = ctx.createLinearGradient(gx, 0, gx+W*3, 0);
+      const o = f.op;
+      g.addColorStop(0,      'rgba(238,232,216,'+(o*0.25)+')');
+      g.addColorStop(0.25, 'rgba(232,226,210,'+o+')');
+      g.addColorStop(0.5,    'rgba(240,235,220,'+(o*1.1)+')');
+      g.addColorStop(0.75, 'rgba(228,222,206,'+(o*0.85)+')');
+      g.addColorStop(1,      'rgba(238,232,216,'+(o*0.25)+')');
+      ctx.fillStyle = g;
+      ctx.fillRect(gx, f.y-f.h*0.3, W*3, f.h*1.6);
+       }
+
+     // Floating wisps
+    for (let i = 0; i < S.wisps.length; i++) {
+      const w = S.wisps[i];
+      w.x += w.spd;
+      w.y += w.vspd;
+      if (w.x > W+w.r) w.x = -w.r;
+      if (w.y < H*0.15 || w.y > H*0.75) w.vspd *= -1;
+      ctx.save();
+      const wg = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, w.r);
+      wg.addColorStop(0, 'rgba(240,235,220,'+w.op+')');
+      wg.addColorStop(1, 'rgba(240,235,220,0)');
+      ctx.fillStyle = wg;
+      ctx.fillRect(w.x-w.r, w.y-w.r, w.r*2, w.r*2);
+      ctx.restore();
+       }
+     }
+
+    /* ── Fog Parting ────────────────────────────────────── */
+  function drawFogParting(ctx) {
+    if (!hasMouse) return;
+    const r = fogPartR;
+    const g = ctx.createRadialGradient(mx, my, 0, mx, my, r);
+    g.addColorStop(0,     'rgba(240,235,220,0.88)');
+    g.addColorStop(0.3, 'rgba(240,235,220,0.55)');
+    g.addColorStop(0.6, 'rgba(240,235,220,0.20)');
+    g.addColorStop(0.85,'rgba(240,235,220,0.06)');
+    g.addColorStop(1,     'rgba(240,235,220,0)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(mx, my, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+     }
+
+    /* ── Draw Functions ─────────────────────────────────── */
+  function drawSky(ctx) {
+    const g = ctx.createLinearGradient(0,0, 0,H*0.55);
+    g.addColorStop(0, PAL.skyTop);
+    g.addColorStop(0.3, PAL.skyMid);
+    g.addColorStop(0.6, '#e2dbca');
+    g.addColorStop(1, PAL.skyBot);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+     }
+
+  function drawStars(ctx) {
+    ctx.save();
+    for (const s of S.stars) {
+      ctx.fillStyle = 'rgba(245,240,230,'+s.op+')';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fill();
+       }
+    ctx.restore();
+     }
+
+  function drawMoon(ctx) {
+    const moonX = W * 0.72;
+    const moonY = H * 0.22;
+    const moonR = Math.min(W, H) * 0.06;
+    ctx.save();
+
+     // Outer glow
+    const g = ctx.createRadialGradient(moonX, moonY, moonR*0.2, moonX, moonY, moonR*3);
+    g.addColorStop(0, 'rgba(245,240,225,0.12)');
+    g.addColorStop(0.5, 'rgba(240,235,220,0.05)');
+    g.addColorStop(1, 'rgba(240,235,220,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(moonX-moonR*3, moonY-moonR*3, moonR*6, moonR*6);
+
+     // Moon disc
+    ctx.fillStyle = 'rgba(248,243,232,0.18)';
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonR, 0, Math.PI*2);
+    ctx.fill();
+
+     // Moon inner glow
+    const g2 = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonR);
+    g2.addColorStop(0, 'rgba(255,252,245,0.25)');
+    g2.addColorStop(0.7, 'rgba(248,243,232,0.12)');
+    g2.addColorStop(1, 'rgba(248,243,232,0)');
+    ctx.fillStyle = g2;
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonR, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+     }
+
+  function drawMountains(ctx) {
+     // Far
+    ctx.save();
+    ctx.fillStyle = 'rgba(155,170,182,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(-60, H*0.55);
+    for (const p of S.mtnFar) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(W+60, H*0.55);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+     // Mid
+    ctx.save();
+    ctx.fillStyle = 'rgba(125,145,160,0.30)';
+    ctx.beginPath();
+    ctx.moveTo(-60, H*0.55);
+    for (const p of S.mtnMid) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(W+60, H*0.55);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+     // Near
+    ctx.save();
+    ctx.fillStyle = 'rgba(100,120,135,0.35)';
+    ctx.beginPath();
+    ctx.moveTo(-60, H*0.55);
+    for (const p of S.mtnNear) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(W+60, H*0.55);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+     }
+
+  function drawSea(ctx, time) {
+    ctx.save();
+    const sg = ctx.createLinearGradient(0, H*0.50, 0, H);
+    sg.addColorStop(0, 'rgba(80,100,115,0.55)');
+    sg.addColorStop(0.4, 'rgba(60,80,95,0.65)');
+    sg.addColorStop(1, 'rgba(40,55,70,0.75)');
+    ctx.fillStyle = sg;
+    ctx.beginPath();
+    ctx.moveTo(0, H*0.53);
+    for (let x = 0; x <= W; x += 4) {
+      ctx.lineTo(x, H*0.53+Math.sin(x*0.008+time*0.4)*3);
+       }
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fill();
+
+    for (const w of S.waves) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(185,195,200,'+w.op+')';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 3) {
+        const y = w.y+Math.sin(x*w.freq+time*w.spd+w.ph)*w.amp;
+        if (x===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+         }
+      ctx.stroke();
+      ctx.restore();
+       }
+
+    for (const m of S.seaMist) {
+      m.x += m.spd;
+      if (m.x > W+m.w) m.x = -m.w;
+      ctx.save();
+      const mg = ctx.createRadialGradient(m.x+m.w/2, m.y, 0, m.x+m.w/2, m.y, m.w/2);
+      mg.addColorStop(0, 'rgba(230,225,212,'+m.op+')');
+      mg.addColorStop(1, 'rgba(230,225,212,0)');
+      ctx.fillStyle = mg;
+      ctx.fillRect(m.x, m.y-m.h, m.w, m.h*2);
+      ctx.restore();
+       }
+    ctx.restore();
+     }
+
+  function drawCliff(ctx) {
+    ctx.save();
+    const cg = ctx.createLinearGradient(0, S.cliff.ct, 0, H);
+    cg.addColorStop(0, '#3a342d');
+    cg.addColorStop(0.3, '#2a2520');
+    cg.addColorStop(1, '#1a1612');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    const pts = S.cliff.pts;
+    ctx.moveTo(0, pts[0].y);
+    for (let i = 0; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(60,55,46,0.25)';
+    ctx.lineWidth = 0.5;
+    for (let y = S.cliff.ct; y < H; y += 6) {
+      ctx.beginPath();
+      ctx.moveTo(4, y);
+      ctx.lineTo(S.cliff.cw*0.75, y+Math.sin(y*0.12)*4);
+      ctx.stroke();
+       }
+    ctx.restore();
+     }
+
+  function drawPine(ctx, time) {
+    const wind = Math.sin(time*0.25)*3;
+    const trunk = S.pine.trunk;
+    pineTrunk(ctx, trunk, wind);
+
+    for (let i = 0; i < S.pine.branches.length; i++) {
+      const b = S.pine.branches[i];
+      const t = b.parentT;
+      const curve = Math.sin(t*Math.PI*0.9)*wind*(1-t*0.4);
+      const bx = trunk.x+curve;
+      const by = trunk.y-t*trunk.len;
+      const tip = pineBranch(ctx, b, {x:bx, y:by}, wind);
+      pineFoliage(ctx, tip.x, tip.y, b.blen*0.45, wind*0.4);
+       }
+     }
+
+  function drawSeal(ctx) {
+    const sx = W-55, sy = H-55, sz = 26;
+    ctx.save();
+    ctx.fillStyle = PAL.vermilion;
+    ctx.beginPath();
+    const c = sx, d = sy, s = sz;
+    ctx.moveTo(c-s/2+1, d-s/2);
+    ctx.lineTo(c+s/2, d-s/2+1);
+    ctx.lineTo(c+s/2-1, d+s/2);
+    ctx.lineTo(c-s/2, d+s/2-1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = PAL.paper;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(c-3, d-7); ctx.lineTo(c-3, d+7);
+    ctx.moveTo(c-7, d-2); ctx.lineTo(c-1, d-2);
+    ctx.moveTo(c-7, d+2); ctx.lineTo(c-1, d+2);
+    ctx.stroke();
+    ctx.restore();
+     }
+
+  function drawPaperGrain(ctx) {
+    if (paperPattern) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = paperPattern;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+       }
+     }
+
+  function drawVignette(ctx) {
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.75);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.12)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+     }
+
+    /* ── Entrance Fade ──────────────────────────────────── */
+  const ENTRANCE_DUR = 2200;
+  let entranceStart = 0;
+
+  function drawEntrance(ctx, time) {
+    if (entranceStart === 0) entranceStart = time;
+    const elapsed = time - entranceStart;
+    if (elapsed < ENTRANCE_DUR) {
+      const t = elapsed/ENTRANCE_DUR;
+      const eased = t*t*(3-2*t);
+      ctx.save();
+      ctx.globalAlpha = 1-eased;
+      ctx.fillStyle = PAL.paper;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+       }
+     }
+
+    /* ── Render Loop ────────────────────────────────────── */
+  function render(time) {
+    ctx.clearRect(0, 0, W, H);
+    if (entranceStart === 0) entranceStart = time;
+
+    drawSky(ctx);
+    drawStars(ctx);
+    drawMoon(ctx);
+    drawMountains(ctx);
+    drawSea(ctx, time);
+    drawCliff(ctx);
+    drawPine(ctx, time);
+    drawFog(ctx, time);
+    drawFogParting(ctx);
+    drawPaperGrain(ctx);
+    drawVignette(ctx);
+    drawSeal(ctx);
+    drawEntrance(ctx, time);
+
+    requestAnimationFrame(render);
+     }
+
+  resize();
+  requestAnimationFrame(render);
+})();
+</script>
+</body>
+</html>
