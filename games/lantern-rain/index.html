@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>lantern rain — Pictures of the Floating World</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #060a14;
+      cursor: default;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    canvas {
+      display: block;
+      width: 100%; height: 100%;
+      touch-action: none;
+    }
+    #prompt {
+      position: fixed;
+      bottom: 14vh; left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,215,150,0.35);
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      pointer-events: none;
+      transition: opacity 3s ease;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    #prompt.hidden { opacity: 0; }
+    #rain-toggle {
+      position: fixed;
+      bottom: 22px; right: 22px;
+      color: rgba(255,215,150,0.25);
+      font-family: 'Georgia', serif;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      background: none;
+      border: 1px solid rgba(255,215,150,0.1);
+      padding: 8px 14px;
+      border-radius: 2px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 1.5s ease;
+      z-index: 10;
+      min-width: 44px;
+      min-height: 44px;
+    }
+    #rain-toggle.visible { opacity: 1; }
+    #rain-toggle:hover { color: rgba(255,215,150,0.55); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="prompt">touch to shelter the lantern</div>
+<button id="rain-toggle">rain</button>
+<script>
+(function() {
+    "use strict";
+
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const promptEl = document.getElementById('prompt');
+    const rainBtn = document.getElementById('rain-toggle');
+
+    let W, H;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      placeLantern();
+    }
+    window.addEventListener('resize', resize);
+
+    // --- Lantern geometry ---
+    let lanternX, lanternY, lanternW, lanternH;
+
+    function placeLantern() {
+      lanternW = Math.min(W * 0.14, 130);
+      lanternH = lanternW * 1.6;
+      lanternX = W / 2;
+      lanternY = H * 0.38;
+    }
+
+    // --- State ---
+    let shielding = false;
+    let shieldProgress = 0;       // 0..1, how long held
+    let shieldAlpha = 0;           // visual fade of hand overlay
+    let flameIntensity = 0.55;     // 0..1 glow steadiness
+    let flameTarget = 0.55;
+    let firstTouch = false;
+    let rainDrops = [];
+    let puddleRipples = [];
+    let lanternSparks = [];        // warm sparks that appear on steady flame
+    let audioCtx = null;
+    let rainPlaying = false;
+    let rainGainNode = null;
+    let lanternHitGainNode = null;
+    let lanternHitNode = null;
+
+    const MAX_RAIN = 320;
+    let pointerX = 0, pointerY = 0;
+
+    // --- Rain system ---
+    function spawnRain() {
+      if (rainDrops.length >= MAX_RAIN) return;
+      rainDrops.push({
+        x: Math.random() * (W + 200) - 100,
+        y: -15 - Math.random() * 80,
+        speed: 320 + Math.random() * 380,
+        len: 10 + Math.random() * 26,
+        alpha: 0.05 + Math.random() * 0.18,
+        wind: -2.2 + Math.random() * 0.8,
+        thickness: 0.4 + Math.random() * 0.7
+      });
+    }
+
+    function updateRain(dt) {
+      // Spawn
+      const spawnRate = 48;
+      for (let i = 0; i < Math.ceil(spawnRate * dt); i++) {
+        if (Math.random() < 0.55) spawnRain();
+      }
+
+      for (let i = rainDrops.length - 1; i >= 0; i--) {
+        const d = rainDrops[i];
+        d.y += d.speed * dt;
+        d.x += d.wind * dt;
+
+        // Lantern collision — rain hitting the paper surface
+        const dx = d.x - lanternX;
+        const dy = d.y - lanternY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (!shielding && dist < lanternW * 0.6) {
+          // Warm sparkle on rain hitting the lantern
+          if (Math.random() < 0.25) {
+            lanternSparks.push({
+              x: d.x, y: d.y,
+              life: 0.25 + Math.random() * 0.35,
+              maxLife: 0.6,
+              r: 1 + Math.random() * 2
+            });
+          }
+          rainDrops.splice(i, 1);
+          continue;
+        }
+
+        // Ground puddle ripple
+        if (d.y > H * 0.84 && Math.random() < 0.12) {
+          puddleRipples.push({
+            x: d.x, y: Math.min(d.y, H * 0.88),
+            r: 0, maxR: 5 + Math.random() * 12,
+            alpha: 0.12 + Math.random() * 0.1
+          });
+        }
+
+        // Off screen cleanup
+        if (d.y > H + 30 || d.x < -120 || d.x > W + 120) {
+          rainDrops.splice(i, 1);
+        }
+      }
+
+      // Update ripples
+      for (let i = puddleRipples.length - 1; i >= 0; i--) {
+        const r = puddleRipples[i];
+        r.r += 28 * dt;
+        r.alpha *= 0.965;
+        if (r.r > r.maxR || r.alpha < 0.003) {
+          puddleRipples.splice(i, 1);
+        }
+      }
+
+      // Update lantern sparks
+      for (let i = lanternSparks.length - 1; i >= 0; i--) {
+        const s = lanternSparks[i];
+        s.life -= dt;
+        s.y -= 8 * dt;  // drift up slightly
+        if (s.life <= 0) lanternSparks.splice(i, 1);
+      }
+
+      // Spawn warm motes when flame is very steady
+      if (shielding && shieldProgress > 0.7 && Math.random() < dt * 1.5) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * lanternW * 0.4;
+        lanternSparks.push({
+          x: lanternX + Math.cos(angle) * radius,
+          y: lanternY + Math.sin(angle) * radius * 0.5,
+          life: 1.0 + Math.random() * 1.5,
+          maxLife: 2.5,
+          r: 1.5 + Math.random() * 2.5
+        });
+      }
+    }
+
+    // --- Drawing functions ---
+
+    function drawSky() {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0.0, '#040810');
+      g.addColorStop(0.2, '#080e1c');
+      g.addColorStop(0.45, '#0e1630');
+      g.addColorStop(0.7, '#141e38');
+      g.addColorStop(0.88, '#182440');
+      g.addColorStop(1.0, '#1c2848');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    function drawDistantHills() {
+      // Far layer — faint, misty
+      ctx.fillStyle = 'rgba(8,10,18,0.55)';
+      ctx.beginPath();
+      ctx.moveTo(-10, H * 0.7);
+      for (let x = -10; x <= W + 10; x += 2) {
+        const y = H * 0.7
+          - Math.sin(x * 0.0025) * H * 0.035
+          - Math.sin(x * 0.007 + 1.2) * H * 0.018
+          - Math.sin(x * 0.001 + 3) * H * 0.025
+          - Math.sin(x * 0.015) * H * 0.006;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W + 10, H);
+      ctx.lineTo(-10, H);
+      ctx.closePath();
+      ctx.fill();
+
+      // Mid layer — closer, darker
+      ctx.fillStyle = 'rgba(5,7,13,0.7)';
+      ctx.beginPath();
+      ctx.moveTo(-10, H * 0.76);
+      for (let x = -10; x <= W + 10; x += 2) {
+        const y = H * 0.76
+          - Math.sin(x * 0.004 + 0.5) * H * 0.022
+          - Math.sin(x * 0.011 + 2.5) * H * 0.012
+          - Math.sin(x * 0.0015 + 1) * H * 0.018;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W + 10, H);
+      ctx.lineTo(-10, H);
+      ctx.closePath();
+      ctx.fill();
+
+      // Ground plane
+      ctx.fillStyle = '#04060c';
+      ctx.fillRect(0, H * 0.84, W, H * 0.16);
+
+      // Subtle wet ground highlight
+      const wetG = ctx.createLinearGradient(0, H * 0.84, 0, H);
+      wetG.addColorStop(0, 'rgba(20,30,50,0.3)');
+      wetG.addColorStop(0.3, 'rgba(15,22,38,0.15)');
+      wetG.addColorStop(1, 'rgba(10,15,25,0)');
+      ctx.fillStyle = wetG;
+      ctx.fillRect(0, H * 0.84, W, H * 0.16);
+    }
+
+    function drawMist(time) {
+      ctx.save();
+
+      // Lower mist pool
+      const mg = ctx.createLinearGradient(0, H * 0.62, 0, H * 0.92);
+      mg.addColorStop(0, 'rgba(130,145,165,0)');
+      mg.addColorStop(0.3, 'rgba(125,140,160,' + (0.04 + Math.sin(time * 0.12) * 0.012) + ')');
+      mg.addColorStop(0.6, 'rgba(120,135,155,0.025)');
+      mg.addColorStop(1, 'rgba(115,130,150,0)');
+      ctx.fillStyle = mg;
+      ctx.fillRect(0, H * 0.62, W, H * 0.3);
+
+      // Drifting horizontal mist streaks
+      for (let i = 0; i < 4; i++) {
+        const my = H * (0.58 + i * 0.07);
+        const mx = ((time * (10 + i * 6) + i * 280) % (W + 500)) - 250;
+        const ma = 0.02 + Math.sin(time * 0.18 + i * 1.7) * 0.006;
+        ctx.globalAlpha = ma;
+        const rg = ctx.createRadialGradient(mx, my, 0, mx, my, 170 + i * 20);
+        rg.addColorStop(0, 'rgba(155,165,180,0.25)');
+        rg.addColorStop(1, 'rgba(155,165,180,0)');
+        ctx.fillStyle = rg;
+        ctx.beginPath();
+        ctx.ellipse(mx, my, 170 + i * 20, 25 + i * 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawLantern(time) {
+      // Gentle sway — more in rain, less when shielded
+      const swayBase = Math.sin(time * 0.65) * 0.012
+        + Math.sin(time * 1.4) * 0.006;
+      const sway = shielding
+        ? swayBase * (1 - shieldProgress * 0.7)
+        : swayBase * (1 + 0.3);
+
+      const cx = lanternX + Math.sin(time * 0.65) * (shielding ? 1 : 2.5);
+      const cy = lanternY;
+      const w = lanternW;
+      const h = lanternH;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(sway);
+
+      // === Hanging wire ===
+      ctx.strokeStyle = 'rgba(40,32,26,0.5)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, -h * 0.5);
+      ctx.quadraticCurveTo(
+        Math.sin(time * 0.9) * 2, -h * 0.25,
+        0, -h * 0.47
+      );
+      ctx.stroke();
+
+      // === Top cap (dark wood) ===
+      const capW = w * 0.32;
+      ctx.fillStyle = '#1a1210';
+      ctx.beginPath();
+      ctx.moveTo(-capW, -h * 0.47);
+      ctx.lineTo(capW, -h * 0.47);
+      ctx.lineTo(capW * 0.85, -h * 0.45);
+      ctx.lineTo(-capW * 0.85, -h * 0.45);
+      ctx.closePath();
+      ctx.fill();
+
+      // === Bottom cap ===
+      ctx.beginPath();
+      ctx.moveTo(-capW * 0.9, h * 0.45);
+      ctx.lineTo(capW * 0.9, h * 0.45);
+      ctx.lineTo(capW * 0.7, h * 0.47);
+      ctx.lineTo(-capW * 0.7, h * 0.47);
+      ctx.closePath();
+      ctx.fill();
+
+      // === Tassel at bottom ===
+      ctx.strokeStyle = 'rgba(180,60,40,0.4)';
+      ctx.lineWidth = 0.8;
+      const tasselX = Math.sin(time * 0.8) * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.47);
+      ctx.quadraticCurveTo(tasselX, h * 0.52, tasselX * 0.5, h * 0.56);
+      ctx.stroke();
+      // Tassel fringes
+      for (let ti = -1; ti <= 1; ti++) {
+        ctx.beginPath();
+        ctx.moveTo(tasselX * 0.5 + ti * 2, h * 0.56);
+        ctx.lineTo(tasselX * 0.5 + ti * 4, h * 0.58);
+        ctx.stroke();
+      }
+
+      // === Paper body — chochin shape ===
+      const topW = w * 0.28;
+      const midW = w * 0.52;
+      const botW = w * 0.32;
+      const topY = -h * 0.45;
+      const botY = h * 0.45;
+      const bodyH = botY - topY;
+
+      // Outer paper fill
+      ctx.beginPath();
+      ctx.moveTo(-topW, topY);
+      ctx.bezierCurveTo(
+        -midW, topY + bodyH * 0.28,
+        -midW, botY - bodyH * 0.28,
+        -botW, botY
+      );
+      ctx.lineTo(botW, botY);
+      ctx.bezierCurveTo(
+        midW, botY - bodyH * 0.28,
+        midW, topY + bodyH * 0.28,
+        topW, topY
+      );
+      ctx.closePath();
+
+      // Paper gradient — warm brown
+      const paperGrad = ctx.createLinearGradient(0, topY, 0, botY);
+      paperGrad.addColorStop(0, '#3a2820');
+      paperGrad.addColorStop(0.25, '#4a3528');
+      paperGrad.addColorStop(0.5, '#453025');
+      paperGrad.addColorStop(0.75, '#3e2c22');
+      paperGrad.addColorStop(1, '#342418');
+      ctx.fillStyle = paperGrad;
+      ctx.fill();
+
+      // === Inner light glow (through paper) ===
+      const flickerA = Math.sin(time * 2.1) * (0.06 - flameIntensity * 0.04);
+      const flickerB = Math.sin(time * 5.3) * (0.03 - flameIntensity * 0.02);
+      const flickerC = Math.sin(time * 8.7) * (0.015 - flameIntensity * 0.01);
+      const glowVal = flameIntensity * 0.6 + 0.2 + flickerA + flickerB + flickerC;
+
+      const innerGlow = ctx.createRadialGradient(0, -h * 0.02, 0, 0, -h * 0.02, w * 0.55);
+      innerGlow.addColorStop(0, 'rgba(255,205,95,' + (0.32 + glowVal * 0.3).toFixed(3) + ')');
+      innerGlow.addColorStop(0.25, 'rgba(255,180,75,' + (0.16 + glowVal * 0.15).toFixed(3) + ')');
+      innerGlow.addColorStop(0.55, 'rgba(255,155,55,' + (0.06 + glowVal * 0.06).toFixed(3) + ')');
+      innerGlow.addColorStop(1, 'rgba(255,135,40,0)');
+      ctx.fillStyle = innerGlow;
+      ctx.fill();
+
+      // === Paper ribs (vertical) ===
+      ctx.strokeStyle = 'rgba(255,195,100,0.07)';
+      ctx.lineWidth = 0.5;
+      const ribs = [-0.28, -0.14, 0, 0.14, 0.28];
+      for (const rp of ribs) {
+        const rx = rp * w;
+        ctx.beginPath();
+        ctx.moveTo(rx, topY + 4);
+        ctx.lineTo(rx, botY - 4);
+        ctx.stroke();
+      }
+
+      // === Horizontal ribs ===
+      ctx.strokeStyle = 'rgba(255,195,100,0.05)';
+      ctx.lineWidth = 0.4;
+      for (let ry = topY + bodyH * 0.2; ry < botY; ry += bodyH * 0.18) {
+        ctx.beginPath();
+        ctx.moveTo(-midW * 0.88, ry);
+        ctx.lineTo(midW * 0.88, ry);
+        ctx.stroke();
+      }
+
+      // === Wet sheen (when not shielded) ===
+      if (!shielding) {
+        ctx.save();
+        ctx.globalAlpha = 0.05 + Math.sin(time * 0.85) * 0.015;
+        const wetGrad = ctx.createLinearGradient(-midW, topY, midW * 0.3, botY);
+        wetGrad.addColorStop(0, 'rgba(170,185,200,0.22)');
+        wetGrad.addColorStop(0.5, 'rgba(160,175,195,0.1)');
+        wetGrad.addColorStop(1, 'rgba(150,165,185,0)');
+        ctx.fillStyle = wetGrad;
+        ctx.beginPath();
+        ctx.moveTo(-topW, topY);
+        ctx.bezierCurveTo(
+          -midW, topY + bodyH * 0.25,
+          -midW * 0.9, botY - bodyH * 0.25,
+          -botW * 0.8, botY
+        );
+        ctx.lineTo(botW * 0.2, botY - 2);
+        ctx.bezierCurveTo(
+          midW * 0.2, botY - bodyH * 0.2,
+          midW * 0.3, topY + bodyH * 0.2,
+          topW * 0.5, topY
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // === Flame core (visible through paper) ===
+      const coreFlicker = (0.06 - flameIntensity * 0.04)
+        * (Math.sin(time * 6.1) + Math.sin(time * 13.7) * 0.5);
+      const coreSize = w * 0.09 * (1 + coreFlicker);
+      const coreAlpha = 0.65 + flameIntensity * 0.35;
+
+      // Outer flame glow
+      const flameGlow = ctx.createRadialGradient(0, -h * 0.02, 0, 0, -h * 0.02, w * 0.35);
+      flameGlow.addColorStop(0, 'rgba(255,235,180,' + (coreAlpha * 0.45).toFixed(3) + ')');
+      flameGlow.addColorStop(0.3, 'rgba(255,200,110,' + (coreAlpha * 0.18).toFixed(3) + ')');
+      flameGlow.addColorStop(0.7, 'rgba(255,170,70,' + (coreAlpha * 0.05).toFixed(3) + ')');
+      flameGlow.addColorStop(1, 'rgba(255,150,50,0)');
+      ctx.fillStyle = flameGlow;
+      ctx.beginPath();
+      ctx.arc(0, -h * 0.02, w * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bright core
+      const coreGrad = ctx.createRadialGradient(0, -h * 0.02, 0, 0, -h * 0.02, coreSize);
+      coreGrad.addColorStop(0, 'rgba(255,250,230,' + (0.9 * coreAlpha).toFixed(3) + ')');
+      coreGrad.addColorStop(0.5, 'rgba(255,230,170,' + (0.5 * coreAlpha).toFixed(3) + ')');
+      coreGrad.addColorStop(1, 'rgba(255,210,140,0)');
+      ctx.fillStyle = coreGrad;
+      ctx.beginPath();
+      ctx.arc(0, -h * 0.02, coreSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // === Ambient lantern glow (on the scene) ===
+      const ambSize = w * (2.0 + flameIntensity * 0.6 + Math.sin(time * 1.5) * 0.12);
+      const ambGrad = ctx.createRadialGradient(cx, cy, w * 0.08, cx, cy, ambSize);
+      ambGrad.addColorStop(0, 'rgba(255,190,85,' + (0.07 + flameIntensity * 0.05).toFixed(3) + ')');
+      ambGrad.addColorStop(0.25, 'rgba(255,165,65,' + (0.035 + flameIntensity * 0.02).toFixed(3) + ')');
+      ambGrad.addColorStop(0.6, 'rgba(255,145,50,' + (0.012 + flameIntensity * 0.008).toFixed(3) + ')');
+      ambGrad.addColorStop(1, 'rgba(255,120,35,0)');
+      ctx.fillStyle = ambGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ambSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      // === Ground reflection ===
+      const grY = H * 0.85;
+      const refGrad = ctx.createRadialGradient(cx, grY, 0, cx, grY, w * 2);
+      refGrad.addColorStop(0, 'rgba(255,185,75,' + (0.03 + flameIntensity * 0.025).toFixed(3) + ')');
+      refGrad.addColorStop(0.5, 'rgba(255,165,55,0.008)');
+      refGrad.addColorStop(1, 'rgba(255,145,35,0)');
+      ctx.fillStyle = refGrad;
+      ctx.beginPath();
+      ctx.ellipse(cx, grY, w * 2, w * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // === Rain reflection on ground (small bright dots near lantern base) ===
+      if (!shielding) {
+        ctx.save();
+        ctx.globalAlpha = 0.04 + Math.sin(time * 2.3) * 0.01;
+        for (let ri = 0; ri < 8; ri++) {
+          const rx = cx + Math.sin(time * 0.5 + ri * 2.3) * w * 1.2;
+          const ry = H * 0.86 + Math.cos(time * 0.7 + ri * 1.7) * 8;
+          ctx.fillStyle = 'rgba(180,195,210,0.15)';
+          ctx.beginPath();
+          ctx.ellipse(rx, ry, 3 + Math.sin(time + ri) * 1.5, 1.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawRain() {
+      for (const d of rainDrops) {
+        // Dim rain near lantern when shielding
+        let a = d.alpha;
+        if (shielding) {
+          const dx = d.x - lanternX;
+          const dy = d.y - lanternY;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < lanternW * 1.5) {
+            a *= 0.12;
+          }
+        }
+
+        ctx.strokeStyle = 'rgba(180,198,212,' + a.toFixed(3) + ')';
+        ctx.lineWidth = d.thickness;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x + d.wind * 1.3, d.y + d.len);
+        ctx.stroke();
+      }
+    }
+
+    function drawRipples() {
+      for (const r of puddleRipples) {
+        ctx.strokeStyle = 'rgba(175,190,205,' + r.alpha.toFixed(3) + ')';
+        ctx.lineWidth = 0.4;
+        ctx.beginPath();
+        ctx.ellipse(r.x, r.y, r.r, r.r * 0.32, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawLanternSparks() {
+      for (const s of lanternSparks) {
+        const lifeRatio = s.life / s.maxLife;
+        const alpha = lifeRatio * 0.45;
+        ctx.fillStyle = 'rgba(255,210,130,' + alpha.toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r * (0.5 + lifeRatio * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // --- Shield hand overlay ---
+    function drawShieldHand(time) {
+      if (shieldAlpha < 0.005) return;
+
+      const cx = lanternX + Math.sin(time * 0.65) * (shielding ? 1 : 2.5);
+      const cy = lanternY;
+      const w = lanternW;
+      const h = lanternH;
+
+      ctx.save();
+      ctx.globalAlpha = shieldAlpha;
+
+      // Hand enters from upper right, palm sheltering the lantern
+      const handBaseX = cx + w * 0.5;
+      const handBaseY = cy - h * 0.25;
+
+      // Palm
+      ctx.fillStyle = 'rgba(24,16,10,0.78)';
+      ctx.beginPath();
+      ctx.ellipse(handBaseX - w * 0.2, handBaseY,
+                   w * 0.5, h * 0.3, -0.12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Fingers
+      const fingers = [
+        { angle: -0.65, len: h * 0.23, wid: w * 0.09 },
+        { angle: -0.28, len: h * 0.28, wid: w * 0.09 },
+        { angle: 0.05,  len: h * 0.26, wid: w * 0.095 },
+        { angle: 0.3,   len: h * 0.2,  wid: w * 0.085 },
+      ];
+      for (const f of fingers) {
+        ctx.save();
+        ctx.translate(handBaseX - w * 0.6, handBaseY - h * 0.12);
+        ctx.rotate(f.angle);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, f.wid, f.len, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(24,16,10,0.72)';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Wrist extending off to right
+      ctx.beginPath();
+      ctx.moveTo(handBaseX + w * 0.15, handBaseY + h * 0.08);
+      ctx.quadraticCurveTo(
+        handBaseX + w * 0.7, handBaseY + h * 0.22,
+        handBaseX + w * 1.4, handBaseY + h * 0.38
+      );
+      ctx.lineWidth = w * 0.17;
+      ctx.strokeStyle = 'rgba(24,16,10,0.68)';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Shield glow — the hand reflects some of the lantern's warmth
+      const shieldGlow = ctx.createRadialGradient(
+        handBaseX - w * 0.15, handBaseY, 0,
+        handBaseX - w * 0.15, handBaseY, w * 0.6
+      );
+      shieldGlow.addColorStop(0, 'rgba(255,195,100,' + (0.04 * shieldAlpha).toFixed(3) + ')');
+      shieldGlow.addColorStop(1, 'rgba(255,175,80,0)');
+      ctx.fillStyle = shieldGlow;
+      ctx.beginPath();
+      ctx.arc(handBaseX - w * 0.15, handBaseY, w * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // --- Grain overlay ---
+    let grainCanvas = null;
+
+    function makeGrain() {
+      const size = 256;
+      grainCanvas = document.createElement('canvas');
+      grainCanvas.width = size;
+      grainCanvas.height = size;
+      const gctx = grainCanvas.getContext('2d');
+      const img = gctx.createImageData(size, size);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const v = Math.random() * 255;
+        d[i] = v; d[i+1] = v; d[i+2] = v; d[i+3] = 18;
+      }
+      gctx.putImageData(img, 0, 0);
+    }
+
+    function drawGrain(time) {
+      if (!grainCanvas) return;
+      ctx.save();
+      ctx.globalAlpha = 0.055;
+      const ox = ((time * 22) % 256 + 256) % 256;
+      const oy = ((time * 11) % 256 + 256) % 256;
+      for (let dx = 0; dx <= 1; dx++) {
+        for (let dy = 0; dy <= 1; dy++) {
+          ctx.drawImage(grainCanvas,
+            ox + dx * 256 - (dx ? 0 : 0),
+            oy + dy * 256 - (dy ? 0 : 0)
+          );
+        }
+      }
+      ctx.restore();
+    }
+
+    // --- Vignette ---
+    function drawVignette() {
+      const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H) * 0.18,
+                                            W/2, H/2, Math.max(W,H) * 0.72);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(0.5, 'rgba(0,0,0,0.12)');
+      vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // --- Audio ---
+    function initAudio() {
+      if (audioCtx) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Rain: brown noise filtered
+        const sr = audioCtx.sampleRate;
+        const dur = 4;
+        const buf = audioCtx.createBuffer(1, sr * dur, sr);
+        const ch = buf.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < ch.length; i++) {
+          const w = Math.random() * 2 - 1;
+          last = (last + 0.022 * w) / 1.022;
+          ch[i] = last * 3.8;
+        }
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+
+        // Low-pass for rain character
+        const lp = audioCtx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 650;
+        lp.Q.value = 0.4;
+
+        rainGainNode = audioCtx.createGain();
+        rainGainNode.gain.value = 0;
+
+        src.connect(lp);
+        lp.connect(rainGainNode);
+        rainGainNode.connect(audioCtx.destination);
+        src.start();
+
+        // Lantern hit sound: soft tick
+        lanternHitNode = audioCtx.createBufferSource();
+        const tickBuf = audioCtx.createBuffer(1, sr * 0.1, sr);
+        const tickCh = tickBuf.getChannelData(0);
+        for (let i = 0; i < tickCh.length; i++) {
+          const t = i / tickCh.length;
+          tickCh[i] = (Math.random() * 2 - 1) * Math.exp(-t * 30) * 0.15;
+        }
+        lanternHitNode.buffer = tickBuf;
+        lanternHitNode.loop = false;
+
+        lanternHitGainNode = audioCtx.createGain();
+        lanternHitGainNode.gain.value = 0;
+
+        const hitHP = audioCtx.createBiquadFilter();
+        hitHP.type = 'highpass';
+        hitHP.frequency.value = 2000;
+
+        lanternHitNode.connect(hitHP);
+        hitHP.connect(lanternHitGainNode);
+        lanternHitGainNode.connect(audioCtx.destination);
+      } catch(e) {
+        console.warn('Audio init failed:', e);
+      }
+    }
+
+    function setRainVol(v) {
+      if (!rainGainNode) return;
+      try {
+        const now = audioCtx.currentTime;
+        rainGainNode.gain.linearRampToValueAtTime(v, now + 0.5);
+      } catch(e) { /* ignore */ }
+    }
+
+    function playLanternTick() {
+      if (!lanternHitNode || !lanternHitGainNode) return;
+      try {
+        // Clone the source for retriggering
+        const src = audioCtx.createBufferSource();
+        src.buffer = lanternHitNode.buffer;
+        const g = audioCtx.createGain();
+        g.gain.value = 0.08;
+        src.connect(g);
+        g.connect(audioCtx.destination);
+        src.start();
+      } catch(e) { /* ignore */ }
+    }
+
+    // --- Input ---
+    let lastShieldTick = 0;
+
+    function getPos(e) {
+      const t = e.touches ? e.touches[0] : e;
+      pointerX = t.clientX;
+      pointerY = t.clientY;
+    }
+
+    function nearLantern() {
+      const dx = pointerX - lanternX;
+      const dy = pointerY - lanternY;
+      return Math.sqrt(dx*dx + dy*dy) < lanternW * 1.6;
+    }
+
+    canvas.addEventListener('pointerdown', function(e) {
+      getPos(e);
+      if (nearLantern()) {
+        shielding = true;
+        shieldProgress = 0;
+        flameTarget = 0.8;
+
+        if (!firstTouch) {
+          firstTouch = true;
+          promptEl.classList.add('hidden');
+          rainBtn.classList.add('visible');
+          initAudio();
+          setRainVol(0.06);
+          rainPlaying = true;
+        }
+
+        playLanternTick();
+      }
+    });
+
+    canvas.addEventListener('pointermove', function(e) {
+      getPos(e);
+      if (shielding && !nearLantern()) {
+        releaseShield();
+      }
+    });
+
+    canvas.addEventListener('pointerup', releaseShield);
+    canvas.addEventListener('pointerleave', releaseShield);
+
+    function releaseShield() {
+      shielding = false;
+      flameTarget = 0.55;
+      if (rainPlaying) setRainVol(0.06);
+    }
+
+    rainBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (!firstTouch) {
+        firstTouch = true;
+        promptEl.classList.add('hidden');
+        rainBtn.classList.add('visible');
+        initAudio();
+      }
+      if (rainPlaying) {
+        rainPlaying = false;
+        setRainVol(0);
+        rainBtn.textContent = 'rain';
+      } else {
+        rainPlaying = true;
+        setRainVol(0.06);
+        rainBtn.textContent = 'silence';
+      }
+    });
+
+    // --- Main loop ---
+    let lastTs = 0;
+
+    function frame(ts) {
+      const time = ts / 1000;
+      const dt = Math.min((ts - lastTs) / 1000, 0.05);
+      lastTs = ts;
+
+      // Update shield state
+      if (shielding) {
+        shieldProgress = Math.min(shieldProgress + dt * 0.1, 1);
+        // Flame steadiness increases with shielding time
+        flameTarget = 0.55 + shieldProgress * 0.45;
+        // Fade in hand
+        shieldAlpha = Math.min(shieldAlpha + dt * 2.2, 0.85);
+        // Dim rain audio when sheltering
+        if (rainPlaying) {
+          setRainVol(0.015 + (1 - shieldProgress) * 0.045);
+        }
+        // Occasional tick as rain taps the hand
+        if (time - lastShieldTick > 0.4 + Math.random() * 0.8) {
+          lastShieldTick = time;
+          if (shieldProgress > 0.2) playLanternTick();
+        }
+      } else {
+        // Fade out hand quickly
+        shieldAlpha *= Math.pow(0.015, dt);
+        if (shieldAlpha < 0.003) shieldAlpha = 0;
+        // Flame slowly drifts back
+        flameTarget += (0.55 - flameTarget) * dt * 0.25;
+        if (rainPlaying) setRainVol(0.06);
+      }
+
+      // Flame intensity smooths toward target
+      flameIntensity += (flameTarget - flameIntensity) * Math.min(dt * 2.5, 0.12);
+
+      updateRain(dt);
+
+      // === Draw layers (back to front) ===
+      drawSky();
+      drawDistantHills();
+      drawMist(time);
+      drawRipples();
+      drawLantern(time);
+      drawLanternSparks();
+      drawShieldHand(time);
+      drawRain();
+      drawGrain(time);
+      drawVignette();
+
+      requestAnimationFrame(frame);
+    }
+
+    // --- Polyfill for roundRect ---
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (typeof r === 'number') r = [r,r,r,r];
+        this.moveTo(x + r[0], y);
+        this.lineTo(x + w - r[1], y);
+        this.arcTo(x + w, y, x + w, y + r[1], r[1]);
+        this.lineTo(x + w, y + h - r[2]);
+        this.arcTo(x + w, y + h, x + w - r[2], y + h, r[2]);
+        this.lineTo(x + r[3], y + h);
+        this.arcTo(x, y + h, x, y + h - r[3], r[3]);
+        this.lineTo(x, y + r[0]);
+        this.arcTo(x, y, x + r[0], y, r[0]);
+        this.closePath();
+      };
+    }
+
+    // --- Init ---
+    resize();
+    makeGrain();
+
+    // Pre-seed rain at various positions for immediate atmosphere
+    for (let i = 0; i < 130; i++) {
+      rainDrops.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        speed: 320 + Math.random() * 380,
+        len: 10 + Math.random() * 26,
+        alpha: 0.05 + Math.random() * 0.18,
+        wind: -2.2 + Math.random() * 0.8,
+        thickness: 0.4 + Math.random() * 0.7
+      });
+    }
+
+    requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
