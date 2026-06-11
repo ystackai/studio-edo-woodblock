@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stone &amp; Breath</title>
+    <style>
+       * { margin: 0; padding: 0; box-sizing: border-box; }
+       html, body {
+         width: 100%; height: 100%;
+         overflow: hidden;
+         touch-action: none;
+         -webkit-touch-callout: none;
+         -webkit-user-select: none;
+         user-select: none;
+       }
+       body {
+         background: linear-gradient(180deg,
+           #c4980a 0%,
+           #a07810 15%,
+           #7a5520 30%,
+           #5a3e70 50%,
+           #352060 70%,
+           #1e0e45 90%,
+           #120830 100%
+         );
+       }
+       #container {
+         position: relative;
+         width: 100vw; height: 100vh;
+         overflow: hidden;
+       }
+       #stone {
+         position: absolute;
+         left: 50%;
+         width: 60px; height: 60px;
+         margin-left: -30px;
+         border-radius: 50%;
+         background: radial-gradient(ellipse at 36% 32%, #7a7a8a, #4a4a5a 50%, #2e2e3e 100%);
+         box-shadow:
+           0 6px 24px rgba(0,0,0,0.55),
+           0 2px 10px rgba(0,0,0,0.35),
+           inset 0 -4px 10px rgba(0,0,0,0.45),
+           inset 0 2px 8px rgba(190,190,200,0.12);
+         will-change: transform;
+         z-index: 10;
+       }
+       #ripple-svg {
+         position: absolute;
+         left: 0; top: 0;
+         width: 100%; height: 100%;
+         pointer-events: none;
+         z-index: 5;
+       }
+       #edge-glow {
+         position: absolute;
+         left: 0; top: 0;
+         width: 100%; height: 100%;
+         pointer-events: none;
+         z-index: 3;
+         opacity: 0;
+         transform-origin: center center;
+       }
+       #water-surface {
+         position: absolute;
+         left: 0; top: 0;
+         width: 100%; height: 100%;
+         pointer-events: none;
+         z-index: 1;
+         opacity: 0;
+         background: radial-gradient(ellipse at 50% 45%,
+           rgba(160,120,30,0.1) 0%,
+           rgba(100,70,140,0.04) 40%,
+           transparent 70%
+         );
+       }
+       #hint {
+         position: absolute;
+         bottom: 18%; left: 50%;
+         transform: translateX(-50%);
+         color: rgba(255,255,255,0.4);
+         font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+         font-size: 0.78rem;
+         letter-spacing: 0.14em;
+         text-transform: uppercase;
+         pointer-events: none;
+         z-index: 20;
+         white-space: nowrap;
+       }
+    </style>
+</head>
+<body>
+    <div id="container">
+      <svg id="ripple-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <defs>
+          <radialGradient id="rg1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(184,134,11,0.35)"/>
+            <stop offset="45%" stop-color="rgba(120,90,180,0.1)"/>
+            <stop offset="100%" stop-color="rgba(18,8,48,0)"/>
+          </radialGradient>
+          <radialGradient id="rg2" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(200,160,60,0.25)"/>
+            <stop offset="60%" stop-color="rgba(90,70,160,0.06)"/>
+            <stop offset="100%" stop-color="rgba(18,8,48,0)"/>
+          </radialGradient>
+          <radialGradient id="rg3" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(220,180,80,0.18)"/>
+            <stop offset="70%" stop-color="rgba(80,60,140,0.04)"/>
+            <stop offset="100%" stop-color="rgba(18,8,48,0)"/>
+          </radialGradient>
+        </defs>
+        <circle class="ripple-ring" cx="50" cy="0" r="0" fill="url(#rg1)" opacity="0"/>
+        <circle class="ripple-ring" cx="50" cy="0" r="0" fill="url(#rg2)" opacity="0"/>
+        <circle class="ripple-ring" cx="50" cy="0" r="0" fill="url(#rg3)" opacity="0"/>
+      </svg>
+      <div id="edge-glow">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
+          <rect x="0.3" y="0.3" width="99.4" height="99.4" fill="none"
+            stroke="rgba(184,134,11,0.25)" stroke-width="0.5"/>
+          <rect x="1.2" y="1.2" width="97.6" height="97.6" fill="none"
+            stroke="rgba(184,134,11,0.1)" stroke-width="0.25"/>
+        </svg>
+      </div>
+      <div id="water-surface"></div>
+      <div id="stone"></div>
+      <div id="hint">drag down</div>
+    </div>
+
+    <script>
+      (function() {
+        'use strict';
+
+       var container = document.getElementById('container');
+       var stone = document.getElementById('stone');
+       var rippleSvg = document.getElementById('ripple-svg');
+       var rings = rippleSvg.querySelectorAll('.ripple-ring');
+       var edgeGlow = document.getElementById('edge-glow');
+       var waterSurface = document.getElementById('water-surface');
+       var hint = document.getElementById('hint');
+
+       var W = 0, H = 0;
+       var stallPx = 0;
+       var stoneR = 30;
+
+       // Stone position (center Y in px from container top)
+       var stoneY = 0;
+
+       // Phase: idle -> dragging -> stalled -> decaying -> settled -> resetting -> idle
+       var phase = 'idle';
+
+       // Tracking
+       var dragStartY = 0;
+       var dragStartStoneY = 0;
+       var lastPointerY = 0;
+
+       // Timing
+       var stallTriggeredAt = 0;
+       var decayBegin = 0;
+       var rippleBegin = 0;
+       var edgeBegin = 0;
+       var settledBegin = 0;
+
+       // Ripple state
+       var rippleT = 0;
+       var rippleMax = 48; // SVG coordinate space (0-100), 48 = nearly full
+       var rippleCy = 0; // Y position in SVG % where ripple originates
+
+       // Decay physics
+       var decayVelocity = 0;
+       var settled = false;
+
+       // Audio
+       var audioCtx = null;
+       var audioReady = false;
+
+       // Constants
+       var DECAY_MS = 2500;
+       var RIPPLE_MS = 2500;
+       var SETTLE_WAIT = 3000;
+       var RESET_MS = 500;
+
+       // --- Setup ---
+       function initDimensions() {
+         W = container.clientWidth;
+         H = container.clientHeight;
+         stallPx = H * 0.45;
+         stoneY = H * 0.15;
+         renderStone();
+        }
+
+       function renderStone() {
+         stone.style.transform = 'translateY(' + (stoneY - H * 0.15) + 'px)';
+        }
+
+       function setRing(ringIdx, progress, cyPct) {
+         var r = rings[ringIdx];
+         if (!r) return;
+         var delay = ringIdx * 0.08;
+         var pt = Math.max(0, Math.min(1, (progress - delay) / (1 - delay * 0.5)));
+         var rad = rippleMax * pt;
+         var alpha = pt < 0.4
+           ? 0.8 * (pt / 0.4)
+           : 0.8 * (1 - (pt - 0.4) / 0.6);
+         r.setAttribute('cx', '50');
+         r.setAttribute('cy', cyPct.toFixed(1));
+         r.setAttribute('r', rad.toFixed(2));
+         r.setAttribute('opacity', Math.max(0, Math.min(1, alpha)).toFixed(3));
+        }
+
+       // --- Audio ---
+       function initAudio() {
+         if (audioReady) return;
+         try {
+           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+           audioReady = true;
+          } catch(e) { audioCtx = null; }
+        }
+
+       function playCreak() {
+         if (!audioCtx) return;
+         try {
+           var t = audioCtx.currentTime;
+           // Primary: low sine creak
+           var o1 = audioCtx.createOscillator();
+           var g1 = audioCtx.createGain();
+           o1.type = 'sine';
+           o1.frequency.setValueAtTime(120, t);
+           o1.frequency.linearRampToValueAtTime(68, t + 0.28);
+           g1.gain.setValueAtTime(0.32, t);
+           g1.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+           o1.connect(g1).connect(audioCtx.destination);
+           o1.start(t);
+           o1.stop(t + 0.3);
+
+           // Secondary: triangle for texture
+           var o2 = audioCtx.createOscillator();
+           var g2 = audioCtx.createGain();
+           o2.type = 'triangle';
+           o2.frequency.setValueAtTime(155, t);
+           o2.frequency.linearRampToValueAtTime(95, t + 0.12);
+           o2.frequency.linearRampToValueAtTime(80, t + 0.28);
+           g2.gain.setValueAtTime(0.1, t);
+           g2.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+           o2.connect(g2).connect(audioCtx.destination);
+           o2.start(t);
+           o2.stop(t + 0.3);
+          } catch(e) {}
+        }
+
+       function playHum() {
+         if (!audioCtx) return;
+         try {
+           var t = audioCtx.currentTime;
+           var o = audioCtx.createOscillator();
+           var g = audioCtx.createGain();
+           o.type = 'sine';
+           o.frequency.setValueAtTime(80, t);
+           o.frequency.linearRampToValueAtTime(70, t + 3);
+           g.gain.setValueAtTime(0, t);
+           g.gain.linearRampToValueAtTime(0.14, t + 0.12);
+           g.gain.setValueAtTime(0.14, t + 2.7);
+           g.gain.linearRampToValueAtTime(0.001, t + 3);
+           o.connect(g).connect(audioCtx.destination);
+           o.start(t);
+           o.stop(t + 3.05);
+
+           // Sub-octave layer
+           var o2 = audioCtx.createOscillator();
+           var g2 = audioCtx.createGain();
+           o2.type = 'sine';
+           o2.frequency.setValueAtTime(40, t);
+           g2.gain.setValueAtTime(0, t);
+           g2.gain.linearRampToValueAtTime(0.06, t + 0.2);
+           g2.gain.setValueAtTime(0.06, t + 2.5);
+           g2.gain.linearRampToValueAtTime(0.001, t + 3);
+           o2.connect(g2).connect(audioCtx.destination);
+           o2.start(t);
+           o2.stop(t + 3.05);
+          } catch(e) {}
+        }
+
+       function hapticPulse() {
+         try { if (navigator.vibrate) navigator.vibrate([10, 20, 10]); } catch(e) {}
+        }
+
+       // --- Edge pulse ---
+       function updateEdge(now) {
+         var elapsed = now - edgeBegin;
+         var phaseVal = (elapsed / 1000) * 0.38 * Math.PI * 2;
+         var baseOpacity = 0.32 + 0.38 * Math.sin(phaseVal);
+
+         // Decay phase: ramp up
+         if (phase === 'decaying') {
+          var dt = (now - decayBegin) / 800;
+          baseOpacity *= Math.min(1, dt);
+          }
+
+         // Settled: maintain, then begin fade after wait
+         if (phase === 'settled') {
+          var st = now - settledBegin;
+          if (st > SETTLE_WAIT) {
+            var fade = (st - SETTLE_WAIT) / 1000;
+            baseOpacity *= Math.max(0, 1 - Math.min(1, fade));
+           }
+          }
+
+         baseOpacity = Math.max(0, Math.min(1, baseOpacity));
+         edgeGlow.style.opacity = baseOpacity.toFixed(3);
+
+         var microScale = 1 + 0.006 * Math.sin(phaseVal);
+         edgeGlow.style.transform = 'scale(' + microScale.toFixed(4) + ')';
+        }
+
+       // --- Water surface ---
+       function updateWater(now) {
+         if (phase !== 'decaying' && phase !== 'settled') {
+          waterSurface.style.opacity = '0';
+          return;
+          }
+         var elapsed = now - rippleBegin;
+         var fadeIn = Math.min(1, elapsed / 350);
+         var op = 0.55 * fadeIn;
+         if (phase === 'settled') {
+          var st = now - settledBegin;
+          if (st > SETTLE_WAIT) {
+            var fade = Math.min(1, (st - SETTLE_WAIT) / 1000);
+            op *= (1 - fade);
+           }
+          }
+         waterSurface.style.opacity = Math.max(0, op).toFixed(3);
+        }
+
+       // --- Main animation loop ---
+       var rafId = null;
+       function loop(now) {
+         rafId = requestAnimationFrame(loop);
+
+         if (phase === 'decaying') {
+          var elapsed = now - decayBegin;
+          var t = Math.min(1, elapsed / DECAY_MS);
+
+          // Raw velocity damping: gravity pulls stone toward bottom
+          var targetY = H - stoneR - 6;
+          var distFromStall = targetY - stallPx;
+          stoneY = stallPx + distFromStall * t;
+          decayVelocity = (distFromStall * (1 / (DECAY_MS / 16.67)));
+          renderStone();
+
+          // Ripples
+          var rT = Math.min(1, (now - rippleBegin) / RIPPLE_MS);
+          rippleCy = stallPx / H * 100;
+          setRing(0, rT, rippleCy);
+          setRing(1, rT, rippleCy);
+          setRing(2, rT, rippleCy);
+
+          updateEdge(now);
+          updateWater(now);
+
+          if (t >= 1) {
+            phase = 'settled';
+            settledBegin = now;
+           }
+          }
+
+        if (phase === 'settled') {
+          updateEdge(now);
+          updateWater(now);
+
+            // Continue ripple decay while settled
+           var rAge = now - rippleBegin;
+           if (rAge < RIPPLE_MS) {
+             var rT2 = Math.min(1, rAge / RIPPLE_MS);
+             setRing(0, rT2, rippleCy);
+             setRing(1, rT2, rippleCy);
+             setRing(2, rT2, rippleCy);
+              }
+
+            // Auto-transition to resetting after settlement hold
+           var settledAge = now - settledBegin;
+           if (settledAge > SETTLE_WAIT) {
+             phase = 'resetting';
+             }
+           }
+
+        if (phase === 'resetting') {
+          var resetElapsed = now - settledBegin - SETTLE_WAIT;
+          var t3 = Math.min(1, Math.max(0, resetElapsed / RESET_MS));
+
+          var bottomRest = H - stoneR - 6;
+          var topRest = H * 0.15;
+          stoneY = bottomRest + (topRest - bottomRest) * t3;
+          renderStone();
+
+          if (t3 >= 1) {
+            // Full reset
+            phase = 'idle';
+            stoneY = H * 0.15;
+            renderStone();
+            rings.forEach(function(r) { r.setAttribute('opacity', '0'); });
+            edgeGlow.style.opacity = '0';
+            waterSurface.style.opacity = '0';
+            hint.style.opacity = '1';
+           }
+          }
+        }
+
+       // --- Input ---
+       function getTouchY(e) {
+         if (e.touches && e.touches.length) return e.touches[0].clientY;
+         if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0].clientY;
+         return e.clientY;
+        }
+
+       function onDown(e) {
+         e.preventDefault();
+         if (phase !== 'idle') return;
+         initAudio();
+         dragStartY = getTouchY(e);
+         dragStartStoneY = stoneY;
+         lastPointerY = dragStartY;
+         phase = 'dragging';
+        hint.style.opacity = '0';
+        }
+
+       function onMove(e) {
+         if (phase !== 'dragging') return;
+         e.preventDefault();
+         var py = getTouchY(e);
+         var delta = py - dragStartY;
+         var newY = dragStartStoneY + delta;
+
+         // Hard clamp at stall
+         if (newY >= stallPx) {
+          newY = stallPx;
+          stoneY = stallPx;
+          renderStone();
+
+          // Trigger stall sequence
+          phase = 'stalled';
+          stallTriggeredAt = performance.now();
+
+          playCreak();
+          playHum();
+          hapticPulse();
+
+          // Begin decay after stall (immediate)
+          phase = 'decaying';
+          decayBegin = performance.now();
+          rippleBegin = decayBegin;
+          edgeBegin = decayBegin;
+
+          lastPointerY = py;
+          return;
+          }
+
+         stoneY = newY;
+        renderStone();
+         lastPointerY = py;
+        }
+
+       function onUp(e) {
+         if (phase === 'dragging') {
+          // Released before stall - spring back
+          phase = 'idle';
+          stoneY = H * 0.15;
+          renderStone();
+          hint.style.opacity = '1';
+          return;
+          }
+         // In settled state, tap to restart
+         if (phase === 'settled') {
+          phase = 'resetting';
+          }
+        }
+
+       // Touch events
+       container.addEventListener('touchstart', onDown, { passive: false });
+       container.addEventListener('touchmove', onMove, { passive: false });
+       container.addEventListener('touchend', onUp);
+       container.addEventListener('touchcancel', onUp);
+
+       // Mouse fallback
+       container.addEventListener('mousedown', onDown);
+       window.addEventListener('mousemove', onMove);
+       window.addEventListener('mouseup', onUp);
+
+       // Resize
+       var resizeTimer = null;
+       window.addEventListener('resize', function() {
+         if (resizeTimer) clearTimeout(resizeTimer);
+         resizeTimer = setTimeout(function() {
+           initDimensions();
+          }, 80);
+        });
+
+       // Go
+       initDimensions();
+       hint.style.opacity = '1';
+       rafId = requestAnimationFrame(loop);
+      })();
+    </script>
+</body>
+</html>

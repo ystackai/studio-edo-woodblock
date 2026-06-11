@@ -1,0 +1,77 @@
+/* Stone Sink — Procedural Audio + Haptics
+   Palette: indigo, charcoal, wet stone grey */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0c0e18;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+#canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#ui {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+#state-label {
+    color: #4a5068;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: color 0.15s;
+}
+
+#state-label.active {
+    color: #5a6080;
+}
+
+#sync-indicator {
+    font-size: 9px;
+    letter-spacing: 2px;
+    opacity: 0.5;
+}
+
+#sync-indicator.sync-ok {
+    color: #3a6b5a;
+}
+
+#sync-indicator.sync-warn {
+    color: #8a3a3a;
+    opacity: 0.8;
+    animation: sync-flash 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes sync-flash {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+}

@@ -1,69 +1,165 @@
 {
-  "slug": "edo-woodblock",
-  "repo": "studio-edo-woodblock",
-  "name": "Pictures of the Floating World",
-  "brief_synthesizer_slot": "writer",
-  "visibility": "public",
-  "tagline": "Ukiyo-e masters building ephemeral digital art, one print at a time.",
-  "hero_text": "A crew of legendary Edo-era artists making interactive experiences. New drop every 24 hours.",
-  "discord_invite": "https://discord.gg/jZMBy5DsZ9",
-  "github_org": "ystackai",
-  "links": {
-    "home_url": "/edo-woodblock/",
-    "drops_url": "/edo-woodblock/drops/",
-    "demos_url": "/edo-woodblock/drops/",
-    "blog_url": "/edo-woodblock/blog/",
-    "team_url": "/edo-woodblock/#team"
-  },
-  "brand": {
-    "accent": "#8B4513"
-  },
-  "timezone": "America/Chicago",
-  "production_lanes": {
-    "drops": {
-      "min_units_per_week": 7,
-      "max_units_per_week": 7,
-      "timebox_hours": 24
-    },
-    "blog": {
-      "min_units_per_week": 0,
-      "max_units_per_week": 3,
-      "timebox_hours": 24
-    }
-  },
-  "discord": {
-    "guild_id": "1483989123516596225",
-    "custom_channels": [
-      "edo-woodblock",
-      "edo-woodblock-feedback"
-    ],
-    "channel_map": {
-      "#general": "#edo-woodblock",
-      "#engineering": "#edo-woodblock",
-      "#feedback": "#edo-woodblock-feedback",
-      "#announcements": "#edo-woodblock-feedback"
-    }
-  },
-  "compute": {
-    "weekly_credit_grant": 0,
-    "weekly_credit_bonus": 0,
-    "remaining_credits": 0,
-    "active_reservations": [],
-    "drop_boosts": [],
-    "premium_provider_enabled": false,
-    "last_reset_at": ""
-  },
-  "games": {
-    "shipped": [],
-    "upcoming": {
-      "slug": "quiet-opening",
-      "title": "Quiet Opening",
-      "summary": "A lone pine on a sea cliff in fog. The first screen is a finished print.",
-      "play_url": "games/quiet-opening/",
-      "studio_url": "/edo-woodblock/games/quiet-opening/"
-    },
-    "building": {}
-  },
-  "blog_posts": [],
-  "drops": []
+   "slug": "edo-woodblock",
+   "repo": "studio-edo-woodblock",
+   "name": "Pictures of the Floating World",
+   "brief_synthesizer_slot": "writer",
+   "visibility": "public",
+   "tagline": "Ukiyo-e masters building ephemeral digital art, one print at a time.",
+   "hero_text": "A crew of legendary Edo-era artists making interactive experiences. New drop every 24 hours.",
+   "discord_invite": "https://discord.gg/jZMBy5DsZ9",
+   "github_org": "ystackai",
+   "links": {
+     "home_url": "/edo-woodblock/",
+     "drops_url": "/edo-woodblock/drops/",
+     "demos_url": "/edo-woodblock/drops/",
+     "blog_url": "/edo-woodblock/blog/",
+     "team_url": "/edo-woodblock/#team"
+   },
+   "brand": {
+     "accent": "#8B4513"
+   },
+   "timezone": "America/Chicago",
+   "production_lanes": {
+     "drops": {
+       "min_units_per_week": 7,
+       "max_units_per_week": 7,
+       "timebox_hours": 24
+     },
+     "blog": {
+       "min_units_per_week": 0,
+       "max_units_per_week": 3,
+       "timebox_hours": 24
+     }
+   },
+   "discord": {
+     "guild_id": "1483989123516596225",
+     "custom_channels": [
+       "edo-woodblock",
+       "edo-woodblock-feedback"
+     ],
+     "channel_map": {
+       "#general": "#edo-woodblock",
+       "#engineering": "#edo-woodblock",
+       "#feedback": "#edo-woodblock-feedback",
+       "#announcements": "#edo-woodblock-feedback"
+     }
+   },
+   "compute": {
+     "weekly_credit_grant": 0,
+     "weekly_credit_bonus": 0,
+     "remaining_credits": 0,
+     "active_reservations": [],
+     "drop_boosts": [],
+     "premium_provider_enabled": false,
+     "last_reset_at": ""
+   },
+   "games": {
+     "shipped": [
+       {
+         "title": "Floating Moment",
+         "slug": "floating-moment",
+         "summary": "Capture ephemeral beauty. Click or press keys 1-5 to choose a flower bloom, watch it drift and fade like a woodblock print. Each bloom is a unique, fleeting moment.",
+         "mashup": "ukiyo-e · ephemeral blooms · floating world",
+         "play_url": "/edo-woodblock/drops/floating-moment/",
+         "studio_url": "/edo-woodblock/drops/floating-moment/",
+         "tags": [
+           "interactive",
+           "ukiyo-e",
+           "ephemeral",
+           "generative"
+         ]
+       },
+       {
+         "title": "Floating World",
+         "slug": "floating-world",
+         "summary": "Drag through the seasons of a ukiyo-e landscape. Each touch changes the scene — cherry blossoms, summer greens, autumn maples, winter snow. A haiku follows your brush.",
+         "mashup": "ukiyo-e · seasonal passage · floating world",
+         "play_url": "/edo-woodblock/drops/floating-world/",
+         "studio_url": "/edo-woodblock/drops/floating-world/",
+         "tags": [
+           "interactive",
+           "ukiyo-e",
+           "seasonal"
+         ]
+       },
+       {
+         "title": "Ukiyo-e Printer",
+         "slug": "ukiyo-e-printer",
+         "summary": "Learn the four-block woodprint process. Click key, red, blue, and yellow blocks in order to build a complete ukiyo-e scene with Mt. Fuji, waves, and blossoms.",
+         "mashup": "ukiyo-e · woodblock process · four-block print",
+         "play_url": "/edo-woodblock/drops/ukiyo-e-printer/",
+         "studio_url": "/edo-woodblock/drops/ukiyo-e-printer/",
+         "tags": [
+           "interactive",
+           "ukiyo-e",
+           "woodblock",
+           "educational"
+         ]
+       },
+       {
+         "title": "Floating Press",
+         "slug": "floating-press",
+         "summary": "An interactive ukiyo-e printmaker. Tap anywhere to create a unique ephemeral composition of waves, blossoms, mountains, clouds, and birds — each one a fleeting picture of the floating world.",
+         "mashup": "modern canvas · ukiyo-e palette",
+         "play_url": "/edo-woodblock/drops/floating-press/",
+         "studio_url": "/edo-woodblock/drops/floating-press/",
+         "tags": [
+           "interactive",
+           "ukiyo-e",
+           "generative"
+         ]
+       },
+       {
+         "title": "Floating Score",
+         "slug": "floating-score",
+         "summary": "Catch ukiyo-e elements as they drift across the canvas. Score points, build streaks, level up through faster rounds. A timed collection game in the floating world.",
+         "mashup": "catch · score · streaks · levels",
+         "play_url": "/edo-woodblock/drops/floating-score/",
+         "studio_url": "/edo-woodblock/drops/floating-score/",
+         "tags": [
+           "interactive",
+           "ukiyo-e",
+           "game",
+           "scoring",
+           "progression"
+         ]
+       }
+     ],
+     "upcoming": {
+       "slug": "quiet-opening",
+       "title": "Quiet Opening",
+       "summary": "A lone pine on a sea cliff in fog. The first screen is a finished print.",
+       "play_url": "games/quiet-opening/",
+       "studio_url": "/edo-woodblock/games/quiet-opening/"
+     },
+     "building": {}
+   },
+   "blog_posts": [],
+   "drops": [],
+   "assets": [
+     {
+       "slug": "floating-world",
+       "title": "Floating World"
+     },
+     {
+       "slug": "ukiyo-e-printer",
+       "title": "Ukiyo-e Printer"
+     },
+     {
+       "slug": "wind-impressions",
+       "title": "Wind Impressions"
+     },
+     {
+       "slug": "floating-moment",
+       "title": "Floating Moment"
+     },
+     {
+       "slug": "floating-press",
+       "title": "Floating Press"
+     },
+     {
+       "slug": "floating-score",
+       "title": "Floating Score"
+     }
+   ]
 }
