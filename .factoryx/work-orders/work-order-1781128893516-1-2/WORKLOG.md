@@ -19,3 +19,21 @@
 - Audio: user-gated, sparse — breath noise on first touch, tiny click on press.
 - Touch + pointer + mouse input. DPR-aware rendering (up to 2x).
 - ~15KB total payload.
+
+## Re-review Pass (2026-06-11)
+
+### Issues Addressed
+1. **Merge conflicts (github-mergeability review)** — Merged main into branch, resolved conflicts, pushed. PR now shows MERGEABLE.
+2. **Missing preview entrypoint** — Added `.factoryx/preview-entrypoint` pointing to `games/living-print/index.html`. Browser runtime verification now has a resolvable entrypoint.
+
+### Verification
+- `npm test` → 9/9 PASS
+- PR #117: MERGEABLE, body updated
+
+### Final Self-Scores (unchanged from previous pass)
+| Anchor | Score |
+|--------|-------|
+| Graphics | 4 |
+| Sound | 4 |
+| Fun | 4 |
+| Unique Style | 4 |
