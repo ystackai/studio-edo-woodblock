@@ -19,7 +19,13 @@ Built a single self-contained HTML file: `games/trial-p1-living-print-b/index.ht
 
 **Audio:** Near-silent brown-noise wind + 52/78Hz hum, gesture-only, depth-modulated.
 
-**Payload:** 20.4KB, zero external deps, offline-capable.
+**Payload:** ~20KB, zero external deps, offline-capable.
+
+## Bug Fix: createRadialGradient non-finite error
+
+**Root cause:** `MistCloud` instances were created at module scope *before* `resize()` was called, so `W` and `H` were `undefined`. This caused `this.w` to be `NaN`, which failed in `createRadialGradient(cx, cy, 0, cx, cy, this.w * 0.5)`.
+
+**Fix:** Moved mist initialization into `resize()` via `initMists()`, called after `W`/`H` are set. Verified with headless Chromium: no uncaught errors, canvas renders correctly.
 
 ## Anchor Self-Review (Final)
 

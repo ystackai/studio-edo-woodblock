@@ -9,9 +9,15 @@
 - [x] Viewport meta present
 - [x] Canvas element present
 - [x] No external network dependencies
-- [x] Payload under 2MB (20.4KB)
+- [x] Payload under 2MB (~20KB)
 - [x] No autoplay audio
 - [x] Single self-contained HTML file
+
+## Browser Runtime Verification
+- [x] **No uncaught errors** — chromium headless test passed
+- [x] **Canvas renders** — size 800x600 confirmed
+- [x] **Mouse interaction** — press/release works without errors
+- [x] **`createRadialGradient` fix** — mist clouds initialized after `resize()` so W/H are finite
 
 ## Game Feel Checklist
 - [x] Core verb in first 30s — press/hold is discoverable by instinct
@@ -21,8 +27,8 @@
 - [x] Audio only after gesture — brown noise + hum only on first press
 - [x] Touch targets — full canvas is the touch target (>= 44px)
 - [x] 60fps target — lightweight canvas rendering, no heavy operations
-- [x] Payload < 2MB — 20.4KB total
+- [x] Payload < 2MB — ~20KB total
 - [x] No external deps — all procedural, works offline
 
 ## Known Issues
-- None identified. Canvas-based rendering is lightweight and self-contained.
+- None. Runtime error from previous run (`createRadialGradient` non-finite) is fixed.

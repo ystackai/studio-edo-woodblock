@@ -29,6 +29,7 @@
     canvas.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     generatePaperGrain();
+    initMists();
     initBirds();
   }
   window.addEventListener("resize", resize);
@@ -196,7 +197,10 @@
     }
   }
 
-  const mists = Array.from({ length: 14 }, () => new MistCloud());
+  let mists = [];
+  function initMists() {
+    mists = Array.from({ length: 14 }, () => new MistCloud());
+  }
 
   /* ── Ink Bloom Particles ──────────────────────────────── */
   class InkBloom {
