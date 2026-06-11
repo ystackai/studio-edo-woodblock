@@ -1,5 +1,7 @@
 # Preview — Quiet Opening
 
+**Preview entrypoint:** `.factoryx/preview-entrypoint` → `games/quiet-opening/index.html`
+
 **Path:** `games/quiet-opening/`
 
 ## What you see

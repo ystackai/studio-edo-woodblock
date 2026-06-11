@@ -23,3 +23,13 @@
 - Color palette: warm paper (#f3eee5 to #e8e2d6), deep indigo (#1a1f3c), faint sea wash (#2a3050)
 
 **Push:** Branch `factoryx/factory-edo-woodblock/work-order-1781128893910-1-3`
+
+## 2026-06-11 (rework pass)
+
+**Addressing review feedback:**
+- Merged `main` into the work order branch (commit 92cb51c) to resolve merge conflicts
+- Added `.factoryx/preview-entrypoint` pointing to `games/quiet-opening/index.html`
+- Verified JS syntax valid, HTML structure complete, file size 10.9 KB
+- Pushed to remote; all CI checks passing (facts, ci, deploy-preview)
+
+**Status:** Artifact is complete and working. PR #116 is clean with all green checks.
