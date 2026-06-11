@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Lantern in the Rain</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a14}
+body{display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;cursor:none}
+canvas{display:block;position:absolute;top:0;left:0}
+#prompt{
+  position:fixed;bottom:12vh;left:50%;transform:translateX(-50%);
+  color:rgba(255,210,140,0.5);font:300 13px/1.4 Georgia,'Times New Roman',serif;
+  text-align:center;pointer-events:none;transition:opacity 4s ease;letter-spacing:.8px;
+  text-shadow:0 0 12px rgba(255,160,60,0.3);z-index:10;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="prompt">touch the lantern to shield it from the rain</div>
+<script>
+// ─── Setup ───────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const promptEl = document.getElementById('prompt');
+
+let W, H;
+let lanternX, lanternY, lanternRW, lanternRH;
+let time = 0;
+let firstInteraction = false;
+let totalHoldTime = 0;
+let shieldActive = false;
+let shieldOpacity = 0;
+let flameSteadiness = 0;
+
+// Rain
+const MAX_RAIN = 250;
+const raindrops = [];
+const splashes = []; // visible splash particles
+const wetSpots = []; // persistent wet marks on lantern
+
+// Grain buffer
+const grainCanvas = document.createElement('canvas');
+const grainCtx = grainCanvas.getContext('2d');
+
+// Mist particles
+const MIST_COUNT = 40;
+const mist = [];
+for(let i=0;i<MIST_COUNT;i++){
+  mist.push({
+    x:Math.random()*2000-500, y:Math.random()*1200,
+    r:30+Math.random()*80, speedX:-8-Math.random()*12, speedY:-1-Math.random()*2,
+    alpha:0.01+Math.random()*0.025
+  });
+}
+
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  lanternX = W * 0.5;
+  lanternY = H * 0.44;
+  lanternRW = Math.min(W * 0.26, 160);
+  lanternRH = lanternRW * 1.4;
+  grainCanvas.width = Math.max(W >> 3, 40);
+  grainCanvas.height = Math.max(H >> 3, 40);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Raindrop ────────────────────────────────────────────
+class Raindrop {
+  constructor(){ this.reset(true); }
+  reset(init){
+    this.x = Math.random()*(W+300)-150;
+    this.y = init ? Math.random()*H : -Math.random()*120-15;
+    this.speed = 280+Math.random()*420;
+    this.length = 10+Math.random()*22;
+    this.opacity = 0.06+Math.random()*0.2;
+    this.wind = -0.5-Math.random()*0.5;
+    this.thickness = 0.5+Math.random()*0.9;
+    this.splashed = false;
+    this.splashTimer = 0;
+  }
+  update(dt){
+    if(this.splashTimer > 0){
+      this.splashTimer -= dt;
+      if(this.splashTimer <= 0) this.reset(false);
+      return;
+    }
+    this.y += this.speed * dt;
+    this.x += this.wind * this.speed * dt * 0.008;
+    
+    // Check lantern collision
+    if(!shieldActive || shieldOpacity < 0.6){
+      const dx = this.x - lanternX, dy = this.y - lanternY;
+      if((dx*dx)/(lanternRW*lanternRW) + (dy*dy)/(lanternRH*lanternRH) < 1 && !this.splashed){
+        this.splashTimer = 0.12+Math.random()*0.12;
+        this.splashed = true;
+        // Add wet spot
+        if(wetSpots.length < 25){
+          wetSpots.push({
+            x: this.x, y: this.y,
+            age: 0, size: 2+Math.random()*3, alpha: 0.15
+          });
+        }
+        // Add splash particles
+        for(let i=0;i<3;i++){
+          splashes.push({
+            x: this.x, y: this.y,
+            vx: (Math.random()-0.5)*40,
+            vy: -Math.random()*30-10,
+            life: 0.3+Math.random()*0.3,
+            age: 0, size: 1+Math.random()*1.5
+          });
+        }
+      }
+    }
+    
+    if(this.y > H+30 || this.x < -120 || this.x > W+120){
+      this.reset(false);
+    }
+  }
+}
+for(let i=0;i<MAX_RAIN;i++) raindrops.push(new Raindrop());
+
+// ─── Audio (user-initiated only) ─────────────────────────
+let audioCtx = null, rainGain = null;
+
+function initAudio(){
+  if(audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const bufSize = audioCtx.sampleRate * 3;
+    const buf = audioCtx.createBuffer(2, bufSize, audioCtx.sampleRate);
+    for(let ch=0;ch<2;ch++){
+      const d = buf.getChannelData(ch);
+      let last=0;
+      for(let i=0;i<bufSize;i++){
+        const w = Math.random()*2-1;
+        last = (last + 0.02*w) / 1.02;
+        d[i] = last * 3.5;
+      }
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type='bandpass'; bp.frequency.value=600; bp.Q.value=0.25;
+    rainGain = audioCtx.createGain();
+    rainGain.gain.value = 0;
+    src.connect(bp).connect(rainGain).connect(audioCtx.destination);
+    src.start();
+  } catch(e){}
+}
+
+function fadeRain(target, dur){
+  if(!rainGain) return;
+  const t = audioCtx.currentTime;
+  rainGain.gain.cancelScheduledValues(t);
+  rainGain.gain.setValueAtTime(rainGain.gain.value, t);
+  rainGain.gain.linearRampToValueAtTime(target, t+dur);
+}
+
+// ─── Input ───────────────────────────────────────────────
+let pointerDown = false;
+
+function onDown(x,y){
+  pointerDown = true;
+  if(!firstInteraction){
+    firstInteraction = true;
+    initAudio();
+    fadeRain(0.06, 2.5);
+    promptEl.style.opacity = '0';
+  }
+  shieldActive = true;
+}
+function onUp(){ pointerDown = false; shieldActive = false; }
+
+canvas.addEventListener('mousedown', e=>onDown(e.clientX,e.clientY));
+canvas.addEventListener('mouseup', onUp);
+canvas.addEventListener('mouseleave', onUp);
+canvas.addEventListener('touchstart', e=>{e.preventDefault();onDown(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+canvas.addEventListener('touchend', e=>{e.preventDefault();onUp();},{passive:false});
+
+// ─── Draw Functions ──────────────────────────────────────
+
+function drawSky(){
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#080b16');
+  g.addColorStop(0.25,'#0f1328');
+  g.addColorStop(0.5,'#181630');
+  g.addColorStop(0.68,'#201825');
+  g.addColorStop(0.85,'#15101a');
+  g.addColorStop(1,'#0a0a12');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+}
+
+function drawMist(){
+  for(const m of mist){
+    m.x += m.speedX * 0.016;
+    m.y += m.speedY * 0.016;
+    if(m.x < -200){m.x=W+200;m.y=Math.random()*H;}
+    if(m.y < -100){m.y=H+50;}
+    const g = ctx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+    g.addColorStop(0,`rgba(140,155,175,${m.alpha})`);
+    g.addColorStop(1,'rgba(140,155,175,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(m.x-m.r,m.y-m.r,m.r*2,m.r*2);
+  }
+}
+
+function drawAmbientGlow(flicker){
+  const r = Math.max(lanternRW,lanternRH)*2.8*(0.85+flameSteadiness*0.3);
+  const g = ctx.createRadialGradient(lanternX,lanternY,lanternRW*0.2,lanternX,lanternY,r);
+  const a = 0.12+flameSteadiness*0.06+flicker*0.03;
+  g.addColorStop(0,`rgba(255,195,100,${a})`);
+  g.addColorStop(0.35,`rgba(255,150,60,${a*0.45})`);
+  g.addColorStop(0.7,`rgba(255,110,30,${a*0.12})`);
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,W,H);
+}
+
+function drawGroundReflection(flicker){
+  const g = ctx.createRadialGradient(
+    lanternX, H*0.9, 0,
+    lanternX, H*0.9, lanternRW*2.2
+  );
+  const w = flameSteadiness;
+  g.addColorStop(0,`rgba(255,${140+Math.floor(w*40)},${40+Math.floor(w*20)},${0.1+flameSteadiness*0.06+flicker*0.02})`);
+  g.addColorStop(0.5,`rgba(255,120,40,${0.04+w*0.03})`);
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;
+  ctx.fillRect(lanternX-lanternRW*2.5, H*0.75, lanternRW*5, H*0.3);
+}
+
+function drawLantern(flicker){
+  const cx=lanternX, cy=lanternY, rw=lanternRW, rh=lanternRH;
+  ctx.save();
+  ctx.translate(cx,cy);
+  
+  // Main paper body
+  ctx.beginPath();
+  ctx.ellipse(0,0,rw,rh,0,0,Math.PI*2);
+  
+  // Inner glow gradient (warm light through paper)
+  const bodyG = ctx.createRadialGradient(0,-rh*0.05,rw*0.1,0,0,rw*0.92);
+  const fl = 1 - flicker*0.12; // flicker light factor
+  const glow = 0.55+flameSteadiness*0.35;
+  bodyG.addColorStop(0,`rgba(255,${Math.floor(200*fl*glow)},${Math.floor(80*fl*glow)},0.96)`);
+  bodyG.addColorStop(0.4,`rgba(255,${Math.floor(160*fl)},${Math.floor(50*fl)},0.9)`);
+  bodyG.addColorStop(0.75,`rgba(255,${Math.floor(120*fl)},${Math.floor(35*fl)},0.82)`);
+  bodyG.addColorStop(1,`rgba(190,${Math.floor(100*fl)},${Math.floor(25*fl)},0.7)`);
+  ctx.fillStyle = bodyG;
+  ctx.fill();
+  
+  // Paper texture — subtle noise-like lines
+  ctx.save();
+  ctx.globalAlpha = 0.04;
+  ctx.strokeStyle = '#3a2010';
+  ctx.lineWidth = 0.4;
+  for(let i=0;i<60;i++){
+    const y = (Math.random()-0.5)*rh*1.7;
+    const xSpan = Math.sqrt(Math.max(0,1-(y/rh)**2))*rw;
+    if(xSpan>0){
+      ctx.beginPath();
+      ctx.moveTo(-xSpan+Math.random()*xSpan*2, y);
+      ctx.lineTo(-xSpan+Math.random()*xSpan*2, y+1+Math.random()*2);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  
+  // Vertical ribs
+  ctx.strokeStyle='rgba(50,25,8,0.28)';
+  ctx.lineWidth=0.7;
+  for(let i=-4;i<=4;i++){
+    const x=(i/4.5)*rw*0.7;
+    const sweep=Math.sqrt(Math.max(0,1-(x/rw)**2))*rh;
+    ctx.beginPath();
+    ctx.moveTo(x,-sweep);
+    ctx.lineTo(x,sweep);
+    ctx.stroke();
+  }
+  
+  // Horizontal rings
+  for(let j=-2;j<=2;j++){
+    const y=(j/2.5)*rh*0.5;
+    const xS=Math.sqrt(Math.max(0,1-(y/rh)**2))*rw;
+    ctx.strokeStyle='rgba(50,25,8,0.2)';
+    ctx.lineWidth=0.6;
+    ctx.beginPath();
+    ctx.ellipse(0,y,xS, xS*0.08, 0, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  
+  // Top cap
+  ctx.beginPath();
+  ctx.ellipse(0,-rh*0.92,rw*0.38,rh*0.08,0,0,Math.PI*2);
+  ctx.fillStyle='#251a0c'; ctx.fill();
+  
+  // Bottom cap  
+  ctx.beginPath();
+  ctx.ellipse(0,rh*0.92,rw*0.38,rh*0.08,0,0,Math.PI*2);
+  ctx.fillStyle='#251a0c'; ctx.fill();
+  
+  // Hanging cord
+  ctx.strokeStyle='rgba(70,45,25,0.45)';
+  ctx.lineWidth=1.1;
+  const sway = Math.sin(time*0.35)*1.5;
+  ctx.beginPath();
+  ctx.moveTo(0,-rh-rh*0.08);
+  ctx.quadraticCurveTo(sway,-rh*1.3, sway*0.5,-rh*1.65);
+  ctx.stroke();
+  
+  // Flame core — bright warm center
+  const flameG = ctx.createRadialGradient(0,0,0,0,0,rw*0.42);
+  const fb = flicker*0.1;
+  flameG.addColorStop(0,`rgba(255,245,200,${0.65+flameSteadiness*0.25-fb})`);
+  flameG.addColorStop(0.35,`rgba(255,200,90,${0.4+flameSteadiness*0.15})`);
+  flameG.addColorStop(0.7,`rgba(255,150,40,${0.15+flameSteadiness*0.05})`);
+  flameG.addColorStop(1,'rgba(255,100,10,0)');
+  ctx.fillStyle = flameG;
+  ctx.beginPath();
+  ctx.ellipse(0,0,rw*0.42,rh*0.42,0,0,Math.PI*2);
+  ctx.fill();
+  
+  // Wet spots on paper (rain-darkened areas)
+  if(!shieldActive || shieldOpacity < 0.5){
+    for(const spot of wetSpots){
+      const dx=spot.x-cx, dy=spot.y-cy;
+      if((dx*dx)/(rw*rw)+(dy*dy)/(rh*rh)<1.1){
+        ctx.beginPath();
+        ctx.arc(spot.x, spot.y, spot.size, 0, Math.PI*2);
+        ctx.fillStyle=`rgba(80,90,120,${spot.alpha*(1-spot.age/8)})`;
+        ctx.fill();
+      }
+    }
+  }
+  
+  ctx.restore();
+}
+
+function drawRain(){
+  ctx.save();
+  for(const d of raindrops){
+    if(d.splashTimer>0) continue;
+    const alpha = d.opacity * (0.7+0.3*Math.sin(time*2+d.x*0.01));
+    ctx.strokeStyle=`rgba(180,200,225,${alpha})`;
+    ctx.lineWidth=d.thickness;
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y);
+    ctx.lineTo(d.x+d.wind*d.length*0.06, d.y+d.length);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawSplashes(){
+  ctx.save();
+  for(const s of splashes){
+    const lifeRatio = 1 - s.age/s.life;
+    ctx.globalAlpha = lifeRatio * 0.5;
+    ctx.fillStyle='rgba(180,200,225,0.6)';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size*lifeRatio, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawShield(){
+  if(shieldOpacity<0.01) return;
+  ctx.save();
+  
+  // Warm protective barrier
+  const r = Math.max(lanternRW,lanternRH)*1.2;
+  const g = ctx.createRadialGradient(lanternX,lanternY,r*0.2,lanternX,lanternY,r);
+  g.addColorStop(0,`rgba(255,200,120,${shieldOpacity*0.08})`);
+  g.addColorStop(0.6,`rgba(255,180,100,${shieldOpacity*0.04})`);
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;
+  ctx.beginPath();
+  ctx.arc(lanternX,lanternY,r,0,Math.PI*2);
+  ctx.fill();
+  
+  // Rim glow
+  ctx.globalAlpha = shieldOpacity * 0.06;
+  ctx.strokeStyle = 'rgba(255,190,110,1)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(lanternX,lanternY,r*0.85,0,Math.PI*2);
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+function drawGrain(){
+  const gw=grainCanvas.width, gh=grainCanvas.height;
+  const id = grainCtx.createImageData(gw,gh);
+  const d=id.data;
+  for(let i=0;i<d.length;i+=4){
+    const v=Math.random()*200;
+    d[i]=v;d[i+1]=v;d[i+2]=v;
+    d[i+3]=14+Math.random()*14;
+  }
+  grainCtx.putImageData(id,0,0);
+  ctx.save();
+  ctx.globalAlpha=0.3;
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(grainCanvas,0,0,W,H);
+  ctx.restore();
+}
+
+function drawVignette(){
+  const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.2, W/2,H/2,Math.max(W,H)*0.78);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(0.6,'rgba(0,0,0,0.15)');
+  g.addColorStop(1,'rgba(0,0,0,0.7)');
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,W,H);
+}
+
+function drawSteadinessRing(){
+  if(flameSteadiness<0.03) return;
+  ctx.save();
+  const r = Math.max(lanternRW,lanternRH)*1.5;
+  ctx.globalAlpha = 0.03+flameSteadiness*0.05;
+  ctx.strokeStyle=`rgba(255,${180+Math.floor(flameSteadiness*50)},${80+Math.floor(flameSteadiness*40)},1)`;
+  ctx.lineWidth=1.2;
+  ctx.beginPath();
+  ctx.arc(lanternX,lanternY,r,-Math.PI/2, -Math.PI/2+flameSteadiness*Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ─── Main Loop ───────────────────────────────────────────
+let lastT = 0;
+
+function frame(ts){
+  const dt = Math.min((ts-lastT)/1000, 0.05);
+  lastT = ts;
+  time += dt;
+  
+  // State updates
+  if(shieldActive){
+    shieldOpacity = Math.min(shieldOpacity+dt*2.2, 1);
+    totalHoldTime += dt;
+    flameSteadiness = Math.min(flameSteadiness+dt*0.035, 1);
+    fadeRain(0.025, 1.5);
+  } else {
+    shieldOpacity = Math.max(shieldOpacity-dt*1.6, 0);
+    flameSteadiness = Math.max(flameSteadiness-dt*0.012, 0);
+    fadeRain(0.06, 2);
+  }
+  
+  // Flicker
+  const f = Math.sin(time*7.1)*0.5 + Math.sin(time*12.7)*0.3 + Math.sin(time*3.5)*0.2;
+  const flicker = f * (1 - flameSteadiness*0.88);
+  
+  // Rain update
+  for(const d of raindrops) d.update(dt);
+  
+  // Wet spot aging
+  for(let i=wetSpots.length-1;i>=0;i--){
+    wetSpots[i].age += dt;
+    if(shieldActive && shieldOpacity>0.7) wetSpots[i].alpha -= dt*0.02;
+    if(wetSpots[i].alpha<=0 || wetSpots[i].age>15) wetSpots.splice(i,1);
+  }
+  
+  // Splash update
+  for(let i=splashes.length-1;i>=0;i--){
+    const s=splashes[i];
+    s.age+=dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.vy+=80*dt;
+    if(s.age>=s.life) splashes.splice(i,1);
+  }
+  
+  // ─── Render ───
+  ctx.clearRect(0,0,W,H);
+  drawSky();
+  drawMist();
+  drawAmbientGlow(flicker);
+  drawGroundReflection(flicker);
+  drawLantern(flicker);
+  drawShield();
+  drawRain();
+  drawSplashes();
+  drawGrain();
+  drawVignette();
+  drawSteadinessRing();
+  
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
