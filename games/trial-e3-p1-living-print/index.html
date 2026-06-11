@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Living Print — Wave Horizon</title>
+<style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #ece4d4;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: crosshair;
+    }
+  canvas {
+    display: block;
+    width: 100%; height: 100%;
+    }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(function(){
+"use strict";
+
+  var canvas = document.getElementById("c");
+  var ctx = canvas.getContext("2d");
+  var W, H, dpr;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    buildPaper();
+    buildWaves();
+   }
+  window.addEventListener("resize", resize);
+
+   // === Paper grain texture ===
+  var paperCanvas, paperCtx;
+  function buildPaper() {
+    paperCanvas = document.createElement("canvas");
+    paperCanvas.width = W;
+    paperCanvas.height = H;
+    paperCtx = paperCanvas.getContext("2d");
+    var imageData = paperCtx.createImageData(W, H);
+    var d = imageData.data;
+    for (var i = 0; i < d.length; i += 4) {
+      var n = (Math.random() - 0.5) * 14;
+      // Warm washi-paper base with subtle tonal variation
+      var r = 237 + n, g = 229 + n * 0.85, b = 211 + n * 0.6;
+      // Subtle horizontal streaks (paper grain direction)
+      var streak = Math.sin(i * 0.0003) * 3;
+      d[i]     = Math.min(255, Math.max(0, r + streak));
+      d[i + 1] = Math.min(255, Math.max(0, g + streak));
+      d[i + 2] = Math.min(255, Math.max(0, b + streak * 0.5));
+      d[i + 3] = 255;
+     }
+    paperCtx.putImageData(imageData, 0, 0);
+    // Soft noise overlay
+    paperCtx.globalAlpha = 0.03;
+    paperCtx.filter = "contrast(1.2) brightness(0.95)";
+    paperCtx.drawImage(paperCanvas, 0, 0, W, H);
+    paperCtx.filter = "none";
+    paperCtx.globalAlpha = 1;
+   }
+
+   // === Wave layers — ink wash on paper ===
+  var waves = [];
+  function buildWaves() {
+    var horizonY = H * 0.52;
+    // Ink tones from light wash to deep black
+    var inkColors = [
+       { r: 45, g: 40, b: 52,  a: 0.18, speedMul: 0.6 },
+       { r: 35, g: 32, b: 44,  a: 0.30, speedMul: 0.8 },
+       { r: 25, g: 22, b: 34,  a: 0.50, speedMul: 1.0 },
+       { r: 18, g: 16, b: 26,  a: 0.72, speedMul: 1.2 },
+       { r: 10, g: 8,  b: 16,  a: 0.92, speedMul: 1.4 },
+       { r: 6,  g: 4,  b: 12,  a: 0.98, speedMul: 1.6 },
+     ];
+    waves = inkColors.map(function(c, i) {
+      var baseY = horizonY + i * (H * 0.042);
+      var amp = 10 + i * 14 + Math.random() * 8;
+      var freq = 0.0015 + i * 0.0008 + Math.random() * 0.0004;
+      var phaseSpeed = (0.2 + i * 0.08) * (i % 2 === 0 ? 1 : -1) * c.speedMul;
+      return {
+        r: c.r, g: c.g, b: c.b, a: c.a,
+        amp: amp, freq: freq, phaseSpeed: phaseSpeed,
+        baseY: baseY, phase: Math.random() * Math.PI * 2,
+        // Per-layer turbulence seeds
+        seed: [Math.random(), Math.random(), Math.random(), Math.random()]
+       };
+     });
+   }
+
+   // === Mist — the expressive material ===
+  var MIST_COUNT = 160;
+  var mist = [];
+  function initMist() {
+    mist = [];
+    for (var i = 0; i < MIST_COUNT; i++) {
+      mist.push({
+        x: Math.random() * W,
+        y: H * 0.1 + Math.random() * H * 0.6,
+        r: 40 + Math.random() * 100,
+        vx: (0.05 + Math.random() * 0.25) * (Math.random() < 0.65 ? 1 : -1),
+        vy: (Math.random() - 0.5) * 0.05,
+        alpha: 0.015 + Math.random() * 0.05,
+        phase: Math.random() * Math.PI * 2,
+        breatheRate: 0.2 + Math.random() * 0.4,
+        // Layered depth
+        depth: Math.random() // 0 = far & faint, 1 = near & visible
+       });
+     }
+   }
+
+   // === Baren press ===
+  var pressIntensity = 0;
+  var pressTarget = 0;
+  var pressX = -2000, pressY = -2000;
+  var pressTime = 0;
+  var wasPressed = false;
+
+  function onPointerDown(x, y) {
+    pressTarget = 1;
+    pressX = x;
+    pressY = y;
+    pressTime = 0;
+   }
+  function onPointerUp() { pressTarget = 0; }
+
+  canvas.addEventListener("mousedown", function(e) { onPointerDown(e.clientX, e.clientY); });
+  canvas.addEventListener("mouseup", onPointerUp);
+  canvas.addEventListener("mouseleave", onPointerUp);
+  canvas.addEventListener("touchstart", function(e) {
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      onPointerDown(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+     }
+   }, { passive: false });
+  canvas.addEventListener("touchend", onPointerUp);
+  canvas.addEventListener("touchcancel", onPointerUp);
+  canvas.addEventListener("mousemove", function(e) {
+    if (pressTarget > 0.1) { pressX = e.clientX; pressY = e.clientY; }
+   });
+
+   // === Ripple rings ===
+  var ripples = [];
+  function spawnRipple(x, y) {
+    ripples.push({
+      x: x, y: y, r: 3,
+      maxR: 150 + Math.random() * 180,
+      alpha: 0.25 + Math.random() * 0.15,
+      speed: 1.2 + Math.random() * 0.8
+     });
+   }
+  var lastRipple = 0;
+
+   // === Main loop ===
+  var t = 0, lastTime = 0;
+
+  function drawWavePath(w, time, press) {
+    ctx.beginPath();
+    var steps = Math.ceil(W / 3);
+    ctx.moveTo(0, H);
+    for (var i = 0; i <= steps; i++) {
+      var x = (i / steps) * W;
+      // Multi-octave sine for organic wave form
+      var y = w.baseY
+        + Math.sin(x * w.freq + time * w.phaseSpeed + w.phase) * w.amp
+        + Math.sin(x * w.freq * 2.7 + time * w.phaseSpeed * 0.65 + w.seed[0] * 6) * w.amp * 0.3
+        + Math.sin(x * w.freq * 0.4 + time * w.phaseSpeed * 1.15) * w.amp * 0.2
+        + Math.sin(x * w.freq * 5.1 + time * w.phaseSpeed * 0.3) * w.amp * 0.08;
+
+      // Press distortion — waves part and deepen at press point
+      if (press > 0.05) {
+        var dx = x - pressX;
+        var dist = Math.abs(dx) + 1;
+        var ripple = Math.sin(dist * 0.03 - time * 3) * Math.exp(-dist * 0.008) * press * 25;
+        y += ripple;
+      }
+      ctx.lineTo(x, y);
+     }
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+
+    var alpha = Math.min(1, w.a + press * 0.12);
+    ctx.fillStyle = "rgba(" + w.r + "," + w.g + "," + w.b + "," + alpha + ")";
+    ctx.fill();
+   }
+
+  function frame(ts) {
+    if (!lastTime) lastTime = ts;
+    var dt = Math.min((ts - lastTime) / 1000, 0.05);
+    lastTime = ts;
+    t += dt;
+
+     // Press dynamics — baren feel: quick resistance curve, slow release
+    if (pressTarget > 0) {
+      pressTime += dt;
+      // Resistance curve: fast initial response, then plateau
+      var resistance = Math.min(1, pressTime * 2.5);
+      pressTarget = resistance;
+    }
+    // Easing: press presses in fast, releases slow
+    var easeIn = 1 - Math.pow(1 - pressTarget, 2);
+    pressIntensity += (easeIn - pressIntensity) * dt * 5;
+    if (pressIntensity < 0.005) pressIntensity = 0;
+
+     // Ripples
+    if (pressIntensity > 0.25 && ts - lastRipple > 180) {
+      spawnRipple(
+        pressX + (Math.random() - 0.5) * 50,
+        pressY + (Math.random() - 0.5) * 50
+       );
+      lastRipple = ts;
+     }
+    for (var ri = ripples.length - 1; ri >= 0; ri--) {
+      var rp = ripples[ri];
+      rp.r += rp.speed;
+      rp.alpha *= 0.982;
+      if (rp.alpha < 0.003 || rp.r > rp.maxR) ripples.splice(ri, 1);
+     }
+
+     // Mist
+    for (var mi = 0; mi < mist.length; mi++) {
+      var m = mist[mi];
+      // Drift
+      m.x += m.vx * (1 + pressIntensity * (2 + m.depth * 2));
+      m.y += m.vy + Math.sin(t * m.breatheRate + m.phase) * 0.12;
+
+      // Press pushes mist aside
+      if (pressIntensity > 0.05) {
+        var mdx = m.x - pressX;
+        var mdy = m.y - pressY;
+        var mDist = Math.sqrt(mdx * mdx + mdy * mdy) + 1;
+        var mForce = pressIntensity * 0.4 / (mDist * 0.015 + 1);
+        m.vx += (mdx / mDist) * mForce * dt * 20;
+        m.vy += (mdy / mDist) * mForce * dt * 20;
+        m.alpha = Math.min(0.12, m.alpha + pressIntensity * 0.015 * m.depth);
+       }
+      // Damping
+      m.vx *= 0.996;
+      m.vy *= 0.996;
+
+      // Wrap
+      if (m.x > W + m.r) m.x = -m.r;
+      if (m.x < -m.r) m.x = W + m.r;
+      if (m.y > H + m.r) m.y = -m.r;
+      if (m.y < -m.r) m.y = H + m.r;
+     }
+
+     // === Draw ===
+     // Paper base
+    ctx.drawImage(paperCanvas, 0, 0, W, H);
+
+     // Vignette — ink-darkened edges
+    var vig = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.88);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(12,10,6,0.15)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
+
+     // Mist layer (behind waves — ethereal, floating)
+    for (var mj = 0; mj < mist.length; mj++) {
+      var mp = mist[mj];
+      var mg = ctx.createRadialGradient(mp.x, mp.y, 0, mp.x, mp.y, mp.r);
+      mg.addColorStop(0, "rgba(210, 205, 195, " + mp.alpha + ")");
+      mg.addColorStop(0.5, "rgba(200, 195, 185, " + (mp.alpha * 0.5) + ")");
+      mg.addColorStop(1, "rgba(195, 190, 180, 0)");
+      ctx.fillStyle = mg;
+      ctx.fillRect(mp.x - mp.r, mp.y - mp.r, mp.r * 2, mp.r * 2);
+     }
+
+     // Wave layers
+    for (var mk = 0; mk < waves.length; mk++) {
+      drawWavePath(waves[mk], t, pressIntensity);
+     }
+
+     // Ripple rings — subtle ink rings
+    for (var mn = 0; mn < ripples.length; mn++) {
+      var rr = ripples[mn];
+      ctx.beginPath();
+      ctx.arc(rr.x, rr.y, rr.r, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(30, 25, 20, " + rr.alpha + ")";
+      ctx.lineWidth = 1 + rr.alpha;
+      ctx.stroke();
+     }
+
+     // Ink bloom at press
+    if (pressIntensity > 0.1) {
+      var bloom = ctx.createRadialGradient(pressX, pressY, 0, pressX, pressY, 140 * pressIntensity);
+      bloom.addColorStop(0, "rgba(12, 10, 18, " + (pressIntensity * 0.15) + ")");
+      bloom.addColorStop(0.5, "rgba(18, 16, 24, " + (pressIntensity * 0.08) + ")");
+      bloom.addColorStop(1, "rgba(18, 16, 24, 0)");
+      ctx.fillStyle = bloom;
+      ctx.fillRect(0, 0, W, H);
+     }
+
+     // Subtle time-based mist drift enhancement
+    if (Math.sin(t * 0.1) > 0.95) {
+      var globalDrift = ctx.createLinearGradient(0, 0, W, 0);
+      globalDrift.addColorStop(0, "rgba(0,0,0,0)");
+      globalDrift.addColorStop(0.5, "rgba(0,0,0," + (0.02 + Math.sin(t * 0.2) * 0.01) + ")");
+      globalDrift.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = globalDrift;
+      ctx.fillRect(0, 0, W, H);
+     }
+
+    requestAnimationFrame(frame);
+   }
+
+   // Init
+  resize();
+  initMist();
+  requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
