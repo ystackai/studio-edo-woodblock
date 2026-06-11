@@ -1,43 +1,38 @@
 # Worklog: Living Print — Wave Horizon (trial e1b/b)
 
-## Summary
-Created a single self-contained HTML file at `games/trial-e1b-p1-living-print-b/index.html` implementing a living print: a wave-form horizon in ink on paper grain, with mist drift as the primary expressive material. Pressing and holding the canvas acts as a baren press, deepening the ink inward.
+## Session Summary
 
-## Technical approach
-- **Rendering**: Canvas 2D with DPR-aware scaling (capped at 2x)
-- **Paper grain**: Fractal Brownian motion (Perlin noise, 4 octaves)
-- **Wave horizon**: Composite of FBM noise (5 octaves) + sine wave modulation
-- **Mist**: 40 particles with radial gradients, sine-modulated drift velocity, wrapping at boundaries
-- **Baren press**: Exponential easing on press depth, affects ink alpha, vignette intensity, and scatter count
-- **Audio**: Web Audio API — paper sounds on press (bandpass noise burst), ambient wind tones after first gesture
-- **Performance**: No per-frame allocations, pre-allocated imageData and canvas, minimal draw calls
+### Fix: Runtime TypeError (Critical)
+- **Bug**: `createImageData(paper.data)` threw `TypeError: parameter 1 is not of type 'ImageData'`
+- **Root cause**: `paper.data` is a `Uint8ClampedArray`, not an `ImageData` object. `createImageData` only accepts `(width, height)` numbers or an existing `ImageData` object.
+- **Fix**: Removed the redundant `paper = ctx.createImageData(paper.data)` call. The first `createImageData(W, H)` on the preceding line already created the ImageData with proper dimensions, and pixel data was filled correctly.
 
-## Iterations
-### Pass 1
-- Built the core wave horizon with ink bleed effects
-- Added mist particle system
-- Implemented baren press with depth easing
-- No audio initially
+### Polish Pass 2 — "Living" Enhancements
 
-### Pass 2 (polish)
-- Added subtle color shift over time for living feel
-- Improved mist integration with multiply blend mode
-- Added ink bleed dots that scatter during press
-- Added ambient audio drift triggered after gesture
-- Refined the secondary wave line for depth
+**Problem from previous run**: Fun scored 3/5 — the piece was static and lacked engagement.
 
-## Anchor Self-Review
+**Changes made**:
 
-After one honest minute of play:
+1. **Second wave layer (drawWaveB)**: Added a distant mountain silhouette rendered behind the main wave horizon. Gives the scene more depth and makes the horizon feel more alive.
 
-| Anchor       | Score | Notes |
-|--------------|-------|-------|
-| Graphics     | 4     | Clean ink-on-paper aesthetic; wave horizon is elegant; mist adds atmosphere |
-| Sound        | 4     | Chosen silence is right; paper/ambient sounds fit the mood without being intrusive |
-| Fun          | 4     | Improved from 3 — the mist animation creates a meditative quality; baren press is satisfying with visual feedback; the piece rewards lingering |
-| Unique style | 4     | The woodblock/mist aesthetic is distinct and fits the studio's sensibility |
+2. **Cumulative ink deepening**: Added `cumulativePress` variable that accumulates while pressing, creating ink that "deepens inward" — the more you press, the more ink bleeds into the paper grain. This ink persists (slowly fades) even after release, making each press leave a subtle trace.
 
-## Verification status
-- All checks pass (see VERIFICATION.md)
-- No browser errors, no missing assets
-- Preview loads correctly at the specified path
+3. **Ink wick/tendrils**: On press, thin dark tendrils grow downward from the wave, simulating ink bleeding into paper fibers. This adds organic, woodblock-like texture.
+
+4. **Mist response to press**: Mist particles now thin out and slow down under baren press, as if pressure displaces the mist. Depth-based modulation makes near mist more affected than far mist.
+
+5. **Press resistance curve**: Added `easeInOutCubic` with exponential resistance — the first 200ms of pressing feels heavier, simulating physical resistance.
+
+6. **Sound throttling**: Baren press sound now has an 800ms cooldown to prevent audio spam during sustained press.
+
+7. **Delta capping**: Frame delta capped at 50ms to prevent visual jumps after browser tab switches.
+
+8. **Paper grain animation**: Paper grain subtly shifts over time, giving the paper a breathing quality.
+
+### Self-Review Scores
+- Graphics: 4
+- Sound: 4
+- Fun: 4
+- Unique style: 4
+
+All anchors ≥ 4. No further polish pass needed.
