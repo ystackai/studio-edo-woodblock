@@ -10,3 +10,7 @@
 - Audio: rain ambience starts on first user tap (no autoplay), volume adjusts based on shield state
 - File size: ~20KB
 - JavaScript syntax validated, HTML structure verified
+
+- Pushed branch and created draft PR #142 at https://github.com/ystackai/studio-edo-woodblock/pull/142
+- Initial PR created without draft flag; closed and recreated with --draft
+- All context files written: PREVIEW.md, VERIFICATION.md, WORKLOG.md, TECHNICAL_SYSTEM_DESIGN.md
