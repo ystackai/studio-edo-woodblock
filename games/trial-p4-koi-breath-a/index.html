@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Koi Breath — 鯉の息</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#ede4d0;
+  font-family:'Hiragino Mincho Pro','Yu Mincho','Noto Serif JP',serif}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+#ui{position:fixed;bottom:24px;left:0;right:0;text-align:center;
+  color:#5a4a3a;font-size:13px;opacity:.7;letter-spacing:.12em;
+  pointer-events:none;transition:opacity 2s ease}
+#ui.hidden{opacity:0}
+#title{position:fixed;top:28px;left:0;right:0;text-align:center;
+  color:#3a2a1a;font-size:16px;letter-spacing:.25em;opacity:.6;
+  pointer-events:none;transition:opacity 3s ease}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title">鯉の息 — Koi Breath</div>
+<div id="ui">Press and hold to breathe ink into the pond</div>
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+const CFG = {
+  bgR: 237, bgG: 228, bgB: 208,          // warm rice paper
+  waterBase: 'rgba(60,70,90,0.06)',        // very subtle water tint
+  inkBase: [20, 18, 28],                     // deep ink
+  inkIndigo: [30, 35, 70],                   // indigo overprint
+  inkVermilion: [140, 40, 30],              // faded vermillion
+  bloomFadeTime: 18,                         // seconds for bloom to fully fade
+  minHoldTime: 0.4,                          // seconds — below this = tap, not bloom
+  tapCooldown: 1.2,                           // seconds between valid blooms
+  maxBloomHolds: 12,                         // concurrent blooms before oldest fades faster
+  koiCount: 3,                               // number of koi
+  rippleSpeed: 0.0004,                       // ambient ripple speed
+  holdGrowthRate: 0.15,                      // how fast bloom grows per second of hold
+};
+
+// ── CANVAS SETUP ────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Regenerate paper texture on resize
+  generatePaperTexture();
+}
+window.addEventListener('resize', resize);
+
+// ── PAPER TEXTURE ───────────────────────────────────────────
+let paperCanvas, paperCtx;
+function generatePaperTexture() {
+  paperCanvas = document.createElement('canvas');
+  paperCanvas.width = 256;
+  paperCanvas.height = 256;
+  paperCtx = paperCanvas.getContext('2d');
+  const imgData = paperCtx.createImageData(256, 256);
+  for (let i = 0; i < imgData.data.length; i += 4) {
+    const px = (i / 4) % 256;
+    const py = Math.floor((i / 4) / 256);
+    const noise = (Math.sin(px * 0.3 + py * 0.17) * 8 +
+                   Math.cos(px * 0.11 + py * 0.29) * 6 +
+                   (Math.random() - 0.5) * 12);
+    const base = 20 + noise;
+    imgData.data[i]     = CFG.bgR + base * 0.3;
+    imgData.data[i + 1] = CFG.bgG + base * 0.25;
+    imgData.data[i + 2] = CFG.bgB + base * 0.15;
+    imgData.data[i + 3] = 255;
+  }
+  paperCtx.putImageData(imgData, 0, 0);
+}
+
+// ── PSEUDO-RANDOM (deterministic per-seed) ──────────────────
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+// ── NOISE (simple value noise) ──────────────────────────────
+function makeNoise(seed) {
+  const rng = mulberry32(seed);
+  const grid = 32;
+  const perm = [];
+  for (let i = 0; i < grid * grid; i++) perm[i] = rng();
+  function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  return function(x, y) {
+    const xi = Math.floor(x) % grid, yi = Math.floor(y) % grid;
+    const xf = x - Math.floor(x), yf = y - Math.floor(y);
+    const p00 = perm[((yi % grid) * grid + (xi % grid)) % (grid * grid)];
+    const p10 = perm[((yi % grid) * grid + ((xi + 1) % grid)) % (grid * grid)];
+    const p01 = perm[(((yi + 1) % grid) * grid + (xi % grid)) % (grid * grid)];
+    const p11 = perm[(((yi + 1) % grid) * grid + ((xi + 1) % grid)) % (grid * grid)];
+    const u = fade(xf), v = fade(yf);
+    return lerp(
+      lerp(p00, p10, u),
+      lerp(p01, p11, u),
+      v
+    );
+  };
+}
+
+// ── BLOOM SYSTEM ────────────────────────────────────────────
+class InkBloom {
+  constructor(x, y, seed) {
+    this.x = x;
+    this.y = y;
+    this.born = performance.now();
+    this.peakAge = 0;       // seconds of hold when released
+    this.holding = true;
+    this.age = 0;            // total age since creation (for fade)
+    this.noise = makeNoise(seed);
+    this.noise2 = makeNoise(seed + 777);
+    this.tendrils = this.generateTendrils(seed);
+    this.swirls = this.generateSwirls(seed + 333);
+    this.maxRadius = 0;
+    this.seed = seed;
+  }
+
+  generateTendrils(seed) {
+    const rng = mulberry32(seed);
+    const count = 5 + Math.floor(rng() * 6);
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      result.push({
+        angle: rng() * Math.PI * 2,
+        length: 0.3 + rng() * 0.7,
+        thickness: 0.5 + rng() * 2,
+        wave: rng() * Math.PI * 2,
+        branchAt: 0.4 + rng() * 0.4,
+        branchAngle: (rng() - 0.5) * 1.5,
+        hasBranch: rng() > 0.4,
+      });
+    }
+    return result;
+  }
+
+  generateSwirls(seed) {
+    const rng = mulberry32(seed);
+    const count = 2 + Math.floor(rng() * 3);
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      result.push({
+        cx: (rng() - 0.5) * 0.6,
+        cy: (rng() - 0.5) * 0.6,
+        radius: 0.15 + rng() * 0.35,
+        turns: 1 + rng() * 2,
+        direction: rng() > 0.5 ? 1 : -1,
+      });
+    }
+    return result;
+  }
+
+  update(dt, holdTime) {
+    this.age += dt;
+    if (this.holding) {
+      this.peakAge = Math.max(this.peakAge, holdTime);
+    }
+    this.maxRadius = this.peakAge * CFG.holdGrowthRate * Math.min(W, H) * 0.6;
+    this.maxRadius = Math.min(this.maxRadius, Math.min(W, H) * 0.55);
+  }
+
+  getAlpha() {
+    if (this.age < 0.5) return Math.min(this.age * 2, 1);
+    const fadeStart = this.peakAge * 2 + 2;
+    const t = Math.max(0, (this.age - fadeStart) / CFG.bloomFadeTime);
+    return Math.max(0, 1 - t * t);
+  }
+
+  draw(ctx) {
+    const alpha = this.getAlpha();
+    if (alpha <= 0.01) return;
+
+    const R = this.maxRadius;
+    const cx = this.x, cy = this.y;
+    const ageNorm = Math.min(this.peakAge / 8, 1);
+
+    // ── Outer mist ring ──
+    for (let i = 0; i < 8; i++) {
+      const ringR = R * (0.7 + i * 0.08);
+      const wobble = this.noise(
+        cx * 0.005 + i * 0.7,
+        cy * 0.005 + this.age * 0.003
+      ) * R * 0.15;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR + wobble, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${CFG.inkBase[0]},${CFG.inkBase[1]},${CFG.inkBase[2]},${alpha * 0.03 * (1 - i / 8)})`;
+      ctx.fill();
+    }
+
+    // ── Core ink body ──
+    const steps = 64;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      const n1 = this.noise(Math.cos(a) * 3 + this.age * 0.001,
+                              Math.sin(a) * 3 + this.age * 0.001);
+      const n2 = this.noise2(Math.cos(a * 2) * 2, Math.sin(a * 2) * 2);
+      const r = R * (0.4 + 0.15 * n1 + 0.1 * n2) * (0.8 + 0.2 * Math.sin(a * 3 + this.age * 0.005));
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+
+    // Gradient fill for ink depth
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.6);
+    const inkA = alpha * 0.45;
+    const inkB = alpha * 0.12;
+    // Color shifts with hold time: ink → indigo → hint of vermillion
+    let cr = CFG.inkBase[0], cg = CFG.inkBase[1], cb = CFG.inkBase[2];
+    if (ageNorm > 0.3) {
+      const t = (ageNorm - 0.3) / 0.7;
+      cr = cr + (CFG.inkIndigo[0] - cr) * t;
+      cg = cg + (CFG.inkIndigo[1] - cg) * t;
+      cb = cb + (CFG.inkIndigo[2] - cb) * t;
+    }
+    if (ageNorm > 0.6) {
+      const t = (ageNorm - 0.6) / 0.4;
+      cr = cr + (CFG.inkVermilion[0] - cr) * t * 0.3;
+      cg = cg + (CFG.inkVermilion[1] - cg) * t * 0.3;
+    }
+    grad.addColorStop(0, `rgba(${cr|0},${cg|0},${cb|0},${inkA})`);
+    grad.addColorStop(0.5, `rgba(${cr|0},${cg|0},${cb|0},${inkA * 0.6})`);
+    grad.addColorStop(1, `rgba(${cr|0},${cg|0},${cb|0},0)`);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // ── Tendrils ──
+    const visibleTendrils = Math.min(this.tendrils.length,
+      Math.floor(2 + ageNorm * this.tendrils.length));
+
+    for (let ti = 0; ti < visibleTendrils; ti++) {
+      const t = this.tendrils[ti];
+      const len = R * t.length * (0.5 + ageNorm * 0.5);
+      const baseX = cx + Math.cos(t.angle) * R * 0.3;
+      const baseY = cy + Math.sin(t.angle) * R * 0.3;
+      const endX = baseX + Math.cos(t.angle) * len;
+      const endY = baseY + Math.sin(t.angle) * len;
+      const waveX = Math.sin(t.wave + this.age * 0.002) * R * 0.08;
+      const waveY = Math.cos(t.wave + this.age * 0.002) * R * 0.08;
+
+      ctx.beginPath();
+      ctx.moveTo(baseX, baseY);
+      ctx.quadraticCurveTo(
+        (baseX + endX) / 2 + waveX,
+        (baseY + endY) / 2 + waveY,
+        endX + waveX * 0.5,
+        endY + waveY * 0.5
+      );
+      ctx.strokeStyle = `rgba(${cr|0},${cg|0},${cb|0},${alpha * 0.25 * (1 - ti / visibleTendrils * 0.5)})`;
+      ctx.lineWidth = t.thickness * (0.5 + ageNorm * 0.5);
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Branch
+      if (t.hasBranch && ageNorm > 0.4) {
+        const brX = baseX + Math.cos(t.angle) * len * t.branchAt;
+        const brY = baseY + Math.sin(t.angle) * len * t.branchAt;
+        const brEndX = brX + Math.cos(t.angle + t.branchAngle) * len * 0.3;
+        const brEndY = brY + Math.sin(t.angle + t.branchAngle) * len * 0.3;
+        ctx.beginPath();
+        ctx.moveTo(brX, brY);
+        ctx.lineTo(brEndX, brEndY);
+        ctx.strokeStyle = `rgba(${cr|0},${cg|0},${cb|0},${alpha * 0.15})`;
+        ctx.lineWidth = t.thickness * 0.5;
+        ctx.stroke();
+      }
+    }
+
+    // ── Swirls (longer holds get more swirls) ──
+    if (ageNorm > 0.5) {
+      const swirlAlpha = (ageNorm - 0.5) * 2;
+      for (const sw of this.swirls) {
+        const sCx = cx + sw.cx * R * 0.5;
+        const sCy = cy + sw.cy * R * 0.5;
+        const sR = sw.radius * R * 0.4;
+        ctx.beginPath();
+        for (let i = 0; i < 100; i++) {
+          const frac = i / 99;
+          const angle = frac * Math.PI * 2 * sw.turns * sw.direction + this.age * 0.0003;
+          const spiralR = frac * sR;
+          const sx = sCx + Math.cos(angle) * spiralR;
+          const sy = sCy + Math.sin(angle) * spiralR;
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.strokeStyle = `rgba(${cr|0},${cg|0},${cb|0},${alpha * 0.06 * swirlAlpha})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // ── Ink diffusion particles ──
+    if (ageNorm > 0.2) {
+      const pCount = Math.floor(3 + ageNorm * 12);
+      const rng = mulberry32(this.seed + 999);
+      for (let i = 0; i < pCount; i++) {
+        const angle = rng() * Math.PI * 2;
+        const dist = rng() * R * 0.9;
+        const px = cx + Math.cos(angle) * dist + Math.sin(this.age * 0.001 + i) * 5;
+        const py = cy + Math.sin(angle) * dist + Math.cos(this.age * 0.001 + i) * 5;
+        const pR = 1 + rng() * 3 * ageNorm;
+        ctx.beginPath();
+        ctx.arc(px, py, pR, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${cr|0},${cg|0},${cb|0},${alpha * 0.08 * (1 - dist / (R * 0.9))})`;
+        ctx.fill();
+      }
+    }
+
+    // ── Long hold: vermillion overprint bloom ──
+    if (ageNorm > 0.7) {
+      const vAlpha = (ageNorm - 0.7) / 0.3;
+      const vR = R * 0.3 * vAlpha;
+      const vGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, vR);
+      vGrad.addColorStop(0, `rgba(${CFG.inkVermilion[0]},${CFG.inkVermilion[1]},${CFG.inkVermilion[2]},${alpha * 0.12 * vAlpha})`);
+      vGrad.addColorStop(1, `rgba(${CFG.inkVermilion[0]},${CFG.inkVermilion[1]},${CFG.inkVermilion[2]},0)`);
+      ctx.beginPath();
+      ctx.arc(cx, cy, vR, 0, Math.PI * 2);
+      ctx.fillStyle = vGrad;
+      ctx.fill();
+    }
+  }
+}
+
+// ── KOI ──────────────────────────────────────────────────────
+class Koi {
+  constructor(seed, idx) {
+    this.seed = seed;
+    this.rng = mulberry32(seed);
+    this.x = this.rng() * W;
+    this.y = this.rng() * H;
+    this.vx = (this.rng() - 0.5) * 0.4;
+    this.vy = (this.rng() - 0.5) * 0.4;
+    this.size = 14 + this.rng() * 18;
+    this.wobble = this.rng() * Math.PI * 2;
+    this.wobbleSpeed = 0.0005 + this.rng() * 0.001;
+    // Color: white, orange, or calico
+    const colorType = Math.floor(this.rng() * 3);
+    if (colorType === 0) {
+      this.bodyColor = [235, 225, 210]; // white
+      this.accentColor = [200, 80, 40];   // orange spots
+    } else if (colorType === 1) {
+      this.bodyColor = [210, 100, 50];    // orange
+      this.accentColor = [235, 225, 210]; // white
+    } else {
+      this.bodyColor = [220, 210, 195];   // calico base
+      this.accentColor = [60, 50, 70];     // dark spots
+    }
+    this.spotSeed = seed + 123;
+    this.opacity = 0.12 + this.rng() * 0.12;
+    this.idx = idx;
+  }
+
+  update(dt) {
+    this.wobble += dt * this.wobbleSpeed;
+    this.x += this.vx + Math.sin(this.wobble) * 0.15;
+    this.y += this.vy + Math.cos(this.wobble * 0.7) * 0.1;
+
+    // Gentle boundary wrapping
+    const margin = 60;
+    if (this.x < -margin) this.x = W + margin;
+    if (this.x > W + margin) this.x = -margin;
+    if (this.y < -margin) this.y = H + margin;
+    if (this.y > H + margin) this.y = -margin;
+  }
+
+  draw(ctx, time) {
+    const angle = Math.atan2(this.vy, this.vx);
+    const s = this.size;
+    const op = this.opacity * (0.8 + 0.2 * Math.sin(time * 0.001 + this.idx));
+
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(angle);
+
+    // Body
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 1.2, s * 0.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.bodyColor[0]},${this.bodyColor[1]},${this.bodyColor[2]},${op})`;
+    ctx.fill();
+
+    // Tail
+    const tailWag = Math.sin(time * 0.004 + this.wobble) * 0.2;
+    ctx.beginPath();
+    ctx.moveTo(-s * 1.0, 0);
+    ctx.quadraticCurveTo(-s * 1.5, -s * 0.4 + tailWag * s, -s * 1.8, -s * 0.5 + tailWag * s);
+    ctx.quadraticCurveTo(-s * 1.4, tailWag * s * 0.3, -s * 1.8, s * 0.5 + tailWag * s);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${this.bodyColor[0]},${this.bodyColor[1]},${this.bodyColor[2]},${op * 0.7})`;
+    ctx.fill();
+
+    // Spots (for visual character)
+    const spotRng = mulberry32(this.spotSeed);
+    for (let i = 0; i < 3; i++) {
+      const sx = (spotRng() - 0.5) * s * 1.6;
+      const sy = (spotRng() - 0.5) * s * 0.3;
+      const sr = s * (0.08 + spotRng() * 0.12);
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${this.accentColor[0]},${this.accentColor[1]},${this.accentColor[2]},${op * 0.5})`;
+      ctx.fill();
+    }
+
+    // Eye
+    ctx.beginPath();
+    ctx.arc(s * 0.8, -s * 0.05, s * 0.06, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(30,25,35,${op * 0.8})`;
+    ctx.fill();
+
+    ctx.restore();
+
+    // Subtle wake
+    const wakeLen = s * 3;
+    for (let i = 0; i < 3; i++) {
+      const wx = this.x - Math.cos(angle) * (s + i * wakeLen / 3);
+      const wy = this.y - Math.sin(angle) * (s + i * wakeLen / 3);
+      const ww = s * 0.15 * (1 - i / 3);
+      ctx.beginPath();
+      ctx.arc(wx, wy, ww, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${this.bodyColor[0]},${this.bodyColor[1]},${this.bodyColor[2]},${op * 0.1 * (1 - i / 3)})`;
+      ctx.fill();
+    }
+  }
+}
+
+// ── WATER RIPPLE LAYER ──────────────────────────────────────
+const noiseField = makeNoise(42);
+const noiseField2 = makeNoise(420);
+
+function drawWater(time) {
+  // Subtle water color overlay
+  ctx.fillStyle = CFG.waterBase;
+  ctx.fillRect(0, 0, W, H);
+
+  // Shimmer lines — very subtle horizontal undulations
+  const shimCount = 40;
+  for (let i = 0; i < shimCount; i++) {
+    const baseY = (i / shimCount) * H;
+    const yOff = Math.sin(time * 0.0003 + i * 0.5) * 8;
+
+    ctx.beginPath();
+    for (let x = 0; x < W; x += 4) {
+      const nx = x * 0.003;
+      const ny = (baseY + yOff) * 0.003;
+      const n = noiseField(nx + time * CFG.rippleSpeed, ny);
+      const px = x;
+      const py = baseY + yOff + (n - 0.5) * 12;
+      if (x === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = `rgba(100,110,130,${0.015 + 0.01 * Math.sin(time * 0.0002 + i)})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  // Scattered light caustics
+  for (let i = 0; i < 8; i++) {
+    const cx = (noiseField2(time * 0.0001 + i * 3.7, i * 2.1) - 0.5) * W;
+    const cy = (noiseField2(i * 5.3, time * 0.0001 + i * 1.7) - 0.5) * H;
+    const cr = 20 + noiseField(i * 7.1, time * 0.0002) * 30;
+    const cGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
+    cGrad.addColorStop(0, `rgba(200,210,220,${0.03 + 0.02 * Math.sin(time * 0.0005 + i)})`);
+    cGrad.addColorStop(1, 'rgba(200,210,220,0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+    ctx.fillStyle = cGrad;
+    ctx.fill();
+  }
+}
+
+// ── PRESS / BLOOM LOGIC ─────────────────────────────────────
+const blooms = [];
+let activeBloom = null;
+let lastBloomTime = 0;
+let bloomCount = 0;
+let ui = document.getElementById('ui');
+let titleEl = document.getElementById('title');
+let instructionHidden = false;
+
+function getPos(e) {
+  if (e.touches) {
+    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+  return { x: e.clientX, y: e.clientY };
+}
+
+function startBloom(e) {
+  e.preventDefault();
+  const pos = getPos(e);
+  const now = performance.now();
+
+  // Rate limit: if taps are too fast, suppress
+  if (now - lastBloomTime < CFG.tapCooldown * 1000) {
+    return; // frantic tap — ignore
+  }
+
+  lastBloomTime = now;
+  bloomCount++;
+
+  activeBloom = new InkBloom(pos.x, pos.y, bloomCount * 137 + 42);
+  blooms.push(activeBloom);
+
+  // Limit concurrent blooms — fade oldest faster
+  if (blooms.length > CFG.maxBloomHolds) {
+    // Reduce fade time of oldest blooms
+    for (let i = 0; i < blooms.length - CFG.maxBloomHolds; i++) {
+      blooms[i].age += 2; // accelerate fade
+    }
+  }
+
+  // Hide instruction after first bloom
+  if (!instructionHidden) {
+    instructionHidden = true;
+    ui.classList.add('hidden');
+    setTimeout(() => titleEl.style.opacity = '0', 4000);
+  }
+}
+
+function endBloom(e) {
+  if (activeBloom) {
+    activeBloom.holding = false;
+    // If hold was too short, treat as tap — remove it
+    if (activeBloom.peakAge < CFG.minHoldTime) {
+      const idx = blooms.indexOf(activeBloom);
+      if (idx >= 0) blooms.splice(idx, 1);
+    }
+    activeBloom = null;
+  }
+}
+
+// Mouse events
+canvas.addEventListener('mousedown', startBloom);
+canvas.addEventListener('mouseup', endBloom);
+canvas.addEventListener('mouseleave', endBloom);
+
+// Touch events
+canvas.addEventListener('touchstart', startBloom, { passive: false });
+canvas.addEventListener('touchend', endBloom);
+canvas.addEventListener('touchcancel', endBloom);
+
+// ── ANIMATION LOOP ──────────────────────────────────────────
+const koi = [];
+for (let i = 0; i < CFG.koiCount; i++) {
+  koi.push(new Koi(i * 311 + 7, i));
+}
+
+let lastTime = performance.now();
+
+function frame(now) {
+  const dt = Math.min((now - lastTime) / 1000, 0.1); // cap dt
+  lastTime = now;
+
+  // Clear
+  ctx.fillStyle = `rgb(${CFG.bgR},${CFG.bgG},${CFG.bgB})`;
+  ctx.fillRect(0, 0, W, H);
+
+  // Paper texture (tiled)
+  if (paperCanvas) {
+    const pat = ctx.createPattern(paperCanvas, 'repeat');
+    ctx.fillStyle = pat;
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+
+  // Water layer
+  drawWater(now);
+
+  // Koi
+  for (const k of koi) {
+    k.update(dt * 1000);
+    k.draw(ctx, now);
+  }
+
+  // Blooms
+  for (let i = blooms.length - 1; i >= 0; i--) {
+    const b = blooms[i];
+    if (b === activeBloom && activeBloom) {
+      b.update(dt, now / 1000 - b.born / 1000);
+    } else {
+      b.update(dt, b.peakAge);
+    }
+    b.draw(ctx);
+    // Remove fully faded blooms
+    if (b.getAlpha() < 0.005 && !b.holding) {
+      blooms.splice(i, 1);
+    }
+  }
+
+  // Subtle vignette
+  const vGrad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3,
+                                           W / 2, H / 2, Math.max(W, H) * 0.75);
+  vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vGrad.addColorStop(1, 'rgba(40,30,20,0.08)');
+  ctx.fillStyle = vGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  requestAnimationFrame(frame);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
