@@ -120,7 +120,7 @@
       const grad = pctx.createRadialGradient(x, y, 0, x, y, r);
       const shade = Math.random() > 0.5 ? "200,195,180" : "210,205,195";
       grad.addColorStop(0, `rgba(${shade},0.04)`);
-      grad.addColorStop(1, "rgba(${shade},0)");
+      grad.addColorStop(1, `rgba(${shade},0)`);
       pctx.fillStyle = grad;
       pctx.fillRect(x - r, y - r, r * 2, r * 2);
      }
