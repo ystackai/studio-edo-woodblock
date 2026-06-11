@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+   <title>Living Print</title>
+   <style>
+     * { margin: 0; padding: 0; box-sizing: border-box; }
+     html, body { width: 100%; height: 100%; overflow: hidden; background: #E8E2D6; }
+     canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+   </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(function() {
+  "use strict";
+
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+
+  let W, H, dpr;
+  let pressing = false;
+  let pressDepth = 0;
+  let pressTarget = 0;
+  let pressTime = 0;
+  let mx = 0, my = 0;
+  let audioCtx = null;
+  let pressSoundTimer = 0;
+
+  // ---- Mist particles ----
+  const MIST_COUNT = 80;
+  const mists = [];
+
+  // ---- Wave parameters ----
+  let waveTime = 0;
+
+  // ---- Paper texture (pre-baked) ----
+  let paperCanvas = null;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function initMists() {
+    mists.length = 0;
+    for (let i = 0; i < MIST_COUNT; i++) {
+      mists.push({
+        x: Math.random() * W,
+        y: H * 0.12 + Math.random() * H * 0.55,
+        r: 30 + Math.random() * 140,
+        vx: (0.05 + Math.random() * 0.12) * (Math.random() < 0.5 ? -1 : 1),
+        vy: (Math.random() - 0.5) * 0.03,
+        alpha: 0.01 + Math.random() * 0.035,
+        phase: Math.random() * Math.PI * 2,
+        breath: 0.3 + Math.random() * 0.7
+       });
+     }
+  }
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  function playPressSound(depth) {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+
+     // Very soft paper rustle
+    const bufferSize = audioCtx.sampleRate * 1.2;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const t2 = i / bufferSize;
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-t2 * 4) * 0.15;
+     }
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 400 + depth * 300;
+    filter.Q.value = 0.5;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.04 * depth, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    src.start(t);
+   }
+
+  // ---- Paper grain texture ----
+  function bakePaperGrain() {
+    paperCanvas = document.createElement("canvas");
+    paperCanvas.width = W;
+    paperCanvas.height = H;
+    const pctx = paperCanvas.getContext("2d");
+
+     // Base — warm washi
+    pctx.fillStyle = "#EAE3D7";
+    pctx.fillRect(0, 0, W, H);
+
+     // Uneven wash — subtle yellowed spots
+    for (let i = 0; i < 25; i++) {
+      const x = Math.random() * W;
+      const y = Math.random() * H;
+      const r = 40 + Math.random() * 150;
+      const grad = pctx.createRadialGradient(x, y, 0, x, y, r);
+      const shade = Math.random() > 0.5 ? "200,195,180" : "210,205,195";
+      grad.addColorStop(0, `rgba(${shade},0.04)`);
+      grad.addColorStop(1, "rgba(${shade},0)");
+      pctx.fillStyle = grad;
+      pctx.fillRect(x - r, y - r, r * 2, r * 2);
+     }
+
+     // Grain noise
+    const imgData = pctx.getImageData(0, 0, W, H);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 8;
+      d[i] = Math.min(255, Math.max(0, d[i] + noise));
+      d[i + 1] = Math.min(255, Math.max(0, d[i + 1] + noise));
+      d[i + 2] = Math.min(255, Math.max(0, d[i + 2] + noise * 0.8));
+     }
+    pctx.putImageData(imgData, 0, 0);
+
+     // Horizontal fiber lines
+    pctx.globalAlpha = 0.025;
+    pctx.strokeStyle = "#9B8B7B";
+    pctx.lineWidth = 0.5;
+    for (let y = 0; y < H; y += 2 + Math.random() * 8) {
+      pctx.beginPath();
+      pctx.moveTo(0, y + Math.random() * 2);
+      for (let x = 0; x < W; x += 20) {
+        pctx.lineTo(x, y + (Math.random() - 0.5) * 1.5);
+       }
+      pctx.stroke();
+     }
+
+     // Vertical fibers (sparser)
+    for (let x = 0; x < W; x += 8 + Math.random() * 25) {
+      pctx.beginPath();
+      pctx.moveTo(x, 0);
+      pctx.lineTo(x + (Math.random() - 0.5) * 3, H);
+      pctx.stroke();
+     }
+    pctx.globalAlpha = 1;
+  }
+
+  // ---- Wave form ----
+  function waveY(x, t, depth) {
+    const cx = W * 0.5;
+    const dist = (x - cx) / (W * 0.5);
+
+     // The wave: a single form with three harmonics
+    const base = H * 0.50;
+    const amp = H * 0.07;
+
+     // Primary swell
+    const w1 = Math.sin(dist * 1.8 + t * 0.25) * amp;
+
+     // Shoulder curl
+    const w2 = Math.sin(dist * 3.5 + t * 0.45) * amp * 0.25;
+
+     // Surface detail (grows with press depth)
+    const w3 = Math.sin(dist * 7.0 + t * 0.7) * amp * 0.08 * depth;
+
+     // Edge lift at sides
+    const edge = Math.pow(Math.abs(dist), 2.5) * amp * 0.4;
+
+    return base + w1 + w2 + w3 + edge;
+  }
+
+  // ---- Ink wash drawing ----
+  function drawScene(t, depth) {
+    // Paper
+    ctx.clearRect(0, 0, W, H);
+    if (paperCanvas) ctx.drawImage(paperCanvas, 0, 0);
+
+    // Mist layer (drawn first, behind wave)
+    drawMists(t, depth);
+
+    // Wave body
+    drawWave(t, depth);
+
+    // Baren press indicator
+    if (pressing && depth > 0.05) {
+      drawPress(t, depth);
+     }
+  }
+
+  function drawMists(t, depth) {
+    for (const m of mists) {
+      m.x += m.vx + Math.sin(t * 0.3 + m.phase) * 0.03;
+      m.y += m.vy + Math.cos(t * 0.2 + m.phase * 1.3) * 0.015;
+
+      // Wrap
+      if (m.x > W + m.r) m.x = -m.r;
+      if (m.x < -m.r) m.x = W + m.r;
+      if (m.y > H * 0.65) m.y = H * 0.1;
+      if (m.y < H * 0.02) m.y = H * 0.6;
+
+      const breath = 1.0 + Math.sin(t * 0.5 * m.breath + m.phase) * 0.12;
+      const r = m.r * breath;
+
+       // Mist responds to press — condenses near cursor
+      let alpha = m.alpha;
+      if (pressing) {
+        const dx = m.x - mx;
+        const dy = m.y - my;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 200) {
+          alpha *= 1.0 + (1.0 - dist / 200) * depth * 0.8;
+         }
+       }
+
+      const grad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r);
+      grad.addColorStop(0, `rgba(215,210,198,${alpha})`);
+      grad.addColorStop(0.6, `rgba(210,205,195,${alpha * 0.4})`);
+      grad.addColorStop(1, "rgba(210,205,195,0)");
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, r, 0, Math.PI * 2);
+      ctx.fill();
+     }
+  }
+
+  function drawWave(t, depth) {
+    const steps = W;
+
+     // ---- Wave body fill (ink wash gradient) ----
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+
+    for (let x = 0; x <= steps; x += 2) {
+      ctx.lineTo(x, waveY(x, t, depth));
+     }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+
+     // Multi-stop ink wash
+    const grad = ctx.createLinearGradient(0, H * 0.43, 0, H);
+    const inkDark = 25 + depth * 15;
+    const inkMid = 55 + depth * 10;
+    const inkLight = 95 + depth * 5;
+
+    grad.addColorStop(0, `rgba(${inkDark},${inkDark - 3},${inkDark + 8},${0.85 + depth * 0.1})`);
+    grad.addColorStop(0.08, `rgba(${inkDark + 15},${inkDark + 12},${inkDark + 20},${0.72})`);
+    grad.addColorStop(0.2, `rgba(${inkMid},${inkMid - 2},${inkMid + 5},${0.5})`);
+    grad.addColorStop(0.45, `rgba(${inkLight},${inkLight - 3},${inkLight + 2},${0.22})`);
+    grad.addColorStop(0.75, `rgba(${inkLight + 25},${inkLight + 23},${inkLight + 18},${0.08})`);
+    grad.addColorStop(1, `rgba(200,195,185,0.02)`);
+
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // ---- Ink texture strokes (horizon detail) ----
+    const strokeAlpha = 0.03 + depth * 0.08;
+    ctx.strokeStyle = `rgba(${inkDark - 5},${inkDark - 8},${inkDark},${strokeAlpha})`;
+    ctx.lineWidth = 0.6 + depth * 0.6;
+
+    for (let i = 0; i < 18; i++) {
+      const yOff = H * 0.03 + i * H * 0.028;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 3) {
+        const y = waveY(x, t, depth) + yOff +
+          Math.sin(x * 0.008 + t * 0.15 + i * 0.7) * (6 + i * 1.5) * (0.6 + depth * 0.4);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+       }
+      ctx.stroke();
+     }
+
+    // ---- Crest line (the wave top edge) ----
+    const crestAlpha = 0.7 + depth * 0.25;
+    const crestWidth = 1.8 + depth * 1.2;
+
+    ctx.beginPath();
+    ctx.strokeStyle = `rgba(18,14,22,${crestAlpha})`;
+    ctx.lineWidth = crestWidth;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    for (let x = 0; x <= W; x += 2) {
+      const y = waveY(x, t, depth);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+     }
+    ctx.stroke();
+
+     // Foam particles along crest (visible when pressed)
+    if (depth > 0.2) {
+      const foamAlpha = (depth - 0.2) * 0.6;
+      for (let x = 8; x < W; x += 12) {
+        const y = waveY(x, t, depth);
+        const foam = Math.sin(x * 0.15 + t * 1.2) * 2.5;
+        if (foam > 0.5) {
+          ctx.fillStyle = `rgba(22,18,28,${foamAlpha * (foam / 2.5)})`;
+          ctx.beginPath();
+          ctx.arc(x, y + foam, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+         }
+       }
+
+       // Ink bleed circle near press point
+      if (pressing) {
+        const bleedR = 50 + depth * 100;
+        const grad2 = ctx.createRadialGradient(mx, my, 0, mx, my, bleedR);
+        grad2.addColorStop(0, `rgba(15,12,20,${depth * 0.06})`);
+        grad2.addColorStop(0.5, `rgba(20,18,25,${depth * 0.03})`);
+        grad2.addColorStop(1, "rgba(20,18,25,0)");
+        ctx.fillStyle = grad2;
+        ctx.beginPath();
+        ctx.arc(mx, my, bleedR, 0, Math.PI * 2);
+        ctx.fill();
+       }
+     }
+
+    ctx.restore();
+  }
+
+  function drawPress(t, depth) {
+    const r = 35 + depth * 18;
+
+     // Outer ring — faint, like baren circle
+    ctx.save();
+    ctx.strokeStyle = `rgba(30,26,35,${0.06 + depth * 0.08})`;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([3, 5]);
+    ctx.lineDashOffset = -t * 20;
+    ctx.beginPath();
+    ctx.arc(mx, my, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+     // Inner ring
+    ctx.strokeStyle = `rgba(30,26,35,${0.04 + depth * 0.04})`;
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.arc(mx, my, r * 0.6, 0, Math.PI * 2);
+    ctx.stroke();
+
+     // Center dot
+    ctx.fillStyle = `rgba(25,20,30,${0.1 + depth * 0.12})`;
+    ctx.beginPath();
+    ctx.arc(mx, my, 2 + depth * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // ---- Animation loop ----
+  function frame(now) {
+    const dt = 1 / 60;
+    waveTime += dt;
+    pressTime += pressing ? dt : 0;
+
+     // Press depth: slow to press (resistance), moderate to release
+    pressTarget = pressing ? 1 : 0;
+    const rate = pressing ? 0.015 : 0.04;
+    pressDepth += (pressTarget - pressDepth) * rate;
+    if (Math.abs(pressDepth - pressTarget) < 0.001) pressDepth = pressTarget;
+
+     // Audio: play subtle press sound at intervals while holding
+    pressSoundTimer += dt;
+    if (pressing && pressSoundTimer > 2.5) {
+      pressSoundTimer = 0;
+      playPressSound(pressDepth);
+     }
+
+    drawScene(waveTime, pressDepth);
+    requestAnimationFrame(frame);
+  }
+
+  // ---- Input ----
+  function getPos(e) {
+    if (e.touches && e.touches.length > 0)
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function onDown(e) {
+    e.preventDefault();
+    initAudio();
+    pressing = true;
+    pressTime = 0;
+    pressDepth = 0;
+    pressSoundTimer = 0;
+    const p = getPos(e);
+    mx = p.x;
+    my = p.y;
+    playPressSound(0.3);
+  }
+
+  function onMove(e) {
+    const p = getPos(e);
+    mx = p.x;
+    my = p.y;
+  }
+
+  function onUp() {
+    pressing = false;
+  }
+
+  // ---- Init ----
+  function init() {
+    resize();
+    initMists();
+    bakePaperGrain();
+
+    canvas.addEventListener("pointerdown", onDown);
+    canvas.addEventListener("pointermove", onMove);
+    canvas.addEventListener("pointerup", onUp);
+    canvas.addEventListener("pointercancel", onUp);
+
+    window.addEventListener("resize", () => {
+      resize();
+      initMists();
+      bakePaperGrain();
+     });
+
+    // Set initial cursor position to center
+    mx = W / 2;
+    my = H / 2;
+
+    requestAnimationFrame(frame);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
