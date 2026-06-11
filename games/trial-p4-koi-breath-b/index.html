@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Koi Breath — Edo Woodblock</title>
+<style>
+ *{margin:0;padding:0;box-sizing:border-box}
+ html,body{width:100%;height:100%;overflow:hidden;background:#EDE7DB;
+  font-family:'Noto Serif',Georgia,'Times New Roman',serif;
+  -webkit-tap-highlight-color:transparent;touch-action:none;user-select:none}
+ canvas{display:block;width:100%;height:100%}
+ #hint{position:absolute;bottom:36px;left:0;right:0;text-align:center;
+  color:#9A8E7B;font-size:13px;letter-spacing:.08em;pointer-events:none;
+  transition:opacity 2.5s ease}
+ #hint.hidden{opacity:0}
+ #title{position:absolute;top:20px;left:0;right:0;text-align:center;
+  color:#5A4E40;font-size:10px;opacity:.45;letter-spacing:.2em;
+  text-transform:uppercase;pointer-events:none}
+ #hold-indicator{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:80px;height:80px;pointer-events:none;opacity:0;transition:opacity .3s ease}
+</style>
+</head>
+<body>
+<canvas id="pond"></canvas>
+<div id="title">Koi Breath</div>
+<div id="hint">press and hold to breathe ink into the water</div>
+<script>
+/* ═══════════════════════════════════════════════════
+   KOI BREATH — Edo Woodblock
+   Hold to bloom ink. Release to let it fade.
+   ═══════════════════════════════════════════════════ */
+(() => {
+"use strict";
+
+// ── Palette ──
+const PAPER    = '#EDE7DB';
+const INK_DEEP = '#120E18';
+const INK_MID  = '#282030';
+const INK_MIST = '#3E3448';
+const KOI_CARS  = ['#B8503A','#D47A4A','#C8A84E','#E8E0D0','#8B3A4A'];
+const KOI_EYE   = '#120E18';
+
+// ── Constants ──
+const MIN_HOLD       = 300;   // ms to register as a bloom
+const SLOW_BLOOM     = 3000; // ms for "deep" bloom effects
+const DEEP_BLOOM     = 8000; // ms for max bloom size
+const FADE_DURATION   = 10000;
+const MAX_BLOOMS      = 14;
+const FRANTIC_WINDOW  = 250; // ms — taps closer than this are ignored
+
+// ── Canvas ──
+const C  = document.getElementById('pond');
+const X  = C.getContext('2d', { alpha: false });
+const hint = document.getElementById('hint');
+let W, H, DPR;
+
+// ── Easing ──
+const easeOutExpo  = t => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const easeInOutSine = t => -(Math.cos(Math.PI * t) - 1) / 2;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// ── Color helpers ──
+function rgba(hex, a) {
+  const r = parseInt(hex.slice(1,3),16),
+        g = parseInt(hex.slice(3,5),16),
+        b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${+a.toFixed(4)})`;
+}
+
+// ── Paper texture ──
+let paperC, paperCtx, paperOk = false;
+
+function buildPaper() {
+  if (paperOk) return;
+  paperC = document.createElement('canvas');
+  paperC.width  = W * DPR;
+  paperC.height = H * DPR;
+  paperCtx = paperC.getContext('2d');
+  paperCtx.fillStyle = PAPER;
+  paperCtx.fillRect(0, 0, paperC.width, paperC.height);
+
+   // Multi-scale noise for paper fiber
+  const img = paperCtx.getImageData(0, 0, paperC.width, paperC.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const n = (Math.random() - 0.5) * 12;
+    d[i]     = clamp(d[i]     + n, 0, 255);
+    d[i+1]   = clamp(d[i+1]   + n * 0.96, 0, 255);
+    d[i+2]   = clamp(d[i+2]   + n * 0.88, 0, 255);
+    }
+  paperCtx.putImageData(img, 0, 0);
+
+   // Subtle larger-scale texture (soft clouds)
+  for (let i = 0; i < 8; i++) {
+    const cx = Math.random() * paperC.width;
+    const cy = Math.random() * paperC.height;
+    const cr = 100 + Math.random() * 300;
+    const g = paperCtx.createRadialGradient(cx, cy, 0, cx, cy, cr);
+    g.addColorStop(0, `rgba(${190+Math.random()*30|0},${185+Math.random()*20|0},${170+Math.random()*20|0},0.04)`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    paperCtx.fillStyle = g;
+    paperCtx.fillRect(0, 0, paperC.width, paperC.height);
+    }
+  paperOk = true;
+}
+
+// ── Bloom ──
+class Bloom {
+  constructor(x, y) {
+    this.x = x; this.y = y;
+    this.t0 = performance.now();
+    this.released = false; this.tRelease = 0;
+    this.maxR = 50 + Math.random() * 130;
+    this.r = 3;
+    this.alpha = 0;
+    this.tilt = Math.random() * Math.PI;
+    this.sx = 0.85 + Math.random() * 0.3;
+    this.sy = 0.85 + Math.random() * 0.3;
+    this.lastRipple = 0;
+    this.hueIdx = Math.floor(Math.random() * 3); // ink tone variant
+    // Tendril seeds for organic ink bleed
+    this.tendrils = [];
+    const nTend = 4 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < nTend; i++) {
+      const a = (i / nTend) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
+      this.tendrils.push({
+        angle: a,
+        length: 0.6 + Math.random() * 0.8, // fraction of bloom radius
+        width: 0.03 + Math.random() * 0.06, // relative width
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.5 + Math.random() * 1.5
+        });
+      }
+    }
+
+  get hold() {
+    return this.released ? this.tRelease - this.t0 : performance.now() - this.t0;
+    }
+
+  get inkColors() {
+    // Return [deep, mid, edge] for this bloom
+    switch(this.hueIdx) {
+      case 0: return ['#120E18','#282030','#4A3F55']; // indigo
+      case 1: return ['#18100E','#302820','#554A3F']; // warm sepia
+      default: return ['#0E1218','#202830','#3F4A55']; // blue
+      }
+    }
+
+  update() {
+    const t = this.hold;
+    if (!this.released) {
+      const n = clamp(t / DEEP_BLOOM, 0, 1);
+      const e = easeOutExpo(n);
+      this.r = 3 + e * this.maxR;
+      this.alpha = clamp(0.12 + e * 0.73, 0, 0.85);
+      // Ripples
+      if (t >= MIN_HOLD) {
+        const now = performance.now();
+        if (now - this.lastRipple > 450) {
+          this.lastRipple = now;
+          ripples.push(new Ripple(this.x, this.y, this.r * (0.5 + Math.random() * 0.6)));
+          }
+        }
+      // Tendril animation
+      for (const td of this.tendrils) td.wobble += td.wobbleSpeed * 0.016;
+      } else {
+      const f = (performance.now() - this.tRelease) / FADE_DURATION;
+      this.alpha = Math.max(0, 0.85 * (1 - easeOutCubic(clamp(f, 0, 1))));
+      this.r *= 1.0001; // slow spread while fading
+      }
+    }
+
+  draw(ctx) {
+    if (this.alpha < 0.004) return;
+    const [deep, mid, edge] = this.inkColors;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.tilt);
+    ctx.scale(this.sx, this.sy);
+
+    // ── Tendrils (ink bleed streaks) ──
+    for (const td of this.tendrils) {
+      const len = this.r * td.length;
+      const w = this.r * td.width;
+      const endX = Math.cos(td.angle) * len;
+      const endY = Math.sin(td.angle) * len;
+      const wobbleOffset = Math.sin(td.wobble) * w * 3;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      // Curved tendril
+      const midX = Math.cos(td.angle + 0.2) * len * 0.5 + wobbleOffset;
+      const midY = Math.sin(td.angle + 0.2) * len * 0.5 + wobbleOffset * 0.5;
+      ctx.quadraticCurveTo(midX, midY, endX, endY);
+      ctx.strokeStyle = rgba(mid, this.alpha * 0.15 * td.width * 10);
+      ctx.lineWidth = w;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.restore();
+      }
+
+    // ── Main body (wobbly organic circle) ──
+    drawWobble(ctx, 0, 0, this.r, 56, this.tilt);
+    const g = ctx.createRadialGradient(0, 0, this.r * 0.02, 0, 0, this.r);
+    g.addColorStop(0,   rgba(deep, this.alpha));
+    g.addColorStop(0.25,rgba(mid, this.alpha * 0.75));
+    g.addColorStop(0.6, rgba(edge, this.alpha * 0.3));
+    g.addColorStop(1,   rgba(edge, 0));
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    // ── Core ──
+    const cr = this.r * 0.2;
+    drawWobble(ctx, 0, 0, cr, 24, this.tilt + 1);
+    const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, cr);
+    cg.addColorStop(0, rgba(deep, this.alpha * 0.5));
+    cg.addColorStop(1, rgba(deep, 0));
+    ctx.fillStyle = cg;
+    ctx.fill();
+
+    // ── Edge stipple (simulated ink granulation) ──
+    if (this.r > 30) {
+      ctx.fillStyle = rgba(deep, this.alpha * 0.12);
+      for (let i = 0; i < 30; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const d = this.r * (0.85 + Math.random() * 0.2);
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * d, Math.sin(a) * d, 0.5 + Math.random() * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        }
+      }
+
+    ctx.restore();
+    }
+
+  get done() { return this.released && this.alpha < 0.004; }
+}
+
+function drawWobble(ctx, cx, cy, r, segs, seed) {
+  ctx.beginPath();
+  for (let i = 0; i <= segs; i++) {
+    const a = (i / segs) * Math.PI * 2;
+    const w = 1 + Math.sin(a*3+seed)*0.07 + Math.sin(a*5+seed*1.3)*0.04
+              + Math.cos(a*8+seed*0.7)*0.03;
+    const px = cx + Math.cos(a) * r * w;
+    const py = cy + Math.sin(a) * r * w;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+  ctx.closePath();
+}
+
+// ── Ripple ──
+class Ripple {
+  constructor(x, y, r) {
+    this.x = x; this.y = y; this.r = Math.max(r, 6);
+    this.a = 0.3 + Math.random() * 0.12;
+    this.spd = 18 + Math.random() * 22;
+    this.lw = 0.6 + Math.random() * 0.6;
+    }
+  update(dt) { this.r += this.spd * dt; this.a *= 0.995; }
+  draw(ctx) {
+    if (this.a < 0.004) return;
+    ctx.save();
+    ctx.strokeStyle = rgba(INK_DEEP, this.a * 0.25);
+    ctx.lineWidth = this.lw;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    }
+  get done() { return this.a < 0.004 || this.r > Math.max(W, H); }
+}
+
+// ── Particle ──
+class Pt {
+  constructor(x, y) {
+    this.x = x; this.y = y;
+    const a = Math.random() * Math.PI * 2, s = 8 + Math.random() * 35;
+    this.vx = Math.cos(a) * s; this.vy = Math.sin(a) * s;
+    this.life = 1; this.dec = 0.4 + Math.random() * 0.7;
+    this.sz = 0.6 + Math.random() * 3;
+    }
+  update(dt) {
+    this.x += this.vx * dt; this.y += this.vy * dt;
+    this.vx *= 0.97; this.vy *= 0.97;
+    this.life -= this.dec * dt;
+    }
+  draw(ctx) {
+    if (this.life <= 0) return;
+    ctx.fillStyle = rgba(INK_DEEP, this.life * 0.3);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.sz * Math.max(0.1, this.life), 0, Math.PI * 2);
+    ctx.fill();
+    }
+  get done() { return this.life <= 0; }
+}
+
+// ── Koi ──
+class Koi {
+  constructor() { this.reset(true); }
+
+  reset(init) {
+    const side = Math.random();
+    this.x = side < 0.5 ? -70 : W + 70;
+    this.y = H * (0.12 + Math.random() * 0.76);
+    this.vx = (side < 0.5 ? 1 : -1) * (0.2 + Math.random() * 0.5);
+    this.vy = (Math.random() - 0.5) * 0.1;
+    this.sz = 12 + Math.random() * 26;
+    this.phase = Math.random() * Math.PI * 2;
+    this.wAmp = 5 + Math.random() * 12;
+    this.wSpd = 0.2 + Math.random() * 0.3;
+    this.tailPh = Math.random() * Math.PI * 2;
+    this.col = KOI_CARS[Math.floor(Math.random() * KOI_CARS.length)];
+    this.pcol = KOI_CARS[Math.floor(Math.random() * KOI_CARS.length)];
+    this.alpha = 0.06 + Math.random() * 0.12;
+    }
+
+  update(dt) {
+    this.phase += this.wSpd * dt;
+    this.tailPh += 1.5 * dt;
+    this.x += this.vx * 50 * dt;
+    this.y += this.vy * 50 * dt + Math.sin(this.phase) * this.wAmp * dt;
+    if (this.x < -110 || this.x > W + 110 || this.y < -90 || this.y > H + 90)
+      this.reset(false);
+    }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const dir = this.vx >= 0 ? 1 : -1;
+    ctx.scale(dir, 1);
+    const s = this.sz, a = this.alpha;
+
+    // Body — elongated organic ellipse with wobble
+    ctx.fillStyle = rgba(this.col, a * 0.7);
+    ctx.beginPath();
+    // Slightly curved body
+    ctx.moveTo(s * 1.6, 0);
+    ctx.bezierCurveTo(s * 1.2, -s * 0.4, -s * 0.5, -s * 0.35, -s * 1.3, 0);
+    ctx.bezierCurveTo(-s * 0.5, s * 0.35, s * 1.2, s * 0.4, s * 1.6, 0);
+    ctx.fill();
+
+    // Pattern patch
+    ctx.fillStyle = rgba(this.pcol, a * 0.4);
+    ctx.beginPath();
+    ctx.ellipse(s * 0.4, -s * 0.03, s * 0.35, s * 0.15, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tail — sinuous fork
+    const tw = Math.sin(this.tailPh) * s * 0.22;
+    ctx.strokeStyle = rgba(this.col, a * 0.5);
+    ctx.lineWidth = s * 0.12;
+    ctx.lineCap = 'round';
+
+    // Upper tail lobe
+    ctx.beginPath();
+    ctx.moveTo(-s * 1.2, 0);
+    ctx.bezierCurveTo(-s * 1.5, -s * 0.1, -s * 1.8, -s * 0.15 + tw, -s * 2.1, tw * 0.7);
+    ctx.stroke();
+
+    // Lower tail lobe
+    ctx.beginPath();
+    ctx.moveTo(-s * 1.2, 0);
+    ctx.bezierCurveTo(-s * 1.5, s * 0.1, -s * 1.8, s * 0.15 - tw, -s * 2.1, -tw * 0.7);
+    ctx.stroke();
+
+    // Eye
+    ctx.fillStyle = rgba(KOI_EYE, a * 0.65);
+    ctx.beginPath();
+    ctx.arc(s * 1.25, -s * 0.06, s * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Gill arc
+    ctx.strokeStyle = rgba(KOI_EYE, a * 0.2);
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.arc(s * 0.85, 0, s * 0.12, -0.7, 0.7);
+    ctx.stroke();
+
+    ctx.restore();
+    }
+}
+
+// ── Ink Mist (ambient) ──
+class Mist {
+  constructor() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.r = 80 + Math.random() * 250;
+    this.vx = (Math.random() - 0.5) * 3;
+    this.vy = (Math.random() - 0.5) * 2.5;
+    this.a = 0.006 + Math.random() * 0.014;
+    this.ph = Math.random() * Math.PI * 2;
+    this.sp = 0.04 + Math.random() * 0.08;
+    }
+  update(dt) {
+    this.ph += this.sp * dt;
+    this.x += this.vx * dt + Math.sin(this.ph * 0.7) * 2.5 * dt;
+    this.y += this.vy * dt + Math.cos(this.ph * 0.5) * 1.8 * dt;
+    if (this.x < -this.r * 2) this.x = W + this.r;
+    if (this.x > W + this.r * 2) this.x = -this.r;
+    if (this.y < -this.r * 2) this.y = H + this.r;
+    if (this.y > H + this.r * 2) this.y = -this.r;
+    }
+  draw(ctx) {
+    const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
+    g.addColorStop(0, rgba(INK_MID, this.a));
+    g.addColorStop(1, rgba(INK_MID, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    }
+}
+
+// ── Audio ──
+let aud, audOk = false;
+
+function bootAudio() {
+  if (aud) return;
+  try { aud = new (window.AudioContext || window.webkitAudioContext)(); audOk = true; }
+  catch(e) {}
+}
+
+function tone(f, dur, vol) {
+  if (!aud || !audOk) return;
+  try {
+    const n = aud.currentTime;
+     // Primary oscillator
+    const o1 = aud.createOscillator(), g1 = aud.createGain();
+    o1.type = 'sine';
+    o1.frequency.setValueAtTime(f, n);
+    o1.frequency.exponentialRampToValueAtTime(f * 0.55, n + dur);
+    g1.gain.setValueAtTime(vol || 0.022, n);
+    g1.gain.exponentialRampToValueAtTime(0.001, n + dur);
+    o1.connect(g1).connect(aud.destination);
+    o1.start(n); o1.stop(n + dur);
+     // Detuned second oscillator for warmth
+    const o2 = aud.createOscillator(), g2 = aud.createGain();
+    o2.type = 'sine';
+    o2.frequency.setValueAtTime(f * 1.015, n);
+    o2.frequency.exponentialRampToValueAtTime(f * 0.56, n + dur * 0.9);
+    g2.gain.setValueAtTime((vol || 0.022) * 0.5, n);
+    g2.gain.exponentialRampToValueAtTime(0.001, n + dur * 0.85);
+    o2.connect(g2).connect(aud.destination);
+    o2.start(n); o2.stop(n + dur * 0.85);
+     // Filtered noise burst for water ripple texture
+    const len = aud.sampleRate * Math.min(dur * 0.3, 0.15);
+    const buf = aud.createBuffer(1, len, aud.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1);
+    const src = aud.createBufferSource();
+    src.buffer = buf;
+    const filt = aud.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.setValueAtTime(f * 3, n);
+    filt.Q.value = 2;
+    const gn = aud.createGain();
+    gn.gain.setValueAtTime((vol || 0.022) * 0.15, n);
+    gn.gain.exponentialRampToValueAtTime(0.001, n + dur * 0.3);
+    src.connect(filt).connect(gn).connect(aud.destination);
+    src.start(n);
+     } catch(e) {}
+}
+// ── State ──
+let blooms = [], ripples = [], particles = [], kois = [], mists = [];
+let activeBloom = null, firstTouch = false, lastTap = 0;
+let ambTimer = 0;
+
+// ── Input ──
+function p(e) { const t = e.touches ? e.touches[0] : e; return {x: t.clientX, y: t.clientY}; }
+
+function onDown(e) {
+  e.preventDefault(); bootAudio();
+  if (!firstTouch) { firstTouch = true; hint.classList.add('hidden'); }
+
+  const now = performance.now();
+  if (now - lastTap < FRANTIC_WINDOW) return; // ignore frantic taps
+  lastTap = now;
+
+  const {x, y} = p(e);
+  if (blooms.length >= MAX_BLOOMS) blooms.shift();
+
+  activeBloom = new Bloom(x, y);
+  blooms.push(activeBloom);
+
+  // Immediate particles
+  for (let i = 0; i < 5; i++) particles.push(new Pt(x, y));
+  tone(140, 0.15, 0.012);
+}
+
+function onUp(e) {
+  e.preventDefault();
+  if (!activeBloom) return;
+
+  const hold = activeBloom.hold;
+  if (hold >= MIN_HOLD) {
+    activeBloom.released = true;
+    activeBloom.tRelease = performance.now();
+
+    // Deep hold rewards
+    if (hold > SLOW_BLOOM) {
+      for (let i = 0; i < 14; i++) particles.push(new Pt(activeBloom.x, activeBloom.y));
+      ripples.push(new Ripple(activeBloom.x, activeBloom.y, activeBloom.r * 1.15));
+      ripples.push(new Ripple(activeBloom.x, activeBloom.y, activeBloom.r * 1.5));
+      tone(220, 0.6, 0.016);
+      } else {
+      tone(180, 0.3, 0.01);
+      }
+    } else {
+      blooms.splice(blooms.indexOf(activeBloom), 1); // too fast — vanish
+      }
+  activeBloom = null;
+}
+
+C.addEventListener('pointerdown',   onDown, {passive:false});
+C.addEventListener('pointerup',     onUp,   {passive:false});
+C.addEventListener('pointercancel', onUp,   {passive:false});
+C.addEventListener('pointerleave',  onUp,   {passive:false});
+window.addEventListener('mouseup',   onUp,   {passive:false});
+C.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── Init ──
+for (let i = 0; i < 5; i++) kois.push(new Koi());
+for (let i = 0; i < 6; i++) mists.push(new Mist());
+
+// ── Resize ──
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  C.width  = W * DPR; C.height = H * DPR;
+  C.style.width = W + 'px'; C.style.height = H + 'px';
+  X.setTransform(DPR, 0, 0, DPR, 0, 0);
+  paperOk = false; buildPaper();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── Render loop ──
+let t0 = 0;
+
+function frame(ts) {
+  const dt = Math.min((ts - t0) / 1000, 0.1);
+  t0 = ts;
+
+  // ── Background ──
+  X.fillStyle = PAPER;
+  X.fillRect(0, 0, W, H);
+  if (paperOk) {
+    X.globalAlpha = 0.45;
+    X.drawImage(paperC, 0, 0, W, H);
+    X.globalAlpha = 1;
+    }
+
+  // ── Water caustics (light reflections) ──
+  X.globalCompositeOperation = 'screen';
+  for (let i = 0; i < 3; i++) {
+    const cx = W * ((Math.sin(ts*0.00006+i*2.3)+1)/2)*0.7 + W*0.15;
+    const cy = H * ((Math.cos(ts*0.00005+i*1.7)+1)/2)*0.7 + H*0.15;
+    const cr = 55 + Math.sin(ts*0.0003+i*1.2)*25;
+    const g = X.createRadialGradient(cx,cy,0,cx,cy,cr);
+    g.addColorStop(0,'rgba(250,245,235,0.025)');
+    g.addColorStop(1,'rgba(250,245,235,0)');
+    X.fillStyle = g;
+    X.beginPath(); X.arc(cx,cy,cr,0,Math.PI*2); X.fill();
+    }
+  X.globalCompositeOperation = 'source-over';
+
+  // ── Mists ──
+  for (const m of mists) { m.update(dt); m.draw(X); }
+
+  // ── Koi ──
+  for (const k of kois) { k.update(dt); k.draw(X); }
+
+  // ── Ripples ──
+  for (let i = ripples.length-1; i >= 0; i--) {
+    ripples[i].update(dt); ripples[i].draw(X);
+    if (ripples[i].done) ripples.splice(i, 1);
+    }
+
+  // ── Blooms ──
+  for (let i = blooms.length-1; i >= 0; i--) {
+    blooms[i].update(); blooms[i].draw(X);
+    if (blooms[i].done) blooms.splice(i, 1);
+    }
+
+  // ── Particles ──
+  for (let i = particles.length-1; i >= 0; i--) {
+    particles[i].update(dt); particles[i].draw(X);
+    if (particles[i].done) particles.splice(i, 1);
+    }
+
+  // ── Ambient ripples ──
+  ambTimer += dt;
+  if (ambTimer > 2 + Math.random() * 3) {
+    ambTimer = 0;
+    ripples.push(new Ripple(Math.random()*W, Math.random()*H, 3+Math.random()*7));
+    }
+
+  // ── Vignette ──
+  const vg = X.createRadialGradient(W/2,H/2,Math.min(W,H)*0.2, W/2,H/2,Math.max(W,H)*0.72);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(0.5,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(18,14,24,0.06)');
+  X.fillStyle = vg;
+  X.fillRect(0,0,W,H);
+
+  // ── Active bloom hold indicator (subtle ring that pulses while holding) ──
+  if (activeBloom && !activeBloom.released) {
+    const hold = activeBloom.hold;
+    if (hold >= MIN_HOLD) {
+      const pulseR = activeBloom.r * 1.15 + Math.sin(ts * 0.004) * 4;
+      X.save();
+      X.strokeStyle = rgba(INK_DEEP, 0.08 + Math.sin(ts * 0.003) * 0.03);
+      X.lineWidth = 0.8;
+      X.beginPath();
+      X.arc(activeBloom.x, activeBloom.y, pulseR, 0, Math.PI * 2);
+      X.stroke();
+      X.restore();
+      }
+    }
+
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(ts => { t0 = ts; frame(ts); });
+
+})();
+</script>
+</body>
+</html>
