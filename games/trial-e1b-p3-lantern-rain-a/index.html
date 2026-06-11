@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title> Lantern Rain — A Moment of Quiet </title>
+<style>
+   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #0a0e1a;
+    font-family: 'Georgia', serif;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  canvas {
+    display: block;
+    width: 100%; height: 100%;
+  }
+  #start-overlay {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(5, 8, 16, 0.92);
+    z-index: 10;
+    cursor: pointer;
+    transition: opacity 0.8s ease;
+  }
+  #start-overlay.hidden { opacity: 0; pointer-events: none; }
+  #start-overlay h1 {
+    color: #d4a056;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    margin-bottom: 1em;
+    text-transform: lowercase;
+  }
+  #start-overlay p {
+    color: #7a8899;
+    font-size: clamp(0.85rem, 2vw, 1.05rem);
+    letter-spacing: 0.05em;
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  #hint {
+    position: fixed; bottom: 24px; left: 0; right: 0;
+    text-align: center;
+    color: #556677;
+    font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+    letter-spacing: 0.08em;
+    opacity: 0;
+    transition: opacity 2s ease;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #hint.show { opacity: 0.7; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="start-overlay">
+  <h1>lantern rain</h1>
+  <p>tap to begin</p>
+</div>
+
+<div id="hint">hold to shield the lantern &middot; release and wait</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // Canvas
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let W, H, dpr;
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Utilities
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function rand(lo, hi) { return lo + Math.random() * (hi - lo); }
+  function randInt(lo, hi) { return Math.floor(rand(lo, hi + 1)); }
+
+  // Noise for grain
+  const noiseGrid = new Float32Array(256 * 256);
+  for (let i = 0; i < noiseGrid.length; i++) noiseGrid[i] = Math.random();
+
+  function noise(x, y) {
+    const ix = Math.floor(x) & 255;
+    const iy = Math.floor(y) & 255;
+    const fx = x - Math.floor(x);
+    const fy = y - Math.floor(y);
+    const sx = fx * fx * (3 - 2 * fx);
+    const sy = fy * fy * (3 - 2 * fy);
+    const n00 = noiseGrid[ix + iy * 256];
+    const n10 = noiseGrid[(ix + 1) + iy * 256];
+    const n01 = noiseGrid[ix + (iy + 1) * 256];
+    const n11 = noiseGrid[(ix + 1) + (iy + 1) * 256];
+    return lerp(lerp(n00, n10, sx), lerp(n01, n11, sx), sy);
+  }
+
+  // State
+  let started = false;
+  let shielding = false;
+  let shieldIntensity = 0;
+  let patienceMeter = 0;
+  let flameSteadiness = 0;
+  let lanternSway = 0;
+  let lanternSwayTarget = 0;
+  let time = 0;
+  let hintShown = false;
+  let audioCtx = null;
+  let rainGain = null;
+  let audioStarted = false;
+
+  // Rain
+  const MAX_RAIN = 350;
+  const raindrops = [];
+
+  function makeRaindrop() {
+    return {
+      x: rand(-50, W + 50),
+      y: rand(-H * 0.1, -20),
+      speed: rand(8, 18),
+      length: rand(12, 35),
+      opacity: rand(0.15, 0.55),
+      wind: rand(-1.5, 0.5),
+    };
+  }
+
+  for (let i = 0; i < MAX_RAIN; i++) {
+    raindrops.push(makeRaindrop());
+    raindrops[i].y = rand(-H, H);
+  }
+
+  // Lantern
+  const lantern = {
+    x: () => W / 2 + Math.sin(lanternSway) * 8,
+    y: () => H * 0.38 + Math.abs(Math.sin(lanternSway * 0.7)) * 5,
+    radius: Math.min(W, H) * 0.11,
+    stringLength: () => H * 0.12,
+    color: { r: 255, g: 180, b: 60 },
+    dimColor: { r: 180, g: 110, b: 40 },
+  };
+
+  // Splashes
+  const splashes = [];
+  const SPLASH_MAX = 80;
+
+  function spawnSplash(x, y) {
+    if (splashes.length >= SPLASH_MAX) splashes.shift();
+    splashes.push({
+      x, y,
+      life: 1,
+      radius: rand(2, 6),
+      opacity: rand(0.3, 0.6),
+    });
+  }
+
+  // Motes
+  const motes = [];
+  const MOTE_MAX = 40;
+
+  function spawnMote() {
+    if (motes.length >= MOTE_MAX) motes.shift();
+    const lx = lantern.x();
+    const ly = lantern.y();
+    const angle = rand(0, Math.PI * 2);
+    const dist = rand(lantern.radius * 0.8, lantern.radius * 2.5);
+    motes.push({
+      x: lx + Math.cos(angle) * dist,
+      y: ly + Math.sin(angle) * dist - rand(10, 40),
+      vx: Math.cos(angle) * rand(0.1, 0.4),
+      vy: -rand(0.15, 0.6),
+      radius: rand(1, 3),
+      opacity: rand(0.1, 0.4),
+      life: 1,
+      decay: rand(0.003, 0.008),
+    });
+  }
+
+  // Audio
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      data[i] = (lastOut + 0.02 * white) / 1.02;
+      lastOut = data[i];
+      data[i] *= 3.5;
+    }
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    rainGain = audioCtx.createGain();
+    rainGain.gain.value = 0;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    source.connect(filter);
+    filter.connect(rainGain);
+    rainGain.connect(audioCtx.destination);
+    source.start();
+  }
+
+  // Drawing
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0e1320');
+    g.addColorStop(0.3, '#131a28');
+    g.addColorStop(0.7, '#151d2c');
+    g.addColorStop(1, '#1a2235');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    const groundY = H * 0.78;
+    const groundG = ctx.createRadialGradient(W / 2, groundY, 0, W / 2, groundY, W * 0.5);
+    groundG.addColorStop(0, 'rgba(255, 180, 60, 0.04)');
+    groundG.addColorStop(1, 'rgba(255, 180, 60, 0)');
+    ctx.fillStyle = groundG;
+    ctx.fillRect(0, groundY - 20, W, H - groundY + 20);
+  }
+
+  function drawString() {
+    const lx = lantern.x();
+    const ly = lantern.y();
+    const sl = lantern.stringLength();
+    ctx.save();
+    ctx.strokeStyle = '#2a3040';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(lx, -5);
+    ctx.quadraticCurveTo(lx + Math.sin(lanternSway) * 3, sl * 0.5, lx, sl);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLanternBody(cx, cy, r) {
+    ctx.save();
+    const bodyH = r * 1.4;
+    const bodyW = r * 1.1;
+    const glowIntensity = shieldIntensity > 0.5
+      ? lerp(0.6, 1, flameSteadiness)
+      : 0.6 + flameSteadiness * 0.4;
+
+    // Outer glow
+    const glowG = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 3.5);
+    const baseR = lerp(lantern.dimColor.r, lantern.color.r, glowIntensity);
+    const baseG = lerp(lantern.dimColor.g, lantern.color.g, glowIntensity);
+    const baseB = lerp(lantern.dimColor.b, lantern.color.b, glowIntensity);
+    glowG.addColorStop(0, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.25 * glowIntensity})`);
+    glowG.addColorStop(0.3, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.1 * glowIntensity})`);
+    glowG.addColorStop(0.6, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.03 * glowIntensity})`);
+    glowG.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = glowG;
+    ctx.fillRect(cx - r * 4, cy - r * 5, r * 8, r * 10);
+
+    // Paper body
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, bodyW, bodyH, 0, 0, Math.PI * 2);
+    const paperG = ctx.createRadialGradient(cx, cy, 0, cx, cy, bodyH);
+    const pr = lerp(180, 220, glowIntensity);
+    const pg = lerp(120, 165, glowIntensity);
+    const pb = lerp(50, 70, glowIntensity);
+    paperG.addColorStop(0, `rgba(${pr + 40}, ${pg + 40}, ${pb + 20}, 0.95)`);
+    paperG.addColorStop(0.5, `rgba(${pr}, ${pg}, ${pb}, 0.9)`);
+    paperG.addColorStop(1, `rgba(${pr - 30}, ${pg - 30}, ${pb - 10}, 0.85)`);
+    ctx.fillStyle = paperG;
+    ctx.fill();
+
+    // Paper ribs
+    ctx.strokeStyle = `rgba(${pr - 50}, ${pg - 50}, ${pb - 20}, 0.3)`;
+    ctx.lineWidth = 0.8;
+    for (let i = -4; i <= 4; i++) {
+      const xOff = (i / 5) * bodyW * 0.85;
+      ctx.beginPath();
+      ctx.moveTo(cx + xOff, cy - bodyH * 0.85);
+      ctx.quadraticCurveTo(cx + xOff + Math.sin(time * 0.5 + i) * 1.5, cy, cx + xOff, cy + bodyH * 0.85);
+      ctx.stroke();
+    }
+
+    // Caps
+    ctx.fillStyle = '#3a2a18';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - bodyH * 0.82, bodyW * 0.55, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + bodyH * 0.82, bodyW * 0.55, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tassel
+    ctx.strokeStyle = '#8a4020';
+    ctx.lineWidth = 1.2;
+    const tasselY = cy + bodyH * 0.82 + 5;
+    ctx.beginPath();
+    ctx.moveTo(cx, tasselY);
+    ctx.quadraticCurveTo(cx - 3, tasselY + 20, cx - 5, tasselY + 28);
+    ctx.moveTo(cx, tasselY);
+    ctx.quadraticCurveTo(cx + 2, tasselY + 22, cx + 4, tasselY + 30);
+    ctx.moveTo(cx, tasselY);
+    ctx.quadraticCurveTo(cx, tasselY + 24, cx, tasselY + 32);
+    ctx.moveTo(cx, tasselY);
+    ctx.quadraticCurveTo(cx + 5, tasselY + 20, cx + 7, tasselY + 26);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawFlame(cx, cy, r) {
+    ctx.save();
+    const flicker = Math.sin(time * 8) * 0.15 + Math.sin(time * 13) * 0.1;
+    const steadyBoost = flameSteadiness * 0.4;
+    const flameH = r * (0.5 + flicker + steadyBoost);
+    const flameW = r * 0.3 * (1 + flicker * 0.5);
+
+    const flameG = ctx.createRadialGradient(cx, cy - flameH * 0.3, 0, cx, cy - flameH * 0.3, flameH);
+    flameG.addColorStop(0, `rgba(255, 240, 180, ${0.9 + flameSteadiness * 0.1})`);
+    flameG.addColorStop(0.3, `rgba(255, 200, 80, ${0.7 + flameSteadiness * 0.15})`);
+    flameG.addColorStop(0.6, `rgba(255, 140, 30, ${0.4})`);
+    flameG.addColorStop(1, 'rgba(255, 80, 10, 0)');
+
+    ctx.globalAlpha = lerp(0.6, 1, glowIntensityForFlame());
+    ctx.fillStyle = flameG;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + flameH * 0.3);
+    ctx.quadraticCurveTo(cx - flameW, cy - flameH * 0.1, cx, cy - flameH);
+    ctx.quadraticCurveTo(cx + flameW, cy - flameH * 0.1, cx, cy + flameH * 0.3);
+    ctx.fill();
+
+    const coreG = ctx.createRadialGradient(cx, cy - flameH * 0.3, 0, cx, cy - flameH * 0.3, flameH * 0.4);
+    coreG.addColorStop(0, 'rgba(255, 255, 230, 0.95)');
+    coreG.addColorStop(0.5, 'rgba(255, 230, 150, 0.4)');
+    coreG.addColorStop(1, 'rgba(255, 200, 100, 0)');
+    ctx.fillStyle = coreG;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - flameH * 0.3, flameW * 0.4, flameH * 0.35, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function glowIntensityForFlame() {
+    if (shielding) return lerp(0.3, 0.6, flameSteadiness);
+    return lerp(0.5, 1, flameSteadiness);
+  }
+
+  function drawRain() {
+    ctx.save();
+    for (const drop of raindrops) {
+      const alpha = drop.opacity * (shielding ? 0.6 : 1);
+      ctx.strokeStyle = `rgba(170, 185, 205, ${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(drop.x, drop.y);
+      ctx.lineTo(drop.x + drop.wind * 2, drop.y + drop.length);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawSplashes() {
+    ctx.save();
+    for (const s of splashes) {
+      ctx.strokeStyle = `rgba(190, 200, 220, ${s.opacity * s.life})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, s.radius * s.life, s.radius * s.life * 0.3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawMotes() {
+    ctx.save();
+    for (const m of motes) {
+      const glowI = glowIntensityForFlame();
+      ctx.fillStyle = `rgba(255, ${180 + Math.floor(flameSteadiness * 40)}, ${60 + Math.floor(flameSteadiness * 30)}, ${m.opacity * m.life * glowI})`;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawGrain() {
+    ctx.save();
+    const grainIntensity = 0.035;
+    for (let y = 0; y < H; y += 3) {
+      for (let x = 0; x < W; x += 3) {
+        const v = noise(x * 0.05, y * 0.05 + time * 0.3);
+        const alpha = (v - 0.5) * grainIntensity;
+        if (Math.abs(alpha) > 0.005) {
+          ctx.fillStyle = alpha > 0 ? `rgba(255,255,255,${alpha})` : `rgba(0,0,0,${-alpha})`;
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawVignette() {
+    const g = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.75);
+    g.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    g.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawShield() {
+    if (shieldIntensity <= 0) return;
+    const cx = lantern.x();
+    const cy = lantern.y();
+    const r = lantern.radius * 1.2;
+
+    ctx.save();
+    const shieldG = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.5);
+    shieldG.addColorStop(0, `rgba(60, 50, 40, ${shieldIntensity * 0.6})`);
+    shieldG.addColorStop(0.6, `rgba(40, 35, 30, ${shieldIntensity * 0.3})`);
+    shieldG.addColorStop(1, 'rgba(30, 25, 20, 0)');
+    ctx.fillStyle = shieldG;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = `rgba(80, 60, 45, ${shieldIntensity * 0.35})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r * 0.6, r * 0.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // Update
+  function update(dt) {
+    time += dt;
+
+    lanternSwayTarget += (Math.random() - 0.5) * 0.02;
+    lanternSwayTarget = clamp(lanternSwayTarget, -0.08, 0.08);
+    lanternSway += (lanternSwayTarget - lanternSway) * 0.02;
+    lanternSwayTarget += Math.sin(time * 0.3) * 0.0005;
+
+    if (shielding) {
+      shieldIntensity = Math.min(1, shieldIntensity + dt * 3);
+      patienceMeter = Math.min(1, patienceMeter + dt * 0.25);
+    } else {
+      shieldIntensity = Math.max(0, shieldIntensity - dt * 2);
+      flameSteadiness = Math.min(1, flameSteadiness + patienceMeter * dt * 0.8);
+      patienceMeter = Math.max(0, patienceMeter - dt * 0.15);
+      flameSteadiness = Math.max(0, flameSteadiness - dt * 0.03);
+    }
+
+    for (const drop of raindrops) {
+      drop.y += drop.speed * 60 * dt;
+      drop.x += drop.wind * 60 * dt;
+      if (drop.y > H + 20) {
+        drop.y = -20;
+        drop.x = rand(-50, W + 50);
+      }
+      if (drop.x < -60) drop.x = W + 40;
+      if (drop.x > W + 60) drop.x = -50;
+
+      if (!shielding && shieldIntensity < 0.3) {
+        const lx = lantern.x();
+        const ly = lantern.y();
+        const dx = drop.x - lx;
+        const dy = drop.y - ly;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < lantern.radius * 0.9 && drop.y > ly - lantern.radius && drop.y < ly + lantern.radius) {
+          spawnSplash(drop.x, drop.y);
+          flameSteadiness = Math.max(0, flameSteadiness - 0.02);
+        }
+      }
+    }
+
+    for (let i = splashes.length - 1; i >= 0; i--) {
+      splashes[i].life -= dt * 2.5;
+      if (splashes[i].life <= 0) splashes.splice(i, 1);
+    }
+
+    if (Math.random() < 0.08) spawnMote();
+    for (let i = motes.length - 1; i >= 0; i--) {
+      const m = motes[i];
+      m.x += m.vx;
+      m.y += m.vy;
+      m.life -= m.decay;
+      if (m.life <= 0) motes.splice(i, 1);
+    }
+
+    if (rainGain && audioStarted) {
+      rainGain.gain.setTargetAtTime(shielding ? 0.08 : 0.18, audioCtx.currentTime, 0.3);
+    }
+  }
+
+  // Render
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    drawBackground();
+    drawString();
+    drawRain();
+    drawSplashes();
+    const lx = lantern.x();
+    const ly = lantern.y();
+    drawLanternBody(lx, ly, lantern.radius);
+    drawFlame(lx, ly, lantern.radius);
+    drawShield();
+    drawMotes();
+    drawVignette();
+    drawGrain();
+  }
+
+  // Loop
+  let lastTime = 0;
+
+  function loop(timestamp) {
+    if (!started) return;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function startGame() {
+    started = true;
+    document.getElementById('start-overlay').classList.add('hidden');
+    initAudio();
+    audioStarted = true;
+    setTimeout(() => {
+      document.getElementById('hint').classList.add('show');
+      hintShown = true;
+    }, 3000);
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  // Input
+  function onPointerDown(e) {
+    if (!started) { startGame(); return; }
+    shielding = true;
+  }
+
+  function onPointerUp() {
+    shielding = false;
+  }
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointerleave', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onPointerDown(e); }, { passive: false });
+  canvas.addEventListener('touchend', onPointerUp);
+  canvas.addEventListener('touchcancel', onPointerUp);
+  document.getElementById('start-overlay').addEventListener('click', () => { if (!started) startGame(); });
+  document.getElementById('start-overlay').addEventListener('touchend', (e) => { e.preventDefault(); if (!started) startGame(); });
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // Idle rendering
+  function renderIdle() {
+    ctx.clearRect(0, 0, W, H);
+    drawBackground();
+    drawString();
+    drawRain();
+    drawSplashes();
+    const lx = lantern.x();
+    const ly = lantern.y();
+    drawLanternBody(lx, ly, lantern.radius);
+    drawFlame(lx, ly, lantern.radius);
+    drawVignette();
+    drawGrain();
+  }
+
+  let idleLoopLast = 0;
+  function idleLoop(timestamp) {
+    if (started) return;
+    const dt = Math.min((timestamp - (idleLoopLast || timestamp)) / 1000, 0.05);
+    idleLoopLast = timestamp;
+    if (!hintShown) { time += dt * 0.3; }
+    for (const drop of raindrops) {
+      drop.y += drop.speed * 30 * dt;
+      drop.x += drop.wind * 30 * dt;
+      if (drop.y > H + 20) { drop.y = -20; drop.x = rand(-50, W + 50); }
+      if (drop.x < -60) drop.x = W + 40;
+      if (drop.x > W + 60) drop.x = -50;
+    }
+    renderIdle();
+    requestAnimationFrame(idleLoop);
+  }
+
+  requestAnimationFrame(idleLoop);
+})();
+</script>
+</body>
+</html>
