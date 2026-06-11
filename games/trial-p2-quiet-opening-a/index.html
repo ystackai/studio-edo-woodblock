@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<title>松 — A Lone Pine on the Sea Cliff</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#f0ebe3}
+  canvas{display:block;position:absolute;top:0;left:0}
+  #c-paper{z-index:0}
+  #c-scene{z-index:1}
+  #c-fog1{z-index:2}
+  #c-fog2{z-index:3}
+  #c-fog3{z-index:4}
+  #c-grain{z-index:5;opacity:0.22;pointer-events:none}
+  #c-vignette{z-index:6;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c-paper"></canvas>
+<canvas id="c-scene"></canvas>
+<canvas id="c-fog1"></canvas>
+<canvas id="c-fog2"></canvas>
+<canvas id="c-fog3"></canvas>
+<canvas id="c-grain"></canvas>
+<canvas id="c-vignette"></canvas>
+<script>
+'use strict';
+
+/* ────────────── helpers ────────────── */
+const TAU = Math.PI * 2;
+function rand(a, b) { return a + Math.random() * (b - a); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+/* ────────────── sizing ────────────── */
+const W = () => window.innerWidth;
+const H = () => window.innerHeight;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+function sizeCanvas(c) {
+  c.width = W() * DPR;
+  c.height = H() * DPR;
+  c.style.width = W() + 'px';
+  c.style.height = H() + 'px';
+  const ctx = c.getContext('2d');
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* ────────────── paper texture (static) ────────────── */
+function drawPaper() {
+  const c = document.getElementById('c-paper');
+  const ctx = sizeCanvas(c);
+  const w = W(), h = H();
+
+  // warm washi base
+  ctx.fillStyle = '#ede7db';
+  ctx.fillRect(0, 0, w, h);
+
+  // subtle fiber texture
+  for (let i = 0; i < 6000; i++) {
+    const x = rand(0, w), y = rand(0, h);
+    const len = rand(2, 18);
+    const angle = rand(0, TAU);
+    const alpha = rand(0.01, 0.06);
+    ctx.strokeStyle = `rgba(${rand(140,180)|0},${rand(130,170)|0},${rand(110,155)|0},${alpha})`;
+    ctx.lineWidth = rand(0.3, 1.2);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+    ctx.stroke();
+  }
+
+  // scattered dots (fiber cross-sections)
+  for (let i = 0; i < 2000; i++) {
+    const x = rand(0, w), y = rand(0, h);
+    const r = rand(0.4, 2.2);
+    ctx.fillStyle = `rgba(${rand(120,170)|0},${rand(110,160)|0},${rand(90,140)|0},${rand(0.02, 0.08)})`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TAU);
+    ctx.fill();
+  }
+
+  // gentle horizontal creases
+  for (let i = 0; i < 3; i++) {
+    const y = rand(h * 0.15, h * 0.85);
+    const grad = ctx.createLinearGradient(0, y - 8, 0, y + 8);
+    grad.addColorStop(0, 'rgba(160,150,130,0)');
+    grad.addColorStop(0.5, 'rgba(160,150,130,0.04)');
+    grad.addColorStop(1, 'rgba(160,150,130,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, y - 8, w, 16);
+  }
+}
+
+/* ────────────── grain overlay (static, subtle) ────────────── */
+function drawGrain() {
+  const c = document.getElementById('c-grain');
+  const ctx = sizeCanvas(c);
+  const w = W(), h = H();
+
+  const imgData = ctx.createImageData(w * DPR, h * DPR);
+  const d = imgData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = rand(150, 210) | 0;
+    d[i] = v; d[i+1] = v; d[i+2] = v;
+    d[i+3] = rand(0, 40) | 0;
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+/* ────────────── scene (cliff, pine, sea, sky) ────────────── */
+function drawScene() {
+  const c = document.getElementById('c-scene');
+  const ctx = sizeCanvas(c);
+  const w = W(), h = H();
+
+  /* ── sky ── */
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+  sky.addColorStop(0, '#c8c4bc');
+  sky.addColorStop(0.3, '#d5d0c6');
+  sky.addColorStop(0.6, '#e2ddd3');
+  sky.addColorStop(1, '#ede7db');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h * 0.55);
+
+  /* subtle distant sun glow, almost imperceptible */
+  const sunX = w * 0.35, sunY = h * 0.18;
+  const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, h * 0.25);
+  sunGlow.addColorStop(0, 'rgba(235,228,210,0.5)');
+  sunGlow.addColorStop(0.4, 'rgba(235,228,210,0.15)');
+  sunGlow.addColorStop(1, 'rgba(235,228,210,0)');
+  ctx.fillStyle = sunGlow;
+  ctx.fillRect(0, 0, w, h * 0.5);
+
+  /* ── distant mountains (ink wash) ── */
+  function drawDistantMtn(baseY, amplitude, color, count) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let i = 0; i <= w; i += 3) {
+      let y = baseY;
+      for (let j = 0; j < count; j++) {
+        const freq = 0.003 + j * 0.004;
+        const amp = amplitude / (1 + j * 0.8);
+        const phase = j * 1.7;
+        y += Math.sin(i * freq + phase) * amp;
+      }
+      ctx.lineTo(i, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  drawDistantMtn(h * 0.38, h * 0.04, 'rgba(170,175,185,0.25)', 3);
+  drawDistantMtn(h * 0.40, h * 0.03, 'rgba(155,160,175,0.2)', 2);
+
+  /* ── sea ── */
+  const seaTop = h * 0.52;
+  const sea = ctx.createLinearGradient(0, seaTop, 0, h);
+  sea.addColorStop(0, '#6b8299');
+  sea.addColorStop(0.15, '#5a7489');
+  sea.addColorStop(0.4, '#4a6378');
+  sea.addColorStop(0.7, '#3b5266');
+  sea.addColorStop(1, '#2d3f53');
+  ctx.fillStyle = sea;
+  ctx.fillRect(0, seaTop, w, h - seaTop);
+
+  /* subtle wave lines */
+  for (let row = 0; row < 12; row++) {
+    const y = seaTop + row * ((h - seaTop) / 12);
+    ctx.strokeStyle = `rgba(${rand(100,140)|0},${rand(130,160)|0},${rand(165,190)|0},${rand(0.06,0.14)})`;
+    ctx.lineWidth = rand(0.5, 1.5);
+    ctx.beginPath();
+    for (let x = 0; x <= w; x += 4) {
+      const wave = Math.sin(x * 0.008 + row * 0.7) * rand(2, 6)
+                 + Math.sin(x * 0.02 + row * 1.3) * rand(1, 3);
+      if (x === 0) ctx.moveTo(x, y + wave);
+      else ctx.lineTo(x, y + wave);
+    }
+    ctx.stroke();
+  }
+
+  /* sea foam near horizon */
+  ctx.fillStyle = 'rgba(210,215,220,0.15)';
+  ctx.fillRect(0, seaTop - 2, w, 6);
+
+  /* ── cliff (right side, rising from sea) ── */
+  const cliffBase = h * 0.48;
+  const cliffTop = h * 0.15;
+  const cliffEdgeX = w * 0.55;
+
+  // cliff body - dark indigo/charcoal
+  ctx.fillStyle = '#2a2e35';
+  ctx.beginPath();
+  ctx.moveTo(cliffEdgeX - 40, h);
+  ctx.lineTo(cliffEdgeX + 20, cliffBase + 10);
+  ctx.lineTo(cliffEdgeX + 50, cliffBase - 20);
+  ctx.lineTo(cliffEdgeX + 35, cliffTop + 60);
+  ctx.lineTo(cliffEdgeX + 15, cliffTop + 20);
+  ctx.lineTo(cliffEdgeX - 25, cliffTop);
+  ctx.lineTo(cliffEdgeX - 60, cliffTop + 15);
+  ctx.lineTo(cliffEdgeX - 100, cliffTop + 50);
+  ctx.lineTo(cliffEdgeX - 130, cliffTop + 80);
+  ctx.lineTo(cliffEdgeX - 160, cliffBase - 10);
+  ctx.lineTo(cliffEdgeX - 140, cliffBase + 30);
+  ctx.lineTo(cliffEdgeX - 120, h);
+  ctx.closePath();
+  ctx.fill();
+
+  // cliff texture - horizontal striations
+  for (let i = 0; i < 25; i++) {
+    const y = cliffTop + rand(10, h - cliffTop);
+    const x1 = rand(cliffEdgeX - 160, cliffEdgeX + 50);
+    const x2 = x1 + rand(15, 80);
+    ctx.strokeStyle = `rgba(${rand(35,55)|0},${rand(40,60)|0},${rand(48,68)|0},${rand(0.1,0.3)})`;
+    ctx.lineWidth = rand(0.5, 2.5);
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y + rand(-3, 3));
+    ctx.stroke();
+  }
+
+  // cliff face shading
+  const cliffShade = ctx.createLinearGradient(cliffEdgeX - 100, 0, cliffEdgeX + 60, 0);
+  cliffShade.addColorStop(0, 'rgba(20,22,28,0.3)');
+  cliffShade.addColorStop(0.5, 'rgba(30,34,42,0)');
+  cliffShade.addColorStop(1, 'rgba(40,46,55,0.2)');
+  ctx.fillStyle = cliffShade;
+  ctx.beginPath();
+  ctx.moveTo(cliffEdgeX - 40, h);
+  ctx.lineTo(cliffEdgeX + 20, cliffBase + 10);
+  ctx.lineTo(cliffEdgeX + 50, cliffBase - 20);
+  ctx.lineTo(cliffEdgeX + 35, cliffTop + 60);
+  ctx.lineTo(cliffEdgeX + 15, cliffTop + 20);
+  ctx.lineTo(cliffEdgeX - 25, cliffTop);
+  ctx.lineTo(cliffEdgeX - 60, cliffTop + 15);
+  ctx.lineTo(cliffEdgeX - 100, cliffTop + 50);
+  ctx.lineTo(cliffEdgeX - 130, cliffTop + 80);
+  ctx.lineTo(cliffEdgeX - 160, cliffBase - 10);
+  ctx.lineTo(cliffEdgeX - 140, cliffBase + 30);
+  ctx.lineTo(cliffEdgeX - 120, h);
+  ctx.closePath();
+  ctx.fill();
+
+  /* ── pine tree (on cliff top, left of cliff edge) ── */
+  const pineX = cliffEdgeX - 85;
+  const pineBaseY = cliffTop + 12;
+  const treeH = h * 0.22;
+
+  function drawPineTrunk(ctx, x, baseY, height) {
+    const trunkW = 5 + height * 0.02;
+
+    // trunk - slightly curved
+    ctx.strokeStyle = '#1a1e24';
+    ctx.lineWidth = trunkW;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - 3, baseY);
+    ctx.quadraticCurveTo(x - 2, baseY - height * 0.3, x + 1, baseY - height * 0.6);
+    ctx.quadraticCurveTo(x + 2, baseY - height * 0.8, x, baseY - height);
+    ctx.stroke();
+
+    // trunk texture
+    for (let i = 0; i < 8; i++) {
+      const t = rand(0.15, 0.85);
+      const ty = baseY - height * t;
+      const tx = lerp(x - 3, x, t) + rand(-2, 2);
+      ctx.strokeStyle = `rgba(${rand(25,40)|0},${rand(28,44)|0},${rand(35,50)|0},${rand(0.15, 0.35)})`;
+      ctx.lineWidth = rand(0.3, 1.0);
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx + rand(-3, 3), ty + rand(4, 15));
+      ctx.stroke();
+    }
+  }
+
+  function drawPineBranch(ctx, x, y, length, angle, depth, trunkW) {
+    if (depth > 4) return;
+    if (length < 4) return;
+
+    const endX = x + Math.cos(angle) * length;
+    const endY = y + Math.sin(angle) * length;
+
+    ctx.strokeStyle = `rgba(${rand(18,30)|0},${rand(22,35)|0},${rand(28,42)|0},${0.7 + depth * 0.06})`;
+    ctx.lineWidth = Math.max(0.5, (5 - depth) * trunkW * 0.15);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+
+    // slightly organic curve
+    const cpx = (x + endX) / 2 + rand(-length * 0.1, length * 0.1);
+    const cpy = (y + endY) / 2 + rand(-length * 0.05, length * 0.05);
+    ctx.quadraticCurveTo(cpx, cpy, endX, endY);
+    ctx.stroke();
+
+    // foliage clusters at branch ends (when deep enough)
+    if (depth >= 2) {
+      drawFoliageCluster(ctx, endX, endY, length * rand(0.6, 1.2), depth);
+    }
+
+    // sub-branches
+    const numBranches = depth < 2 ? randInt(2, 3) : randInt(1, 2);
+    for (let i = 0; i < numBranches; i++) {
+      const newLen = length * rand(0.45, 0.65);
+      const angleOff = rand(-0.9, 0.9);
+      drawPineBranch(ctx, endX, endY, newLen, angle + angleOff, depth + 1, trunkW);
+    }
+  }
+
+  function randInt(a, b) { return a + Math.random() * (b - a) | 0; }
+
+  function drawFoliageCluster(ctx, x, y, size, depth) {
+    // Ukiyo-e style: needle clusters as overlapping teardrops
+    const count = randInt(2, 4);
+    for (let i = 0; i < count; i++) {
+      const angle = rand(0, TAU);
+      const dist = rand(0, size * 0.3);
+      const fx = x + Math.cos(angle) * dist;
+      const fy = y + Math.sin(angle) * dist;
+      const r = size * rand(0.3, 0.7);
+
+      // needle cluster shape
+      ctx.fillStyle = `rgba(${rand(20,35)|0},${rand(28,48)|0},${rand(35,55)|0},${rand(0.5, 0.8)})`;
+      ctx.beginPath();
+      ctx.ellipse(fx, fy, r * 1.8, r * 0.6, rand(-0.3, 0.3), 0, TAU);
+      ctx.fill();
+    }
+  }
+
+  // Draw trunk
+  drawPineTrunk(ctx, pineX, pineBaseY, treeH);
+
+  // Draw branches (asymmetrical — pine leans left, toward the sea)
+  const branchAngles = [
+    { a: -0.8, l: treeH * 0.45, d: 0 },
+    { a: -1.1, l: treeH * 0.35, d: 0 },
+    { a: 0.4, l: treeH * 0.25, d: 0 },
+    { a: -0.5, l: treeH * 0.5, d: 0 },
+    { a: -1.3, l: treeH * 0.2, d: 0 },
+  ];
+
+  for (const b of branchAngles) {
+    const by = pineBaseY - treeH * rand(0.2, 0.7);
+    drawPineBranch(ctx, pineX + rand(-2, 2), by, b.l, b.a, b.d, 5);
+  }
+
+  // Additional canopy mass — broader foliage sweep
+  const canopyY = pineBaseY - treeH * 0.65;
+  for (let i = 0; i < 6; i++) {
+    const cx = pineX + rand(-treeH * 0.6, treeH * 0.2);
+    const cy = canopyY + rand(-treeH * 0.15, treeH * 0.2);
+    const rx = rand(treeH * 0.12, treeH * 0.25);
+    const ry = rand(treeH * 0.04, treeH * 0.1);
+    ctx.fillStyle = `rgba(${rand(18,32)|0},${rand(25,42)|0},${rand(32,50)|0},${rand(0.4, 0.7)})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, rand(-0.5, 0.2), 0, TAU);
+    ctx.fill();
+  }
+
+  /* ── small secondary pine (optional, much smaller) ── */
+  const smallPineX = cliffEdgeX + 25;
+  const smallPineY = cliffTop + 40;
+  const smallTreeH = treeH * 0.35;
+  ctx.strokeStyle = '#1a1e24';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(smallPineX, smallPineY);
+  ctx.quadraticCurveTo(smallPineX + 2, smallPineY - smallTreeH * 0.5, smallPineX - 1, smallPineY - smallTreeH);
+  ctx.stroke();
+  for (let i = 0; i < 3; i++) {
+    const sx = smallPineX + rand(-smallTreeH * 0.3, smallTreeH * 0.15);
+    const sy = smallPineY - smallTreeH * rand(0.3, 0.8);
+    const rx = rand(smallTreeH * 0.08, smallTreeH * 0.18);
+    const ry = rand(smallTreeH * 0.03, smallTreeH * 0.07);
+    ctx.fillStyle = `rgba(${rand(20,35)|0},${rand(28,45)|0},${rand(35,52)|0},${rand(0.4, 0.65)})`;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, rx, ry, rand(-0.3, 0.2), 0, TAU);
+    ctx.fill();
+  }
+
+  /* ── a few distant birds ── */
+  const birdTime = Date.now() * 0.0003;
+  for (let i = 0; i < 4; i++) {
+    const bx = w * 0.15 + i * rand(30, 60) + Math.sin(birdTime + i * 1.5) * 15;
+    const by = h * 0.12 + Math.sin(birdTime * 0.7 + i * 2.1) * 12 + i * 10;
+    const bw = rand(8, 14);
+    ctx.strokeStyle = 'rgba(40,44,52,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx - bw, by + 2);
+    ctx.quadraticCurveTo(bx - bw * 0.3, by - 3, bx, by);
+    ctx.quadraticCurveTo(bx + bw * 0.3, by - 3, bx + bw, by + 2);
+    ctx.stroke();
+  }
+}
+
+/* ────────────── fog layers ────────────── */
+class FogLayer {
+  constructor(canvasId, speed, baseAlpha, scale, phase) {
+    this.c = document.getElementById(canvasId);
+    this.speed = speed;
+    this.baseAlpha = baseAlpha;
+    this.scale = scale;
+    this.phase = phase;
+    this.ptr = { x: -9999, y: -9999, active: false };
+    this.ctx = null;
+    this.noiseCanvas = null;
+  }
+
+  init() {
+    this.ctx = sizeCanvas(this.c);
+    // Pre-render fog texture
+    this.noiseCanvas = this.renderNoise();
+  }
+
+  renderNoise() {
+    const nc = document.createElement('canvas');
+    const s = this.scale;
+    nc.width = s;
+    nc.height = s;
+    const nctx = nc.getContext('2d');
+
+    // Build soft fog using layered radial gradients
+    const numClouds = 15 + (s / 80) | 0;
+    for (let i = 0; i < numClouds; i++) {
+      const cx = rand(0, s);
+      const cy = rand(0, s);
+      const r = rand(s * 0.08, s * 0.25);
+      const grad = nctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      const a = rand(0.15, 0.45);
+      grad.addColorStop(0, `rgba(230,227,220,${a})`);
+      grad.addColorStop(0.6, `rgba(230,227,220,${a * 0.4})`);
+      grad.addColorStop(1, 'rgba(230,227,220,0)');
+      nctx.fillStyle = grad;
+      nctx.fillRect(0, 0, s, s);
+    }
+
+    return nc;
+  }
+
+  setPointer(x, y, active) {
+    this.ptr.x = x;
+    this.ptr.y = y;
+    this.ptr.active = active;
+  }
+
+  draw(t) {
+    const w = W(), h = H();
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, w, h);
+
+    const ox = t * this.speed + this.phase;
+    const oy = Math.sin(t * this.speed * 0.3 + this.phase) * 15;
+
+    // Draw fog patches, tiled
+    const patchW = this.scale * 1.5;
+    const patchH = this.scale * 1.5;
+    const cols = Math.ceil(w / patchW) + 2;
+    const rows = Math.ceil(h / patchH) + 2;
+
+    for (let col = -1; col < cols; col++) {
+      for (let row = -1; row < rows; row++) {
+        const px = col * patchW - (ox * patchW / this.scale) % patchW;
+        const py = row * patchH + oy;
+
+        ctx.save();
+        ctx.globalAlpha = this.baseAlpha;
+        ctx.drawImage(this.noiseCanvas, px, py, patchW, patchH);
+        ctx.restore();
+      }
+    }
+
+    // Pointer fog-displacement: draw a cleared circle with soft edges
+    if (this.ptr.active) {
+      const grad = ctx.createRadialGradient(
+        this.ptr.x, this.ptr.y, 0,
+        this.ptr.x, this.ptr.y, 120
+      );
+      grad.addColorStop(0, `rgba(237,231,219,0.5)`);
+      grad.addColorStop(0.5, `rgba(237,231,219,0.15)`);
+      grad.addColorStop(1, 'rgba(237,231,219,0)');
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(this.ptr.x, this.ptr.y, 120, 0, TAU);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+/* ────────────── vignette ────────────── */
+function drawVignette() {
+  const c = document.getElementById('c-vignette');
+  const ctx = sizeCanvas(c);
+  const w = W(), h = H();
+  const grad = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.25, w / 2, h / 2, Math.max(w, h) * 0.75);
+  grad.addColorStop(0, 'rgba(237,231,219,0)');
+  grad.addColorStop(0.6, 'rgba(237,231,219,0)');
+  grad.addColorStop(0.85, 'rgba(210,200,185,0.25)');
+  grad.addColorStop(1, 'rgba(185,175,160,0.4)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+}
+
+/* ────────────── setup & loop ────────────── */
+const fogLayers = [
+  new FogLayer('c-fog1', 8, 0.55, 400, 0),
+  new FogLayer('c-fog2', 13, 0.35, 500, 200),
+  new FogLayer('c-fog3', 5, 0.25, 350, 400),
+];
+
+let pointerX = -9999, pointerY = -9999, pointerActive = false;
+
+function init() {
+  drawPaper();
+  drawScene();
+  drawGrain();
+  drawVignette();
+  for (const fl of fogLayers) fl.init();
+}
+
+function onPointerMove(e) {
+  pointerX = e.clientX;
+  pointerY = e.clientY;
+  pointerActive = true;
+  for (const fl of fogLayers) fl.setPointer(pointerX, pointerY, true);
+}
+
+function onPointerLeave() {
+  pointerActive = false;
+  for (const fl of fogLayers) fl.setPointer(-9999, -9999, false);
+}
+
+window.addEventListener('mousemove', onPointerMove, { passive: true });
+window.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 0) {
+    const t = e.touches[0];
+    onPointerMove({ clientX: t.clientX, clientY: t.clientY });
+  }
+}, { passive: true });
+window.addEventListener('mouseleave', onPointerLeave);
+
+// Redraw scene on resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { init(); }, 300);
+});
+
+init();
+
+// Animation loop — only fog moves
+let lastTime = performance.now();
+function loop(now) {
+  const t = now * 0.001; // seconds
+  for (const fl of fogLayers) fl.draw(t);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
