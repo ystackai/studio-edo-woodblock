@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Living Print — Wave Horizon</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #e8e0d0;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: crosshair;
+  }
+  canvas {
+    display: block;
+    width: 100%; height: 100%;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(function() {
+  'use strict';
+
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+
+  var W, H;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var pressing = false;
+  var pressAmount = 0;
+  var pressTarget = 0;
+  var mouseX = -1000, mouseY = -1000;
+  var time = 0;
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    generatePaperGrain();
+    regenerateMist();
+  }
+
+  // Paper grain texture
+  var paperCanvas, paperCtx;
+  function generatePaperGrain() {
+    paperCanvas = document.createElement('canvas');
+    paperCanvas.width = W;
+    paperCanvas.height = H;
+    paperCtx = paperCanvas.getContext('2d');
+    var imageData = paperCtx.createImageData(W, H);
+    var data = imageData.data;
+    for (var i = 0; i < data.length; i += 4) {
+      var noise = (Math.random() - 0.5) * 18;
+      data[i] = 232 + noise * 0.3;
+      data[i + 1] = 224 + noise * 0.25;
+      data[i + 2] = 208 + noise * 0.2;
+      data[i + 3] = 255;
+    }
+    paperCtx.putImageData(imageData, 0, 0);
+    // Subtle fiber lines
+    paperCtx.globalAlpha = 0.03;
+    paperCtx.strokeStyle = '#8a7e6a';
+    for (var i = 0; i < 40; i++) {
+      var y = Math.random() * H;
+      paperCtx.beginPath();
+      paperCtx.moveTo(0, y);
+      paperCtx.bezierCurveTo(
+        W * 0.3, y + (Math.random() - 0.5) * 8,
+        W * 0.7, y + (Math.random() - 0.5) * 8,
+        W, y + (Math.random() - 0.5) * 4
+      );
+      paperCtx.lineWidth = Math.random() * 0.8 + 0.2;
+      paperCtx.stroke();
+    }
+    paperCtx.globalAlpha = 1;
+  }
+
+  function generateHorizonPoints(count, amplitude, frequency, baseY, phase, irregularity) {
+    var points = [];
+    var step = W / (count - 1);
+    for (var i = 0; i < count; i++) {
+      var x = i * step;
+      var wave = Math.sin(i * frequency + phase) * amplitude
+        + Math.sin(i * frequency * 1.7 + phase * 0.8) * amplitude * 0.4
+        + Math.sin(i * frequency * 0.3 + phase * 2.1) * amplitude * 0.6
+        + (Math.random() - 0.5) * irregularity * amplitude;
+      points.push({ x: x, y: baseY + wave });
+    }
+    return points;
+  }
+
+  function fillHorizon(points, color, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    ctx.lineTo(points[0].x, points[0].y);
+    for (var i = 1; i < points.length - 2; i++) {
+      var xc = (points[i].x + points[i + 1].x) / 2;
+      var yc = (points[i].y + points[i + 1].y) / 2;
+      ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+    }
+    var last = points[points.length - 1];
+    var prev = points[points.length - 2];
+    ctx.quadraticCurveTo(prev.x, prev.y, last.x, last.y);
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Mist particles
+  var mistParticles = [];
+  function regenerateMist() {
+    mistParticles = [];
+    var count = Math.floor(Math.min(W, H) * 0.15) + 20;
+    for (var i = 0; i < count; i++) {
+      mistParticles.push({
+        x: Math.random() * W * 1.5 - W * 0.25,
+        y: Math.random() * H * 0.7 + H * 0.05,
+        radius: Math.random() * 80 + 30,
+        speed: (Math.random() * 0.3 + 0.05) * (Math.random() > 0.5 ? 1 : -1),
+        alpha: Math.random() * 0.06 + 0.015,
+        layer: Math.floor(Math.random() * 3),
+      });
+    }
+  }
+
+  // Ink bleed spots
+  var inkBleedSpots = [];
+  function addInkBleed() {
+    if (inkBleedSpots.length > 15) inkBleedSpots.shift();
+    var horizonY = H * 0.55;
+    inkBleedSpots.push({
+      x: mouseX + (Math.random() - 0.5) * 40,
+      y: horizonY + (Math.random() - 0.5) * 60,
+      radius: Math.random() * 25 + 10,
+      alpha: 0.15 + Math.random() * 0.1,
+      life: 1.0,
+    });
+  }
+
+  // Audio
+  var audioCtx = null;
+  var audioStarted = false;
+  function initAudio() {
+    if (audioStarted) return;
+    audioStarted = true;
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { /* silent */ }
+  }
+
+  var pressNoise = null;
+  var pressGain = null;
+
+  function startPressSound() {
+    if (!audioCtx) return;
+    if (pressNoise) return;
+    pressGain = audioCtx.createGain();
+    pressGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    pressGain.gain.linearRampToValueAtTime(0.015, audioCtx.currentTime + 0.3);
+    pressGain.connect(audioCtx.destination);
+
+    var bufferSize = audioCtx.sampleRate * 2;
+    var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.5;
+      if (i > 0) data[i] = data[i] * 0.1 + data[i - 1] * 0.9;
+    }
+    pressNoise = audioCtx.createBufferSource();
+    pressNoise.buffer = buffer;
+    pressNoise.loop = true;
+
+    var filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 400;
+    filter.Q.value = 0.5;
+
+    pressNoise.connect(filter);
+    filter.connect(pressGain);
+    pressNoise.start();
+  }
+
+  function updatePressSound() {
+    if (!pressGain || !audioCtx) return;
+    var targetVol = pressing ? 0.018 : 0;
+    pressGain.gain.linearRampToValueAtTime(targetVol * pressAmount, audioCtx.currentTime + 0.05);
+  }
+
+  function stopPressSound() {
+    if (!pressGain || !audioCtx) return;
+    pressGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+    setTimeout(function() {
+      if (pressNoise) { try { pressNoise.stop(); } catch(e) {} }
+      pressNoise = null;
+      pressGain = null;
+    }, 600);
+  }
+
+  // Horizon layers
+  var horizon1Points, horizon2Points, horizon3Points;
+
+  function initHorizons() {
+    var baseHorizonY = H * 0.55;
+    horizon1Points = generateHorizonPoints(80, H * 0.06, 0.03, baseHorizonY, 0, 0.3);
+    horizon2Points = generateHorizonPoints(60, H * 0.09, 0.02, baseHorizonY + H * 0.03, 1.5, 0.4);
+    horizon3Points = generateHorizonPoints(50, H * 0.12, 0.015, baseHorizonY + H * 0.06, 3.0, 0.5);
+  }
+
+  function render() {
+    time += 0.016;
+
+    // Paper background
+    ctx.fillStyle = '#e8e0d0';
+    ctx.fillRect(0, 0, W, H);
+
+    // Paper grain
+    ctx.drawImage(paperCanvas, 0, 0, W, H);
+
+    // Vignette
+    var vignette = ctx.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.8);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(30,25,18,0.06)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, W, H);
+
+    // Mist
+    for (var i = 0; i < mistParticles.length; i++) {
+      var p = mistParticles[i];
+      p.x += p.speed;
+      if (p.speed > 0 && p.x > W + p.radius) p.x = -p.radius;
+      if (p.speed < 0 && p.x < -p.radius) p.x = W + p.radius;
+      p.y += Math.sin(time * 0.3 + p.layer) * 0.05;
+
+      var layerAlpha = p.layer === 0 ? 0.5 : p.layer === 1 ? 0.7 : 1;
+      var alpha = p.alpha * layerAlpha;
+
+      var grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+      grad.addColorStop(0, 'rgba(220, 215, 200, ' + alpha + ')');
+      grad.addColorStop(0.6, 'rgba(225, 220, 210, ' + (alpha * 0.5) + ')');
+      grad.addColorStop(1, 'rgba(230, 225, 215, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(p.x - p.radius, p.y - p.radius, p.radius * 2, p.radius * 2);
+    }
+
+    // Ink bleed spots
+    for (var j = 0; j < inkBleedSpots.length; j++) {
+      var spot = inkBleedSpots[j];
+      spot.life -= 0.003;
+      var r = spot.radius * (2 - spot.life);
+      var a = spot.alpha * spot.life * spot.life;
+      var grad2 = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, r);
+      grad2.addColorStop(0, 'rgba(25, 20, 15, ' + a + ')');
+      grad2.addColorStop(0.7, 'rgba(35, 28, 20, ' + (a * 0.4) + ')');
+      grad2.addColorStop(1, 'rgba(40, 35, 25, 0)');
+      ctx.fillStyle = grad2;
+      ctx.beginPath();
+      ctx.arc(spot.x, spot.y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    inkBleedSpots = inkBleedSpots.filter(function(s) { return s.life > 0; });
+
+    // Wave horizons
+    var inkFarAlpha = 0.25 + pressAmount * 0.15;
+    fillHorizon(horizon1Points, '#2a2420', inkFarAlpha);
+
+    var inkMidAlpha = 0.35 + pressAmount * 0.25;
+    fillHorizon(horizon2Points, '#1e1a16', inkMidAlpha);
+
+    var inkNearAlpha = 0.55 + pressAmount * 0.45;
+    fillHorizon(horizon3Points, '#151210', inkNearAlpha);
+
+    // Horizon line on top
+    var lineAlpha = 0.3 + pressAmount * 0.5;
+    ctx.globalAlpha = lineAlpha;
+    ctx.strokeStyle = '#0f0d0b';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(horizon3Points[0].x, horizon3Points[0].y);
+    for (var k = 1; k < horizon3Points.length - 2; k++) {
+      var xc = (horizon3Points[k].x + horizon3Points[k + 1].x) / 2;
+      var yc = (horizon3Points[k].y + horizon3Points[k + 1].y) / 2;
+      ctx.quadraticCurveTo(horizon3Points[k].x, horizon3Points[k].y, xc, yc);
+    }
+    var last3 = horizon3Points[horizon3Points.length - 1];
+    var prev3 = horizon3Points[horizon3Points.length - 2];
+    ctx.quadraticCurveTo(prev3.x, prev3.y, last3.x, last3.y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Ink wash gradient above horizon
+    var washY = H * 0.3;
+    var washGrad = ctx.createLinearGradient(0, washY, 0, H * 0.55);
+    washGrad.addColorStop(0, 'rgba(220, 215, 205, 0)');
+    washGrad.addColorStop(1, 'rgba(200, 195, 185, ' + (0.08 + pressAmount * 0.05) + ')');
+    ctx.fillStyle = washGrad;
+    ctx.fillRect(0, washY, W, H * 0.55 - washY);
+
+    // Pressure ring
+    if (pressAmount > 0.05) {
+      var ringAlpha = pressAmount * 0.12;
+      var ringRadius = 60 + pressAmount * 40;
+      ctx.globalAlpha = ringAlpha;
+      ctx.strokeStyle = '#1a1510';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(mouseX, mouseY + H * 0.1, ringRadius * 1.5, ringRadius * 0.6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  var lastTime = 0;
+  function loop(timestamp) {
+    var delta = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    pressTarget = pressing ? 1 : 0;
+    var easeSpeed = pressing ? 2.5 : 4;
+    pressAmount += (pressTarget - pressAmount) * Math.min(easeSpeed * delta, 1);
+
+    if (pressing && pressAmount > 0.3) {
+      if (Math.random() < pressAmount * 0.4) {
+        addInkBleed();
+      }
+    }
+
+    updatePressSound();
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function onPointerDown(e) {
+    e.preventDefault();
+    initAudio();
+    pressing = true;
+    startPressSound();
+    var t = e.touches ? e.touches[0] : e;
+    mouseX = t.clientX;
+    mouseY = t.clientY;
+  }
+
+  function onPointerMove(e) {
+    var t = e.touches ? e.touches[0] : e;
+    mouseX = t.clientX;
+    mouseY = t.clientY;
+  }
+
+  function onPointerUp(e) {
+    e.preventDefault();
+    pressing = false;
+    stopPressSound();
+  }
+
+  canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+  canvas.addEventListener('pointermove', onPointerMove, { passive: true });
+  canvas.addEventListener('pointerup', onPointerUp, { passive: false });
+  canvas.addEventListener('pointerleave', onPointerUp, { passive: false });
+  canvas.addEventListener('pointercancel', onPointerUp, { passive: false });
+  canvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+  window.addEventListener('resize', resize);
+
+  resize();
+  initHorizons();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
