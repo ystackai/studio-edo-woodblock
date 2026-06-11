@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Living Print — Wave Horizon</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #EDE8DF; }
+  canvas { display: block; width: 100%; height: 100%; cursor: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(() => {
+  "use strict";
+
+  /* ── Canvas Setup ─────────────────────────────────────── */
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  let W, H, dpr;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    generatePaperGrain();
+    initBirds();
+  }
+  window.addEventListener("resize", resize);
+
+  /* ── Paper Grain ──────────────────────────────────────── */
+  let paperCanvas;
+  function generatePaperGrain() {
+    paperCanvas = document.createElement("canvas");
+    paperCanvas.width = canvas.width;
+    paperCanvas.height = canvas.height;
+    const pctx = paperCanvas.getContext("2d");
+
+    pctx.fillStyle = "#EDE8DF";
+    pctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Large-scale warmth variation
+    for (let i = 0; i < 8; i++) {
+      const cx = Math.random() * canvas.width;
+      const cy = Math.random() * canvas.height;
+      const r = canvas.width * (0.15 + Math.random() * 0.25);
+      const g = pctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      const ws = Math.random() > 0.5 ? 8 : -5;
+      g.addColorStop(0, `rgba(${237+ws},${232+ws},${223+ws*0.7},0.3)`);
+      g.addColorStop(1, "rgba(237,232,223,0)");
+      pctx.fillStyle = g;
+      pctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Fiber noise
+    const imgData = pctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (Math.random() - 0.5) * 10;
+      d[i]    = Math.min(255, Math.max(0, d[i]    + n));
+      d[i+1] = Math.min(255, Math.max(0, d[i+1] + n * 0.9));
+      d[i+2] = Math.min(255, Math.max(0, d[i+2] + n * 0.65));
+    }
+    pctx.putImageData(imgData, 0, 0);
+
+    // Cellulose strands
+    pctx.strokeStyle = "rgba(180,170,155,0.12)";
+    pctx.lineWidth = 0.5 * dpr;
+    for (let i = 0; i < 80; i++) {
+      const y = Math.random() * canvas.height;
+      const x1 = Math.random() * canvas.width;
+      const len = 30 * dpr + Math.random() * 120 * dpr;
+      const ang = (Math.random() - 0.5) * 0.3;
+      pctx.beginPath();
+      pctx.moveTo(x1, y);
+      pctx.lineTo(x1 + len * Math.cos(ang), y + len * Math.sin(ang));
+      pctx.stroke();
+    }
+
+    // Paper impurities
+    pctx.fillStyle = "rgba(160,150,135,0.08)";
+    for (let i = 0; i < 25; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      pctx.beginPath();
+      pctx.arc(x, y, (1 + Math.random() * 3) * dpr, 0, Math.PI * 2);
+      pctx.fill();
+    }
+  }
+
+  /* ── Wave Model ───────────────────────────────────────── */
+  const horizonBase = 0.55;
+  let pressDepth = 0;
+  let pressTarget = 0;
+  let pressVelocity = 0;
+  let pressX = 0.5;
+  let pressY = 0.5;
+  let t = 0;
+
+  // Ripple ring system
+  const ripples = [];
+  let rippleTimer = 0;
+
+  function waveYN(nx, time) {
+    const baseAmp = H * 0.03;
+    const pressAmp = pressDepth * H * 0.04;
+    const totalAmp = baseAmp + pressAmp;
+
+    let y = H * (horizonBase + Math.sin(time * 0.15) * 0.015);
+    y += Math.sin(nx * Math.PI * 2.5 + time * 0.35) * totalAmp * 0.65;
+    y += Math.sin(nx * Math.PI * 5.2 + time * 0.18 + 1.7) * totalAmp * 0.3;
+    y += Math.sin(nx * Math.PI * 12.0 + time * 0.55 + 3.1) * totalAmp * 0.1;
+    y += Math.sin(nx * Math.PI * 1.0 + time * 0.06) * totalAmp * 0.45;
+
+    // Press influence
+    if (pressDepth > 0.1) {
+      const dx = nx - pressX;
+      y += Math.exp(-dx * dx * 30) * pressDepth * H * 0.035;
+    }
+
+    // Ripple rings affect the wave
+    for (const r of ripples) {
+      const rdx = nx - r.origin;
+      const dist = Math.abs(rdx);
+      const ringWidth = 0.06;
+      const proximity = Math.exp(-((dist - r.radius) ** 2) / (ringWidth * ringWidth * 0.5));
+      y += proximity * r.amplitude * r.life;
+    }
+
+    return y;
+  }
+
+  /* ── Birds ────────────────────────────────────────────── */
+  let birds = [];
+  function initBirds() {
+    birds = [];
+    for (let i = 0; i < 5; i++) {
+      birds.push({
+        baseX: 0.15 + i * 0.06,
+        baseY: 0.22 + i * 0.03,
+        scatterX: 0,
+        scatterY: 0,
+        scatterVelX: 0,
+        scatterVelY: 0,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  /* ── Mist System ──────────────────────────────────────── */
+  class MistCloud {
+    constructor() { this.reset(true); }
+    reset(init) {
+      this.x = init ? Math.random() * W * 1.8 - W * 0.4 : -W * (0.2 + Math.random() * 0.3);
+      this.y = H * (0.2 + Math.random() * 0.55);
+      this.w = W * (0.2 + Math.random() * 0.5);
+      this.h = H * (0.03 + Math.random() * 0.08);
+      this.speedX = 6 + Math.random() * 15;
+      this.speedY = (Math.random() - 0.5) * 3;
+      this.opacity = 0.12 + Math.random() * 0.3;
+      this.phase = Math.random() * Math.PI * 2;
+      this.wfx = 0.15 + Math.random() * 0.3;
+      this.wfy = 0.1 + Math.random() * 0.25;
+      this.wax = 10 + Math.random() * 30;
+      this.way = 5 + Math.random() * 15;
+      this.warmth = Math.random();
+    }
+    update(dt) {
+      this.x += this.speedX * dt;
+      this.y += this.speedY * dt;
+      if (this.x > W + this.w) this.reset(false);
+    }
+    draw(ctx, time) {
+      const wx = Math.sin(time * this.wfx + this.phase) * this.wax;
+      const wy = Math.cos(time * this.wfy + this.phase * 0.7) * this.way;
+      const cx = this.x + this.w * 0.5 + wx;
+      const cy = this.y + wy;
+      const r = 245 + this.warmth * 10;
+      const g = 243 + this.warmth * 7;
+      const b = 238 + this.warmth * 5;
+      const a = this.opacity * (0.7 + pressDepth * 0.3);
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, this.w * 0.5);
+      grd.addColorStop(0, `rgba(${r},${g},${b},${a})`);
+      grd.addColorStop(0.3, `rgba(${r},${g},${b},${a * 0.6})`);
+      grd.addColorStop(0.7, `rgba(${r},${g},${b},${a * 0.15})`);
+      grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, this.w * 0.5, this.h, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const mists = Array.from({ length: 14 }, () => new MistCloud());
+
+  /* ── Ink Bloom Particles ──────────────────────────────── */
+  class InkBloom {
+    constructor(x, y) {
+      this.x = x; this.y = y;
+      this.radius = 2 + Math.random() * 6;
+      this.opacity = 0.15 + Math.random() * 0.25;
+      this.life = 1; this.decay = 0.12 + Math.random() * 0.15;
+      this.vx = (Math.random() - 0.5) * 15;
+      this.vy = 1 + Math.random() * 3;
+      this.grow = true;
+    }
+    update(dt) {
+      this.life -= this.decay * dt;
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      if (this.grow) {
+        this.radius += 8 * dt;
+        if (this.radius > 15) this.grow = false;
+      }
+    }
+    draw(ctx) {
+      if (this.life <= 0) return;
+      const a = this.opacity * this.life;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = "#1A2744";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = a * 0.3;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  const inkBlooms = [];
+  let bloomTimer = 0;
+
+  /* ── Audio ─────────────────────────────────────────────── */
+  let audioCtx = null, audioStarted = false, windGain = null;
+
+  function initAudio() {
+    if (audioStarted) return;
+    audioStarted = true;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const bufSize = audioCtx.sampleRate * 4;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) {
+        data[i] = i > 0 ? data[i-1] * 0.99 + (Math.random() * 2 - 1) * 0.01 : Math.random() * 2 - 1;
+      }
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf; src.loop = true;
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = "lowpass"; lp.frequency.value = 250; lp.Q.value = 0.5;
+      windGain = audioCtx.createGain();
+      windGain.gain.value = 0.025;
+      src.connect(lp); lp.connect(windGain); windGain.connect(audioCtx.destination);
+      src.start();
+      [52, 78].forEach(f => {
+        const o = audioCtx.createOscillator();
+        o.type = "sine"; o.frequency.value = f;
+        const g = audioCtx.createGain();
+        g.gain.value = f === 52 ? 0.012 : 0.006;
+        o.connect(g); g.connect(audioCtx.destination); o.start();
+      });
+    } catch(e) {}
+  }
+
+  function modulateAudio(depth) {
+    if (!windGain || !audioCtx) return;
+    windGain.gain.linearRampToValueAtTime(0.025 + depth * 0.035, audioCtx.currentTime + 0.3);
+  }
+
+  /* ── Input ─────────────────────────────────────────────── */
+  let isPressing = false;
+
+  function startPress(nx, ny) { initAudio(); isPressing = true; pressX = nx; pressY = ny; }
+  function endPress() { isPressing = false; }
+
+  canvas.addEventListener("mousedown", e => startPress(e.clientX / W, e.clientY / H));
+  canvas.addEventListener("mousemove", e => { pressX = e.clientX / W; pressY = e.clientY / H; });
+  canvas.addEventListener("mouseup", endPress);
+  canvas.addEventListener("mouseleave", endPress);
+
+  canvas.addEventListener("touchstart", e => { e.preventDefault(); const t = e.touches[0]; startPress(t.clientX / W, t.clientY / H); }, { passive: false });
+  canvas.addEventListener("touchmove", e => { e.preventDefault(); const t = e.touches[0]; pressX = t.clientX / W; pressY = t.clientY / H; }, { passive: false });
+  canvas.addEventListener("touchend", e => { e.preventDefault(); endPress(); }, { passive: false });
+
+  window.addEventListener("keydown", e => { if (e.code === "Space" && !e.repeat) { e.preventDefault(); startPress(0.5, 0.5); } });
+  window.addEventListener("keyup", e => { if (e.code === "Space") endPress(); });
+
+  /* ── Drawing ───────────────────────────────────────────── */
+  function drawWave(time) {
+    // Sky
+    const sg = ctx.createLinearGradient(0, 0, 0, H * 0.65);
+    const w = 18 + Math.sin(time * 0.05) * 3;
+    sg.addColorStop(0, `hsl(${w},20%,90%)`);
+    sg.addColorStop(0.5, `hsl(${w-2},22%,87%)`);
+    sg.addColorStop(1, `hsl(${w-5},25%,84%)`);
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Distant mountains
+    ctx.globalAlpha = 0.04;
+    ctx.fillStyle = "#4A4A5A";
+    ctx.beginPath();
+    ctx.moveTo(0, H * 0.55);
+    ctx.quadraticCurveTo(W*0.12, H*0.44, W*0.25, H*0.5);
+    ctx.quadraticCurveTo(W*0.4, H*0.46, W*0.5, H*0.52);
+    ctx.quadraticCurveTo(W*0.65, H*0.45, W*0.8, H*0.51);
+    ctx.quadraticCurveTo(W*0.92, H*0.47, W, H*0.53);
+    ctx.lineTo(W, H*0.58);
+    ctx.lineTo(0, H*0.58);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Wave body
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    const step = 1.5;
+    for (let px = 0; px <= W; px += step) {
+      ctx.lineTo(px, waveYN(px / W, time));
+    }
+    ctx.lineTo(W, H); ctx.closePath();
+
+    const wg = ctx.createLinearGradient(0, H*0.48, 0, H);
+    const id = 10 + pressDepth * 12;
+    wg.addColorStop(0, `hsl(224,38%,${id}%)`);
+    wg.addColorStop(0.2, `hsl(222,34%,${id+4}%)`);
+    wg.addColorStop(0.5, `hsl(218,28%,${id+10}%)`);
+    wg.addColorStop(0.8, `hsl(215,22%,${id+18}%)`);
+    wg.addColorStop(1, `hsl(210,18%,${id+28}%)`);
+    ctx.fillStyle = wg;
+    ctx.fill();
+
+    // Wave edge
+    ctx.beginPath();
+    for (let px = 0; px <= W; px += step) {
+      const y = waveYN(px / W, time);
+      px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+    }
+    ctx.strokeStyle = `rgba(26,39,68,${0.55 + pressDepth * 0.35})`;
+    ctx.lineWidth = 1.2 + pressDepth * 1.8;
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.stroke();
+
+    // Ripple rings (visible as concentric arcs on the wave)
+    for (const r of ripples) {
+      if (r.life <= 0) continue;
+      ctx.beginPath();
+      const px0 = r.origin * W;
+      const baseY = waveYN(r.origin, time);
+      const ringRadius = r.radius * W;
+      // Draw the ripple as a subtle arc on the wave surface
+      const drawWidth = Math.min(ringRadius * 2, W);
+      for (let px = Math.max(0, px0 - drawWidth/2); px <= Math.min(W, px0 + drawWidth/2); px += step * 2) {
+        const nx = px / W;
+        const dist = Math.abs(nx - r.origin);
+        const proximity = Math.exp(-((dist - r.radius) ** 2) / (0.06 ** 2 * 0.5));
+        const y = waveYN(nx, time) + proximity * r.amplitude * r.life * H * 0.02;
+        px === Math.max(0, px0 - drawWidth/2) ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+      }
+      ctx.strokeStyle = `rgba(26,39,68,${r.life * 0.2})`;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+
+    // Secondary ripples under pressure
+    if (pressDepth > 0.15) {
+      const rc = Math.floor(pressDepth * 3);
+      for (let r = 1; r <= rc; r++) {
+        ctx.beginPath();
+        const off = r * (5 + pressDepth * 4);
+        for (let px = 0; px <= W; px += step * 2) {
+          const y = waveYN(px / W, time + r * 0.1) + off;
+          px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+        }
+        ctx.strokeStyle = `rgba(26,39,68,${pressDepth * 0.15 * (1 - r * 0.25)})`;
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+      }
+    }
+
+    // Press-point ink bloom
+    if (pressDepth > 0.25) {
+      const ppx = pressX * W;
+      const wapy = waveYN(pressX, time);
+      const dist = Math.abs(pressY * H - wapy);
+      if (dist < H * 0.35) {
+        const intensity = (1 - dist / (H * 0.35)) * pressDepth;
+        const br = H * 0.05 * intensity;
+        const bg = ctx.createRadialGradient(ppx, wapy, 0, ppx, wapy, br);
+        bg.addColorStop(0, `rgba(26,39,68,${intensity * 0.2})`);
+        bg.addColorStop(0.6, `rgba(26,39,68,${intensity * 0.08})`);
+        bg.addColorStop(1, "rgba(26,39,68,0)");
+        ctx.fillStyle = bg;
+        ctx.beginPath();
+        ctx.arc(ppx, wapy, br, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawCelestial(time) {
+    const cx = W * 0.68, cy = H * 0.16;
+    const r = Math.min(W, H) * 0.035;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 3);
+    g.addColorStop(0, "rgba(242,234,218,0.35)");
+    g.addColorStop(0.4, "rgba(242,234,218,0.12)");
+    g.addColorStop(1, "rgba(242,234,218,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, r * 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(238,230,214,0.85)";
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawBirds(time) {
+    ctx.globalAlpha = 0.06 + pressDepth * 0.03;
+    ctx.strokeStyle = "#2A2A3A";
+    ctx.lineWidth = 1.2;
+    for (const b of birds) {
+      const bx = (b.baseX + b.scatterX) * W + Math.sin(time * 0.2 + b.phase) * 20;
+      const by = (b.baseY + b.scatterY) * H + Math.cos(time * 0.15 + b.phase * 0.9) * 8;
+      const wing = Math.sin(time * 1.5 + b.phase * 2.1) * 6;
+      ctx.beginPath();
+      ctx.moveTo(bx - 8, by + wing);
+      ctx.quadraticCurveTo(bx - 2, by - Math.abs(wing) * 0.5, bx, by);
+      ctx.quadraticCurveTo(bx + 2, by - Math.abs(wing) * 0.5, bx + 8, by + wing);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPressIndicator(ctx) {
+    if (pressDepth < 0.05) return;
+    const px = pressX * W, py = pressY * H;
+    const r = 20 + pressDepth * 15;
+    const a = pressDepth * 0.08;
+    const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, `rgba(26,39,68,${a})`);
+    g.addColorStop(1, "rgba(26,39,68,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  /* ── Main Loop ─────────────────────────────────────────── */
+  let lastTime = performance.now();
+
+  function loop(now) {
+    requestAnimationFrame(loop);
+    const dt = Math.min((now - lastTime) / 1000, 0.05);
+    lastTime = now;
+    t += dt;
+
+    // Spring physics
+    pressTarget = isPressing ? 1 : 0;
+    const force = 4.5 * (pressTarget - pressDepth);
+    pressVelocity += force * dt;
+    pressVelocity *= Math.exp(-3.8 * dt);
+    pressDepth += pressVelocity;
+    pressDepth = Math.max(0, Math.min(1, pressDepth));
+
+    // Ripple spawning
+    if (isPressing && pressDepth > 0.3) {
+      rippleTimer += dt;
+      if (rippleTimer > 0.8) {
+        rippleTimer = 0;
+        ripples.push({
+          origin: pressX,
+          radius: 0,
+          amplitude: 0.02 + pressDepth * 0.03,
+          speed: 0.08 + Math.random() * 0.04,
+          life: 1,
+          decay: 0.25
+        });
+        // Cap ripples
+        if (ripples.length > 6) ripples.shift();
+      }
+    }
+
+    // Update ripples
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const r = ripples[i];
+      r.radius += r.speed * dt;
+      r.life -= r.decay * dt;
+      if (r.life <= 0 || r.radius > 0.5) {
+        ripples.splice(i, 1);
+      }
+    }
+
+    // Bird scatter response
+    for (const b of birds) {
+      const dx = pressX - b.baseX;
+      const dy = pressY - b.baseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (isPressing && dist < 0.3) {
+        const strength = (1 - dist / 0.3) * 0.002 * pressDepth;
+        b.scatterVelX += (b.baseX - pressX) * strength;
+        b.scatterVelY += (b.baseY - pressY) * strength * 0.5;
+      }
+      // Damping
+      b.scatterVelX *= 0.97;
+      b.scatterVelY *= 0.97;
+      b.scatterX += b.scatterVelX;
+      b.scatterY += b.scatterVelY;
+      // Clamp scatter
+      b.scatterX = Math.max(-0.1, Math.min(0.1, b.scatterX));
+      b.scatterY = Math.max(-0.05, Math.min(0.05, b.scatterY));
+    }
+
+    // Ink blooms
+    if (isPressing && pressDepth > 0.3) {
+      bloomTimer += dt;
+      if (bloomTimer > 0.12) {
+        bloomTimer = 0;
+        const ppx = pressX * W, wapy = waveYN(pressX, t);
+        if (Math.abs(pressY * H - wapy) < H * 0.4) {
+          inkBlooms.push(new InkBloom(ppx + (Math.random()-0.5)*20, wapy + (Math.random()-0.5)*8));
+        }
+      }
+    }
+    for (let i = inkBlooms.length - 1; i >= 0; i--) {
+      inkBlooms[i].update(dt);
+      if (inkBlooms[i].life <= 0) inkBlooms.splice(i, 1);
+    }
+    while (inkBlooms.length > 50) inkBlooms.shift();
+
+    // Mist
+    for (const m of mists) m.update(dt);
+
+    // Audio
+    if (audioStarted) modulateAudio(pressDepth);
+
+    /* ── Draw ────────────────────────────────────────────── */
+    ctx.clearRect(0, 0, W, H);
+
+    // Paper
+    if (paperCanvas) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(paperCanvas, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    drawWave(t);
+    drawCelestial(t);
+    drawBirds(t);
+
+    // Mist layers
+    for (const m of mists.slice(0, 6)) m.draw(ctx, t);
+    for (const m of mists.slice(6)) m.draw(ctx, t);
+
+    // Ink blooms
+    for (const b of inkBlooms) b.draw(ctx);
+
+    // Press indicator
+    drawPressIndicator(ctx);
+
+    // Vignette
+    const vr = Math.max(W, H) * 0.72;
+    const vg = ctx.createRadialGradient(W/2, H/2, vr*0.4, W/2, H/2, vr);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, `rgba(30,25,18,${0.06 + pressDepth * 0.05})`);
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Edge aging
+    ctx.globalAlpha = 0.03;
+    ctx.fillStyle = "#3A3530";
+    ctx.fillRect(0, 0, 4, H);
+    ctx.fillRect(W-4, 0, 4, H);
+    ctx.globalAlpha = 1;
+  }
+
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
