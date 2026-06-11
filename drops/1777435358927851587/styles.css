@@ -1,0 +1,80 @@
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+     width: 100%; height: 100%;
+     overflow: hidden;
+     touch-action: none;
+     -webkit-touch-callout: none;
+     -webkit-user-select: none;
+     user-select: none;
+}
+body {
+     background: #1a1420;
+}
+#silt-canvas, #gl-canvas {
+     position: fixed; left: 0; top: 0;
+     width: 100%; height: 100%;
+}
+#silt-canvas { z-index: 1; }
+#gl-canvas { z-index: 2; mix-blend-mode: screen; }
+#stone-canvas {
+     position: fixed; left: 0; top: 0;
+     width: 100%; height: 100%;
+     z-index: 10;
+     cursor: grab;
+}
+#stone-canvas:active { cursor: grabbing; }
+
+/* Mist overlay — slow exhale fade */
+#mist {
+     position: fixed; left: 0; top: 0;
+     width: 100%; height: 100%;
+     z-index: 20;
+     opacity: 0;
+     pointer-events: none;
+     background: radial-gradient(ellipse at 50% 50%,
+          rgba(30, 24, 40, 0.9) 0%,
+          rgba(26, 20, 32, 0.95) 40%,
+          rgba(18, 14, 28, 1) 100%
+        );
+     will-change: opacity;
+}
+
+#hint {
+     position: fixed;
+     bottom: 14%; left: 50%;
+     transform: translateX(-50%);
+     z-index: 30;
+     color: rgba(200, 180, 160, 0.35);
+     font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+     font-size: 0.75rem;
+     letter-spacing: 0.18em;
+     text-transform: uppercase;
+     pointer-events: none;
+     transition: opacity 0.8s ease;
+     white-space: nowrap;
+}
+
+#caption {
+     position: fixed;
+     bottom: 8%; left: 50%;
+     transform: translateX(-50%);
+     z-index: 30;
+     color: rgba(200, 180, 160, 0);
+     font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+     font-size: 0.8rem;
+     letter-spacing: 0.12em;
+     pointer-events: none;
+     transition: color 2s ease-in, opacity 2s ease-in;
+     text-align: center;
+     max-width: 90%;
+     opacity: 0;
+}
+#caption.show {
+     color: rgba(200, 180, 160, 0.6);
+     opacity: 1;
+}
+
+@media (max-width: 480px) {
+     #hint { font-size: 0.65rem; bottom: 12%; }
+     #caption { font-size: 0.7rem; }
+}

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ukiyo — Pictures of the Floating World</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="world" aria-label="A dark water surface. Tap or click to drop a stone." role="img"></canvas>
+  <div id="ui">
+    <div id="overlay" class="overlay">
+      <p class="prompt">tap to drop the stone</p>
+    </div>
+    <button id="mute" class="hud-btn" aria-label="Toggle sound" title="Toggle sound"></button>
+    <div id="counter" class="counter hidden"></div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
