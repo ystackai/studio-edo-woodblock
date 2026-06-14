@@ -125,7 +125,20 @@
         ]
       }
     ],
-    "upcoming": {},
+    "upcoming": {
+      "title": "Floating World Variants",
+      "slug": "88-floating-world-variants",
+      "summary": "Three judgeable ukiyo-e modes in one preview — Hokusai wave, Hiroshige rain bridge, Sharaku held breath. Vote A/B/C in Discord.",
+      "mashup": "variants \u00b7 judging \u00b7 floating world",
+      "play_url": "/edo-woodblock/drops/88-floating-world-variants/",
+      "studio_url": "/edo-woodblock/drops/88-floating-world-variants/",
+      "tags": [
+        "interactive",
+        "ukiyo-e",
+        "variants",
+        "judging"
+      ]
+    },
     "building": {}
   },
   "blog_posts": [],
@@ -154,6 +167,10 @@
     {
       "slug": "floating-score",
       "title": "Floating Score"
+    },
+    {
+      "slug": "88-floating-world-variants",
+      "title": "Floating World Variants"
     }
   ]
 }

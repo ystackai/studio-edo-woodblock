@@ -140,6 +140,72 @@ else
 fi
 
 echo ""
+echo "=== Floating World Variants ==="
+
+VARIANTS_FILE="drops/88-floating-world-variants/index.html"
+if [ ! -f "$VARIANTS_FILE" ]; then
+  echo "FAIL: $VARIANTS_FILE missing"
+  exit 1
+fi
+echo "PASS: $VARIANTS_FILE exists"
+
+if grep -q 'data-variant="a"' "$VARIANTS_FILE" && grep -q 'data-variant="b"' "$VARIANTS_FILE" && grep -q 'data-variant="c"' "$VARIANTS_FILE"; then
+  echo "PASS: A/B/C variant buttons present"
+else
+  echo "FAIL: missing variant buttons"
+  exit 1
+fi
+
+if grep -q 'Great Empty Wave' "$VARIANTS_FILE" && grep -q 'Rain Bridge' "$VARIANTS_FILE" && grep -q 'Held Breath' "$VARIANTS_FILE"; then
+  echo "PASS: variant titles present"
+else
+  echo "FAIL: missing variant titles"
+  exit 1
+fi
+
+if [ -f "drops/88-floating-world-variants/JUDGING.md" ]; then
+  echo "PASS: JUDGING.md exists"
+else
+  echo "FAIL: JUDGING.md missing"
+  exit 1
+fi
+
+if [ -f ".factoryx/preview-entrypoint" ] && grep -q '88-floating-world-variants' .factoryx/preview-entrypoint; then
+  echo "PASS: preview-entrypoint configured"
+else
+  echo "FAIL: preview-entrypoint missing or wrong"
+  exit 1
+fi
+
+if python3 -c "import json; d=json.load(open('studio.json')); assert d['games']['upcoming']['slug']=='88-floating-world-variants'" 2>/dev/null; then
+  echo "PASS: studio.json lists 88-floating-world-variants as upcoming"
+else
+  echo "FAIL: 88-floating-world-variants not in studio.json upcoming"
+  exit 1
+fi
+
+if python3 -c "import json; d=json.load(open('.ystack/current/asset-manifest.json')); assert any(a['slug']=='88-floating-world-variants' for a in d['assets'])" 2>/dev/null; then
+  echo "PASS: asset-manifest lists 88-floating-world-variants"
+else
+  echo "FAIL: 88-floating-world-variants not in asset-manifest"
+  exit 1
+fi
+
+if grep -q '88-floating-world-variants' 'drops/index.html'; then
+  echo "PASS: drops/index.html lists 88-floating-world-variants"
+else
+  echo "FAIL: 88-floating-world-variants not in drops/index"
+  exit 1
+fi
+
+if grep -q '88-floating-world-variants' 'games/index.html'; then
+  echo "PASS: games/index.html redirects to 88-floating-world-variants"
+else
+  echo "FAIL: games/index.html missing redirect"
+  exit 1
+fi
+
+echo ""
 echo "=== All verifications passed ==="
 
 # --- New polish checks ---
