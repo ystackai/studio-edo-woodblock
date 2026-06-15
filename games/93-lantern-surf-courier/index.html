@@ -101,6 +101,7 @@
   let particles = [];
   let winds = []; // subtle wind current zones for lift (ride the currents)
   let yokai = []; // rare ink-spirit hazards — avoid unless dashing (fulfills payload "avoid yokai")
+  let scorePops = []; // floating +N pops for crisp success feedback (makes score/collect/thread rules immediately obvious)
 
   // Input
   let jumpPressed = false;
@@ -205,7 +206,7 @@
 
   // Spawn logic
   function resetEntities() {
-    gates = []; lettersEnt = []; crests = []; particles = []; winds = []; yokai = [];
+    gates = []; lettersEnt = []; crests = []; particles = []; winds = []; yokai = []; scorePops = [];
   }
   function spawnAhead() {
     const ahead = worldOffset + W + 120;
@@ -310,6 +311,9 @@
         life: 0.35 + Math.random()*0.55, c
       });
     }
+  }
+  function spawnScorePop(x, y, n, c='#0f172a') {
+    scorePops.push({ x, y, n, life: 0.85, vy: -46 });
   }
 
   // Input wiring (gesture first, large targets)
@@ -526,6 +530,17 @@
     ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.6;
     ctx.beginPath(); ctx.moveTo(-14, -h*0.58); ctx.lineTo(13, -h*0.58); ctx.stroke();
 
+    // bottom bar + subtle side hints: frames a clear rectangular aperture between the paired lanterns.
+    // Makes the "thread the gate" collection/collision rule visually obvious at a glance (preserve woodblock: ink strokes only, no fill or neon).
+    ctx.lineWidth = 2.0;
+    ctx.beginPath(); ctx.moveTo(-13, h*0.41); ctx.lineTo(12, h*0.41); ctx.stroke();
+    // faint verticals (restrained, low alpha) to reinforce the passable "gate" bounds without cluttering silhouette
+    ctx.globalAlpha = 0.28;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-12, -h*0.52); ctx.lineTo(-11, h*0.36); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, -h*0.52); ctx.lineTo(9, h*0.36); ctx.stroke();
+    ctx.globalAlpha = 1;
+
     ctx.restore();
   }
 
@@ -726,6 +741,19 @@
     if (runTime - lastSpeedRamp > 60) {
       speed = Math.min(speed * 1.12, BASE_SPEED * 2.7);
       lastSpeedRamp = runTime;
+      // show the ramp: visible "push" burst at courier + extra wake — makes the slight speed escalation palpable and crisp (no repaint, just motion emphasis)
+      for (let i = 0; i < 8; i++) {
+        particles.push({
+          x: PLAYER_X - 10 + Math.random() * 6,
+          y: playerY + (Math.random() - 0.5) * 20,
+          vx: -3.2 - Math.random() * 2.2,
+          vy: (Math.random() - 0.5) * 1.6 - 0.4,
+          life: 0.24 + Math.random() * 0.18,
+          c: (i % 2 ? '#0f172a' : '#64748b')
+        });
+      }
+      // one extra wake spray to sell the "faster now" moment
+      spawnParticles(PLAYER_X - 18, playerY + 14, 3, '#64748b', 0.9);
     }
 
     // combo decay
@@ -778,7 +806,9 @@
         if (threaded) {
           const centerDist = Math.abs(playerY - g.y);
           const perfect = centerDist < g.h * 0.18;
-          addScore(perfect ? 128 : 92);
+          const pts = perfect ? 128 : 92;
+          addScore(pts);
+          spawnScorePop(g.x - worldOffset, g.y - 22, pts);
           sfxGate();
           const n = perfect ? 14 : 9;
           spawnParticles(g.x - worldOffset, g.y, n, '#f59e0b', 3.8);
@@ -786,10 +816,19 @@
           if (perfect) {
             // juicy perfect-thread pop (precision reward, still house restrained)
             spawnParticles(g.x - worldOffset, g.y + 4, 5, '#ea580c', 1.8);
+            spawnScorePop(g.x - worldOffset, g.y - 32, 36, '#c2410f'); // extra crisp perfect bonus callout
           }
         } else {
           combo = Math.max(1, combo - 0.6);
           updateHUD();
+          // crisp fail feedback for miss: visible ink "swoosh" at the exact gate location makes "I was too high/low" rule obvious
+          const sx = g.x - worldOffset;
+          spawnParticles(sx, g.y - 6, 3, '#0f172a', 1.1);
+          spawnParticles(sx, g.y + 7, 3, '#0f172a', 1.0);
+          // small X-ish cross strokes via angled velocity particles (restrained, reads as "closed" or "missed the thread")
+          for (let k = 0; k < 4; k++) {
+            particles.push({ x: sx - 7 + k*4, y: g.y - 9 + k*4.5, vx: 1.6 - k*0.7, vy: -0.8 + k*0.6, life: 0.22, c: '#0f172a' });
+          }
         }
         gates.splice(i,1);
       }
@@ -801,6 +840,7 @@
         if (d < 28) {
           letters++;
           addScore(26);
+          spawnScorePop(l.x - worldOffset, l.y - 14, 26);
           sfxLetter();
           const sx = l.x - worldOffset;
           // delivery tuck particles: fly toward courier satchel for visible "sealed letter delivered" (juicy, screenshot-friendly, fulfills "deliver" verb with motion)
@@ -845,6 +885,7 @@
         } else if (close && isDashing) {
           // banish for bonus — dash has purpose against spirits too
           addScore(46, false);
+          spawnScorePop(yk.x - worldOffset, ykY - 18, 46);
           sfxGate();
           spawnParticles(yk.x - worldOffset, ykY, 10, '#0f172a', 2.9);
           spawnParticles(yk.x - worldOffset, ykY - 6, 4, '#9f1239', 1.5);
@@ -872,6 +913,7 @@
         // small juice + occasional score for sustained carving
         if (Math.random() < 0.38) {
           addScore(3, false);
+          spawnScorePop(PLAYER_X + 6, playerY + 18, 3, '#64748b');
           spawnParticles(PLAYER_X - 2, playerY + 11, 2, '#94a3b8', 1.1);
         }
       }
@@ -893,6 +935,15 @@
       p.vy += 180 * dtSec;
       p.life -= dtSec;
       if (p.life <= 0) particles.splice(i,1);
+    }
+
+    // score pops (float up + fade for crisp visible success/collect feedback)
+    for (let i=scorePops.length-1; i>=0; i--) {
+      const p = scorePops[i];
+      p.y += p.vy * dtSec;
+      p.vy += 38 * dtSec; // gentle gravity arc
+      p.life -= dtSec;
+      if (p.life <= 0) scorePops.splice(i,1);
     }
 
     // cleanup far behind
@@ -972,6 +1023,18 @@
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+
+    // floating score pops (crisp, immediate "I scored by threading/collecting here" — makes collection rules obvious without extra UI or text explanations)
+    ctx.textAlign = 'center';
+    ctx.font = '700 12px system-ui, sans-serif';
+    for (const p of scorePops) {
+      const a = Math.max(0.08, p.life / 0.85);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.c;
+      ctx.fillText('+' + p.n, p.x, p.y);
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
 
     // speed lines + spray (stronger motion/speed cues for arcade escalation + Discord watchability; ink-restrained, denser on dash)
     if (running && speed > BASE_SPEED * 1.18) {
