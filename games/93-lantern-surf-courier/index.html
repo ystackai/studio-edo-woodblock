@@ -209,26 +209,30 @@
   }
   function spawnAhead() {
     const ahead = worldOffset + W + 120;
-    // Gates
-    if (gates.length === 0 || gates[gates.length-1].x < ahead - 280) {
-      const x = Math.max(ahead, (gates.length ? gates[gates.length-1].x : worldOffset) + 310 + Math.random()*120);
+    const speedF = Math.min(1.65, speed / BASE_SPEED);
+    // Gates (closer spacing at speed for arcade escalation feel while remaining readable)
+    const gGap = 308 - (speedF - 1) * 32;
+    if (gates.length === 0 || gates[gates.length-1].x < ahead - (gGap - 30)) {
+      const x = Math.max(ahead, (gates.length ? gates[gates.length-1].x : worldOffset) + gGap + Math.random()*110);
       const wy = waveY(x, 0) - 64 - Math.random()*38;
       gates.push({ x, y: wy, h: 92, phase: Math.random()*6.28 });
     }
     // Letters (floating pickups)
-    if (Math.random() < 0.82 && (lettersEnt.length === 0 || lettersEnt[lettersEnt.length-1].x < ahead - 180)) {
-      const x = ahead + 60 + Math.random()*140;
+    if (Math.random() < (0.79 + speedF * 0.03) && (lettersEnt.length === 0 || lettersEnt[lettersEnt.length-1].x < ahead - 170)) {
+      const x = ahead + 55 + Math.random()*135;
       const wy = waveY(x, 0) - 48 - Math.random()*72;
       lettersEnt.push({ x, y: wy, phase: Math.random()*6.28 });
     }
     // Crest hazards (wave breaks)
-    if (crests.length === 0 || crests[crests.length-1].x < ahead - 420) {
-      const x = Math.max(ahead + 40, (crests.length ? crests[crests.length-1].x : worldOffset) + 480 + Math.random()*210);
+    const cGap = 478 - (speedF - 1) * 36;
+    if (crests.length === 0 || crests[crests.length-1].x < ahead - (cGap - 50)) {
+      const x = Math.max(ahead + 38, (crests.length ? crests[crests.length-1].x : worldOffset) + cGap + Math.random()*195);
       crests.push({ x, y: waveY(x, 0) - 12 });
     }
-    // Yokai — rare clear-silhouette spirits (payload: avoid yokai). Spawn after ~7s; low density.
-    if (runTime > 6.5 && (yokai.length === 0 || yokai[yokai.length-1].x < ahead - 620) && Math.random() < 0.27) {
-      const x = ahead + 160 + Math.random()*280;
+    // Yokai — rare clear-silhouette spirits (payload: avoid yokai). Spawn after ~7s; density rises slightly with speed for escalation.
+    const yChance = 0.26 + (speedF - 1) * 0.09;
+    if (runTime > 6.5 && (yokai.length === 0 || yokai[yokai.length-1].x < ahead - 610) && Math.random() < yChance) {
+      const x = ahead + 155 + Math.random()*270;
       const baseY = waveY(x, 0) - 64 - Math.random()*86;
       yokai.push({ x, baseY, phase: Math.random()*6.28, h: 66 + Math.random()*14 });
     }
@@ -789,7 +793,18 @@
           letters++;
           addScore(26);
           sfxLetter();
-          spawnParticles(l.x - worldOffset, l.y, 4, '#f4e9d8', 2.8);
+          const sx = l.x - worldOffset;
+          // delivery tuck particles: fly toward courier satchel for visible "sealed letter delivered" (juicy, screenshot-friendly, fulfills "deliver" verb with motion)
+          for (let i = 0; i < 3; i++) {
+            particles.push({
+              x: sx + (Math.random() - 0.5) * 5,
+              y: l.y + (Math.random() - 0.5) * 4,
+              vx: (PLAYER_X + 14 - sx) * (0.016 + Math.random() * 0.01) - 0.4,
+              vy: (playerY - 22 - l.y) * 0.012 - 1.1 + (Math.random() - 0.5) * 0.8,
+              life: 0.26 + Math.random() * 0.18, c: '#f4e9d8'
+            });
+          }
+          spawnParticles(sx, l.y, 2, '#f4e9d8', 2.1);
           updateHUD();
         }
         lettersEnt.splice(i,1);
@@ -850,6 +865,15 @@
           addScore(3, false);
           spawnParticles(PLAYER_X - 2, playerY + 11, 2, '#94a3b8', 1.1);
         }
+      }
+    }
+
+    // wake spray under board for stronger motion/speed presence (arcade surf feel, visible in screenshots; restrained ink/paper flecks)
+    if (onGround && running && speed > BASE_SPEED * 1.12) {
+      const spF = Math.min(2.2, (speed - BASE_SPEED) / BASE_SPEED);
+      if (Math.random() < (0.58 + spF * 0.12)) {
+        const wn = (runTime < dashUntil) ? 2 : 1;
+        spawnParticles(PLAYER_X - 19, playerY + 13, wn, '#64748b', 0.85 + spF * 0.2);
       }
     }
 
@@ -940,15 +964,19 @@
     }
     ctx.globalAlpha = 1;
 
-    // subtle speed lines when fast (ink feel)
-    if (running && speed > BASE_SPEED * 1.4) {
-      ctx.strokeStyle = 'rgba(15,23,42,0.09)';
-      ctx.lineWidth = 1;
-      for (let i=0; i<5; i++) {
-        const sx = 80 + (i*37) % 520;
+    // speed lines + spray (stronger motion/speed cues for arcade escalation + Discord watchability; ink-restrained, denser on dash)
+    if (running && speed > BASE_SPEED * 1.18) {
+      const sMul = Math.min(1.7, (speed - BASE_SPEED) / BASE_SPEED);
+      const isD = (runTime < dashUntil);
+      ctx.strokeStyle = isD ? `rgba(15,23,42,${0.11 + sMul * 0.07})` : `rgba(15,23,42,${0.08 + sMul * 0.05})`;
+      ctx.lineWidth = 1 + sMul * 0.5;
+      const nLines = isD ? 7 : 5;
+      for (let i = 0; i < nLines; i++) {
+        const sx = 70 + (i * 31) % 580;
+        const len = 32 + sMul * 26 + (isD ? 8 : 0);
         ctx.beginPath();
-        ctx.moveTo(sx, 210 + (i%3)*48);
-        ctx.lineTo(sx - 38 - (speed-BASE_SPEED)*0.03, 212 + (i%3)*48);
+        ctx.moveTo(sx, 208 + (i % 3) * 52);
+        ctx.lineTo(sx - len - (speed - BASE_SPEED) * 0.035, 210 + (i % 3) * 52);
         ctx.stroke();
       }
     }

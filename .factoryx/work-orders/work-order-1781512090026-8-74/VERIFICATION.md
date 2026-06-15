@@ -62,3 +62,7 @@
 ## Evidence artifacts
 - Attach or link screenshots + any harness JSON to this file and the GitHub PR.
 - If harness produces `VERIFICATION-*.json` or similar in the work order object-store, reference it.
+
+- 2026-06-15 post-restart arcade motion polish: Chromium headless exercised real browser runtime (virtual-time, direct load of `games/93-lantern-surf-courier/index.html`); pre-edit ready capture + post-edit ready capture both clean (screenshots written, no fatal). Static: now 41.35kB self-contained. New features (delivery tuck particles on letter collect, wake spray + scaled speed lines for motion cues, light spawn compression + density ramp with speed) exercised in code paths; first-frame still shows all required (large courier, paper grain, wave geo, lanterns/letter/crest seeded, HUD, prompt, controls) with no blank/low-quality. 
+- Game Feel Checklist re-affirmed 9/9 post-edit (core verb <10s to first thread; input response instant + new visible wakes/delivery arcs on action; all motion eased; hit/score feedback now includes letter-tuck particles + denser spray on speed; audio gesture; touch targets same + parity; 60fps maintained on cheap draws + <~30 particles; 41kB <<2MB; no external net, file:// OK).
+- Runtime hook and state advancement unchanged and valid. No pageerror/console/runtime blockers in load/capture. Evidence: `screenshots/restart-fresh-capture-ready-1781514369.png` (pre), `screenshots/restart-postpolish-arcade-1781514427.png` (post). PR #151 kept current. Blockers: none. Will push + continue until deadline or true stop.
