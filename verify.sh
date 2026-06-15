@@ -3,6 +3,13 @@ set -euo pipefail
 
 echo "=== Verification: Floating Score ==="
 
+# --- Edo Inkblade OTS smoke test ---
+if [ -f "drops/edo-inkblade-ots/test.js" ]; then
+  echo "PASS: drops/edo-inkblade-ots/test.js exists"
+  node drops/edo-inkblade-ots/test.js || { echo "FAIL: Edo Inkblade OTS smoke test failed"; exit 1; }
+  echo "PASS: Edo Inkblade OTS smoke test passes"
+fi
+
 # --- Regression test: Begin/startGame interaction ---
 if [ -f "test-begin-button.js" ]; then
   echo "PASS: test-begin-button.js exists"

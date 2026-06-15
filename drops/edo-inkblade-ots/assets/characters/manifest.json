@@ -1,0 +1,133 @@
+{
+  "version": "pass-28-2026-05-19",
+  "style": "Playwright-generated Edo ink-wash sprite sheets — detailed canvas-rendered character art with kimono folds, weapons, hats, and woodblock grain background",
+  "generation": "drops/edo-inkblade-ots/generate-sprites.js via Playwright headless Chromium",
+  "frame_layout": {
+    "heroes": "4 frames, 80x120 each — idle/slash/block/damage",
+    "enemies": "4 frames, 60x100 each — idle/slash/block/damage",
+    "ganryu": "4 frames, 80x120 each — idle/slash/block/damage"
+  },
+  "characters": {
+    "musashi": {
+      "file": "musashi.png",
+      "palette": {
+        "body": "#3b2d1f",
+        "trim": "#d7b66f",
+        "sash": "#caa45f"
+      },
+      "frames": 4,
+      "role": "hero",
+      "description": "Miyamoto Musashi — wide-brimmed kasa hat, topknot, haori jacket, katana at hip, hakama pants. Idle hand-on-katana pose, diagonal slash sweep, raised block, damage stagger."
+    },
+    "koeda": {
+      "file": "koeda.png",
+      "palette": {
+        "body": "#263840",
+        "trim": "#8fc7d6",
+        "sash": "#4a7a8a"
+      },
+      "frames": 4,
+      "role": "hero",
+      "description": "Koeda, runner of bridges — lean build, short hair, long trailing scarf, ink brush at hip. Arm-sweep slash, arms-crossed block."
+    },
+    "yoshino": {
+      "file": "yoshino.png",
+      "palette": {
+        "body": "#3d2732",
+        "trim": "#d98986",
+        "sash": "#b86a6a"
+      },
+      "frames": 4,
+      "role": "hero",
+      "description": "Yoshino, carver of rain — hooded sage robe, staff, wide silhouette. Staff sweep slash, staff block."
+    },
+    "chaser": {
+      "file": "chaser.png",
+      "palette": {
+        "body": "#4a2d28",
+        "trim": "#8f5a3f",
+        "belt": "#6a3a2a"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "Dock ronin (chaser) — monk-like hat, simple robe, staff weapon."
+    },
+    "prowler": {
+      "file": "prowler.png",
+      "palette": {
+        "body": "#25392f",
+        "trim": "#9dbb7d",
+        "belt": "#4a7a38"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "Cedar bandit (prowler) — bandit hat, rough robe, hatchet blade."
+    },
+    "duelist": {
+      "file": "duelist.png",
+      "palette": {
+        "body": "#273048",
+        "trim": "#b2bad8",
+        "belt": "#6a7a9a"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "Bridge duelist (duelist) — red headband, armor-like shoulders, long sword."
+    },
+    "vagrant": {
+      "file": "vagrant.png",
+      "palette": {
+        "body": "#514233",
+        "trim": "#b89358",
+        "belt": "#8a6a48"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "Straw-hat vagrant — wide straw hat, wanderer's robe, simple sword."
+    },
+    "monk": {
+      "file": "monk.png",
+      "palette": {
+        "body": "#3e4542",
+        "trim": "#a6b7a7",
+        "belt": "#6a7a6a"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "River-bank monk — grey cowl, robe, naginata polearm."
+    },
+    "ganryu": {
+      "file": "ganryu.png",
+      "palette": {
+        "body": "#161616",
+        "trim": "#efe1c0",
+        "belt": "#caa45f"
+      },
+      "frames": 4,
+      "role": "boss",
+      "description": "Ganryu — imposing samurai, wide dark hat, yoroi shoulder armor, large nodachi sword."
+    },
+    "mountain-ascetic": {
+      "file": "mountain-ascetic.png",
+      "palette": {
+        "body": "#4a3a28",
+        "trim": "#9a7a58",
+        "belt": "#6a5a3a"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "Mountain ascetic — weathered mountain hermit with wide straw hat, rough robe, walking staff."
+    },
+    "ganryu-sentinel": {
+      "file": "ganryu-sentinel.png",
+      "palette": {
+        "body": "#2a2038",
+        "trim": "#b2bad8",
+        "belt": "#6a7a9a"
+      },
+      "frames": 4,
+      "role": "enemy",
+      "description": "Ganryu sentinel — disciplined samurai retainer with jingasa helmet, yoroi shoulder armor, wakizashi sword."
+    }
+  }
+}
