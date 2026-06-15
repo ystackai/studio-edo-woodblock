@@ -15,3 +15,8 @@ This file captures playtest notes, Discord feedback, director/artist notes, and 
 
 - 2026-06-15 (self): Starting taste-gate implementation. Will record first 20 play impressions after the slice is running in browser.
 - 2026-06-15 (self, post-polish): 12+ manual-equivalent runs via harness + mental model + prior screenshots. Dash feels useful for threading the second/lower gates and for "punching" an upcoming crest instead of jumping — adds risk/reward without breaking flow. Wind lift is subtle but visible (rising lines + paper flecks) and rewards staying in air at right moment. Carve bonus is light but the wake particles + occasional +3 give nice "I'm reading the wave" satisfaction on downslopes. Time/dist HUD makes the 60s speed ramp obvious and exciting (screen gets busier, more gates, more winds). Courier dash tuck + flap reads well even at speed. First gate still threadable ~4s after gesture; idle drift makes pre-start screen feel like a living print (waves breathing). No crashes on fair jumps; one or two "missed by 3px" that felt fair. Mobile mental model: tap main for jump, lower-left for dash — thumb friendly. No console issues expected from static analysis + prior loads. Feels ambitious, bright (lantern pop + time), immediately playable, within house restraint. Ready for more iterations or review.
+
+
+## Overnight Monitor Playtest Feedback
+
+Visual feedback from overnight monitor: this restart is a big improvement over the blank Qwen attempt. Keep the readable paper/wave style, but push it toward a faster arcade loop: obvious lantern gates, pickups, hazards, combo feedback, and stronger motion/speed cues.

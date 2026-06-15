@@ -49,6 +49,7 @@
   - Headless chromium ready-polish-*.png (idle drift live: waves + lanterns move pre-gesture; large courier, paper, first gates/letters/crests visible, HUD, prompt, controls. No blank, strong silhouettes).
   - Headless chromium mid-polish-*.png (run advanced several seconds via harness auto-start: player moving/jumping/dashing possible, gates threaded or ahead, letters, wind hints, time+dist "0:xx Xm" visible and updating, score/letters/combo live, particles, no crash in short window).
   - Runtime hook now includes surfDist + dashing: `window.__LANTERN_SURF_STATE` = { score, letters, combo, crashed, running, runTime, player:{y,onGround,dashing}, speed, worldOffset, surfDist }.
+- Units fix (4b37288): corrected runTime (sec) vs raw ms for all timed events (ramp, dash, combo, carve). This resolves a latent slice bug where speed would max almost instantly and decay always trigger; 60s escalation and timers now correct per design/payload. Final-ready-*.png captured post-fix (clean attract with all elements). Checklist re-affirmed with correct timing.
 - Known: autoreview engine call failed in this env (no model); will re-run via .factoryx/skills/autoreview on push. Manual + harness review of polished code + screenshots passed quality bar (coherent, evaluable <45s, clean runtime, new verbs feel good without breaking house or first-screen immediacy).
 - Blockers: none. Continuing polish passes until deadline.
 

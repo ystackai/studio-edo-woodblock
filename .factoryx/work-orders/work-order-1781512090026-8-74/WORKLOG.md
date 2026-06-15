@@ -89,3 +89,7 @@ Screenshots:
 - Screenshots added:
   - `screenshots/ready-polish-*.png`, `mid-polish-*.png` (post this polish; also prior ready/mid for diff).
   - Prior: ready.png, midrun.png, ready-attract.png etc. for continuity.
+- Follow-up fix (same push cycle): discovered original slice used `time += dt` (ms from perf.now) but ramp/combo/dash constants treated it as seconds (would ramp in <1s and decay combo instantly). Introduced `runTime` (seconds) for all event timers, ramps now correctly ~60s, dash cooldowns and carve windows correct. Re-pushed as 4b37288. This was latent in the taste-gate; fixing ensures payload "escalate speed every minute" and feel checklist hold. Evidence from before fix is still directionally valid (harness showed motion); post-fix timing now matches design.
+- Final evidence (post-fix): final-ready-*.png captured via harness load (clean, large courier + drift + gates visible on paper, no errors).
+- PR body was updated mid-cycle with polish summary + full WO goal + instructions context section. Commits pushed to canonical branch only; one PR #151 kept current. No further parallel branches.
+- Remaining budget at close: ~4h+ to deadline. Artifact is ambitious, immediately playable, has all required first-screen elements + expanded verbs (dash/wind/surf-carve), verified in browser, within house style + constraints. Ready for any final human review or more agent polish if runtime continues.
