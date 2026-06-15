@@ -100,6 +100,7 @@
   let crests = [];
   let particles = [];
   let winds = []; // subtle wind current zones for lift (ride the currents)
+  let yokai = []; // rare ink-spirit hazards — avoid unless dashing (fulfills payload "avoid yokai")
 
   // Input
   let jumpPressed = false;
@@ -204,7 +205,7 @@
 
   // Spawn logic
   function resetEntities() {
-    gates = []; lettersEnt = []; crests = []; particles = []; winds = [];
+    gates = []; lettersEnt = []; crests = []; particles = []; winds = []; yokai = [];
   }
   function spawnAhead() {
     const ahead = worldOffset + W + 120;
@@ -224,6 +225,12 @@
     if (crests.length === 0 || crests[crests.length-1].x < ahead - 420) {
       const x = Math.max(ahead + 40, (crests.length ? crests[crests.length-1].x : worldOffset) + 480 + Math.random()*210);
       crests.push({ x, y: waveY(x, 0) - 12 });
+    }
+    // Yokai — rare clear-silhouette spirits (payload: avoid yokai). Spawn after ~7s; low density.
+    if (runTime > 6.5 && (yokai.length === 0 || yokai[yokai.length-1].x < ahead - 620) && Math.random() < 0.27) {
+      const x = ahead + 160 + Math.random()*280;
+      const baseY = waveY(x, 0) - 64 - Math.random()*86;
+      yokai.push({ x, baseY, phase: Math.random()*6.28, h: 66 + Math.random()*14 });
     }
   }
 
@@ -517,21 +524,63 @@
     ctx.restore();
   }
 
-  function drawCrest(x, y, t) {
+  function drawCrest(x, y, t, screenX) {
+    const approach = (screenX !== undefined) ? Math.max(0, Math.min(1, (220 - screenX) / 220)) : 0;
+    const lift = approach * 7.5; // crest "builds" visually as it approaches — telegraph
     ctx.strokeStyle = '#0f172a';
-    ctx.fillStyle = '#1e2937';
+    ctx.fillStyle = approach > 0.35 ? '#111827' : '#1e2937';
     ctx.lineWidth = 3.5;
     ctx.beginPath();
     ctx.moveTo(x-38, y + 34);
-    ctx.quadraticCurveTo(x-14, y-14, x, y-28);
-    ctx.quadraticCurveTo(x+16, y-12, x+36, y + 32);
+    ctx.quadraticCurveTo(x-14, y-14 - lift*0.6, x, y-28 - lift);
+    ctx.quadraticCurveTo(x+16, y-12 - lift*0.4, x+36, y + 32);
     ctx.lineTo(x+36, y + 46);
     ctx.lineTo(x-38, y + 46);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    // foam hint (very restrained)
-    ctx.strokeStyle = 'rgba(248,244,235,0.65)';
+    // foam hint (very restrained) + stronger on approach
+    ctx.strokeStyle = approach > 0.3 ? 'rgba(248,244,235,0.82)' : 'rgba(248,244,235,0.65)';
     ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.moveTo(x-12, y-16); ctx.quadraticCurveTo(x, y-24, x+11, y-14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-12, y-16 - lift*0.3); ctx.quadraticCurveTo(x, y-24 - lift*0.5, x+11, y-14); ctx.stroke();
+  }
+
+  function drawYokai(x, y, phase, t, screenX) {
+    const sway = Math.sin(phase + t * 0.9) * 2.5;
+    const approach = (screenX !== undefined) ? Math.max(0, Math.min(1, (300 - screenX) / 300)) : 0;
+    ctx.save();
+    ctx.translate(x, y + sway);
+    // body — strong dark ink silhouette (ukiyo-e spirit)
+    ctx.fillStyle = '#0f172a';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.8;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 18, 26, 0, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // horns/ears (clear silhouette against paper/waves)
+    ctx.beginPath();
+    ctx.moveTo(-14, -18); ctx.lineTo(-22, -32); ctx.lineTo(-8, -20); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(14, -18); ctx.lineTo(22, -32); ctx.lineTo(8, -20); ctx.closePath(); ctx.fill();
+    // ink-swirl cloak (restrained motion)
+    ctx.strokeStyle = 'rgba(15,23,42,0.65)';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(-6, 18);
+    ctx.quadraticCurveTo(-18 + Math.sin(t*2.2)*3, 28 + Math.sin(phase)*4, -12, 38);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(5, 16);
+    ctx.quadraticCurveTo(14 + Math.cos(t*1.7)*2, 26, 8, 36);
+    ctx.stroke();
+    // eyes — glow brighter on approach (telegraph + danger read)
+    const eyeR = approach > 0.15 ? 3.9 : 2.5;
+    ctx.fillStyle = approach > 0.22 ? '#9f1239' : '#1e2937';
+    ctx.beginPath(); ctx.arc(-6, -4, eyeR, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6, -4, eyeR * 0.92, 0, Math.PI*2); ctx.fill();
+    // faint pupils for life
+    ctx.fillStyle = '#f8f4eb';
+    ctx.fillRect(-6.8, -4.8, 1.3, 1.3);
+    ctx.fillRect(5.3, -4.8, 1.3, 1.3);
+    ctx.restore();
   }
 
   function drawWaveLayer(offset, layer, t) {
@@ -712,6 +761,27 @@
       }
     }
 
+    // yokai pass (x-pass): must be outside the sway band or dashing to slip the spirit
+    for (let i = yokai.length-1; i>=0; i--) {
+      const yk = yokai[i];
+      if (yk.x < pxWorld + 10) {
+        const ykY = yk.baseY + Math.sin(yk.phase + runTime * 1.3) * 22;
+        const band = 26;
+        const close = Math.abs(playerY - ykY) < band;
+        if (close && !isDashing) {
+          endRun();
+          return;
+        } else if (close && isDashing) {
+          // banish for bonus — dash has purpose against spirits too
+          addScore(46, false);
+          sfxGate();
+          spawnParticles(yk.x - worldOffset, ykY, 10, '#0f172a', 2.9);
+          spawnParticles(yk.x - worldOffset, ykY - 6, 4, '#9f1239', 1.5);
+        }
+        yokai.splice(i,1);
+      }
+    }
+
     // winds: apply lift if player in zone while airborne (ride the current)
     for (let i = winds.length-1; i>=0; i--) {
       const w = winds[i];
@@ -751,6 +821,7 @@
     lettersEnt = lettersEnt.filter(l => l.x > behind);
     crests = crests.filter(c => c.x > behind);
     winds = winds.filter(w => w.x > behind);
+    yokai = yokai.filter(yk => yk.x > behind);
 
     updateHUD();
   }
@@ -769,7 +840,12 @@
 
     // draw entities (world -> screen)
     for (const c of crests) {
-      drawCrest(c.x - worldOffset, c.y, t);
+      const sx = c.x - worldOffset;
+      drawCrest(sx, c.y, t, sx);
+    }
+    for (const yk of yokai) {
+      const sy = yk.baseY + Math.sin(yk.phase + t * 1.3) * 22;
+      drawYokai(yk.x - worldOffset, sy, yk.phase, t, yk.x - worldOffset);
     }
     for (const g of gates) {
       drawLantern(g.x - worldOffset, g.y, g.h, g.phase, t, g.x - worldOffset);

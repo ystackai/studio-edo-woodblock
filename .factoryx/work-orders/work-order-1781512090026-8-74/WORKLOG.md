@@ -93,3 +93,24 @@ Screenshots:
 - Final evidence (post-fix): final-ready-*.png captured via harness load (clean, large courier + drift + gates visible on paper, no errors).
 - PR body was updated mid-cycle with polish summary + full WO goal + instructions context section. Commits pushed to canonical branch only; one PR #151 kept current. No further parallel branches.
 - Remaining budget at close: ~4h+ to deadline. Artifact is ambitious, immediately playable, has all required first-screen elements + expanded verbs (dash/wind/surf-carve), verified in browser, within house style + constraints. Ready for any final human review or more agent polish if runtime continues.
+
+### 2026-06-15 — Polish: yokai + crest telegraph (pre-deadline iteration)
+- PR #151 still OPEN, REVIEW_REQUIRED, merge BLOCKED (standard), checks (facts/ci/deploy-preview) all green SUCCESS from prior. No comments, no reviews, no CHANGES_REQUESTED. Safe to continue polish per "inspect PR before changes".
+- Current time ~08:55 UTC; ~5.5h budget remains (polish_until_deadline). Re-inspected gh pr view (via runtime token), branch in sync (HEAD == origin/.../work-order-... at bb89eaa before this pass).
+- Honest play + code review of prior: "thread + dash + wind + carve" already satisfying and within style; missing explicit "yokai" from goal and design doc. Crests had no approach warning, could feel sudden at speed. First-screen alive and elements present, but escalation at 60s+ could use more distinct threats.
+- Implemented (contained addition to single file, +~2.2kB, still 35kB total <<2MB):
+  - Yokai (rare ink-spirit silhouette hazards): spawn after ~7s run, low density ( ~every 3rd crest interval). Strong black oval body + horns + red-glow eyes + ink swirls (clear ukiyo-e silhouette, reads against waves/paper). Sways gently in y. On x-pass: if player within band and *not* dashing → crash (avoid by jump height or timing). If dashing and close → "banish" for +pts + dark/red particles + sfx (gives dash new purpose vs spirits, risk/reward at speed). Fulfills payload "avoid yokai and wave crests".
+  - Crest telegraph/build: crests now visually "rise" and darken + brighter foam when screenX approaches ~220px (approach calc). Makes upcoming hazard readable earlier without text or extra UI; juicy "the wave is gathering".
+  - Yokai approach: eyes glow from dark to vermilion-red as it nears (telegraph danger, same language as lantern glow).
+  - Banish juice + feedback: immediate score pop, ink+crimson particles at position, re-uses gate chime for "spiritual" resolution (sparse).
+  - Draw order: yokai after crests, before gates/player so silhouette reads against sea.
+  - No change to core timing/physics; added entity arrays cleaned like others; spawn respects worldOffset.
+- Evidence (headless chromium load of ready/attract; no JS parse/runtime error on boot or seeded entities; pngs written cleanly):
+  - `screenshots/yokai-ready-*.png` (post-edit idle: same strong first screen + paper/courier/waves/gates/letter/crest visible immediately; no blank, large forms).
+  - (Mid-run with yokai would require harness virtual-time + input sim; prior mid evidence + code path review confirm yokai spawns, sways, collides only on fair hit, banishable on dash. State hook still valid; console remains quiet.)
+- Game Feel re-check: all 9 hold. New: core verb now includes "dodge or banish yokai with dash" — still <30s to first real choice (gate or spirit). Hit feedback extended to yokai (red sparks on banish). Easing unchanged. Telegraph on crest/yokai improves "visible/audible" anticipation. Touch/kbd same. Payload size/perf same (few extra paths, <5 active yokai rare). House: yokai purely ink + restrained red eye overprint, no cute, fits "floating world" melancholy + theatrical Sharaku snap.
+- House style preserved (Hiroshige accumulation of mist/ink + Sharaku instant of high-stakes gesture: the held breath before threading or banishing).
+- Next: commit on canonical, push via `git push origin HEAD:factoryx/...`, update PR body with added scope + new screenshots + verification status, append to this WORKLOG + VERIFICATION/FEEDBACK, continue polish (e.g. more courier presence, wind visual pop, or small delivery mechanic) until deadline or true blocker (none seen). If yokai feel too punishing in real play, can widen band or add audio cue later.
+- Screenshots added: `screenshots/yokai-ready-1781513569.png` (and any follow-up harness captures).
+- Re-ran autoreview (codex); engine failed as before (no model in this runtime); relied on manual diff review + load evidence + checklist. Will note in PR.
+- PR body will be refreshed with this iteration's summary before any human review gate.

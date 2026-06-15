@@ -36,3 +36,4 @@
 - Ensure first frame after load already "makes sense" (character + waves + title + start affordance). Improved with idle drift: waves + lanterns move pre-gesture.
 - Any verification harness output (pageerror, runtime state) belongs in VERIFICATION.md + PR description.
 - Polish added: dash (X/double-tap/lower-left), wind currents, slope carve scoring, live time+dist, gate approach telegraph/glow, juicier dash-aware courier, faint wave color overprint. All within house style and Game Feel checklist. Screenshots in work-order screenshots/ show ready + mid-run with new features visible.
+- Latest (yokai pass): rare yokai ink-spirits (horned dark silhouettes with glowing eyes) now appear mid-run as escalating hazard; dash to banish for bonus or jump to avoid. Crests visually "build" (rise/darken) on approach as telegraph. Still first-screen clean and immediately playable. Evidence: yokai-ready-*.png (load shows all required + no breakage).
