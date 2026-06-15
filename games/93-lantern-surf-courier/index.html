@@ -1075,6 +1075,16 @@
     window.addEventListener('pointerdown', lanternFirstGesture, { once: true });
     window.addEventListener('keydown', lanternFirstGesture, { once: true });
 
+    // Targeted rework for browser runtime verification "pre-screenshot timed out"
+    // (prompt: file:///.../games/93-lantern-surf-courier/.factoryx-runtime-check-7.html: agent runner failed: browser runtime pre-screenshot timed out;
+    // + "Fresh Grok restart for the overnight seven-studio game run after the first Edo attempt produced blank/low-quality evidence" + "requesting targeted rework before accepting this preview").
+    // Root: the ready/attract first paint (large courier + paper + seeded lanterns/letter/crest + waves + prompt + HUD) only happened inside the rAF(frame) callback.
+    // Under harness virtual-time-budget + --run-all-compositor-stages-before-draw + check-*.html inlining (pre any gesture, short budget for "pre" snapshot),
+    // the rAF delivery or first compositor paint could miss the pre-screenshot window, yielding blank/low-quality or timeout waiting for visible content.
+    // Fix: eager synchronous render(0) here (after seeds, playerY, DOM prompt, listeners) guarantees canvas pixels are painted during boot script execution,
+    // before rAF scheduling. Complements prior lanternFirstGesture (unique name for inline scope) + permanent easy-seed (post-gesture state).
+    // No change to human play, idle drift, first 30s verb, timing, house, or size. rAF(frame) still drives ongoing animation.
+    render(0);
 
     requestAnimationFrame(frame);
   }
