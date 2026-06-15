@@ -71,7 +71,7 @@
   // Game constants (tuned for immediate readable slice)
   const PLAYER_X = 158;
   const BASE_SPEED = 148;
-  const JUMP_V = -420;
+  const JUMP_V = -455; // tuned for more satisfying loft + air time on jumps while keeping gate threading fair and surf momentum readable (11:50 after-input feedback)
   const GRAV = 1250;
   const GROUND_Y = H - 96;
 
@@ -326,7 +326,9 @@
       playerVY = JUMP_V;
       onGround = false;
       sfxJump();
-      spawnParticles(PLAYER_X - 6, playerY + 4, 5, '#64748b', 1.8);
+      // juicier launch spray for satisfying jump momentum (more particles + slight vertical for loft read)
+      spawnParticles(PLAYER_X - 6, playerY + 4, 7, '#64748b', 1.9);
+      spawnParticles(PLAYER_X - 2, playerY + 8, 3, '#94a3b8', 1.2);
     } else if (playerVY > -80) {
       // small air correction for feel
       playerVY = Math.min(playerVY, -160);
@@ -423,10 +425,11 @@
   makePaperGrain();
 
   // Draw courier (large, strong silhouette — courier satchel + hat + flowing robe)
-  function drawCourier(px, py, bob, lean, isDashing, t) {
+  function drawCourier(px, py, bob, lean, isDashing, t, surfSlope = 0) {
     ctx.save();
     ctx.translate(px, py + bob);
-    ctx.rotate(lean * 0.028);
+    // lean from air + subtle surfSlope tilt (when grounded on wave face/trough) sells "riding the wave" momentum and carve feel without extra chrome
+    ctx.rotate(lean * 0.028 + surfSlope * 0.016);
     const k = 2.6; // LARGE courier: strong silhouette immediately readable on first screen (hat, robe, satchel, pole)
     const flap = isDashing ? Math.sin(t * 11) * 0.7 + 0.4 : Math.sin(t * 4.2 + lean) * 0.9; // juicy robe motion
     const satBob = (isDashing ? 1.6 : 0) + Math.sin(t * 3.1) * 0.8 + lean * 1.6;
@@ -545,20 +548,24 @@
   }
 
   function drawLetter(x, y, phase, t) {
-    const bob = Math.sin(phase + t*3.1)*2.5;
+    const bob = Math.sin(phase + t*3.1)*2.8;
     ctx.save();
     ctx.translate(x, y + bob);
-    ctx.rotate(Math.sin(phase*1.7 + t)*0.06);
+    ctx.rotate(Math.sin(phase*1.7 + t)*0.07);
     ctx.fillStyle = '#f4e9d8';
     ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 1.8;
-    ctx.fillRect(-8, -5, 16, 11);
-    ctx.strokeRect(-8, -5, 16, 11);
-    // fold
-    ctx.beginPath(); ctx.moveTo(-8, -1); ctx.lineTo(0, 5); ctx.lineTo(8, -1); ctx.stroke();
-    // seal
+    ctx.lineWidth = 2.1;
+    // bigger sealed letter pickup (clear silhouette, strong vermilion seal, visible fold/address; reads immediately even at speed / in Discord shots; preserves woodblock paper+ink mood)
+    ctx.fillRect(-11, -7, 22, 14);
+    ctx.strokeRect(-11, -7, 22, 14);
+    // fold crease
+    ctx.beginPath(); ctx.moveTo(-11, -2); ctx.lineTo(0, 6); ctx.lineTo(11, -2); ctx.stroke();
+    // address ink marks (subtle, makes it read as "sealed letter" not generic paper)
+    ctx.beginPath(); ctx.moveTo(-7, 1); ctx.lineTo(6, 1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-6, 3.5); ctx.lineTo(4, 3.5); ctx.stroke();
+    // prominent vermilion seal (bigger for collectible clarity + juicy feedback)
     ctx.fillStyle = '#c2410f';
-    ctx.fillRect(-2.5, -1, 5, 3.5);
+    ctx.fillRect(-3.5, -2, 7, 4.5);
     ctx.restore();
   }
 
@@ -772,11 +779,13 @@
 
     if (playerY > groundTarget) {
       playerY = groundTarget;
-      if (playerVY > 80) {
-        // land juice
-        spawnParticles(PLAYER_X + 4, playerY + 6, 3, '#64748b', 1.4);
+      if (playerVY > 70) {
+        // juicier land spray for satisfying surf momentum + impact read (stronger on fast approaches)
+        const landN = (playerVY > 160) ? 6 : 4;
+        spawnParticles(PLAYER_X + 3, playerY + 7, landN, '#64748b', 1.6);
+        if (playerVY > 140) spawnParticles(PLAYER_X - 4, playerY + 10, 2, '#94a3b8', 1.0);
       }
-      playerVY = Math.min(playerVY * 0.2, 40);
+      playerVY = Math.min(playerVY * 0.22, 38);
       onGround = true;
     } else {
       onGround = false;
@@ -837,10 +846,10 @@
       const l = lettersEnt[i];
       if (l.x < pxWorld - 6) {
         const d = Math.abs(l.y - playerY);
-        if (d < 28) {
+        if (d < 32) { // bumped for bigger letter pickups; still precise enough to feel skillful, more satisfying snag on the sealed letters (11:50 feedback)
           letters++;
           addScore(26);
-          spawnScorePop(l.x - worldOffset, l.y - 14, 26);
+          spawnScorePop(l.x - worldOffset, l.y - 14, 26, '#c2410f'); // warmer pop for sealed letter collect makes the "collectible" success more distinct from gate threads while still house-restrained vermilion
           sfxLetter();
           const sx = l.x - worldOffset;
           // delivery tuck particles: fly toward courier satchel for visible "sealed letter delivered" (juicy, screenshot-friendly, fulfills "deliver" verb with motion)
@@ -854,6 +863,10 @@
             });
           }
           spawnParticles(sx, l.y, 2, '#f4e9d8', 2.1);
+          // extra crisp delivery feedback at the courier satchel (local +26 pop already at letter; this + ink/seal flecks at player makes "I collected and delivered the sealed letter" obvious and juicy without breaking restraint)
+          const delY = playerY - 20 + (isDashing ? 3 : 0);
+          spawnParticles(PLAYER_X + 23, delY, 3, '#c2410f', 1.4);
+          spawnParticles(PLAYER_X + 19, delY + 2, 2, '#f4e9d8', 1.1);
           updateHUD();
         }
         lettersEnt.splice(i,1);
@@ -1009,7 +1022,12 @@
     const bob = running ? Math.sin(t * 3.6) * 1.8 + (playerVY * 0.012) : Math.sin(t * 2.2) * 1.6;
     const lean = running ? Math.max(-0.6, Math.min(0.7, playerVY * 0.0018)) : 0.1;
     const dashing = running && (runTime < dashUntil);
-    drawCourier(PLAYER_X, playerY, bob, lean, dashing, t);
+    // compute live surf slope under player for courier tilt (wave carve momentum read)
+    const pwx = worldOffset + PLAYER_X;
+    const sy0 = waveY(pwx, 0);
+    const sy1 = waveY(pwx + 22, 0);
+    const surfSlope = (sy1 - sy0) * 0.65;
+    drawCourier(PLAYER_X, playerY, bob, lean, dashing, t, surfSlope);
 
     // particles (top)
     ctx.lineWidth = 1.6;
@@ -1026,7 +1044,7 @@
 
     // floating score pops (crisp, immediate "I scored by threading/collecting here" — makes collection rules obvious without extra UI or text explanations)
     ctx.textAlign = 'center';
-    ctx.font = '700 12px system-ui, sans-serif';
+    ctx.font = '700 13px system-ui, sans-serif';
     for (const p of scorePops) {
       const a = Math.max(0.08, p.life / 0.85);
       ctx.globalAlpha = a;

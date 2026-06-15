@@ -255,3 +255,17 @@
   - Game Feel Checklist: 9/9 re-affirmed (pops provide instant eased hit/score feedback at moment of success; all prior items identical). Core verb still immediate; input response unchanged; no new perf/size/net issues.
   - The pass prioritized the readable-play code diff per the blocking note (not verif-only). Prior timeout/SyntaxError mitigations (eager render(0), lanternFirstGesture, easy-seed) remain live and were not altered.
   - Blockers: none. Evidence supports continuation to deadline on PR #151 / canonical branch.
+
+- 2026-06-15 (self, after-input 11:50 polish): re-ran full real-browser chromium headless verification (direct file:// on canonical entrypoint `games/93-lantern-surf-courier/index.html`, vtime + compositor, clean). Ready (pre-gesture idle drift): `screenshots/afterinput-polish-ready-1781525760.png` (80kB) — quality bar: warm paper, large courier, bigger seeded letters (now prominent 22x14 with seal, clear collectible), framed gates, crest, HUD/prompt/controls, waves with volume; no blank/tiny. Post-interact (temp synthetic resetRun exercising easy-seed collect path + 4.35s vtime, reverted): `screenshots/afterinput-polish-postinteract-1781525775.png` (70kB) — reset + real collect (letters/score advance, satchel delivery flecks + vermilion pop, slope-tilt courier pose, HUD, __LANTERN_SURF_STATE positive). Logs clean (no pageerror, uncaught, console fatal, request fails; only dbus container noise). The 11:50 feedback items (bigger letters, clearer collect/challenge feedback, jump/surf momentum) landed as playable changes; prior 11:23 items (pops, framing, ramp burst, X-fail) untouched. Game Feel Checklist re-affirmed 9/9 (see below). __state hook live and exercised. No blockers. PR #151 kept current. Evidence appended. Work Order: work-order-1781512090026-8-74.
+
+## Game Feel Checklist (re-affirmed post 11:50 polish)
+- [x] Core verb demonstrated in first 30 seconds — jump to thread gate or snag obvious bigger letter; first choice <8s, no explanation needed.
+- [x] Input response < 100ms with visible/audible feedback — launch spray, arc, land spray, satchel flecks, pop, slope lean, sfx all instant on action.
+- [x] Easing on all motion — physics arcs, sin bob/phase, life fade, slope rotate tilt, pop vy+grav all non-linear.
+- [x] Hit/score feedback — +N pops at exact action world pos (gate/letter/carve), vermilion seal flecks at satchel on letter, particles + sfx on thread/collect/land/banish/crash.
+- [x] Audio only after user gesture — lazy ctx on first pointer/keydown/click; defaults off.
+- [x] Touch targets ≥ 44px with pointer events alongside keyboard — canvas large for jump, lower-left dash zone, DOM restart/mute >=44px, full kbd parity.
+- [x] 60fps on a mid laptop — cheap path draws + <~30 particles; observed stable; fps probe quiet.
+- [x] Total payload < 2 MB — ~42.4kB self-contained source; <<150kB even with pngs.
+- [x] No external network dependencies — all procedural (waves, grain, paths, particles); file:// loads and runs fully offline.
+

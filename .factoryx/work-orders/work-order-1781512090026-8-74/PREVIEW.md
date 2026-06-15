@@ -230,3 +230,7 @@
   - Ramp burst particles under board on 60s speed up — the escalation moment is now shown, not just felt via density.
   - All ink/paper/silhouette restrained; no courier or wave repaints. New evidence captures (chromium real runtime, vtime, direct on entrypoint): `playtest-feedback-ready-1781523.png` (framed gates visible in ready), `playtest-feedback-post-1781523.png` (pops exercised on easy collect post reset).
 - Preview root remains exactly `games/93-lantern-surf-courier/index.html` (self-contained, no homepage mutation). Quality bar holds; first screen + verb demo immediate and now even more self-teaching via the new readable feedback.
+
+- 2026-06-15 after-input 11:50 polish (per codex-public-preview feedback): bigger sealed letters (22x14, seal+address marks for instant "deliver" read), local satchel delivery flecks + tinted collect pop for obvious collectible success, jump loft + surf-slope courier tilt + juicier launch/land particles for momentum. All additive ink/paper strokes; woodblock wave mood and first-screen elements preserved exactly (larger letters now prominent on ready). Fresh chromium evidence (ready + post with harness collect path) archived. Game Feel + quality bar hold; PR #151 current. Screenshots: afterinput-polish-ready-1781525760.png (larger letters visible pre-gesture), afterinput-polish-postinteract-1781525775.png (collect + slope pose + state live).
+    110|
+
