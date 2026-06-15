@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lantern Surf Courier — Edo Woodblock</title>
+  <style>
+    :root { --paper:#f8f4eb; --ink:#0f172a; --vermilion:#c2410f; --gold:#f59e0b; --wave:#1e3a5f; }
+    html,body { margin:0; padding:0; background:#111; height:100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    #wrap { position:relative; width:960px; max-width:100vw; box-shadow:0 10px 40px rgba(0,0,0,0.6); background:#222; border:1px solid #333; }
+    canvas { display:block; width:100%; height:auto; image-rendering:crisp-edges; touch-action:none; }
+    .hud { position:absolute; top:12px; left:12px; color:#f8f4eb; font-size:13px; font-weight:600; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.6); pointer-events:none; }
+    .hud .score { font-size:22px; font-weight:800; }
+    .hud .meta { opacity:0.85; margin-top:2px; }
+    .ctrl { position:absolute; top:12px; right:12px; display:flex; gap:8px; z-index:10; }
+    .btn { background:var(--paper); color:var(--ink); border:2px solid var(--ink); font-weight:700; font-size:12px; padding:8px 14px; border-radius:4px; cursor:pointer; user-select:none; min-height:44px; min-width:44px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 1px 0 rgba(0,0,0,0.2); }
+    .btn:active { transform:translateY(1px); }
+    .btn.mute { font-size:18px; line-height:1; padding:6px 12px; }
+    #startPrompt { position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; flex-direction:column; gap:6px; background:rgba(15,23,42,0.18); color:#f8f4eb; font-size:14px; font-weight:700; letter-spacing:1px; pointer-events:none; padding-bottom:72px; }
+    #startPrompt .big { font-size:28px; letter-spacing:3px; margin-bottom:4px; }
+    #crashOverlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(15,23,42,0.75); color:#f8f4eb; z-index:20; text-align:center; }
+    #crashOverlay .title { font-size:18px; font-weight:800; margin-bottom:6px; letter-spacing:1px; }
+    #crashOverlay .stat { font-size:14px; opacity:0.9; margin:2px 0; }
+    #restartBtn { margin-top:16px; min-width:140px; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div class="hud">
+      <div class="score" id="score">00000</div>
+      <div class="meta" id="meta">LETTERS <span id="letters">0</span> &nbsp; COMBO <span id="combo">x1</span></div>
+    </div>
+    <div class="ctrl">
+      <button class="btn mute" id="soundBtn" title="Toggle sound (off by default)">♪</button>
+      <button class="btn" id="restartBtnTop" title="Restart run (R)">RESTART</button>
+    </div>
+    <div id="startPrompt">
+      <div class="big" style="font-size:22px;letter-spacing:2.5px">LANTERN SURF COURIER</div>
+      <div style="font-size:12px;opacity:0.85">TAP / CLICK / SPACE TO RIDE</div>
+    </div>
+    <div id="crashOverlay">
+      <div class="title">CRASHED</div>
+      <div class="stat" id="crashStat"></div>
+      <button class="btn" id="restartBtn">RESTART RUN</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d', { alpha: true });
+  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  canvas.width = 960 * DPR;
+  canvas.height = 540 * DPR;
+  ctx.scale(DPR, DPR);
+  const W = 960, H = 540;
+
+  // DOM refs
+  const scoreEl = document.getElementById('score');
+  const lettersEl = document.getElementById('letters');
+  const comboEl = document.getElementById('combo');
+  const soundBtn = document.getElementById('soundBtn');
+  const startPrompt = document.getElementById('startPrompt');
+  const crashOverlay = document.getElementById('crashOverlay');
+  const crashStat = document.getElementById('crashStat');
+  const restartBtn = document.getElementById('restartBtn');
+  const restartBtnTop = document.getElementById('restartBtnTop');
+
+  // Game constants (tuned for immediate readable slice)
+  const PLAYER_X = 158;
+  const BASE_SPEED = 148;
+  const JUMP_V = -420;
+  const GRAV = 1250;
+  const GROUND_Y = H - 96;
+
+  // State
+  let running = false;
+  let crashed = false;
+  let time = 0;
+  let worldOffset = 0;
+  let speed = BASE_SPEED;
+  let lastSpeedRamp = 0;
+  let score = 0;
+  let letters = 0;
+  let combo = 1;
+  let lastActionTime = 0;
+  let highScore = 0;
+
+  let playerY = GROUND_Y - 64;
+  let playerVY = 0;
+  let onGround = true;
+
+  // Entities
+  let gates = [];
+  let lettersEnt = [];
+  let crests = [];
+  let particles = [];
+
+  // Input
+  let jumpPressed = false;
+  let jumpBuffered = 0;
+  let keys = {};
+  let pointerDown = false;
+
+  // Audio (created on first gesture)
+  let audioCtx = null;
+  let soundEnabled = false;
+  let masterGain = null;
+
+  function ensureAudio() {
+    if (audioCtx) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.7;
+      masterGain.connect(audioCtx.destination);
+    } catch (e) {}
+  }
+  function playTone(freq, dur, type='sine', vol=0.6, ramp=0.02) {
+    if (!audioCtx || !soundEnabled || !masterGain) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const filt = audioCtx.createBiquadFilter();
+    osc.type = type;
+    osc.frequency.value = freq;
+    filt.type = 'lowpass';
+    filt.frequency.value = 1800;
+    g.gain.value = vol;
+    const end = t + dur;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.linearRampToValueAtTime(0.0001, end);
+    osc.connect(filt); filt.connect(g); g.connect(masterGain);
+    osc.start(t);
+    osc.stop(end + 0.02);
+  }
+  function playNoise(dur, vol=0.35, lp=900) {
+    if (!audioCtx || !soundEnabled || !masterGain) return;
+    const t = audioCtx.currentTime;
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i=0; i<data.length; i++) data[i] = Math.random()*2-1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const g = audioCtx.createGain();
+    const filt = audioCtx.createBiquadFilter();
+    filt.type='lowpass'; filt.frequency.value=lp;
+    g.gain.value = vol; g.gain.linearRampToValueAtTime(0.0001, t+dur);
+    src.connect(filt); filt.connect(g); g.connect(masterGain);
+    src.start(t);
+  }
+  function sfxJump() { playTone(220, 0.18, 'sawtooth', 0.28, 0.01); playNoise(0.09, 0.12, 1400); }
+  function sfxGate() { playTone(780, 0.22, 'triangle', 0.55); playTone(1240, 0.14, 'sine', 0.35); }
+  function sfxLetter() { playTone(520, 0.09, 'sine', 0.4); playNoise(0.06, 0.18, 2200); }
+  function sfxCrash() { playTone(90, 0.6, 'sawtooth', 0.5); playNoise(0.55, 0.4, 420); }
+
+  // Paper grain (offscreen, cheap)
+  let paperGrain = null;
+  function makePaperGrain() {
+    const g = document.createElement('canvas');
+    g.width = 256; g.height = 256;
+    const gc = g.getContext('2d');
+    gc.fillStyle = '#f8f4eb';
+    gc.fillRect(0,0,256,256);
+    gc.fillStyle = 'rgba(15,23,42,0.035)';
+    for (let i=0; i<420; i++) {
+      const x = Math.random()*256, y=Math.random()*256;
+      gc.fillRect(x, y, 1.6, 0.8);
+    }
+    gc.strokeStyle = 'rgba(15,23,42,0.028)';
+    gc.lineWidth = 0.7;
+    for (let i=0; i<38; i++) {
+      gc.beginPath();
+      gc.moveTo(Math.random()*256, Math.random()*256);
+      gc.lineTo(Math.random()*256, Math.random()*256);
+      gc.stroke();
+    }
+    paperGrain = g;
+  }
+
+  // Wave surface sampler (deterministic, cheap)
+  function waveY(wx, layer=0) {
+    const x = wx * 0.014 + layer * 1.7;
+    let y = Math.sin(x) * 18 + Math.sin(x*2.3 + 1.2) * 9 + Math.sin(x*0.6) * 7;
+    if (layer === 0) y += Math.sin(x*0.27 + 0.8) * 22; // near big swell
+    if (layer === 1) y *= 0.6;
+    if (layer === 2) y *= 0.35;
+    return GROUND_Y + y;
+  }
+
+  function crestHeight(wx) {
+    // Local extra height at hazard crests
+    return 26 + Math.sin(wx * 0.009 + 3.1) * 11;
+  }
+
+  // Spawn logic
+  function resetEntities() {
+    gates = []; lettersEnt = []; crests = []; particles = [];
+  }
+  function spawnAhead() {
+    const ahead = worldOffset + W + 120;
+    // Gates
+    if (gates.length === 0 || gates[gates.length-1].x < ahead - 280) {
+      const x = Math.max(ahead, (gates.length ? gates[gates.length-1].x : worldOffset) + 310 + Math.random()*120);
+      const wy = waveY(x, 0) - 64 - Math.random()*38;
+      gates.push({ x, y: wy, h: 92, phase: Math.random()*6.28 });
+    }
+    // Letters (floating pickups)
+    if (Math.random() < 0.82 && (lettersEnt.length === 0 || lettersEnt[lettersEnt.length-1].x < ahead - 180)) {
+      const x = ahead + 60 + Math.random()*140;
+      const wy = waveY(x, 0) - 48 - Math.random()*72;
+      lettersEnt.push({ x, y: wy, phase: Math.random()*6.28 });
+    }
+    // Crest hazards (wave breaks)
+    if (crests.length === 0 || crests[crests.length-1].x < ahead - 420) {
+      const x = Math.max(ahead + 40, (crests.length ? crests[crests.length-1].x : worldOffset) + 480 + Math.random()*210);
+      crests.push({ x, y: waveY(x, 0) - 12 });
+    }
+  }
+
+  function resetRun() {
+    running = true;
+    crashed = false;
+    time = 0;
+    worldOffset = 0;
+    speed = BASE_SPEED;
+    lastSpeedRamp = 0;
+    score = 0;
+    letters = 0;
+    combo = 1;
+    lastActionTime = 0;
+    playerY = GROUND_Y - 64;
+    playerVY = 0;
+    onGround = true;
+    resetEntities();
+    crashOverlay.style.display = 'none';
+    startPrompt.style.display = 'none';
+    updateHUD();
+  }
+
+  function endRun() {
+    running = false;
+    crashed = true;
+    if (score > highScore) highScore = score;
+    sfxCrash();
+    // burst
+    for (let i=0; i<18; i++) {
+      particles.push({ x: PLAYER_X + (Math.random()-0.5)*28, y: playerY - 10 + (Math.random()-0.5)*18,
+        vx: (Math.random()-0.5)*3.2 - 0.6, vy: (Math.random()-0.8)*2.4 - 0.5, life: 0.6 + Math.random()*0.7, c: '#0f172a' });
+    }
+    crashStat.innerHTML = `LETTERS DELIVERED <b>${letters}</b><br>SCORE <b>${score}</b> &nbsp; HIGH <b>${highScore}</b>`;
+    crashOverlay.style.display = 'flex';
+  }
+
+  function updateHUD() {
+    scoreEl.textContent = String(score).padStart(5, '0');
+    lettersEl.textContent = letters;
+    comboEl.textContent = 'x' + combo;
+  }
+
+  function addScore(n, mult=true) {
+    const s = Math.round(n * (mult ? combo : 1));
+    score += s;
+    if (mult && combo < 6) combo = Math.min(6, combo + 0.35);
+    lastActionTime = time;
+    updateHUD();
+  }
+
+  function spawnParticles(x, y, n, c='#f59e0b', spread=2.2) {
+    for (let i=0; i<n; i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random()-0.5)*spread, vy: (Math.random()-0.6)*spread - 0.8,
+        life: 0.35 + Math.random()*0.55, c
+      });
+    }
+  }
+
+  // Input wiring (gesture first, large targets)
+  function doJump() {
+    if (!running) {
+      if (!crashed) resetRun();
+      return;
+    }
+    if (onGround) {
+      playerVY = JUMP_V;
+      onGround = false;
+      sfxJump();
+      spawnParticles(PLAYER_X - 6, playerY + 4, 5, '#64748b', 1.8);
+    } else if (playerVY > -80) {
+      // small air correction for feel
+      playerVY = Math.min(playerVY, -160);
+    }
+    jumpBuffered = 0;
+  }
+  function doRestart() {
+    resetRun();
+  }
+
+  window.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowUp' || e.key.toLowerCase() === 'w' || e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      jumpBuffered = 0.12;
+      doJump();
+    }
+    if ((e.key.toLowerCase() === 'r' || e.key === 'Enter') && (crashed || !running)) {
+      e.preventDefault();
+      doRestart();
+    }
+  });
+  window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+  canvas.addEventListener('pointerdown', (e) => {
+    pointerDown = true;
+    ensureAudio();
+    const rect = canvas.getBoundingClientRect();
+    const cx = (e.clientX - rect.left) / rect.width * W;
+    const cy = (e.clientY - rect.top) / rect.height * H;
+    // restart zone (bottom-right large)
+    if (crashed && cx > W-220 && cy > H-110) { doRestart(); return; }
+    if (!running && !crashed) { doJump(); return; }
+    // main play: jump
+    jumpBuffered = 0.1;
+    doJump();
+  });
+  canvas.addEventListener('pointerup', () => { pointerDown = false; });
+  canvas.addEventListener('pointerleave', () => { pointerDown = false; });
+
+  // Touch: prevent page scroll on canvas
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    ensureAudio();
+    if (crashed) { doRestart(); return; }
+    if (!running) { doJump(); return; }
+    jumpBuffered = 0.1;
+    doJump();
+  }, { passive: false });
+
+  // Buttons
+  soundBtn.addEventListener('click', () => {
+    ensureAudio();
+    soundEnabled = !soundEnabled;
+    soundBtn.style.opacity = soundEnabled ? '1' : '0.55';
+    soundBtn.textContent = soundEnabled ? '♫' : '♪';
+    if (soundEnabled && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  });
+  restartBtn.addEventListener('click', doRestart);
+  restartBtnTop.addEventListener('click', () => { ensureAudio(); doRestart(); });
+
+  // Initial paper
+  makePaperGrain();
+
+  // Draw courier (large, strong silhouette — courier satchel + hat + flowing robe)
+  function drawCourier(px, py, bob, lean) {
+    ctx.save();
+    ctx.translate(px, py + bob);
+    ctx.rotate(lean * 0.028);
+    const k = 2.6; // LARGE courier: strong silhouette immediately readable on first screen (hat, robe, satchel, pole)
+
+    ctx.strokeStyle = '#0f172a';
+    ctx.fillStyle = '#0f172a';
+    ctx.lineWidth = 3.8 * (k/1.85);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    // legs
+    ctx.beginPath();
+    ctx.moveTo(-11*k, 6*k); ctx.lineTo(-22*k, 28*k); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(6*k, 8*k); ctx.lineTo(18*k, 26*k); ctx.stroke();
+    // board / contact
+    ctx.beginPath();
+    ctx.moveTo(-28*k, 26*k); ctx.lineTo(26*k, 24*k);
+    ctx.lineWidth = 5.5 * (k/1.85); ctx.stroke(); ctx.lineWidth = 3.8 * (k/1.85);
+
+    // robe body
+    ctx.lineWidth = 3.2 * (k/1.85);
+    ctx.beginPath();
+    ctx.moveTo(-8*k, -14*k); ctx.quadraticCurveTo(-18*k, 4*k, -14*k, 18*k);
+    ctx.lineTo(12*k, 18*k); ctx.quadraticCurveTo(18*k, 2*k, 9*k, -16*k);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-2*k, -10*k); ctx.lineTo(-3*k, 14*k);
+    ctx.moveTo(3*k, -8*k); ctx.lineTo(4*k, 12*k);
+    ctx.stroke();
+
+    // satchel (courier identity + deliver letters)
+    ctx.fillRect(10*k, -2*k, 18*k, 14*k);
+    ctx.strokeRect(10*k, -2*k, 18*k, 14*k);
+    ctx.beginPath(); ctx.moveTo(12*k, 4*k); ctx.lineTo(26*k, 4*k); ctx.stroke();
+    ctx.fillStyle = '#c2410f';
+    ctx.fillRect(13*k, 1*k, 12*k, 4*k);
+    ctx.fillStyle = '#0f172a';
+
+    // arms + pole
+    ctx.beginPath(); ctx.moveTo(-6*k, -4*k); ctx.lineTo(-26*k, -18*k); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6*k, -6*k); ctx.lineTo(22*k, -22*k); ctx.stroke();
+    ctx.lineWidth = 2.4 * (k/1.85);
+    ctx.beginPath(); ctx.moveTo(-30*k, -26*k); ctx.lineTo(30*k, -19*k); ctx.stroke();
+
+    // head + wide hat
+    ctx.lineWidth = 3.4 * (k/1.85);
+    ctx.beginPath();
+    ctx.arc(0, -22*k, 9*k, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-14*k, -26*k); ctx.quadraticCurveTo(-20*k, -34*k, -6*k, -38*k);
+    ctx.lineTo(7*k, -37*k); ctx.quadraticCurveTo(18*k, -33*k, 13*k, -25*k);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // eye
+    ctx.fillStyle = '#f8f4eb';
+    ctx.fillRect(3*k, -25*k, 3.5*k, 1.6*k);
+
+    ctx.restore();
+  }
+
+  function drawLantern(x, y, h, phase, t) {
+    const sway = Math.sin(phase + t * 1.6) * 3.5;
+    ctx.save();
+    ctx.translate(x, y + sway);
+
+    // glow (soft)
+    ctx.fillStyle = 'rgba(245,158,11,0.18)';
+    ctx.beginPath(); ctx.arc(0, -h*0.1, 28, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(194,65,15,0.22)';
+    ctx.beginPath(); ctx.arc(0, -h*0.1, 18, 0, Math.PI*2); ctx.fill();
+
+    // left lantern
+    ctx.strokeStyle = '#0f172a'; ctx.fillStyle = '#c2410f'; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(-11, -h*0.55); ctx.quadraticCurveTo(-16, 0, -9, h*0.38);
+    ctx.lineTo(-3, h*0.38); ctx.quadraticCurveTo(-7, 0, -5, -h*0.55);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // right lantern
+    ctx.fillStyle = '#ea580c';
+    ctx.beginPath();
+    ctx.moveTo(5, -h*0.55); ctx.quadraticCurveTo(2, 0, 6, h*0.38);
+    ctx.lineTo(12, h*0.38); ctx.quadraticCurveTo(15, 0, 10, -h*0.55);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // flame cores
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath(); ctx.arc(-7, -4, 3.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(7, -3, 3.5, 0, Math.PI*2); ctx.fill();
+
+    // top bar
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(-14, -h*0.58); ctx.lineTo(13, -h*0.58); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawLetter(x, y, phase, t) {
+    const bob = Math.sin(phase + t*3.1)*2.5;
+    ctx.save();
+    ctx.translate(x, y + bob);
+    ctx.rotate(Math.sin(phase*1.7 + t)*0.06);
+    ctx.fillStyle = '#f4e9d8';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 1.8;
+    ctx.fillRect(-8, -5, 16, 11);
+    ctx.strokeRect(-8, -5, 16, 11);
+    // fold
+    ctx.beginPath(); ctx.moveTo(-8, -1); ctx.lineTo(0, 5); ctx.lineTo(8, -1); ctx.stroke();
+    // seal
+    ctx.fillStyle = '#c2410f';
+    ctx.fillRect(-2.5, -1, 5, 3.5);
+    ctx.restore();
+  }
+
+  function drawCrest(x, y, t) {
+    ctx.strokeStyle = '#0f172a';
+    ctx.fillStyle = '#1e2937';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(x-38, y + 34);
+    ctx.quadraticCurveTo(x-14, y-14, x, y-28);
+    ctx.quadraticCurveTo(x+16, y-12, x+36, y + 32);
+    ctx.lineTo(x+36, y + 46);
+    ctx.lineTo(x-38, y + 46);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // foam hint (very restrained)
+    ctx.strokeStyle = 'rgba(248,244,235,0.65)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x-12, y-16); ctx.quadraticCurveTo(x, y-24, x+11, y-14); ctx.stroke();
+  }
+
+  function drawWaveLayer(offset, layer, t) {
+    const base = waveY(0, layer);
+    ctx.strokeStyle = layer === 0 ? '#0f172a' : (layer === 1 ? '#1e3a5f' : '#334155');
+    ctx.lineWidth = layer === 0 ? 4.5 : (layer === 1 ? 3.2 : 2.2);
+    ctx.beginPath();
+    let started = false;
+    for (let sx = -40; sx <= W + 60; sx += 6) {
+      const wx = worldOffset + sx + offset;
+      const wy = waveY(wx, layer);
+      if (!started) { ctx.moveTo(sx, wy); started = true; }
+      else ctx.lineTo(sx, wy);
+    }
+    ctx.stroke();
+
+    // crest foam accents on near layer only
+    if (layer === 0) {
+      ctx.strokeStyle = 'rgba(248,244,235,0.55)';
+      ctx.lineWidth = 1.8;
+      for (let sx = 40; sx < W-20; sx += 92) {
+        const wx = worldOffset + sx + offset;
+        const wy = waveY(wx, 0);
+        ctx.beginPath();
+        ctx.moveTo(sx-8, wy-7); ctx.lineTo(sx+7, wy-5); ctx.stroke();
+      }
+    }
+  }
+
+  function drawMist(t) {
+    ctx.fillStyle = 'rgba(248,244,235,0.06)';
+    for (let i=0; i<3; i++) {
+      const mx = ((worldOffset * 0.2 + i*310) % (W+180)) - 60;
+      ctx.beginPath();
+      ctx.ellipse(mx + Math.sin(t+i)*12, 118 + i*17, 160 + i*22, 38, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  function drawPaper() {
+    ctx.fillStyle = '#f8f4eb';
+    ctx.fillRect(0, 0, W, H);
+    if (paperGrain) {
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(paperGrain, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+    // distant horizon ink band
+    ctx.fillStyle = 'rgba(15,23,42,0.08)';
+    ctx.fillRect(0, 92, W, 38);
+  }
+
+  function drawBG(t) {
+    // very far mountains (ukiyo-e silhouette)
+    ctx.fillStyle = 'rgba(15,23,42,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(0, 148);
+    ctx.lineTo(140, 82); ctx.lineTo(260, 131); ctx.lineTo(410, 71);
+    ctx.lineTo(580, 119); ctx.lineTo(720, 66); ctx.lineTo(880, 124); ctx.lineTo(W, 101);
+    ctx.lineTo(W, 168); ctx.lineTo(0, 168); ctx.closePath(); ctx.fill();
+
+    // subtle torii or bridge post
+    ctx.strokeStyle = 'rgba(15,23,42,0.22)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(680, 104); ctx.lineTo(680, 152); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(712, 104); ctx.lineTo(712, 152); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(672, 108); ctx.lineTo(720, 108); ctx.stroke();
+  }
+
+  function update(dt) {
+    if (!running) {
+      // idle bob for ready/crashed screen
+      playerY = GROUND_Y - 64 + Math.sin(time * 2.2) * 1.6;
+      return;
+    }
+
+    time += dt;
+    const dtSec = dt / 1000;
+    worldOffset += speed * dtSec;
+
+    // speed ramp every ~58s
+    if (time - lastSpeedRamp > 58) {
+      speed = Math.min(speed * 1.13, BASE_SPEED * 2.6);
+      lastSpeedRamp = time;
+    }
+
+    // combo decay
+    if (time - lastActionTime > 3.8 && combo > 1) {
+      combo = Math.max(1, combo - dtSec * 0.6);
+      updateHUD();
+    }
+
+    // player physics
+    playerVY += GRAV * dtSec;
+    playerY += playerVY * dtSec;
+
+    const surf = waveY(worldOffset + PLAYER_X, 0);
+    const groundTarget = surf - 64;
+
+    if (playerY > groundTarget) {
+      playerY = groundTarget;
+      if (playerVY > 80) {
+        // land juice
+        spawnParticles(PLAYER_X + 4, playerY + 6, 3, '#64748b', 1.4);
+      }
+      playerVY = Math.min(playerVY * 0.2, 40);
+      onGround = true;
+    } else {
+      onGround = false;
+    }
+
+    // buffer jump
+    if (jumpBuffered > 0) {
+      jumpBuffered -= dtSec;
+      if (onGround) doJump();
+    }
+
+    // spawn
+    spawnAhead();
+
+    // gate threading + letter collect + crest crash (x-pass tests)
+    const pxWorld = worldOffset + PLAYER_X;
+    for (let i = gates.length-1; i>=0; i--) {
+      const g = gates[i];
+      if (g.x < pxWorld - 18) {
+        const top = g.y - g.h * 0.5, bot = g.y + g.h * 0.5;
+        const threaded = playerY > top && playerY < bot;
+        if (threaded) {
+          addScore(92);
+          sfxGate();
+          spawnParticles(g.x - worldOffset, g.y, 9, '#f59e0b', 3.6);
+          spawnParticles(g.x - worldOffset, g.y - 18, 4, '#c2410f', 2.1);
+        } else {
+          combo = Math.max(1, combo - 0.6);
+          updateHUD();
+        }
+        gates.splice(i,1);
+      }
+    }
+    for (let i=lettersEnt.length-1; i>=0; i--) {
+      const l = lettersEnt[i];
+      if (l.x < pxWorld - 6) {
+        const d = Math.abs(l.y - playerY);
+        if (d < 28) {
+          letters++;
+          addScore(26);
+          sfxLetter();
+          spawnParticles(l.x - worldOffset, l.y, 4, '#f4e9d8', 2.8);
+          updateHUD();
+        }
+        lettersEnt.splice(i,1);
+      }
+    }
+    for (let i=crests.length-1; i>=0; i--) {
+      const c = crests[i];
+      if (c.x < pxWorld + 6) {
+        const ch = crestHeight(c.x);
+        if (onGround || playerY > c.y - ch + 14) {
+          endRun();
+          return;
+        }
+        crests.splice(i,1);
+      }
+    }
+
+    // particles
+    for (let i=particles.length-1; i>=0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 180 * dtSec;
+      p.life -= dtSec;
+      if (p.life <= 0) particles.splice(i,1);
+    }
+
+    // cleanup far behind
+    const behind = worldOffset - 80;
+    gates = gates.filter(g => g.x > behind);
+    lettersEnt = lettersEnt.filter(l => l.x > behind);
+    crests = crests.filter(c => c.x > behind);
+
+    updateHUD();
+  }
+
+  function render(t) {
+    drawPaper();
+    drawBG(t);
+    drawMist(t);
+
+    // far wave
+    drawWaveLayer(-18, 2, t);
+    // mid
+    drawWaveLayer(6, 1, t);
+    // near (rideable)
+    drawWaveLayer(0, 0, t);
+
+    // draw entities (world -> screen)
+    for (const c of crests) {
+      drawCrest(c.x - worldOffset, c.y, t);
+    }
+    for (const g of gates) {
+      drawLantern(g.x - worldOffset, g.y, g.h, g.phase, t);
+    }
+    for (const l of lettersEnt) {
+      drawLetter(l.x - worldOffset, l.y, l.phase, t);
+    }
+
+    // player
+    const bob = running ? Math.sin(t * 3.6) * 1.8 + (playerVY * 0.012) : Math.sin(t * 2.2) * 1.6;
+    const lean = running ? Math.max(-0.6, Math.min(0.7, playerVY * 0.0018)) : 0.1;
+    drawCourier(PLAYER_X, playerY, bob, lean);
+
+    // particles (top)
+    ctx.lineWidth = 1.6;
+    for (const p of particles) {
+      const a = Math.max(0.06, p.life / 0.9);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.c;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.2, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // subtle speed lines when fast (ink feel)
+    if (running && speed > BASE_SPEED * 1.4) {
+      ctx.strokeStyle = 'rgba(15,23,42,0.09)';
+      ctx.lineWidth = 1;
+      for (let i=0; i<5; i++) {
+        const sx = 80 + (i*37) % 520;
+        ctx.beginPath();
+        ctx.moveTo(sx, 210 + (i%3)*48);
+        ctx.lineTo(sx - 38 - (speed-BASE_SPEED)*0.03, 212 + (i%3)*48);
+        ctx.stroke();
+      }
+    }
+
+    // minimal horizon ink wash
+    ctx.fillStyle = 'rgba(15,23,42,0.035)';
+    ctx.fillRect(0, 148, W, 22);
+  }
+
+  let last = performance.now();
+  let fpsAcc = 0, fpsN = 0;
+  function frame(now) {
+    const dt = Math.min(32, now - last);
+    last = now;
+
+    update(dt);
+    render(now / 1000);
+
+    // expose for verification harness
+    window.__LANTERN_SURF_STATE = {
+      score, letters, combo: Math.floor(combo), crashed, running,
+      runTime: time, player: { y: playerY, onGround },
+      speed, worldOffset
+    };
+
+    // light fps guard (no DOM spam)
+    fpsAcc += 1000 / Math.max(1, dt); fpsN++;
+    if (fpsN > 45) {
+      const avg = fpsAcc / fpsN;
+      if (avg < 52 && running) {
+        // gentle hint only in console if needed (kept quiet normally)
+        // console.debug('fps', Math.round(avg));
+      }
+      fpsAcc = 0; fpsN = 0;
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  // Boot: show large courier + waves immediately, prompt for start
+  function boot() {
+    // seed ahead so first screen shows large courier + wave + gates/letters/hazards (no overlap with player)
+    gates.push({ x: 620, y: waveY(620,0) - 82, h: 98, phase: 1.1 });
+    gates.push({ x: 920, y: waveY(920,0) - 58, h: 88, phase: 3.7 });
+    lettersEnt.push({ x: 710, y: waveY(710,0) - 96, phase: 0.6 });
+    crests.push({ x: 1080, y: waveY(1080,0) - 8 });
+
+    // initial idle player position
+    playerY = GROUND_Y - 20;
+    updateHUD();
+    startPrompt.style.display = 'flex';
+    crashOverlay.style.display = 'none';
+
+    // allow instant start on first pointer/keydown anywhere reasonable
+    const firstGesture = () => {
+      ensureAudio();
+      if (!running && !crashed) {
+        resetRun();
+      }
+      window.removeEventListener('pointerdown', firstGesture);
+      window.removeEventListener('keydown', firstGesture);
+    };
+    window.addEventListener('pointerdown', firstGesture, { once: true });
+    window.addEventListener('keydown', firstGesture, { once: true });
+
+    requestAnimationFrame(frame);
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
