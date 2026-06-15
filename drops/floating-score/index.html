@@ -57,19 +57,20 @@
       font-weight: 700;
       color: #F2EDE6;
       letter-spacing: 0.02em;
-      transition: transform 0.15s ease, color 0.15s ease;
+      transition: transform 0.15s ease, color 0.15s ease, text-shadow 0.15s ease;
     }
     .hud-value.pop {
       transform: scale(1.3);
       color: #D4A657;
+      text-shadow: 0 0 12px rgba(212,166,87,0.5);
     }
     .hud-value.level-up {
       animation: levelUp 0.4s ease-out;
     }
     @keyframes levelUp {
-      0% { transform: scale(1); color: #F2EDE6; }
-      50% { transform: scale(1.6); color: #D4A657; }
-      100% { transform: scale(1); color: #F2EDE6; }
+      0% { transform: scale(1); color: #F2EDE6; text-shadow: 0 0 0px rgba(242,237,230,0); }
+      50% { transform: scale(1.6); color: #D4A657; text-shadow: 0 0 20px rgba(212,166,87,0.6); }
+      100% { transform: scale(1); color: #F2EDE6; text-shadow: 0 0 0px rgba(242,237,230,0); }
     }
     /* --- Mute toggle --- */
     #mute-btn {
@@ -311,6 +312,7 @@
     .btn:hover {
       background: #D4A657;
       color: #1a1a2e;
+      box-shadow: 0 0 20px rgba(212,166,87,0.3);
     }
     .btn.secondary {
       border-color: #9C8E7D;
@@ -322,6 +324,15 @@
     .btn.secondary:hover {
       background: #9C8E7D;
       color: #1a1a2e;
+    }
+    /* --- Begin button pulse to draw eye in first 5 seconds --- */
+    .btn.begin-pulse {
+      animation: beginPulse 2.2s ease-in-out infinite;
+    }
+    @keyframes beginPulse {
+      0% { box-shadow: 0 0 0 rgba(212,166,87,0); filter: brightness(1); }
+      50% { box-shadow: 0 0 18px rgba(212,166,87,0.35); filter: brightness(1.08); }
+      100% { box-shadow: 0 0 0 rgba(212,166,87,0); filter: brightness(1); }
     }
     #pause-btn {
       font-size: 10px;
@@ -340,6 +351,19 @@
     #pause-btn:hover {
       background: #9C8E7D;
       color: #1a1a2e;
+    }
+    /* --- Keyboard focus styles --- */
+    #start-btn:focus-visible, #retry-btn:focus-visible, #home-btn:focus-visible,
+    #pause-btn:focus-visible, #mute-btn:focus-visible,
+    #close-controls-btn:focus-visible, #pause-controls-btn:focus-visible,
+    #controls-btn:focus-visible {
+      outline: 2px solid #D4A657;
+      outline-offset: 2px;
+      box-shadow: 0 0 12px rgba(212,166,87,0.3);
+    }
+    #game-canvas:focus-visible {
+      outline: 2px solid #D4A657;
+      outline-offset: -2px;
     }
     .highscore-display {
       font-size: 13px;
@@ -404,6 +428,23 @@
       #streak-bar { bottom: 60px; }
       #timer-bar { bottom: 48px; }
     }
+    @media (max-width: 360px) {
+      .hud-value { font-size: 14px; }
+      #start-screen h1 { font-size: 18px; }
+      .score-final { font-size: 32px; }
+      #start-screen p, #start-screen .start-copy { font-size: 11px; }
+      #controls-modal { padding: 16px; }
+      #controls-modal h2 { font-size: 18px; }
+      #hud { padding: 10px 12px; }
+      #combo-meter { font-size: 11px; }
+    }
+    @media (min-width: 1200px) {
+      .hud-value { font-size: 22px; }
+      #start-screen h1 { font-size: 32px; }
+      .score-final { font-size: 52px; }
+      #controls-modal { max-width: 500px; }
+      #controls-modal h2 { font-size: 26px; }
+    }
           /* --- Miss feedback effects --- */
     /* --- Miss ring animation --- */
     .miss-ring {
@@ -431,6 +472,13 @@
       background-repeat: repeat;
       background-size: 100px 100px;
     }
+    /* --- Vignette overlay for atmosphere depth --- */
+    #vignette-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 4; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(26,26,46,0.4) 80%, rgba(26,26,46,0.6) 100%);
+    }
+
 
     /* --- Combo meter --- */
     #combo-meter {
@@ -441,6 +489,10 @@
       opacity: 0;
       transition: opacity 0.3s ease, bottom 0.3s ease;
       text-shadow: 0 0 12px rgba(212,166,87,0.4);
+      background: rgba(212,166,87,0.06);
+      padding: 4px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(212,166,87,0.15);
     }
     #combo-meter.show {
       opacity: 1;
@@ -451,6 +503,8 @@
     #combo-meter.combo-gold .combo-icon,
     #combo-meter.combo-gold .combo-label { color: #FFD700; }
     #combo-meter.combo-gold {
+      border-color: #FFD700;
+      background: rgba(255,215,0,0.1);
       animation: goldPulse 2s ease-in-out infinite;
     }
     /* --- Level-up flash overlay --- */
@@ -467,8 +521,8 @@
       animation: dangerPulse 0.6s ease-in-out infinite;
     }
     @keyframes dangerPulse {
-      0%, 100% { color: #BA2F22; transform: scale(1); opacity: 1; }
-      50% { color: #FF3B3B; transform: scale(1.15); opacity: 0.75; }
+      0%, 100% { color: #BA2F22; transform: scale(1); opacity: 1; text-shadow: 0 0 0px rgba(186,47,34,0); }
+      50% { color: #FF3B3B; transform: scale(1.15); opacity: 0.75; text-shadow: 0 0 16px rgba(186,47,34,0.6); }
     }
 
     /* --- Miss flash overlay --- */
@@ -477,6 +531,7 @@
       z-index: 14; pointer-events: none;
       background: radial-gradient(circle, rgba(186,47,34,0.3), transparent 70%);
       opacity: 0; transition: opacity 0.15s ease;
+      backdrop-filter: blur(1px);
     }
     .miss-flash.show { opacity: 1; }
 
@@ -501,7 +556,24 @@
       position: fixed;
       pointer-events: none;
       z-index: 4;
-      font-size: 32px;
+      width: 40px;
+      height: 40px;
+      margin: -20px 0 0 -20px;
+      border-radius: 50%;
+      background:
+        conic-gradient(
+          rgba(244,201,201,0.45) 0deg 55deg,
+          transparent 55deg 72deg,
+          rgba(244,201,201,0.45) 72deg 127deg,
+          transparent 127deg 144deg,
+          rgba(244,201,201,0.45) 144deg 199deg,
+          transparent 199deg 216deg,
+          rgba(244,201,201,0.45) 216deg 271deg,
+          transparent 271deg 288deg,
+          rgba(244,201,201,0.45) 288deg 343deg,
+          transparent 343deg 360deg
+        ),
+        radial-gradient(circle at 50% 50%, rgba(244,201,201,0.35) 0%, transparent 70%);
       opacity: 0.06;
       animation: overBlossomDrift 8s ease-in-out infinite;
     }
@@ -753,7 +825,7 @@
 
   <div id="streak-bar"><div id="streak-fill"></div></div>
   <div id="streak-label">STREAK</div>
-    <div id="streak-count"></div>
+    <div id="streak-count" aria-label="Current streak"></div>
   <div id="timer-bar"><div id="timer-fill"></div></div>
 
   <div id="timer-text"><span id="timer-seconds">60</span><span class="timer-unit">s</span></div>
@@ -766,6 +838,7 @@
     <div id="combo-meter"><span class="combo-icon">&#x2727;</span><span class="combo-label">Combo</span></div>
     <div class="level-flash" id="level-flash"></div>
     <div id="woodblock-texture"></div>
+    <div id="vignette-overlay"></div>
     <div id="pause-overlay">
     <h2>⏸ Paused</h2>
     <p>Press <kbd>P</kbd> or <kbd>Esc</kbd> to resume</p>
@@ -777,12 +850,12 @@
   <div id="streak-unlock"></div>
   <div id="ach-unlock"><span class="ach-icon"></span><span class="ach-name"></span><div class="ach-desc"></div></div>
     <div id="game-aria-live" aria-live="polite" aria-atomic="true" style="position:fixed;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap"></div>
-  <div id="start-screen">
+  <div id="start-screen" aria-describedby="start-instructions" role="region">
     <h1>Floating Score<span>Catch the floating world</span></h1>
-    <div class="start-quote">"The floating world is a world of fleeting beauty — catch what drifts before it fades."</div>
-    <p>Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
+    <div class="start-quote">"Ukiyo-e: the floating world. Each moment drifts like a petal on the wind — catch it before it vanishes."</div>
+    <p id="start-instructions">Tap ukiyo-e elements as they drift across the canvas.<br>Match streaks for bonus points. Each level brings more speed and variety.</p>
     <p class="start-copy">Waves, blossoms, mountains, birds, clouds — each carry the spirit of ukiyo-e. Collect them all, build your streak, and chase the high score.</p>
-    <button class="btn" id="start-btn" aria-label="Begin the game">🎨 Begin</button>
+    <button class="btn begin-pulse" id="start-btn" aria-label="Begin the game">🎨 Begin</button>
     <p class="controls-hint">Tap or press <kbd>Space</kbd> / <kbd>Enter</kbd> to catch</p>
     <div class="element-legend" id="el-legend"></div>
     <div class="highscore-display" id="start-hs"></div>
@@ -809,11 +882,11 @@
     <button class="btn secondary" id="home-btn" aria-label="Return to drops catalog">Back to Drops</button>
     <div class="highscore-display" id="over-hs"></div>
     <!-- Decorative blossoms behind game-over -->
-    <div class="over-blossom" style="top:10%;left:5%;">🌸</div>
-    <div class="over-blossom" style="top:15%;left:85%;animation-delay:2s;">🌸</div>
-    <div class="over-blossom" style="top:75%;left:10%;animation-delay:4s;">🌸</div>
-    <div class="over-blossom" style="top:80%;left:80%;animation-delay:1s;">🌸</div>
-    <div class="over-blossom" style="top:50%;left:92%;animation-delay:3s;">🌸</div>
+    <div class="over-blossom" style="top:10%;left:5%;"></div>
+    <div class="over-blossom" style="top:15%;left:85%;animation-delay:2s;"></div>
+    <div class="over-blossom" style="top:75%;left:10%;animation-delay:4s;"></div>
+    <div class="over-blossom" style="top:80%;left:80%;animation-delay:1s;"></div>
+    <div class="over-blossom" style="top:50%;left:92%;animation-delay:3s;"></div>
   </div>
 
   <script>
@@ -844,6 +917,8 @@
     let maxStreak = 0;
     let catches = 0;
     let elementCounts = {};
+    let guideTarget = null;
+    let guideFadeTimeout = 0;
     let timeLeft = 60;
     let timerInterval = null;
     let animId = null;
@@ -928,7 +1003,11 @@
     // --- Audio (Web Audio synthesis) ---
     let audioCtx = null;
     function ensureAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Chrome autoplay policy: AudioContext must be resumed after user gesture
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      }
     }
     function playTone(freq, duration, type) {
       if (audioMuted) return;
@@ -993,16 +1072,22 @@
     let particles = [];
     let cloudBg = null;
 
+    let resizePending = false;
     function resize() {
-      W = window.innerWidth;
-      H = window.innerHeight;
-      dpr = devicePixelRatio || 1;
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
-      canvas.style.width = W + 'px';
-      canvas.style.height = H + 'px';
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
+      if (resizePending) return;
+      resizePending = true;
+      requestAnimationFrame(function() {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        dpr = devicePixelRatio || 1;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        resizePending = false;
+      });
     }
     window.addEventListener('resize', resize);
     resize();
@@ -1010,6 +1095,10 @@
     // --- Draw helpers (ukiyo-e style) ---
 
     function drawWave(ctx, x, y, t, size) {
+      // Woodblock shadow for depth
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 2;
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/80, size/80);
@@ -1039,6 +1128,9 @@
     }
 
     function drawBlossom(ctx, x, y, t, size) {
+      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/50, size/50);
@@ -1063,6 +1155,9 @@
     }
 
     function drawMountain(ctx, x, y, t, size) {
+      ctx.shadowOffsetY = 3;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/70, size/70);
@@ -1097,6 +1192,9 @@
     }
 
     function drawBird(ctx, x, y, t, size) {
+      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/30, size/30);
@@ -1124,6 +1222,9 @@
     }
 
     function drawCloud(ctx, x, y, t, size) {
+      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(size/40, size/40);
@@ -1183,6 +1284,15 @@
 
     function startGame() {
       score = 0;
+      // Clean up stale game-over DOM from previous game
+      var staleEl = document.getElementById("game-over-flavor");
+      if (staleEl) staleEl.remove();
+      var badges = document.querySelectorAll("div:not([id]):not([class])");
+      for (var bi = 0; bi < badges.length; bi++) {
+            if (badges[bi].textContent === "✦ New High Score! ✦") badges[bi].remove();
+      }
+      // Clean up stale petals from previous game-over
+      document.querySelectorAll('.petal').forEach(el => el.remove());
       level = 1;
       streak = 0;
       maxStreak = 0;
@@ -1193,6 +1303,8 @@
       elements = [];
       particles = [];
       cloudBg = null;
+      // Cancel ambient animation during gameplay
+      if (ambientAnimId) cancelAnimationFrame(ambientAnimId); ambientAnimId = null;
       // Auto-close controls modal when game starts to prevent overlap during play
       document.getElementById('controls-modal').classList.remove('show');
 
@@ -1217,6 +1329,10 @@
         const el = spawnElement();
         el.y = Math.random() * 1.2;
         elements.push(el);
+
+      // Set guide target to first spawned element for visual hint (Polish L)
+      guideTarget = elements[0];
+      guideFadeTimeout = performance.now() + 3200;
       }
 
       // Timer
@@ -1273,6 +1389,8 @@
       gameRunning = false;
       if (timerInterval) clearInterval(timerInterval);
       if (animId) cancelAnimationFrame(animId);
+      // Restart ambient particles when game ends
+      if (!ambientAnimId) animateAmbient();
       // Auto-close controls modal when game ends to prevent overlap with game-over screen
       document.getElementById('controls-modal').classList.remove('show');
 
@@ -1290,7 +1408,7 @@
         '<div class="stat-row"><span class="stat-label">Level Reached</span><span class="stat-value">' + level + '</span></div>' +
         '<div class="stat-row"><span class="stat-label">Time Played</span><span class="stat-value">' + (60 - timeLeft) + 's</span></div>' +
         '<div class="stat-divider"></div>' +
-        ELEMENT_TYPES.map(t => '<div class="stat-row stat-row-element" style="border-left:3px solid ' + t.color + '"><span class="stat-label">' + t.label + '</span><span class="stat-value">' + (elementCounts[t.id] || 0) + ' &times; ' + t.points + '</span></div>').join('') +
+        ELEMENT_TYPES.map(t => '<div class="stat-row stat-row-element" style="border-left:3px solid ' + t.color + '"><span class="stat-label">' + ({wave:'🌊',blossom:'🌸',mountain:'🏔️',bird:'🕊️',cloud:'☁️'}[t.id] || '') + ' ' + t.label + '</span><span class="stat-value">' + (elementCounts[t.id] || 0) + ' &times; ' + t.points + '</span></div>').join('') +
         '<div class="stat-divider"></div>';
 
       // High score
@@ -1333,18 +1451,50 @@
       finalScore.classList.toggle('new-highscore', isNew);
       hudHsDisplay.textContent = String(Math.max(total, saved));
       ariaLive.textContent = 'Game over. Final score ' + total + '. ' + (isNew ? 'New high score!' : '');
-      // Ukiyo-e wisdom flavor text based on score
-      const flavorQuotes = [
-        { min: 0, text: '🌸 "Even a single petal reminds us — beauty drifts, catch what you can."' },
-        { min: 100, text: '🎋 "The wave that breaks upon the shore carries the memory of the open sea."' },
-        { min: 300, text: '🏔️ "A mountain seen through morning mist — impermanent, yet eternal."' },
-        { min: 500, text: '🕊️ "Like birds crossing the floating world, our moments scatter on the wind."' },
-        { min: 800, text: '✨ "You have touched the floating world\'s heart. Well caught, traveler."' }
+      // Ukiyo-e wisdom flavor text — season-specific variants
+      const flavorBySeason = [
+        [ // Spring
+          { min: 0, text: '🌸 "Cherry blossoms scatter on the breeze — even a single petal holds a moment\'s grace."' },
+          { min: 100, text: '🌊 "A spring wave curls upon the shore, leaving lace upon the sand — catch its echo."' },
+          { min: 300, text: '🏔️ "Mist veils the vernal peak; what fades from sight remains in memory\'s temple."' },
+          { min: 500, text: '🕊️ "Warblers dart through cherry mist — the floating world sings its fleeting song."' },
+          { min: 800, text: '✨ "You caught the spirit of spring itself — the floating world bows to your grace."' }
+        ],
+        [ // Summer
+          { min: 0, text: '🌅 "Summer haze wraps the shore in gold — each moment shimmers and is gone."' },
+          { min: 100, text: '🎋 "A bamboo grove rustles in the heat — the wind carries stories to the sea."' },
+          { min: 300, text: '🏔️ "The summer mountain wears a crown of clouds — eternal, yet ever-changing."' },
+          { min: 500, text: '🕊️ "Swifts cut the evening sky — the floating world passes on swift wings."' },
+          { min: 800, text: '✨ "You gathered summer\'s brilliance — the floating world remembers your name."' }
+        ],
+        [ // Autumn
+          { min: 0, text: '🍁 "A crimson leaf twists in the autumn wind — beauty in every descent."' },
+          { min: 100, text: '🌊 "Autumn waves crash with amber foam — the tide pulls the year toward rest."' },
+          { min: 300, text: '🏔️ "The mountain dons a coat of rust and gold — impermanence painted in splendor."' },
+          { min: 500, text: '🕊️ "Geese trace the fading sun — their cry echoes through the floating world."' },
+          { min: 800, text: '✨ "You danced with autumn\'s farewell — the floating world applauds your spirit."' }
+        ],
+        [ // Winter
+          { min: 0, text: '❄️ "A single snowflake rests on the branch — the floating world hushed in white."' },
+          { min: 100, text: '🌊 "Winter waves carve ice upon the stone — the shore remembers summer\'s touch."' },
+          { min: 300, text: '🏔️ "The mountain sleeps beneath a silver veil — patient, eternal, dreaming."' },
+          { min: 500, text: '🕊️ "Snow cranes trace the grey sky — their song is the silence before spring."' },
+          { min: 800, text: '✨ "You captured winter\'s stillness — the floating world whispers its gratitude."' }
+        ],
+        [ // Special
+          { min: 0, text: '🌈 "The floating world bends with color — every drift a brushstroke on the wind."' },
+          { min: 100, text: '🎋 "A thousand waves, each one unique — you rode the tide of the floating world."' },
+          { min: 300, text: '🏔️ "Beyond the mist lies a realm of spirit — you glimpsed the eternal horizon."' },
+          { min: 500, text: '🕊️ "Birds of a thousand colors cross the sky — you caught the essence of flight."' },
+          { min: 800, text: '✨ "Master of the floating world — the heavens and the earth celebrate your journey."' }
+        ]
       ];
-      const flavor = flavorQuotes.slice().reverse().find(q => total >= q.min) || flavorQuotes[0];
+      const seasonIdx = Math.min(currentSeason, flavorBySeason.length - 1);
+      const seasonQuotes = flavorBySeason[seasonIdx];
+      const flavor = seasonQuotes.slice().reverse().find(q => total >= q.min) || seasonQuotes[0];
       const flavorEl = document.createElement('div');
       flavorEl.id = 'game-over-flavor';
-      flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:25;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;pointer-events:none;';
+      flavorEl.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%,0);z-index:26;font-size:13px;color:#9C8E7D;font-style:italic;text-align:center;width:80%;max-width:400px;padding:8px 0;opacity:0;animation:fadeIn 2s ease 0.5s forwards;pointer-events:none;';
       flavorEl.textContent = flavor.text;
       document.body.appendChild(flavorEl);
       overScreen.classList.remove('hidden');
@@ -1381,6 +1531,7 @@
         const dur = 6 + Math.random() * 6;
         const delay = Math.random() * 3;
         p.style.cssText = 'position:fixed;pointer-events:none;z-index:5;font-size:' + sz + 'px;opacity:' + (0.04 + Math.random() * 0.06) + ';left:' + left + '%;top:-20px;animation:petalFall ' + dur + 's ease-in infinite;animation-delay:' + delay + 's;';
+        p.classList.add('petal');
         document.body.appendChild(p);
         setTimeout(() => p.remove(), 12000);
       }
@@ -1485,13 +1636,14 @@
       const btn = document.getElementById('mute-btn');
       btn.textContent = audioMuted ? '♫ Muted' : '♫ Sound';
       btn.classList.toggle('muted', audioMuted);
-      if (audioMuted) { stopAmbientDrone(); } else if (gameRunning) { startAmbientDrone(); }
+      if (audioMuted) { stopAmbientDrone(); } else if (!gameRunning) { startAmbientDrone(); }
     }
 
 
     function handleCatch(el) {
       if (!gameRunning) return;
       el.alive = false;
+      if (guideTarget === el) guideTarget = null;
 
       const typeInfo = ELEMENT_TYPES.find(t => t.id === el.type);
       streak += 1;
@@ -1590,6 +1742,7 @@
       scoreDisplay.textContent = String(score);
         // Animate score change
         const popup = document.createElement('div');
+        popup.setAttribute("role", "status");
         const popX = el.x * W;
         const popY = el.y * H;
         popup.style.cssText = 'position:fixed;top:' + popY + 'px;left:' + popX + 'px;transform:translate(-50%,-50%);z-index:15;font-size:24px;font-weight:700;color:#D4A657;pointer-events:none;transition:all 0.6s ease;opacity:1;text-shadow:0 1px 6px rgba(0,0,0,0.6);';
@@ -1607,10 +1760,10 @@
       // Particles at catch
       // Enhanced catch burst with combo color
       var comboColor = multiplier > 1 ? '#D4A657' : (typeInfo ? typeInfo.color : COLORS.yellow);
-      spawnParticles(el.x * W, el.y * H, 10 + streak * 2, comboColor);
+      spawnParticles(el.x * W, el.y * H, 15 + streak * 3, comboColor);
       // Extra sparkle on combo
       if (multiplier > 1) {
-        spawnParticles(el.x * W + 20, el.y * H + 20, 5, '#F2EDE6');
+        spawnParticles(el.x * W + 20, el.y * H + 20, 10, '#F2EDE6');
       }
       // Brief canvas flash overlay
       const flash = document.createElement('div');
@@ -1638,6 +1791,8 @@
 
     let lastHitTime = 0;
     function pointerDown(e) {
+      // Resume audio context if suspended (Chrome autoplay policy)
+      try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
       // Throttle to prevent double-register on fast taps
       const now = performance.now();
       if (now - lastHitTime < 100) return;
@@ -1766,6 +1921,33 @@
 
       // Remove dead elements
       elements = elements.filter(el => el.alive && el.y <= 1.3);
+      // Draw guide ring around first spawned element (Polish L)
+      if (guideTarget && guideTarget.alive) {
+          const remaining = guideFadeTimeout - performance.now();
+          if (remaining > 0) {
+              const fadeOpacity = Math.min(1, remaining / 1000);
+              const pulse = Math.sin(performance.now() * 0.008) * 0.3 + 0.4;
+              const gx = guideTarget.x * W + 10 * Math.sin(performance.now() * 0.0008 + guideTarget.r);
+              const gy = guideTarget.y * H;
+              const r = guideTarget.size * 0.8 + 16 + Math.sin(performance.now() * 0.006) * 4;
+              ctx.save();
+              ctx.shadowColor = "rgba(212,166,87,0.6)";
+              ctx.shadowBlur = 22;
+              ctx.beginPath();
+              ctx.arc(gx, gy, r, 0, Math.PI * 2);
+              ctx.strokeStyle = "rgba(212,166,87," + (fadeOpacity * pulse * 0.9) + ")";
+              ctx.lineWidth = 3;
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(gx, gy, r * 0.85, 0, Math.PI * 2);
+              ctx.strokeStyle = "rgba(255,255,255," + (fadeOpacity * pulse * 0.3) + ")";
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+              ctx.restore();
+          } else {
+              guideTarget = null;
+          }
+      }
 
       // Keep enough elements on screen
       if (elements.length < 3) {
@@ -1798,6 +1980,22 @@
     }, { passive: false });
 
     document.addEventListener('keydown', (e) => {
+      // Escape closes controls modal first if open
+      if (e.key === 'Escape') {
+        var cm = document.getElementById('controls-modal');
+        if (cm.classList.contains('show')) {
+          cm.classList.remove('show');
+          e.preventDefault();
+          var pp = document.getElementById('pause-overlay');
+          if (pp && pp.classList.contains('show')) {
+            setTimeout(function() { document.getElementById('pause-controls-btn')?.focus(); }, 50);
+          } else {
+            var cb = document.getElementById('controls-btn');
+            if (cb) setTimeout(function() { cb.focus(); }, 50); else document.getElementById('start-btn')?.focus();
+          }
+          return;
+        }
+      }
       if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
         if (gameRunning) { togglePause(); return; }
       }
@@ -1813,11 +2011,40 @@
         if (!gameRunning && !startScreen.classList.contains('hidden')) {
           startGame();
         } else if (gameRunning) {
-          pointerDown({ clientX: W/2, clientY: H * 0.5 });
+          // Find nearest element to center of screen for keyboard catch
+          var nearestEl = null;
+          var nearestDist = Infinity;
+          var centerX = W / 2;
+          var centerY = H * 0.5;
+          for (var ki = 0; ki < elements.length; ki++) {
+            var ke = elements[ki];
+            if (!ke.alive) continue;
+            var kx = ke.x * W;
+            var ky = ke.y * H;
+            var kdx = kx - centerX;
+            var kdy = ky - centerY;
+            var kdist = kdx * kdx + kdy * kdy;
+            if (kdist < nearestDist) { nearestDist = kdist; nearestEl = ke; }
+          }
+          if (nearestEl) {
+            pointerDown({ clientX: nearestEl.x * W, clientY: nearestEl.y * H });
+          } else {
+            pointerDown({ clientX: centerX, clientY: centerY });
+          }
         }
       }
     });
 
+    
+    // --- Tab visibility: auto-pause when user switches away ---
+    document.addEventListener('visibilitychange', function() {
+      if (!gameRunning || paused) return;
+      if (document.hidden) {
+        // Auto-pause when tab loses focus; aria-live announces reason
+        ariaLive.textContent = 'Auto-paused: tab hidden';
+        togglePause();
+      }
+    });
     // --- Start/Retry ---
 
     // --- Controls modal ---
@@ -1897,6 +2124,85 @@
     let ambientAnimId = null;
     let ambientTime = 0;
 
+    // --- Ambient start-screen elements drawn on canvas ---
+    let ambientPreviewElements = [];
+    let ambientPreviewTime = 0;
+    function spawnAmbientPreview() {
+      const types = ['wave', 'blossom', 'mountain', 'bird', 'cloud'];
+      return {
+        type: types[Math.floor(Math.random() * types.length)],
+        x: Math.random(),
+        y: -0.2 - Math.random() * 0.3,
+        t: Math.random() * Math.PI * 2,
+        size: 0.06 + Math.random() * 0.04,
+        speed: 0.002 + Math.random() * 0.004,
+        drift: (Math.random() - 0.5) * 0.003,
+        alive: true
+      };
+    }
+
+    function drawAmbientPreview() {
+      // Clear canvas with dark bg
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle background particles
+      for (let i = 0; i < 30; i++) {
+        const x = (i * 0.03 * W + Math.sin(ambientPreviewTime * 0.04 + i)) % W;
+        const y = (i * 29 + ambientPreviewTime * 2) % H;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.sky;
+        ctx.globalAlpha = 0.06;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // Draw preview elements
+      ambientPreviewElements = ambientPreviewElements.filter(el => el.alive && el.y < 1.3);
+      if (ambientPreviewElements.length < 4) {
+        ambientPreviewElements.push(spawnAmbientPreview());
+      }
+      const now = ambientPreviewTime;
+      for (const el of ambientPreviewElements) {
+        el.y += el.speed;
+        el.x += el.drift;
+        el.t += 0.05;
+        if (el.x < -0.1) el.x = 1.1;
+        if (el.x > 1.1) el.x = -0.1;
+        if (el.y > 1.3) { el.alive = false; continue; }
+        const ex = el.x * W;
+        const ey = el.y * H;
+        const driftX = 10 * Math.sin(now * 0.06 + el.r);
+        switch (el.type) {
+          case 'wave':    drawWave(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'blossom': drawBlossom(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'mountain':drawMountain(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'bird':    drawBird(ctx, ex + driftX, ey, el.t, el.size); break;
+          case 'cloud':   drawCloud(ctx, ex + driftX, ey, el.t, el.size); break;
+        }
+      }
+    }
+
+    // --- Extra start-screen decorative elements for richer first impression ---
+    function drawAmbientExtra() {
+      // Extra drifting blossoms in a radial pattern
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2 + ambientPreviewTime * 0.02;
+        const rx = 0.5 + 0.35 * Math.cos(angle);
+        const ry = 0.08 + 0.03 * Math.sin(angle * 2);
+        const sz = 16 + Math.sin(ambientPreviewTime + i * 1.3) * 8;
+        const ft = ambientPreviewTime * 0.15 + i * 0.7;
+        drawBlossom(ctx, rx * W, ry * H, ft, sz);
+      }
+      // Two small birds drifting overhead
+      drawBird(ctx, 0.3 * W + Math.sin(ambientPreviewTime * 0.05) * 40, 0.06 * H, ambientPreviewTime, 18);
+      drawBird(ctx, 0.7 * W + Math.cos(ambientPreviewTime * 0.04) * 30, 0.04 * H, ambientPreviewTime + 2, 22);
+      // Subtle misty mountain silhouette
+      drawMountain(ctx, 0.5 * W, 0.12 * H, ambientPreviewTime * 0.1, 35);
+    }
+
+
     function animateAmbient() {
       if (startScreen.classList.contains('hidden') && overScreen.classList.contains('hidden')) {
         ambientParticles.forEach(p => p.classList.remove('visible'));
@@ -1904,6 +2210,10 @@
         return;
       }
       ambientTime += 0.02;
+      ambientPreviewTime += 0.016;
+      // Draw ukiyo-e preview elements on canvas
+      drawAmbientPreview();
+      drawAmbientExtra();
       ambientParticles.forEach((p, idx) => {
         p.classList.add('visible');
         const baseX = parseFloat(p.style.left);
@@ -1911,7 +2221,6 @@
         const offsetX = Math.sin(ambientTime * 0.5 + idx * 1.7) * 15;
         const offsetY = Math.cos(ambientTime * 0.4 + idx * 2.3) * 10;
         p.style.transform = 'translate(' + offsetX.toFixed(1) + 'px, ' + offsetY.toFixed(1) + 'px)';
-        // Subtle pulsing opacity
         p.style.opacity = 0.08 + 0.07 * (1 + Math.sin(ambientTime * 0.3 + idx * 1.1));
       });
       ambientAnimId = requestAnimationFrame(animateAmbient);

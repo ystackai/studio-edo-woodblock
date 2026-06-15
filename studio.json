@@ -123,13 +123,31 @@
           "scoring",
           "progression"
         ]
+      },
+      {
+        "title": "Way of the Brush and Blade",
+        "slug": "drop-edo-woodblock-musashi-roadmaster-20260522t215401z",
+        "summary": "A wandering swordsman picks duel-or-paint at five road stops on the way to Ganryushima. Timing-based swordplay and sumi-e composition minigames feed a shared mastery score that shapes the final duel.",
+        "mashup": "ukiyo-e \u00b7 musashi \u00b7 duel \u00b7 brush \u00b7 blade",
+        "play_url": "/edo-woodblock/drops/drop-edo-woodblock-musashi-roadmaster-20260522t215401z/",
+        "studio_url": "/edo-woodblock/drops/drop-edo-woodblock-musashi-roadmaster-20260522t215401z/",
+        "tags": [
+          "interactive",
+          "ukiyo-e",
+          "game",
+          "narrative",
+          "minigame",
+          "musashi"
+        ]
       }
     ],
     "upcoming": {},
     "building": {}
   },
   "blog_posts": [],
-  "drops": [],
+  "drops": [
+    "drop-edo-woodblock-musashi-roadmaster-20260522t215401z"
+  ],
   "assets": [
     {
       "slug": "floating-world",
@@ -154,6 +172,10 @@
     {
       "slug": "floating-score",
       "title": "Floating Score"
+    },
+    {
+      "slug": "drop-edo-woodblock-musashi-roadmaster-20260522t215401z",
+      "title": "Way of the Brush and Blade"
     }
   ]
 }
