@@ -78,7 +78,8 @@
   // State
   let running = false;
   let crashed = false;
-  let time = 0;
+  let time = 0; // ms accumulator (for legacy sin phases); logic events use runTime (seconds)
+  let runTime = 0; // seconds for ramps, cooldowns, combo, dash timers
   let worldOffset = 0;
   let speed = BASE_SPEED;
   let lastSpeedRamp = 0;
@@ -238,6 +239,7 @@
     combo = 1;
     lastActionTime = 0;
     surfDist = 0;
+    runTime = 0;
     dashUntil = 0;
     dashCooldown = 0;
     playerY = GROUND_Y - 64;
@@ -276,7 +278,7 @@
     const s = Math.round(n * (mult ? combo : 1));
     score += s;
     if (mult && combo < 6) combo = Math.min(6, combo + 0.35);
-    lastActionTime = time;
+    lastActionTime = runTime;
     updateHUD();
   }
 
@@ -308,9 +310,9 @@
     jumpBuffered = 0;
   }
   function doDash() {
-    if (!running || time < dashCooldown) return;
-    dashUntil = time + 0.34;
-    dashCooldown = time + 1.18;
+    if (!running || runTime < dashCooldown) return;
+    dashUntil = runTime + 0.34;
+    dashCooldown = runTime + 1.18;
     sfxDash();
     // juicy dash trail (ink + paper)
     for (let i=0; i<7; i++) {
@@ -605,26 +607,27 @@
       const dtSecIdle = dt / 1000;
       worldOffset += 21 * dtSecIdle;
       playerY = GROUND_Y - 64 + Math.sin(time * 2.2) * 1.6;
-      time += dt; // keep t for sways
+      time += dt; // keep ms t for sways (freqs tolerate)
       // still draw moving but no spawns/physics/input in idle
       return;
     }
 
     time += dt;
     const dtSec = dt / 1000;
-    const isDashing = time < dashUntil;
+    runTime += dtSec;
+    const isDashing = runTime < dashUntil;
     const dashMul = isDashing ? 1.22 : 1.0;
     worldOffset += speed * dtSec * dashMul;
     surfDist += speed * dtSec * dashMul;
 
     // speed ramp every 60s (payload: escalate every minute)
-    if (time - lastSpeedRamp > 60) {
+    if (runTime - lastSpeedRamp > 60) {
       speed = Math.min(speed * 1.12, BASE_SPEED * 2.7);
-      lastSpeedRamp = time;
+      lastSpeedRamp = runTime;
     }
 
     // combo decay
-    if (time - lastActionTime > 3.8 && combo > 1) {
+    if (runTime - lastActionTime > 3.8 && combo > 1) {
       combo = Math.max(1, combo - dtSec * 0.6);
       updateHUD();
     }
@@ -722,7 +725,7 @@
     }
 
     // slope carve / surf bonus (reward riding the wave geometry)
-    if (onGround && time - lastActionTime > 0.18) {
+    if (onGround && runTime - lastActionTime > 0.18) {
       const sl = waveY(pxWorld + 14, 0) - waveY(pxWorld - 14, 0);
       if (Math.abs(sl) > 4.5) {
         // small juice + occasional score for sustained carving
@@ -793,7 +796,7 @@
     // player
     const bob = running ? Math.sin(t * 3.6) * 1.8 + (playerVY * 0.012) : Math.sin(t * 2.2) * 1.6;
     const lean = running ? Math.max(-0.6, Math.min(0.7, playerVY * 0.0018)) : 0.1;
-    const dashing = running && (time < dashUntil);
+    const dashing = running && (runTime < dashUntil);
     drawCourier(PLAYER_X, playerY, bob, lean, dashing, t);
 
     // particles (top)
@@ -835,7 +838,7 @@
       ctx.fillStyle = 'rgba(15,23,42,0.75)';
       ctx.font = '700 11px system-ui, sans-serif';
       ctx.textAlign = 'right';
-      const secs = Math.floor(time);
+      const secs = Math.floor(runTime);
       const mm = String(Math.floor(secs/60)).padStart(1,'0');
       const ss = String(secs % 60).padStart(2,'0');
       const distM = Math.floor(surfDist / 17);
@@ -856,7 +859,7 @@
     // expose for verification harness
     window.__LANTERN_SURF_STATE = {
       score, letters, combo: Math.floor(combo), crashed, running,
-      runTime: time, player: { y: playerY, onGround, dashing: (time < dashUntil) },
+      runTime: runTime, player: { y: playerY, onGround, dashing: (runTime < dashUntil) },
       speed, worldOffset, surfDist: Math.floor(surfDist)
     };
 
