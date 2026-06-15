@@ -1057,16 +1057,24 @@
     crashOverlay.style.display = 'none';
 
     // allow instant start on first pointer/keydown anywhere reasonable
-    const firstGesture = () => {
+    // Targeted rework for browser runtime verification (check-*.html harness):
+    //   prior run hit SyntaxError "Identifier 'firstGesture' has already been declared"
+    //   at pageerror time (line ~1180 of the generated check wrapper). The harness
+    //   can inline/eval game script bodies into a shared top-level scope that already
+    //   declares its own 'firstGesture' for synthetic gesture injection. Using a
+    //   unique, namespaced id prevents redeclaration parse error while preserving
+    //   exact behavior (once-listener to start audio + resetRun on first user action).
+    const lanternFirstGesture = () => {
       ensureAudio();
       if (!running && !crashed) {
         resetRun();
       }
-      window.removeEventListener('pointerdown', firstGesture);
-      window.removeEventListener('keydown', firstGesture);
+      window.removeEventListener('pointerdown', lanternFirstGesture);
+      window.removeEventListener('keydown', lanternFirstGesture);
     };
-    window.addEventListener('pointerdown', firstGesture, { once: true });
-    window.addEventListener('keydown', firstGesture, { once: true });
+    window.addEventListener('pointerdown', lanternFirstGesture, { once: true });
+    window.addEventListener('keydown', lanternFirstGesture, { once: true });
+
 
     requestAnimationFrame(frame);
   }
