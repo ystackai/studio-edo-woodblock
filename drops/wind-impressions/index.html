@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Wind Impressions — Brush the Floating World</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #1a1a2e;
+      font-family: 'IBM Plex Mono', 'Noto Serif JP', 'Georgia', serif;
+      -webkit-user-select: none; user-select: none; touch-action: none;
+      color: #e8e0d8;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    #ui-hint {
+      position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 1.15rem; color: rgba(232,224,216,0.35);
+      letter-spacing: 0.18em; text-align: center; pointer-events: none; z-index: 10;
+      transition: opacity 2.5s ease;
+      line-height: 1.6;
+    }
+    #ui-hint .action { color: rgba(232,224,216,0.55); font-style: italic; }
+    #ui-hint .idea { font-size: 0.7rem; color: rgba(232,224,216,0.18); display: block; margin-top: 6px; letter-spacing: 0.1em; }
+
+    #palette-bar {
+      position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 10px; pointer-events: auto; z-index: 20;
+      background: rgba(26,26,46,0.75); padding: 8px 14px; border-radius: 30px;
+      border: 1px solid rgba(232,224,216,0.08);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    }
+    .palette-btn {
+      width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(232,224,216,0.15);
+      cursor: pointer; transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .palette-btn:hover { transform: scale(1.15); border-color: rgba(232,224,216,0.4); }
+    .palette-btn.active { border-color: #fff; transform: scale(1.1); box-shadow: 0 0 10px rgba(255,255,255,0.25); }
+    .palette-btn .key-label {
+      position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
+      font-size: 0.45rem; color: rgba(232,224,216,0.25); letter-spacing: 0.06em;
+    }
+
+    #clear-btn {
+      position: absolute; top: 18px; right: 18px;
+      background: rgba(232,224,216,0.06); border: 1px solid rgba(232,224,216,0.12);
+      border-radius: 20px; padding: 6px 16px; font-size: 0.6rem;
+      color: rgba(232,224,216,0.4); cursor: pointer; z-index: 20;
+      font-family: inherit; letter-spacing: 0.08em;
+      transition: background 0.2s, color 0.2s;
+    }
+    #clear-btn:hover { background: rgba(232,224,216,0.12); color: rgba(232,224,216,0.7); }
+
+    #status-indicator {
+      position: absolute; bottom: 18px; left: 18px;
+      font-size: 0.5rem; letter-spacing: 0.06em; z-index: 15; pointer-events: none;
+      transition: color 0.4s;
+    }
+
+    #title-area {
+      position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+      text-align: center; pointer-events: none; z-index: 10;
+    }
+    #title-area h1 {
+      font-size: 0.75rem; color: rgba(232,224,216,0.25);
+      font-weight: 400; letter-spacing: 0.14em;
+    }
+    #title-area .sub {
+      font-size: 0.45rem; color: rgba(232,224,216,0.12);
+      margin-top: 2px; letter-spacing: 0.1em;
+    }
+
+    #keyboard-hint {
+      position: absolute; bottom: 78px; left: 50%; transform: translateX(-50%);
+      font-size: 0.5rem; color: rgba(232,224,216,0.15);
+      letter-spacing: 0.08em; pointer-events: none; z-index: 15;
+      opacity: 0; transition: opacity 3s ease;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="title-area">
+    <h1>Wind Impressions</h1>
+    <div class="sub">— brush the floating world —</div>
+  </div>
+
+  <div id="ui-hint">
+    <span class="action">✧ drag to paint</span>
+    <span class="idea">each impression gently fades · beauty in the fleeting</span>
+  </div>
+
+  <div id="palette-bar"></div>
+  <button id="clear-btn">✧ clear</button>
+  <div id="status-indicator"></div>
+  <div id="keyboard-hint">1–4 seasons · space/clear</div>
+
+  <script>
+    (function() {
+      var canvas = document.getElementById('c');
+      var ctx = canvas.getContext('2d');
+      var hint = document.getElementById('ui-hint');
+      var paletteBar = document.getElementById('palette-bar');
+      var clearBtn = document.getElementById('clear-btn');
+      var statusEl = document.getElementById('status-indicator');
+      var kbHint = document.getElementById('keyboard-hint');
+
+      // ---- Seasonal palettes inspired by ukiyo-e colorways ----
+      var seasons = [
+        { name: 'Spring', label: '1', accent: '#e8b4c8',
+          colors: ['#e8b4c8','#d4a0b8','#f0d0d8','#c8a0b0','#b8d0c0','#d8b8a0','#f8e0e0','#e0c0d0','#c8b0a8','#d0c8b0'] },
+        { name: 'Summer', label: '2', accent: '#68b86a',
+          colors: ['#68b86a','#7cc87c','#58a058','#90d090','#b8d0a0','#c8e0c0','#a0d0b0','#80c898','#6ab870','#98d8a0'] },
+        { name: 'Autumn', label: '3', accent: '#d89a48',
+          colors: ['#d89a48','#e8b060','#c08830','#b87028','#f0c880','#d8a860','#e0b090','#c89050','#e8b878','#d0a070'] },
+        { name: 'Winter', label: '4', accent: '#98b8d8',
+          colors: ['#98b8d8','#a8c8e0','#78a0c0','#b8d8f0','#c0d0e0','#d0e0f0','#88a8d0','#a0b8d0','#b0c8e0','#98c0d8'] }
+      ];
+      var seasonIdx = 0;
+
+      // ---- Strokes ----
+      var strokes = [];
+      var MAX_STROKES = 300;
+      var SEGMENT_LENGTH = 5;
+
+      // ---- Paper texture (generated once) ----
+      var paperTexData = null;
+
+      function generatePaperTexture(w, h, dpr) {
+        var sizeX = w, sizeY = h;
+        var texCanvas = document.createElement('canvas');
+        texCanvas.width = sizeX; texCanvas.height = sizeY;
+        var texCtx = texCanvas.getContext('2d');
+        var imgData = texCtx.createImageData(sizeX, sizeY);
+        var data = imgData.data;
+        for (var i = 0; i < data.length; i += 4) {
+          var n = Math.random() * 0.06 + 0.97;
+          data[i] = data[i+1] = data[i+2] = n * 255;
+          data[i+3] = 255;
+        }
+        texCtx.putImageData(imgData, 0, 0);
+        return texCanvas;
+      }
+
+      // ---- Sizing ----
+      var W, H, dpr, texCanvas;
+
+      function resize() {
+        dpr = window.devicePixelRatio || 1;
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        texCanvas = generatePaperTexture(Math.ceil(W * dpr), Math.ceil(H * dpr), dpr);
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      // ---- Build palette UI ----
+      function buildPalette() {
+        paletteBar.innerHTML = '';
+        for (var si = 0; si < seasons.length; si++) {
+          var btn = document.createElement('div');
+          btn.className = 'palette-btn' + (si === seasonIdx ? ' active' : '');
+          btn.style.background = seasons[si].accent;
+          btn.dataset.season = si;
+          var label = document.createElement('div');
+          label.className = 'key-label';
+          label.textContent = seasons[si].label;
+          btn.appendChild(label);
+          btn.addEventListener('click', function(e) { selectSeason(parseInt(this.dataset.season)); });
+          btn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            selectSeason(parseInt(this.dataset.season));
+          }, { passive: false });
+          paletteBar.appendChild(btn);
+        }
+        updateStatus();
+      }
+      buildPalette();
+
+      function selectSeason(si) {
+        if (si === seasonIdx) return;
+        seasonIdx = si;
+        document.querySelectorAll('.palette-btn').forEach(function(b, i) {
+          b.className = 'palette-btn' + (i === seasonIdx ? ' active' : '');
+        });
+        updateStatus();
+        hint.style.opacity = '0';
+        kbHint.style.opacity = '0.5';
+      }
+
+      function updateStatus() {
+        var s = seasons[seasonIdx];
+        statusEl.textContent = s.name + ' · ' + s.accent;
+        statusEl.style.color = s.accent + '88';
+      }
+
+      // ---- Clear ----
+      function clearAll() {
+        strokes = [];
+        hint.style.opacity = '0.35';
+      }
+      clearBtn.addEventListener('click', clearAll);
+      clearBtn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        clearAll();
+      }, { passive: false });
+
+      // ---- Brush stroke system ----
+      var isDrawing = false;
+      var lastX, lastY;
+      var pointerX = -1, pointerY = -1;
+
+      function addStroke(ox, oy, nx, ny) {
+        if (strokes.length > MAX_STROKES) strokes.splice(0, 40);
+        var s = seasons[seasonIdx];
+        var color = s.colors[Math.floor(Math.random() * s.colors.length)];
+        var len = Math.sqrt((nx - ox) * (nx - ox) + (ny - oy) * (ny - oy));
+        var segs = Math.max(1, Math.ceil(len / SEGMENT_LENGTH));
+        var speed = Math.min(1, len / 40);
+        var width = 1.2 + 4.5 * (1 - speed * 0.6) + Math.random() * 1.5;
+        for (var i = 0; i < segs; i++) {
+          var t = i / segs;
+          var x = ox + (nx - ox) * t + (Math.random() - 0.5) * 1.8;
+          var y = oy + (ny - oy) * t + (Math.random() - 0.5) * 1.2;
+          strokes.push({
+            x: x, y: y,
+            r: width * (0.3 + 0.7 * (i / segs)),
+            c: color,
+            life: 0,
+            maxLife: 200 + Math.random() * 160
+          });
+        }
+      }
+
+      function addBloom(x, y, count) {
+        var s = seasons[seasonIdx];
+        for (var i = 0; i < count; i++) {
+          var ang = Math.random() * Math.PI * 2;
+          var dist = Math.random() * 28 + 3;
+          strokes.push({
+            x: x + Math.cos(ang) * dist,
+            y: y + Math.sin(ang) * dist * 0.65,
+            r: 1.5 + Math.random() * 7,
+            c: s.colors[Math.floor(Math.random() * s.colors.length)],
+            life: 0,
+            maxLife: 260 + Math.random() * 220
+          });
+        }
+      }
+
+      // ---- Pointer handlers ----
+      function getPos(e) {
+        var x, y;
+        if (e.touches) {
+          x = e.touches[0].clientX;
+          y = e.touches[0].clientY;
+        } else {
+          x = e.clientX;
+          y = e.clientY;
+        }
+        pointerX = x; pointerY = y;
+        return { x: x, y: y };
+      }
+
+      function onStart(e) {
+        e.preventDefault();
+        hint.style.opacity = '0';
+        kbHint.style.opacity = '0.5';
+        var p = getPos(e);
+        isDrawing = true;
+        lastX = p.x; lastY = p.y;
+        addBloom(p.x, p.y, 8 + Math.random() * 10);
+      }
+
+      function onMove(e) {
+        e.preventDefault();
+        if (!isDrawing) return;
+        var p = getPos(e);
+        var dx = p.x - lastX, dy = p.y - lastY;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 4) return;
+        var steps = Math.max(1, Math.min(4, Math.floor(dist / 5)));
+        for (var i = 0; i < steps; i++) {
+          var t = (i + 1) / steps;
+          addStroke(lastX, lastY, lastX + dx * t, lastY + dy * t);
+        }
+        if (Math.random() < 0.06) addBloom(p.x, p.y, 2);
+        lastX = p.x; lastY = p.y;
+      }
+
+      function onEnd(e) {
+        e.preventDefault();
+        isDrawing = false;
+      }
+
+      canvas.addEventListener('mousedown', onStart);
+      canvas.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+
+      canvas.addEventListener('touchstart', onStart, { passive: false });
+      canvas.addEventListener('touchmove', onMove, { passive: false });
+      canvas.addEventListener('touchend', onEnd, { passive: false });
+      canvas.addEventListener('touchcancel', onEnd, { passive: false });
+
+      // ---- Keyboard ----
+      document.addEventListener('keydown', function(e) {
+        var key = e.key;
+        if (key >= '1' && key <= '4') selectSeason(parseInt(key) - 1);
+        if (key === ' ' || key === 'r' || key === 'R') clearAll();
+      });
+
+      // ---- Composite background layers ----
+      function drawBackground() {
+        // Season-tinted base
+        var s = seasons[seasonIdx];
+        var baseR = 0.94 * 255, baseG = 0.92 * 255, baseB = 0.88 * 255;
+        var tintR = parseInt(s.colors[0].slice(1,3), 16);
+        var tintG = parseInt(s.colors[0].slice(3,5), 16);
+        var tintB = parseInt(s.colors[0].slice(5,7), 16);
+        var bgR = (baseR * 0.55 + tintR * 0.45) | 0;
+        var bgG = (baseG * 0.55 + tintG * 0.45) | 0;
+        var bgB = (baseB * 0.55 + tintB * 0.45) | 0;
+
+        // Radial vignette
+        var grad = ctx.createRadialGradient(W/2, H/2, H * 0.02, W/2, H/2, H * 0.6);
+        grad.addColorStop(0, 'rgba(' + bgR + ',' + bgG + ',' + bgB + ',0.35)');
+        grad.addColorStop(0.5, 'rgba(' + bgR + ',' + bgG + ',' + bgB + ',0.85)');
+        grad.addColorStop(1, 'rgba(' + ((bgR * 0.2) | 0) + ',' + ((bgG * 0.2) | 0) + ',' + ((bgB * 0.2) | 0) + ',1)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Paper texture overlay (low-opacity noise)
+        if (texCanvas) {
+          ctx.globalAlpha = 0.06;
+          ctx.drawImage(texCanvas, 0, 0, W * dpr, H * dpr, 0, 0, W, H);
+          ctx.globalAlpha = 1;
+        }
+
+        // Subtle edge shadow
+        var edge = ctx.createLinearGradient(0, 0, 0, H * 0.15);
+        edge.addColorStop(0, 'rgba(0,0,0,0.25)');
+        edge.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = edge;
+        ctx.fillRect(0, 0, W, H * 0.15);
+      }
+
+      // ---- Render loop ----
+      var frame = 0;
+      function loop() {
+        frame++;
+        drawBackground();
+
+        // Sort by life so newer strokes paint on top
+        strokes.sort(function(a, b) { return a.life - b.life; });
+
+        var active = [];
+        for (var i = 0; i < strokes.length; i++) {
+          var s = strokes[i];
+          s.life++;
+          if (s.life >= s.maxLife) continue;
+          active.push(s);
+
+          var progress = s.life / s.maxLife;
+          var fadeIn = Math.min(1, progress / 0.15);
+          var fadeOut = 1 - Math.max(0, (progress - 0.55) / 0.45);
+          var fade = Math.min(fadeIn, fadeOut);
+          fade = Math.max(0, fade);
+
+          var alpha = fade * 0.55;
+          var radius = s.r * (0.15 + 0.85 * Math.sqrt(fade));
+          var c = s.c;
+          var cr = parseInt(c.slice(1,3), 16);
+          var cg = parseInt(c.slice(3,5), 16);
+          var cb = parseInt(c.slice(5,7), 16);
+
+          // Core dot
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',' + alpha + ')';
+          ctx.fill();
+
+          // Glow ring
+          if (fade > 0.25) {
+            ctx.beginPath();
+            ctx.arc(s.x - 0.3, s.y - 0.3, radius * 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',' + (alpha * 0.18) + ')';
+            ctx.fill();
+          }
+
+          // Subtle inner highlight
+          if (fade > 0.4) {
+            ctx.beginPath();
+            ctx.arc(s.x + 0.2, s.y + 0.2, radius * 0.45, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(' + Math.min(255, cr + 60) + ',' + Math.min(255, cg + 60) + ',' + Math.min(255, cb + 60) + ',' + (alpha * 0.3) + ')';
+            ctx.fill();
+          }
+        }
+        strokes = active;
+
+        // Pointer ghost
+        if (pointerX >= 0 && pointerY >= 0) {
+          var s = seasons[seasonIdx];
+          var c = s.colors[0];
+          var cr = parseInt(c.slice(1,3), 16);
+          var cg = parseInt(c.slice(3,5), 16);
+          var cb = parseInt(c.slice(5,7), 16);
+          var pulse = 1 + Math.sin(frame * 0.032) * 0.5;
+          ctx.beginPath();
+          ctx.arc(pointerX, pointerY, 2 + pulse * 0.6, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',0.12)';
+          ctx.fill();
+        }
+
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+
+      // ---- Fade hint after a few seconds ----
+      setTimeout(function() {
+        hint.style.opacity = '0.2';
+        setTimeout(function() {
+          kbHint.style.opacity = '0.5';
+        }, 3000);
+      }, 5000);
+    })();
+  </script>
+</body>
+</html>

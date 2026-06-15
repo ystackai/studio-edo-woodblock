@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>浮浪 - Ukiyo-e Ink Tide</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+     <!-- SVG filters for ink-bleed edge softening: placed at body level so all descendants can reference them -->
+     <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+       <defs>
+         <filter id="inkBleed" x="-5%" y="-5%" width="110%" height="110%">
+           <feGaussianBlur in="SourceGraphic" stdDeviation="0.4" result="soft"/>
+           <feMerge>
+             <feMergeNode in="soft"/>
+             <feMergeNode in="SourceGraphic"/>
+           </feMerge>
+         </filter>
+         <filter id="softBleed" x="-5%" y="-5%" width="110%" height="110%">
+           <feGaussianBlur in="SourceGraphic" stdDeviation="0.25" result="soft"/>
+           <feMerge>
+             <feMergeNode in="soft"/>
+             <feMergeNode in="SourceGraphic"/>
+           </feMerge>
+         </filter>
+       </defs>
+     </svg>
+     <div id="scene-container">
+         <canvas id="main-canvas"></canvas>
+         <svg id="overlay-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+         <div id="prompt">press the water to draw the tide</div>
+         <div id="final-title">the harbor holds what the moon set in ink</div>
+         <div id="hanko">浮世</div>
+       </div>
+  <script src="js/audio.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

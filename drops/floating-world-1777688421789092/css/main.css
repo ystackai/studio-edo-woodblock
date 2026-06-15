@@ -1,0 +1,138 @@
+/* ── Base ── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #F0E9D8;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: none;
+}
+
+/* ── Scene ── */
+#scene-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+ -webkit-tap-highlight-color: transparent;
+   /* Ink bleed filter: soft Gaussian blur merged with source to mimic pigment on absorbent paper */
+  filter: url('#inkBleed');
+}
+#main-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+#overlay-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ── Registration border (woodblock edge) ── */
+#scene-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(42, 48, 72, .06),
+    inset 3px 3px 0 rgba(175, 85, 48, .04);
+  z-index: 3;
+}
+
+/* ── Removed redundant CSS grain overlay: grain rendered on canvas ── */
+/* ── GPU compositing hints for canvas ── */
+#main-canvas {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* ── Prompt overlay: unobtrusive, mobile-safe ── */
+#prompt {
+  position: absolute;
+  bottom: 6vh;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(42, 48, 72, .35);
+  font-size: clamp(10px, 1.6vw, 13px);
+  letter-spacing: .14em;
+  text-indent: .14em;
+  text-transform: lowercase;
+  pointer-events: none;
+  transition: opacity 2.2s ease;
+  white-space: nowrap;
+  z-index: 5;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#prompt.hidden {
+  opacity: 0;
+}
+
+/* ── Final print state title ── */
+#final-title {
+   position: absolute;
+   bottom: 4vh;
+   left: 50%;
+   transform: translateX(-50%);
+   color: rgba(42, 48, 72, .15);
+   font-size: clamp(9px, 1.3vw, 11px);
+   letter-spacing: .18em;
+   text-transform: lowercase;
+   pointer-events: none;
+   opacity: 0;
+   transition: opacity 2.8s ease;
+   white-space: nowrap;
+   z-index: 5;
+}
+#final-title.visible {
+   opacity: 1;
+}
+
+/* ── Hanko seal (浮世 - 'floating world') ── */
+#hanko {
+  position: absolute;
+  top: 3.5vh;
+  right: 3.5vw;
+  color: rgba(175, 55, 48, .22);
+  font-size: clamp(10px, 1.8vw, 16px);
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+  letter-spacing: .1em;
+  writing-mode: vertical-rl;
+  pointer-events: none;
+  z-index: 4;
+  line-height: 1.3;
+}
+
+/* ── Mobile refinements ── */
+@media (max-width: 600px) {
+    #prompt {
+    font-size: clamp(9px, 3.2vw, 12px);
+    letter-spacing: .1em;
+    bottom: 5vh;
+    }
+    #final-title {
+    font-size: clamp(8px, 2.8vw, 10px);
+    bottom: 3vh;
+    }
+    #hanko {
+    top: 2.5vh;
+    right: 2.5vw;
+    font-size: clamp(9px, 2.5vw, 13px);
+    }
+}
