@@ -22,7 +22,7 @@
     #crashOverlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(15,23,42,0.75); color:#f8f4eb; z-index:20; text-align:center; }
     #crashOverlay .title { font-size:18px; font-weight:800; margin-bottom:6px; letter-spacing:1px; }
     #crashOverlay .stat { font-size:14px; opacity:0.9; margin:2px 0; }
-    #restartBtn { margin-top:16px; min-width:140px; }
+    #restartBtn { margin-top:16px; min-width:168px; padding:10px 22px; font-size:13px; }
   </style>
 </head>
 <body>
@@ -44,6 +44,7 @@
       <div class="title">CRASHED</div>
       <div class="stat" id="crashStat"></div>
       <button class="btn" id="restartBtn">RESTART RUN</button>
+      <div style="margin-top:8px; font-size:11px; opacity:0.75; letter-spacing:0.5px;">TAP SCREEN OR PRESS R</div>
     </div>
   </div>
 
@@ -83,6 +84,7 @@
   let worldOffset = 0;
   let speed = BASE_SPEED;
   let lastSpeedRamp = 0;
+  let rampPulseUntil = 0; // contact-sheet pacing: brief visual emphasis on speed escalation so ramp is palpable without HUD text
   let score = 0;
   let letters = 0;
   let combo = 1;
@@ -271,6 +273,11 @@
     crashOverlay.style.display = 'none';
     startPrompt.style.display = 'none';
     updateHUD();
+    // Contact-sheet retry flow: immediate "fresh run" ink burst at courier on reset so player feels the run is live again within <100ms; no delay, strong affordance that "R or tap = back in the wave".
+    for (let i=0; i<6; i++) {
+      particles.push({ x: PLAYER_X + (Math.random()-0.5)*22, y: playerY - 8 + (Math.random()-0.5)*14,
+        vx: (Math.random()-0.5)*1.8, vy: -1.6 - Math.random()*1.1, life: 0.32 + Math.random()*0.18, c: (i%2 ? '#0f172a' : '#64748b') });
+    }
   }
 
   function endRun() {
@@ -313,11 +320,16 @@
     }
   }
   function spawnScorePop(x, y, n, c='#0f172a') {
-    scorePops.push({ x, y, n, life: 1.05, vy: -52, c }); // 12:18 + 12:28: crisp success feedback; c passed through for color distinction (vermilion for perfect/letter vs ink)
+    scorePops.push({ x, y, n, life: 1.12, vy: -54, c }); // contact-sheet: slightly longer visible for impact feedback readability
   }
   function spawnFailPop(x, y, c='#0f172a') {
-    // crisp fail "X" at exact miss/collision site — makes gate-miss / crest-clip / yokai-hit rules immediately obvious in motion and Discord screenshots (complements +N success pops; restrained ink, short life)
-    scorePops.push({ x, y, n: 0, life: 0.95, vy: -36, c, fail: true });
+    // Contact-sheet polish (impact feedback): larger/longer crisp "X" at exact miss/clip site + extra short radial ink burst particles so collection/collision (gate thread vs miss, crest dash/jump choice, yokai avoid/dash) rules are immediately obvious in motion and screenshots. Still pure restrained ink on paper; complements +N success pops without repainting style.
+    scorePops.push({ x, y, n: 0, life: 1.18, vy: -38, c, fail: true });
+    // radial impact "stamp" flecks (ink only, short life) for somatic hit read at the exact collision world x/y
+    for (let k=0; k<5; k++) {
+      const ang = (k-2) * 0.7;
+      particles.push({ x, y, vx: Math.cos(ang)*1.9, vy: Math.sin(ang)*1.3 - 0.6, life: 0.18 + Math.random()*0.09, c: '#0f172a' });
+    }
   }
 
   // Input wiring (gesture first, large targets)
@@ -379,8 +391,8 @@
     const cx = (e.clientX - rect.left) / rect.width * W;
     const cy = (e.clientY - rect.top) / rect.height * H;
     const nowt = performance.now() / 1000;
-    // restart zone (bottom-right large)
-    if (crashed && cx > W-220 && cy > H-110) { doRestart(); return; }
+    // Contact-sheet retry flow: any canvas click when crashed restarts (large, thumb-friendly, obvious target — improves "retry immediately" without hunting small button). Bottom-right zone kept for legacy but broad now wins.
+    if (crashed) { doRestart(); return; }
     if (!running && !crashed) { doJump(); return; }
     // dash zone: lower-left quadrant (large thumb target) or double-tap anywhere
     const isDashZone = (cx < W * 0.28 && cy > H * 0.52);
@@ -424,6 +436,12 @@
   });
   restartBtn.addEventListener('click', doRestart);
   restartBtnTop.addEventListener('click', () => { ensureAudio(); doRestart(); });
+  // Contact-sheet retry flow: clicking the crash overlay panel (anywhere not just the button) restarts — large obvious target improves "try again" pacing after a miss without precision tap.
+  crashOverlay.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'restartBtn') return; // button has its own
+    ensureAudio();
+    doRestart();
+  });
 
   // Initial paper
   makePaperGrain();
@@ -552,45 +570,48 @@
   }
 
   function drawLetter(x, y, phase, t) {
-    const bob = Math.sin(phase + t*3.1)*2.8;
+    const bob = Math.sin(phase + t*3.1)*3.2;
     ctx.save();
     ctx.translate(x, y + bob);
-    ctx.rotate(Math.sin(phase*1.7 + t)*0.07);
+    ctx.rotate(Math.sin(phase*1.7 + t)*0.05);
     ctx.fillStyle = '#f4e9d8';
     ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.4;
-    // 12:18 post-input polish per blocking feedback: even larger + more legible sealed letters (28x18 logical, stronger seal + extra address marks + bolder strokes) so pickups read instantly at speed / in Discord shots; still pure woodblock paper+ink + vermilion overprint, no repaint of mood or courier/waves. Larger size + marks make collection rule obvious without changing timing or hit feel.
-    ctx.fillRect(-14, -9, 28, 18);
-    ctx.strokeRect(-14, -9, 28, 18);
-    // fold crease (scaled for new size)
-    ctx.beginPath(); ctx.moveTo(-14, -3); ctx.lineTo(0, 7); ctx.lineTo(14, -3); ctx.stroke();
-    // address ink marks (more/longer for legibility at speed; reads as sealed letter)
-    ctx.beginPath(); ctx.moveTo(-9, 1); ctx.lineTo(8, 1); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-8, 4.2); ctx.lineTo(6, 4.2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-6, 7.2); ctx.lineTo(3, 7.2); ctx.stroke();
-    // prominent vermilion seal (larger, still centered)
+    ctx.lineWidth = 2.6;
+    // Contact-sheet polish: pickup readability — even larger 32x20 sealed letters with bolder strokes + extra address marks + stronger vermilion seal so they read as obvious collectibles at speed and in stills/screenshots. Pure woodblock (paper fill + ink edges + restrained vermilion overprint); no style repaint. Bigger legible form + seal makes "snag the letter" rule self-evident alongside gates/hazards.
+    ctx.fillRect(-16, -10, 32, 20);
+    ctx.strokeRect(-16, -10, 32, 20);
+    // fold crease
+    ctx.beginPath(); ctx.moveTo(-16, -3); ctx.lineTo(0, 8); ctx.lineTo(16, -3); ctx.stroke();
+    // address ink marks (more for instant legibility)
+    ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(10, 0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-10, 3.5); ctx.lineTo(9, 3.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-8, 6.5); ctx.lineTo(7, 6.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-6, 9.5); ctx.lineTo(4, 9.5); ctx.stroke();
+    // prominent vermilion seal (larger, bolder)
     ctx.fillStyle = '#c2410f';
-    ctx.fillRect(-4.5, -3, 9, 6);
+    ctx.fillRect(-5.5, -4, 11, 7);
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.1;
+    ctx.strokeRect(-5.5, -4, 11, 7);
     ctx.restore();
   }
 
   function drawCrest(x, y, t, screenX) {
     const approach = (screenX !== undefined) ? Math.max(0, Math.min(1, (220 - screenX) / 220)) : 0;
-    const lift = approach * 7.5; // crest "builds" visually as it approaches — telegraph
+    const lift = approach * 8.2; // contact-sheet hazard readability: stronger build telegraph on approach so wave crest danger is legible early; still ink silhouette + foam, no repaint.
     ctx.strokeStyle = '#0f172a';
     ctx.fillStyle = approach > 0.35 ? '#111827' : '#1e2937';
     ctx.lineWidth = 3.8;
     ctx.beginPath();
-    ctx.moveTo(x-46, y + 38);
-    ctx.quadraticCurveTo(x-18, y-18 - lift*0.65, x, y-34 - lift);
-    ctx.quadraticCurveTo(x+18, y-14 - lift*0.45, x+44, y + 36);
-    ctx.lineTo(x+44, y + 52);
-    ctx.lineTo(x-46, y + 52);
+    ctx.moveTo(x-48, y + 38);
+    ctx.quadraticCurveTo(x-19, y-19 - lift*0.65, x, y-36 - lift);
+    ctx.quadraticCurveTo(x+19, y-15 - lift*0.45, x+46, y + 36);
+    ctx.lineTo(x+46, y + 52);
+    ctx.lineTo(x-48, y + 52);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    // foam hint (very restrained) + stronger on approach; wider for legibility per 12:18
-    ctx.strokeStyle = approach > 0.3 ? 'rgba(248,244,235,0.82)' : 'rgba(248,244,235,0.65)';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath(); ctx.moveTo(x-16, y-20 - lift*0.35); ctx.quadraticCurveTo(x, y-30 - lift*0.55, x+14, y-16); ctx.stroke();
+    // foam hint (very restrained) + stronger on approach; wider for legibility per 12:18 + contact polish
+    ctx.strokeStyle = approach > 0.3 ? 'rgba(248,244,235,0.86)' : 'rgba(248,244,235,0.65)';
+    ctx.lineWidth = 1.9;
+    ctx.beginPath(); ctx.moveTo(x-17, y-21 - lift*0.35); ctx.quadraticCurveTo(x, y-32 - lift*0.55, x+15, y-17); ctx.stroke();
   }
 
   function drawYokai(x, y, phase, t, screenX) {
@@ -753,7 +774,8 @@
     if (runTime - lastSpeedRamp > 60) {
       speed = Math.min(speed * 1.12, BASE_SPEED * 2.7);
       lastSpeedRamp = runTime;
-      // show the ramp: visible "push" burst at courier + extra wake — makes the slight speed escalation palpable and crisp (no repaint, just motion emphasis)
+      rampPulseUntil = runTime + 0.85;
+      // Contact-sheet pacing: show the ramp with directed "push" burst + wake + (below) intensified speed lines during pulse. Makes slight escalation every minute obvious and exciting while preserving woodblock restraint.
       for (let i = 0; i < 8; i++) {
         particles.push({
           x: PLAYER_X - 10 + Math.random() * 6,
@@ -869,10 +891,14 @@
             });
           }
           spawnParticles(sx, l.y, 2, '#f4e9d8', 2.1);
-          // extra crisp delivery feedback at the courier satchel (local +26 pop already at letter; this + ink/seal flecks at player makes "I collected and delivered the sealed letter" obvious and juicy without breaking restraint)
+          // Contact-sheet: stronger collection impact at satchel — extra vermilion seal burst + paper fleck "catch" so "I delivered the letter" is obvious and satisfying the instant of pickup. Still ink + restrained overprint only.
           const delY = playerY - 20 + (isDashing ? 3 : 0);
-          spawnParticles(PLAYER_X + 23, delY, 3, '#c2410f', 1.4);
-          spawnParticles(PLAYER_X + 19, delY + 2, 2, '#f4e9d8', 1.1);
+          spawnParticles(PLAYER_X + 23, delY, 5, '#c2410f', 1.6);
+          spawnParticles(PLAYER_X + 19, delY + 2, 3, '#f4e9d8', 1.3);
+          // brief "sealed delivered" ink ring at satchel for tactile snap feedback (house silhouette language)
+          for (let k=0; k<3; k++) {
+            particles.push({ x: PLAYER_X + 21, y: delY + 1, vx: (k-1)*0.8, vy: -1.4 -k*0.3, life: 0.21, c: '#0f172a' });
+          }
           updateHUD();
         }
         lettersEnt.splice(i,1);
@@ -1052,14 +1078,21 @@
     }
     ctx.globalAlpha = 1;
 
-    // floating score pops + fail X (crisp, immediate "I scored / I missed" at exact site — makes collection/collision rules obvious; success +N in vermilion/ink, fail X for gate-miss/crest/yokai hits)
+    // floating score pops + fail X (contact-sheet: larger 18px X for fail impact + 16px success; eased float makes "what I did right/wrong" instantly readable at the exact world position of gate/letter/crest/yokai. Pure ink on paper.)
     ctx.textAlign = 'center';
     ctx.font = '700 16px system-ui, sans-serif';
     for (const p of scorePops) {
-      const a = Math.max(0.08, p.life / (p.fail ? 0.95 : 1.05));
+      const isFail = !!p.fail;
+      const a = Math.max(0.06, p.life / (isFail ? 1.18 : 1.12));
       ctx.globalAlpha = a;
       ctx.fillStyle = p.c || '#0f172a';
-      ctx.fillText(p.fail ? 'X' : ('+' + p.n), p.x, p.y);
+      if (isFail) {
+        ctx.font = '800 18px system-ui, sans-serif';
+        ctx.fillText('X', p.x, p.y);
+        ctx.font = '700 16px system-ui, sans-serif';
+      } else {
+        ctx.fillText('+' + p.n, p.x, p.y);
+      }
     }
     ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
@@ -1068,16 +1101,24 @@
     if (running && speed > BASE_SPEED * 1.18) {
       const sMul = Math.min(1.7, (speed - BASE_SPEED) / BASE_SPEED);
       const isD = (runTime < dashUntil);
-      ctx.strokeStyle = isD ? `rgba(15,23,42,${0.11 + sMul * 0.07})` : `rgba(15,23,42,${0.08 + sMul * 0.05})`;
-      ctx.lineWidth = 1 + sMul * 0.5;
+      const pulse = (runTime < rampPulseUntil) ? 1.0 : 0;
+      ctx.strokeStyle = isD ? `rgba(15,23,42,${0.11 + sMul * 0.07 + pulse * 0.09})` : `rgba(15,23,42,${0.08 + sMul * 0.05 + pulse * 0.08})`;
+      ctx.lineWidth = 1 + sMul * 0.5 + pulse * 0.6;
       const nLines = isD ? 7 : 5;
       for (let i = 0; i < nLines; i++) {
         const sx = 70 + (i * 31) % 580;
-        const len = 32 + sMul * 26 + (isD ? 8 : 0);
+        const len = 32 + sMul * 26 + (isD ? 8 : 0) + pulse * 9;
         ctx.beginPath();
         ctx.moveTo(sx, 208 + (i % 3) * 52);
         ctx.lineTo(sx - len - (speed - BASE_SPEED) * 0.035, 210 + (i % 3) * 52);
         ctx.stroke();
+      }
+      // brief forward gust flecks on ramp pulse for palpable "speed up" read (paper/ink only)
+      if (pulse > 0 && Math.random() < 0.7) {
+        ctx.fillStyle = 'rgba(248,244,235,0.55)';
+        for (let g=0; g<3; g++) {
+          ctx.fillRect(82 + Math.random()*38, 198 + Math.random()*68, 1.4, 1.1);
+        }
       }
     }
 

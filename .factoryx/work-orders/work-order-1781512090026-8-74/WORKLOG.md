@@ -552,3 +552,13 @@ Screenshots:
 - No code change (reworks + 12:18 larger/feedback polish already live and verified at guard). The prompt's SyntaxError/timeout/pre-snap/blank modes + 12:18 blocking are directly mitigated by the live targeted items + these explicit fresh chromium captures under this runtime. Game Feel 9/9 re-affirmed (paths + evidence + image review). First screen coherent <30s evaluable; live preview entrypoint clean; verification produced required in-game state post-start interaction. Autoreview dry-run invoked (limited engine; clean via evidence+checklist+self review of unchanged source). Blockers: none. ~47m remain; continuing per polish_until_deadline on canonical only / PR #151.
 - Screenshots this pass: fresh-grok-restart-ready-1781532430858.png, fresh-grok-restart-verif-postinteract-1781532430858.png (placed in games/.../screenshots/ + work-order screenshots/).
 - Work Order: work-order-1781512090026-8-74
+
+### 2026-06-15 — Contact-sheet polish (15:32 feedback, current fresh restart)
+- Focused playable polish per "one of the strongest lanes... Preserve the woodblock surf courier identity. Improve pickup/hazard readability, impact/collection feedback, pacing, and retry flow without repainting..."
+- Changes (house ink/paper/silhouette + restrained vermilion only; no core style shift):
+  - Larger 32x20 letters (4 address marks, bolder, bigger seal) + stronger crest telegraph/build for pickup/hazard legibility at speed and in screenshots.
+  - Crisper impact: 18px "X" + radial ink flecks on every gate-miss/crest/yokai (exact site); letter collect has extra satchel seal burst + catch ring + flecks for juicy "delivered" moment.
+  - Pacing: ramp pulse (0.85s brighter speed lines + forward gust flecks) makes 60s escalations palpable.
+  - Retry: broad canvas + overlay click-to-restart (large targets), enlarged button, "TAP OR R" hint, fresh burst particles on reset for instant live feel.
+- Chromium real-browser verification (direct on entrypoint, vtime+compositor): clean loads; new contact-polish-ready-1781538369.png (pre, quality bar + larger letters/crests visible) + contact-polish-postinteract-1781538378.png (post reset+collect+juice exercised). Evidence in screenshots/ dirs.
+- Checklist 9/9 re-affirmed; first screen + verb demo stronger on readability/feedback without timing change. PR #151 kept current. Commit + push canonical. Work Order: work-order-1781512090026-8-74.
