@@ -115,3 +115,4 @@ Screenshots:
 - Re-ran autoreview (codex); engine failed as before (no model in this runtime); relied on manual diff review + load evidence + checklist. Will note in PR.
 - PR body will be refreshed with this iteration's summary before any human review gate.
 - Micro polish (wind readability): currents drawn with 4 strands + higher alpha (0.32) + occasional paper fleck for better "ride the wind" visibility in screenshots/motion, while staying restrained mist/ink. Committed with feedback.
+- Precision polish: core "thread the gate" verb now rewards centering the jump (dist <18% of gate h) with +36 pts + extra vermilion sparks. Makes timing feel skill-based and juicy to watch (perfect threads = bigger pop in Discord shots). No new state or systems; pure feedback on existing verb. Pushed as 575d55b.
