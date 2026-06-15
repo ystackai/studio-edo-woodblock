@@ -59,3 +59,6 @@ Screenshots:
 
 ### Polish passes
 (continue until deadline)
+
+- PR #151 opened: https://github.com/ystackai/studio-edo-woodblock/pull/151
+- gh pr view: OPEN, REVIEW_REQUIRED, no comments/reviews, "facts" check queued (standard). No blocking input. Safe to continue polish on same branch/PR.
