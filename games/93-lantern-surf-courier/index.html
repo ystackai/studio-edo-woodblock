@@ -723,10 +723,17 @@
         const top = g.y - g.h * 0.5, bot = g.y + g.h * 0.5;
         const threaded = playerY > top && playerY < bot;
         if (threaded) {
-          addScore(92);
+          const centerDist = Math.abs(playerY - g.y);
+          const perfect = centerDist < g.h * 0.18;
+          addScore(perfect ? 128 : 92);
           sfxGate();
-          spawnParticles(g.x - worldOffset, g.y, 9, '#f59e0b', 3.6);
-          spawnParticles(g.x - worldOffset, g.y - 18, 4, '#c2410f', 2.1);
+          const n = perfect ? 14 : 9;
+          spawnParticles(g.x - worldOffset, g.y, n, '#f59e0b', 3.8);
+          spawnParticles(g.x - worldOffset, g.y - 18, perfect ? 7 : 4, '#c2410f', 2.4);
+          if (perfect) {
+            // juicy perfect-thread pop (precision reward, still house restrained)
+            spawnParticles(g.x - worldOffset, g.y + 4, 5, '#ea580c', 1.8);
+          }
         } else {
           combo = Math.max(1, combo - 0.6);
           updateHUD();
