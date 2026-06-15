@@ -854,18 +854,23 @@
       drawLetter(l.x - worldOffset, l.y, l.phase, t);
     }
 
-    // wind currents (faint rising breath — house mist + bright pop for readability)
-    ctx.strokeStyle = 'rgba(248,244,235,0.22)';
-    ctx.lineWidth = 1.1;
+    // wind currents (rising breath — house mist + bright pop for readability of "ride the wind"; stronger for Discord screenshots while still restrained)
+    ctx.strokeStyle = 'rgba(248,244,235,0.32)';
+    ctx.lineWidth = 1.35;
     for (const w of winds) {
       const sx = w.x - worldOffset;
       if (sx < -30 || sx > W+40) continue;
-      for (let i=0; i<3; i++) {
-        const wy = 148 + i*26 + Math.sin(t*1.8 + i)*6;
+      for (let i=0; i<4; i++) {
+        const wy = 146 + i*24 + Math.sin(t*1.9 + i)*7;
         ctx.beginPath();
-        ctx.moveTo(sx - 3, wy + 14);
-        ctx.quadraticCurveTo(sx + 2, wy - 2, sx + 1, wy - 18);
+        ctx.moveTo(sx - 4, wy + 16);
+        ctx.quadraticCurveTo(sx + 3, wy - 1, sx + 2, wy - 20);
         ctx.stroke();
+      }
+      // occasional paper fleck on the current for juicy "floating world" feel
+      if (Math.random() < 0.35) {
+        ctx.fillStyle = 'rgba(248,244,235,0.45)';
+        ctx.fillRect(sx + (Math.random()-0.5)*6, 142 + Math.sin(t*2.4 + w.x)*9, 1.6, 1.2);
       }
     }
 

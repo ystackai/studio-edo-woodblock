@@ -114,3 +114,4 @@ Screenshots:
 - Screenshots added: `screenshots/yokai-ready-1781513569.png` (and any follow-up harness captures).
 - Re-ran autoreview (codex); engine failed as before (no model in this runtime); relied on manual diff review + load evidence + checklist. Will note in PR.
 - PR body will be refreshed with this iteration's summary before any human review gate.
+- Micro polish (wind readability): currents drawn with 4 strands + higher alpha (0.32) + occasional paper fleck for better "ride the wind" visibility in screenshots/motion, while staying restrained mist/ink. Committed with feedback.
