@@ -313,7 +313,11 @@
     }
   }
   function spawnScorePop(x, y, n, c='#0f172a') {
-    scorePops.push({ x, y, n, life: 1.05, vy: -52 }); // 12:18: longer life + higher launch for clearer, crisper success feedback on pickups/threads/collisions (visible longer in motion/screenshots)
+    scorePops.push({ x, y, n, life: 1.05, vy: -52, c }); // 12:18 + 12:28: crisp success feedback; c passed through for color distinction (vermilion for perfect/letter vs ink)
+  }
+  function spawnFailPop(x, y, c='#0f172a') {
+    // crisp fail "X" at exact miss/collision site — makes gate-miss / crest-clip / yokai-hit rules immediately obvious in motion and Discord screenshots (complements +N success pops; restrained ink, short life)
+    scorePops.push({ x, y, n: 0, life: 0.95, vy: -36, c, fail: true });
   }
 
   // Input wiring (gesture first, large targets)
@@ -831,10 +835,11 @@
         } else {
           combo = Math.max(1, combo - 0.6);
           updateHUD();
-          // crisp fail feedback for miss: visible ink "swoosh" at the exact gate location makes "I was too high/low" rule obvious
+          // crisp fail feedback for miss: visible ink "swoosh" + floating X at the exact gate location makes "I was too high/low" rule obvious (complements success pops)
           const sx = g.x - worldOffset;
           spawnParticles(sx, g.y - 6, 3, '#0f172a', 1.1);
           spawnParticles(sx, g.y + 7, 3, '#0f172a', 1.0);
+          spawnFailPop(sx, g.y - 14);
           // small X-ish cross strokes via angled velocity particles (restrained, reads as "closed" or "missed the thread")
           for (let k = 0; k < 4; k++) {
             particles.push({ x: sx - 7 + k*4, y: g.y - 9 + k*4.5, vx: 1.6 - k*0.7, vy: -0.8 + k*0.6, life: 0.22, c: '#0f172a' });
@@ -879,6 +884,8 @@
         const ch = crestHeight(c.x);
         const hitCrest = onGround || playerY > c.y - ch + 14;
         if (hitCrest && !isDashing) { // dashing can punch through light crest for risk/reward
+          const sx = c.x - worldOffset;
+          spawnFailPop(sx, c.y - 20); // crisp fail X at the exact crest clip site makes "I was low on the wave" rule obvious before the crash overlay
           endRun();
           return;
         }
@@ -894,6 +901,8 @@
         const band = 26;
         const close = Math.abs(playerY - ykY) < band;
         if (close && !isDashing) {
+          const ykSx = yk.x - worldOffset;
+          spawnFailPop(ykSx, ykY - 10); // crisp fail X at the exact yokai hit makes "I was in the spirit band and not dashing" rule obvious
           endRun();
           return;
         } else if (close && isDashing) {
@@ -1043,14 +1052,14 @@
     }
     ctx.globalAlpha = 1;
 
-    // floating score pops (crisp, immediate "I scored by threading/collecting here" — makes collection rules obvious without extra UI or text explanations)
+    // floating score pops + fail X (crisp, immediate "I scored / I missed" at exact site — makes collection/collision rules obvious; success +N in vermilion/ink, fail X for gate-miss/crest/yokai hits)
     ctx.textAlign = 'center';
-    ctx.font = '700 15px system-ui, sans-serif';
+    ctx.font = '700 16px system-ui, sans-serif';
     for (const p of scorePops) {
-      const a = Math.max(0.08, p.life / 1.05);
+      const a = Math.max(0.08, p.life / (p.fail ? 0.95 : 1.05));
       ctx.globalAlpha = a;
-      ctx.fillStyle = p.c;
-      ctx.fillText('+' + p.n, p.x, p.y);
+      ctx.fillStyle = p.c || '#0f172a';
+      ctx.fillText(p.fail ? 'X' : ('+' + p.n), p.x, p.y);
     }
     ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
