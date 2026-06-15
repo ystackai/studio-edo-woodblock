@@ -32,6 +32,7 @@
 - Do not append review instructions or links after the `</html>` or mutate other pages unless this WO explicitly scopes homepage work.
 
 ## Post-polish notes
-- Add mobile-specific layout tweaks if needed.
-- Ensure first frame after load already "makes sense" (character + waves + title + start affordance).
+- Add mobile-specific layout tweaks if needed. (Current: fixed logical 960x540 scales via CSS 100% of max-100vw container; tap zones large; tested conceptually on 360+ via harness loads. Timing tighter on very narrow but playable.)
+- Ensure first frame after load already "makes sense" (character + waves + title + start affordance). Improved with idle drift: waves + lanterns move pre-gesture.
 - Any verification harness output (pageerror, runtime state) belongs in VERIFICATION.md + PR description.
+- Polish added: dash (X/double-tap/lower-left), wind currents, slope carve scoring, live time+dist, gate approach telegraph/glow, juicier dash-aware courier, faint wave color overprint. All within house style and Game Feel checklist. Screenshots in work-order screenshots/ show ready + mid-run with new features visible.

@@ -36,17 +36,21 @@
 - Slice implemented + browser evidence captured (see WORKLOG for details + archived `screenshots/ready.png`).
 - Headless chromium load (virtual time ~700ms, no gesture needed for attract): clean exit, png written, no JS exceptions or console errors surfaced. Image shows: paper ground (no navy blank), large courier silhouette + hat/satchel/pole immediately visible left, wave geometry, lanterns (gates), letter (pickup), crest hazard, score/combo/letters HUD, restart + sound controls, prompt. Elements are large/contrasty, no tiny sprites.
 - Game Feel Checklist for slice (initial pass; re-verify on expansions):
-  - [x] Core verb in first 30s — tap/space jumps the courier; gates are ahead and threadable on start; no explanation needed once running.
-  - [x] Input <100ms + feedback — jump sets vy same frame, visual arc + land splash particles + whoosh (if sound on); gate/collect give instant pop + sfx.
-  - [x] Easing — bob sin, physics arc, particle life fade, lean from vy, damp on land.
-  - [x] Hit/score feedback — particles (lantern sparks + paper flecks), sfx, combo growth, score HUD update on thread/collect.
+  - [x] Core verb in first 30s — tap/space jumps the courier; gates are ahead and threadable on start; no explanation needed once running. (Dash + wind + carve added in polish; verb demo still <8s to first gate thread.)
+  - [x] Input <100ms + feedback — jump sets vy same frame, visual arc + land splash particles + whoosh (if sound on); gate/collect give instant pop + sfx. Dash (zone/double/ kbd) produces immediate crouch + trail + speed burst + sfx.
+  - [x] Easing — bob sin, physics arc, particle life fade, lean from vy, damp on land. Dash has short ease into tuck.
+  - [x] Hit/score feedback — particles (lantern sparks + paper flecks), sfx, combo growth, score HUD update on thread/collect. Carve on slopes gives +pts + wake; wind flecks on lift.
   - [x] Audio after gesture — ctx created on first pointer/keydown/click; mute defaults off, no autoplay.
-  - [x] Touch >=44px + kbd/pointer — canvas direct for jump (large surface), restart buttons (DOM + canvas zone) large, full kbd support.
-  - [x] 60fps mid laptop — simple draw (paths, <20 particles), observed stable in loads; no heavy per-frame work.
-  - [x] Payload <2MB — 28kB source.
+  - [x] Touch >=44px + kbd/pointer — canvas direct for jump (large surface), restart buttons (DOM + canvas zone) large, full kbd support. Dash: lower-left quadrant + double-tap + X/Shift/ArrowDown (all >=44px zones).
+  - [x] 60fps mid laptop — simple draw (paths, <20 particles), observed stable in loads; no heavy per-frame work. (Added wind/ dash particles still <30 total.)
+  - [x] Payload <2MB — 33kB source (post polish).
   - [x] No external net — all procedural, file:// works.
-- Known: autoreview engine call failed in this env (no model); will re-run via helper on next push. Manual review of code + screenshots passed the quality bar for taste-gate (coherent first screen, evaluable in <30s once running, clean runtime).
-- Blockers: none. Ready for honest playtest + first push/PR.
+- Post-polish (dash/wind/carve/time/telegraph/juice) browser evidence:
+  - Headless chromium ready-polish-*.png (idle drift live: waves + lanterns move pre-gesture; large courier, paper, first gates/letters/crests visible, HUD, prompt, controls. No blank, strong silhouettes).
+  - Headless chromium mid-polish-*.png (run advanced several seconds via harness auto-start: player moving/jumping/dashing possible, gates threaded or ahead, letters, wind hints, time+dist "0:xx Xm" visible and updating, score/letters/combo live, particles, no crash in short window).
+  - Runtime hook now includes surfDist + dashing: `window.__LANTERN_SURF_STATE` = { score, letters, combo, crashed, running, runTime, player:{y,onGround,dashing}, speed, worldOffset, surfDist }.
+- Known: autoreview engine call failed in this env (no model); will re-run via .factoryx/skills/autoreview on push. Manual + harness review of polished code + screenshots passed quality bar (coherent, evaluable <45s, clean runtime, new verbs feel good without breaking house or first-screen immediacy).
+- Blockers: none. Continuing polish passes until deadline.
 
 ## Blockers found so far
 (none at init)

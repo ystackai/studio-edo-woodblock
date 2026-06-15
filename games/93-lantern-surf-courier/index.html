@@ -87,6 +87,7 @@
   let combo = 1;
   let lastActionTime = 0;
   let highScore = 0;
+  let surfDist = 0; // for time/distance HUD and escalation feel
 
   let playerY = GROUND_Y - 64;
   let playerVY = 0;
@@ -97,12 +98,16 @@
   let lettersEnt = [];
   let crests = [];
   let particles = [];
+  let winds = []; // subtle wind current zones for lift (ride the currents)
 
   // Input
   let jumpPressed = false;
   let jumpBuffered = 0;
   let keys = {};
   let pointerDown = false;
+  let dashUntil = 0;
+  let dashCooldown = 0;
+  let lastPointerTap = 0; // for double-tap dash on touch/pointer
 
   // Audio (created on first gesture)
   let audioCtx = null;
@@ -155,6 +160,7 @@
   function sfxGate() { playTone(780, 0.22, 'triangle', 0.55); playTone(1240, 0.14, 'sine', 0.35); }
   function sfxLetter() { playTone(520, 0.09, 'sine', 0.4); playNoise(0.06, 0.18, 2200); }
   function sfxCrash() { playTone(90, 0.6, 'sawtooth', 0.5); playNoise(0.55, 0.4, 420); }
+  function sfxDash() { playTone(140, 0.13, 'sawtooth', 0.32); playNoise(0.11, 0.18, 1100); }
 
   // Paper grain (offscreen, cheap)
   let paperGrain = null;
@@ -197,7 +203,7 @@
 
   // Spawn logic
   function resetEntities() {
-    gates = []; lettersEnt = []; crests = []; particles = [];
+    gates = []; lettersEnt = []; crests = []; particles = []; winds = [];
   }
   function spawnAhead() {
     const ahead = worldOffset + W + 120;
@@ -231,9 +237,13 @@
     letters = 0;
     combo = 1;
     lastActionTime = 0;
+    surfDist = 0;
+    dashUntil = 0;
+    dashCooldown = 0;
     playerY = GROUND_Y - 64;
     playerVY = 0;
     onGround = true;
+    winds = [];
     resetEntities();
     crashOverlay.style.display = 'none';
     startPrompt.style.display = 'none';
@@ -257,7 +267,9 @@
   function updateHUD() {
     scoreEl.textContent = String(score).padStart(5, '0');
     lettersEl.textContent = letters;
-    comboEl.textContent = 'x' + combo;
+    const c = Math.floor(combo);
+    comboEl.textContent = 'x' + c;
+    // optional: could extend meta with dist but keep DOM simple; time drawn in canvas for now
   }
 
   function addScore(n, mult=true) {
@@ -295,6 +307,17 @@
     }
     jumpBuffered = 0;
   }
+  function doDash() {
+    if (!running || time < dashCooldown) return;
+    dashUntil = time + 0.34;
+    dashCooldown = time + 1.18;
+    sfxDash();
+    // juicy dash trail (ink + paper)
+    for (let i=0; i<7; i++) {
+      particles.push({ x: PLAYER_X - 8 - i*1.5, y: playerY - 4 + (Math.random()-0.5)*9,
+        vx: -1.8 - Math.random()*1.4, vy: (Math.random()-0.5)*1.6 - 0.3, life: 0.32 + Math.random()*0.22, c: (i%2?'#0f172a':'#f4e9d8') });
+    }
+  }
   function doRestart() {
     resetRun();
   }
@@ -305,6 +328,10 @@
       e.preventDefault();
       jumpBuffered = 0.12;
       doJump();
+    }
+    if (e.key.toLowerCase() === 'x' || e.key === 'ArrowDown' || e.key.toLowerCase() === 'j' || e.key === 'Shift') {
+      e.preventDefault();
+      doDash();
     }
     if ((e.key.toLowerCase() === 'r' || e.key === 'Enter') && (crashed || !running)) {
       e.preventDefault();
@@ -319,9 +346,15 @@
     const rect = canvas.getBoundingClientRect();
     const cx = (e.clientX - rect.left) / rect.width * W;
     const cy = (e.clientY - rect.top) / rect.height * H;
+    const nowt = performance.now() / 1000;
     // restart zone (bottom-right large)
     if (crashed && cx > W-220 && cy > H-110) { doRestart(); return; }
     if (!running && !crashed) { doJump(); return; }
+    // dash zone: lower-left quadrant (large thumb target) or double-tap anywhere
+    const isDashZone = (cx < W * 0.28 && cy > H * 0.52);
+    const isDouble = (nowt - lastPointerTap) < 0.22;
+    lastPointerTap = nowt;
+    if (isDashZone || isDouble) { doDash(); return; }
     // main play: jump
     jumpBuffered = 0.1;
     doJump();
@@ -354,11 +387,13 @@
   makePaperGrain();
 
   // Draw courier (large, strong silhouette — courier satchel + hat + flowing robe)
-  function drawCourier(px, py, bob, lean) {
+  function drawCourier(px, py, bob, lean, isDashing, t) {
     ctx.save();
     ctx.translate(px, py + bob);
     ctx.rotate(lean * 0.028);
     const k = 2.6; // LARGE courier: strong silhouette immediately readable on first screen (hat, robe, satchel, pole)
+    const flap = isDashing ? Math.sin(t * 11) * 0.7 + 0.4 : Math.sin(t * 4.2 + lean) * 0.9; // juicy robe motion
+    const satBob = (isDashing ? 1.6 : 0) + Math.sin(t * 3.1) * 0.8 + lean * 1.6;
 
     ctx.strokeStyle = '#0f172a';
     ctx.fillStyle = '#0f172a';
@@ -366,67 +401,75 @@
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
-    // legs
+    // legs (tuck on dash)
+    const legTuck = isDashing ? 5 : 0;
     ctx.beginPath();
-    ctx.moveTo(-11*k, 6*k); ctx.lineTo(-22*k, 28*k); ctx.stroke();
+    ctx.moveTo(-11*k, 6*k); ctx.lineTo(-22*k, 28*k + legTuck); ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(6*k, 8*k); ctx.lineTo(18*k, 26*k); ctx.stroke();
+    ctx.moveTo(6*k, 8*k); ctx.lineTo(18*k, 26*k + legTuck); ctx.stroke();
     // board / contact
     ctx.beginPath();
-    ctx.moveTo(-28*k, 26*k); ctx.lineTo(26*k, 24*k);
+    ctx.moveTo(-28*k, 26*k + legTuck*0.6); ctx.lineTo(26*k, 24*k + legTuck*0.5);
     ctx.lineWidth = 5.5 * (k/1.85); ctx.stroke(); ctx.lineWidth = 3.8 * (k/1.85);
 
-    // robe body
+    // robe body (layered for volume + flap on dash/motion)
     ctx.lineWidth = 3.2 * (k/1.85);
     ctx.beginPath();
-    ctx.moveTo(-8*k, -14*k); ctx.quadraticCurveTo(-18*k, 4*k, -14*k, 18*k);
-    ctx.lineTo(12*k, 18*k); ctx.quadraticCurveTo(18*k, 2*k, 9*k, -16*k);
+    ctx.moveTo(-8*k, -14*k); ctx.quadraticCurveTo(-18*k + flap*1.2, 4*k, -14*k + flap*0.6, 18*k);
+    ctx.lineTo(12*k + flap*0.4, 18*k); ctx.quadraticCurveTo(18*k - flap*0.8, 2*k, 9*k, -16*k);
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    // inner fold lines (move with flap)
     ctx.beginPath();
-    ctx.moveTo(-2*k, -10*k); ctx.lineTo(-3*k, 14*k);
-    ctx.moveTo(3*k, -8*k); ctx.lineTo(4*k, 12*k);
+    ctx.moveTo(-2*k + flap*0.3, -10*k); ctx.lineTo(-3*k + flap*0.6, 14*k);
+    ctx.moveTo(3*k - flap*0.2, -8*k); ctx.lineTo(4*k - flap*0.4, 12*k);
     ctx.stroke();
 
-    // satchel (courier identity + deliver letters)
+    // satchel (courier identity + deliver letters) — swings on dash/lean
+    ctx.save();
+    ctx.translate(0, satBob);
     ctx.fillRect(10*k, -2*k, 18*k, 14*k);
     ctx.strokeRect(10*k, -2*k, 18*k, 14*k);
     ctx.beginPath(); ctx.moveTo(12*k, 4*k); ctx.lineTo(26*k, 4*k); ctx.stroke();
     ctx.fillStyle = '#c2410f';
     ctx.fillRect(13*k, 1*k, 12*k, 4*k);
     ctx.fillStyle = '#0f172a';
+    ctx.restore();
 
-    // arms + pole
-    ctx.beginPath(); ctx.moveTo(-6*k, -4*k); ctx.lineTo(-26*k, -18*k); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(6*k, -6*k); ctx.lineTo(22*k, -22*k); ctx.stroke();
+    // arms + pole (dash tucks forward arm)
+    const armDash = isDashing ? 6 : 0;
+    ctx.beginPath(); ctx.moveTo(-6*k, -4*k); ctx.lineTo(-26*k - armDash, -18*k - armDash*0.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6*k, -6*k); ctx.lineTo(22*k + armDash*0.7, -22*k - armDash); ctx.stroke();
     ctx.lineWidth = 2.4 * (k/1.85);
-    ctx.beginPath(); ctx.moveTo(-30*k, -26*k); ctx.lineTo(30*k, -19*k); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-30*k, -26*k); ctx.lineTo(30*k, -19*k - armDash*0.3); ctx.stroke();
 
-    // head + wide hat
+    // head + wide hat (slight forward on dash)
     ctx.lineWidth = 3.4 * (k/1.85);
     ctx.beginPath();
-    ctx.arc(0, -22*k, 9*k, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.arc(0 + (isDashing?1:0), -22*k, 9*k, 0, Math.PI*2); ctx.fill(); ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(-14*k, -26*k); ctx.quadraticCurveTo(-20*k, -34*k, -6*k, -38*k);
+    ctx.moveTo(-14*k, -26*k - (isDashing?1:0)); ctx.quadraticCurveTo(-20*k, -34*k - (isDashing?2:0), -6*k, -38*k);
     ctx.lineTo(7*k, -37*k); ctx.quadraticCurveTo(18*k, -33*k, 13*k, -25*k);
     ctx.closePath(); ctx.fill(); ctx.stroke();
 
-    // eye
+    // eye (winks or focused on dash)
     ctx.fillStyle = '#f8f4eb';
-    ctx.fillRect(3*k, -25*k, 3.5*k, 1.6*k);
+    ctx.fillRect(3*k + (isDashing?0.8:0), -25*k, 3.5*k, 1.6*k);
 
     ctx.restore();
   }
 
-  function drawLantern(x, y, h, phase, t) {
+  function drawLantern(x, y, h, phase, t, screenX) {
     const sway = Math.sin(phase + t * 1.6) * 3.5;
     ctx.save();
     ctx.translate(x, y + sway);
 
-    // glow (soft)
-    ctx.fillStyle = 'rgba(245,158,11,0.18)';
-    ctx.beginPath(); ctx.arc(0, -h*0.1, 28, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = 'rgba(194,65,15,0.22)';
-    ctx.beginPath(); ctx.arc(0, -h*0.1, 18, 0, Math.PI*2); ctx.fill();
+    // telegraph: brighter/larger glow when approaching (makes threading readable and juicy)
+    const approach = (screenX !== undefined) ? Math.max(0, Math.min(1, (260 - screenX) / 260)) : 0;
+    const gsz = 28 + approach * 11;
+    ctx.fillStyle = approach > 0.1 ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.18)';
+    ctx.beginPath(); ctx.arc(0, -h*0.1, gsz, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = approach > 0.1 ? 'rgba(194,65,15,0.32)' : 'rgba(194,65,15,0.22)';
+    ctx.beginPath(); ctx.arc(0, -h*0.1, 18 + approach*4, 0, Math.PI*2); ctx.fill();
 
     // left lantern
     ctx.strokeStyle = '#0f172a'; ctx.fillStyle = '#c2410f'; ctx.lineWidth = 2.2;
@@ -441,10 +484,11 @@
     ctx.lineTo(12, h*0.38); ctx.quadraticCurveTo(15, 0, 10, -h*0.55);
     ctx.closePath(); ctx.fill(); ctx.stroke();
 
-    // flame cores
+    // flame cores (pulse a touch on approach)
+    const coreR = approach > 0.2 ? 4.2 : 3.3;
     ctx.fillStyle = '#f59e0b';
-    ctx.beginPath(); ctx.arc(-7, -4, 3.2, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(7, -3, 3.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-7, -4, coreR, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(7, -3, coreR + 0.3, 0, Math.PI*2); ctx.fill();
 
     // top bar
     ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.6;
@@ -557,18 +601,25 @@
 
   function update(dt) {
     if (!running) {
-      // idle bob for ready/crashed screen
+      // idle drift so first screen feels alive (waves move, lanterns sway) before gesture — stronger "immediate" and better screenshots
+      const dtSecIdle = dt / 1000;
+      worldOffset += 21 * dtSecIdle;
       playerY = GROUND_Y - 64 + Math.sin(time * 2.2) * 1.6;
+      time += dt; // keep t for sways
+      // still draw moving but no spawns/physics/input in idle
       return;
     }
 
     time += dt;
     const dtSec = dt / 1000;
-    worldOffset += speed * dtSec;
+    const isDashing = time < dashUntil;
+    const dashMul = isDashing ? 1.22 : 1.0;
+    worldOffset += speed * dtSec * dashMul;
+    surfDist += speed * dtSec * dashMul;
 
-    // speed ramp every ~58s
-    if (time - lastSpeedRamp > 58) {
-      speed = Math.min(speed * 1.13, BASE_SPEED * 2.6);
+    // speed ramp every 60s (payload: escalate every minute)
+    if (time - lastSpeedRamp > 60) {
+      speed = Math.min(speed * 1.12, BASE_SPEED * 2.7);
       lastSpeedRamp = time;
     }
 
@@ -578,12 +629,13 @@
       updateHUD();
     }
 
-    // player physics
+    // player physics (dash lowers ride target for threading tight or carving under)
     playerVY += GRAV * dtSec;
     playerY += playerVY * dtSec;
 
     const surf = waveY(worldOffset + PLAYER_X, 0);
-    const groundTarget = surf - 64;
+    let groundTarget = surf - 64;
+    if (isDashing) groundTarget += 19; // crouch/dip to thread lower or punch light crests
 
     if (playerY > groundTarget) {
       playerY = groundTarget;
@@ -603,8 +655,13 @@
       if (onGround) doJump();
     }
 
-    // spawn
+    // spawn (more during dash window for interest)
     spawnAhead();
+    // occasional wind current (ride the breath of the floating world)
+    if (Math.random() < (0.011 + (speed - BASE_SPEED) * 0.00004)) {
+      const ax = worldOffset + W + 80 + Math.random() * 160;
+      winds.push({ x: ax, life: 6.5 + Math.random() * 2.5 });
+    }
 
     // gate threading + letter collect + crest crash (x-pass tests)
     const pxWorld = worldOffset + PLAYER_X;
@@ -643,11 +700,36 @@
       const c = crests[i];
       if (c.x < pxWorld + 6) {
         const ch = crestHeight(c.x);
-        if (onGround || playerY > c.y - ch + 14) {
+        const hitCrest = onGround || playerY > c.y - ch + 14;
+        if (hitCrest && !isDashing) { // dashing can punch through light crest for risk/reward
           endRun();
           return;
         }
         crests.splice(i,1);
+      }
+    }
+
+    // winds: apply lift if player in zone while airborne (ride the current)
+    for (let i = winds.length-1; i>=0; i--) {
+      const w = winds[i];
+      w.life -= dtSec;
+      if (w.life <= 0 || w.x < pxWorld - 120) { winds.splice(i,1); continue; }
+      const dx = Math.abs(w.x - pxWorld);
+      if (dx < 78 && !onGround) {
+        playerVY -= 92 * dtSec; // gentle upward push
+        if (Math.random() < 0.6) spawnParticles(PLAYER_X + (Math.random()-0.5)*11, playerY + 9, 1, 'rgba(248,244,235,0.6)', 0.8);
+      }
+    }
+
+    // slope carve / surf bonus (reward riding the wave geometry)
+    if (onGround && time - lastActionTime > 0.18) {
+      const sl = waveY(pxWorld + 14, 0) - waveY(pxWorld - 14, 0);
+      if (Math.abs(sl) > 4.5) {
+        // small juice + occasional score for sustained carving
+        if (Math.random() < 0.38) {
+          addScore(3, false);
+          spawnParticles(PLAYER_X - 2, playerY + 11, 2, '#94a3b8', 1.1);
+        }
       }
     }
 
@@ -665,6 +747,7 @@
     gates = gates.filter(g => g.x > behind);
     lettersEnt = lettersEnt.filter(l => l.x > behind);
     crests = crests.filter(c => c.x > behind);
+    winds = winds.filter(w => w.x > behind);
 
     updateHUD();
   }
@@ -686,16 +769,32 @@
       drawCrest(c.x - worldOffset, c.y, t);
     }
     for (const g of gates) {
-      drawLantern(g.x - worldOffset, g.y, g.h, g.phase, t);
+      drawLantern(g.x - worldOffset, g.y, g.h, g.phase, t, g.x - worldOffset);
     }
     for (const l of lettersEnt) {
       drawLetter(l.x - worldOffset, l.y, l.phase, t);
     }
 
+    // wind currents (faint rising breath — house mist + bright pop for readability)
+    ctx.strokeStyle = 'rgba(248,244,235,0.22)';
+    ctx.lineWidth = 1.1;
+    for (const w of winds) {
+      const sx = w.x - worldOffset;
+      if (sx < -30 || sx > W+40) continue;
+      for (let i=0; i<3; i++) {
+        const wy = 148 + i*26 + Math.sin(t*1.8 + i)*6;
+        ctx.beginPath();
+        ctx.moveTo(sx - 3, wy + 14);
+        ctx.quadraticCurveTo(sx + 2, wy - 2, sx + 1, wy - 18);
+        ctx.stroke();
+      }
+    }
+
     // player
     const bob = running ? Math.sin(t * 3.6) * 1.8 + (playerVY * 0.012) : Math.sin(t * 2.2) * 1.6;
     const lean = running ? Math.max(-0.6, Math.min(0.7, playerVY * 0.0018)) : 0.1;
-    drawCourier(PLAYER_X, playerY, bob, lean);
+    const dashing = running && (time < dashUntil);
+    drawCourier(PLAYER_X, playerY, bob, lean, dashing, t);
 
     // particles (top)
     ctx.lineWidth = 1.6;
@@ -703,8 +802,9 @@
       const a = Math.max(0.06, p.life / 0.9);
       ctx.globalAlpha = a;
       ctx.fillStyle = p.c;
+      const pr = (p.c && p.c[0]==='#' ? 2.1 : 1.8);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 2.2, 0, Math.PI*2);
+      ctx.arc(p.x, p.y, pr, 0, Math.PI*2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -722,9 +822,26 @@
       }
     }
 
-    // minimal horizon ink wash
+    // minimal horizon ink wash + faint bright ukiyo-e tint for "colorful" pop without breaking ink primary
     ctx.fillStyle = 'rgba(15,23,42,0.035)';
     ctx.fillRect(0, 148, W, 22);
+    if (running) {
+      ctx.fillStyle = 'rgba(194,65,15,0.035)';
+      ctx.fillRect(0, 92, W, 11);
+    }
+
+    // surf time / distance (canvas, keeps DOM clean; shows escalation and progress)
+    if (running) {
+      ctx.fillStyle = 'rgba(15,23,42,0.75)';
+      ctx.font = '700 11px system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      const secs = Math.floor(time);
+      const mm = String(Math.floor(secs/60)).padStart(1,'0');
+      const ss = String(secs % 60).padStart(2,'0');
+      const distM = Math.floor(surfDist / 17);
+      ctx.fillText(mm + ':' + ss + '  ' + distM + 'm', W - 14, 22);
+      ctx.textAlign = 'left';
+    }
   }
 
   let last = performance.now();
@@ -739,8 +856,8 @@
     // expose for verification harness
     window.__LANTERN_SURF_STATE = {
       score, letters, combo: Math.floor(combo), crashed, running,
-      runTime: time, player: { y: playerY, onGround },
-      speed, worldOffset
+      runTime: time, player: { y: playerY, onGround, dashing: (time < dashUntil) },
+      speed, worldOffset, surfDist: Math.floor(surfDist)
     };
 
     // light fps guard (no DOM spam)

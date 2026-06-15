@@ -63,3 +63,29 @@ Screenshots:
 - PR #151 opened: https://github.com/ystackai/studio-edo-woodblock/pull/151
 - gh pr view: OPEN, REVIEW_REQUIRED, no comments/reviews, "facts" check queued (standard). No blocking input. Safe to continue polish on same branch/PR.
 - Small polish landed: worldOffset -120 so first gates/letters/crests visible within 1s of run (stronger "immediately" + verb demo). Commit 4e5037e on canonical.
+
+### 2026-06-15 — Polish iteration (dash + wind + carve + time + juice)
+- Deadline remaining at start of pass: ~5h47m (polish_until_deadline). Inspected PR #151 via factory gh wrapper: OPEN, no reviews/comments, merge BLOCKED (expected for review_required + checks). No blocking human input; safe to iterate on same branch/PR.
+- Honest play + harness analysis of slice (pre this pass): core "thread gate while riding wave" verb clear and satisfying in first 8-12s; jump responsive with arc/land/splash/sfx; large courier + paper + 3 wave layers + gates/letters/crests all visible on load and immediately on start; idle static until gesture was the main "not alive enough" note. Crests could feel punishing without telegraph or second verb. No slope reward, no wind, time invisible (escalation not shown), courier motion good but could be juicier on dash/lean.
+- Implemented (single file, +~6kB source, still <<2MB):
+  - Idle world drift (slow scroll in !running): first screen waves + lanterns move gently before any gesture — stronger immediate readability and "playable in seconds", better Discord screenshots, shows verb in motion.
+  - Dash verb (X / ArrowDown / J / Shift / lower-left canvas zone / double-tap): 340ms window, lowers ride target (crouch/dip), +22% scroll mul, forward lean + robe tuck + trail particles, sfx. Allows threading lower gates or "punching" light crests (risk/reward). Cooldown ~1.18s. Large touch target + kbd. Fulfills payload "jump, dash".
+  - Wind currents (subtle): rare updraft zones spawn ahead; visual faint rising breath lines (house mist + paper flecks); airborne player gets gentle lift while inside. "Ride the wind" verb from payload.
+  - Surf slopes / carve: while grounded on |local wave slope| >4.5, occasional small +score (3) + wake particles for sustained riding. Rewards reading the wave geometry rather than only hopping.
+  - Surf time + distance HUD (canvas, top-right, restrained ink): mm:ss + Xm (e.g. "0:47  128m"). Makes speed ramp visible/escalation palpable; progress readable at a glance.
+  - Gate telegraph + brighter approach glow: lanterns pulse larger/warmer core when screenX < ~260px — clear "now or never" readable timing without text.
+  - Juicier courier (dash-aware): robe flap driven by dash + phase, satchel swings with lean/dash, legs tuck, arm/pole bias forward on dash, head nudge, eye focus. Still strong silhouette, ink primary + vermilion seal.
+  - Crests: dashing player can survive light crest hits (encourages using the new verb).
+  - Particles: size variation, more dash/crash/land variety; wind flecks.
+  - Wave tint: very faint vermilion overprint at horizon during run for "colorful ukiyo-e" pop while staying in house ink/paper language.
+  - Ramp tuned to exact 60s, max speed 2.7x; spawn rate scales lightly with speed.
+  - State hook extended with surfDist + dashing for harnesses.
+- New evidence (headless chromium, virtual time):
+  - ready-polish-*.png (attract/ready with idle drift: moving waves, large courier, gates/letters ahead on paper, no blank, prompt, controls).
+  - mid-polish-*.png (run auto-started, ~4s+ in: player possibly dashing or in air, gates visible, time/dist HUD live, wind hints, particles, score/letters/combo advancing).
+- Game Feel re-check (post expansion): all 9 still hold or improved (dash gives new immediate feedback path; carve gives hit/score on slope; time makes speed ramp perceptible; telegraph + glow = clearer score moments; easing/physics unchanged; audio still gesture only; touch targets same + new dash zone >=44px logical; payload <2MB; 60fps maintained — draws still cheap paths + <25 particles).
+- House style: kept ink silhouettes dominant, paper grain, mist, negative space, restrained color as deliberate lantern/wind "overprint". Payload "bright juicy Discord friendly" addressed via stronger lantern approach glow, vermilion seal + flame cores, time/dist, carve pops, dash trails, without neon or particle spam.
+- Next: commit + push to canonical (using factory git wrapper if needed), update PR body with full WO context + this scope + verification links + screenshots, re-run structured autoreview via skill if engine available, continue polish passes until deadline or true blocker. If timing on dash+thread feels off in more play, minor tune (gate h or dash window). No pivot needed — slice + verbs now more ambitious and fun to watch.
+- Screenshots added:
+  - `screenshots/ready-polish-*.png`, `mid-polish-*.png` (post this polish; also prior ready/mid for diff).
+  - Prior: ready.png, midrun.png, ready-attract.png etc. for continuity.
