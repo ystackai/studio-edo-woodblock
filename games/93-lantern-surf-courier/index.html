@@ -371,12 +371,22 @@
   canvas.addEventListener('pointerup', () => { pointerDown = false; });
   canvas.addEventListener('pointerleave', () => { pointerDown = false; });
 
-  // Touch: prevent page scroll on canvas
+  // Touch: prevent page scroll on canvas; also supports double-tap or lower-left zone for dash (same verbs as pointer/kbd)
   canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
     ensureAudio();
     if (crashed) { doRestart(); return; }
     if (!running) { doJump(); return; }
+    // compute for dash zone / double-tap (thumb friendly on mobile)
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches && e.touches[0] ? e.touches[0] : e;
+    const cx = ((t.clientX || 0) - rect.left) / rect.width * W;
+    const cy = ((t.clientY || 0) - rect.top) / rect.height * H;
+    const nowt = performance.now() / 1000;
+    const isDashZone = (cx < W * 0.28 && cy > H * 0.52);
+    const isDouble = (nowt - lastPointerTap) < 0.22;
+    lastPointerTap = nowt;
+    if (isDashZone || isDouble) { doDash(); return; }
     jumpBuffered = 0.1;
     doJump();
   }, { passive: false });
@@ -585,6 +595,36 @@
 
   function drawWaveLayer(offset, layer, t) {
     const base = waveY(0, layer);
+    // subtle color fill for ukiyo-e wave volume + "colorful" readable pop in screenshots (restrained indigo/sea overprint on paper; ink strokes remain dominant silhouettes per house style)
+    if (layer === 0) {
+      ctx.fillStyle = 'rgba(30,58,95,0.38)';
+      ctx.beginPath();
+      let fstarted = false;
+      for (let sx = -40; sx <= W + 60; sx += 6) {
+        const wx = worldOffset + sx + offset;
+        const wy = waveY(wx, layer);
+        if (!fstarted) { ctx.moveTo(sx, wy); fstarted = true; }
+        else ctx.lineTo(sx, wy);
+      }
+      ctx.lineTo(W + 60, H + 4);
+      ctx.lineTo(-40, H + 4);
+      ctx.closePath();
+      ctx.fill();
+    } else if (layer === 1) {
+      ctx.fillStyle = 'rgba(30,58,95,0.22)';
+      ctx.beginPath();
+      let fstarted = false;
+      for (let sx = -40; sx <= W + 60; sx += 8) {
+        const wx = worldOffset + sx + offset;
+        const wy = waveY(wx, layer);
+        if (!fstarted) { ctx.moveTo(sx, wy); fstarted = true; }
+        else ctx.lineTo(sx, wy);
+      }
+      ctx.lineTo(W + 60, H + 4);
+      ctx.lineTo(-40, H + 4);
+      ctx.closePath();
+      ctx.fill();
+    }
     ctx.strokeStyle = layer === 0 ? '#0f172a' : (layer === 1 ? '#1e3a5f' : '#334155');
     ctx.lineWidth = layer === 0 ? 4.5 : (layer === 1 ? 3.2 : 2.2);
     ctx.beginPath();
@@ -597,9 +637,9 @@
     }
     ctx.stroke();
 
-    // crest foam accents on near layer only
+    // crest foam accents on near layer only (stronger on approach handled in drawCrest)
     if (layer === 0) {
-      ctx.strokeStyle = 'rgba(248,244,235,0.55)';
+      ctx.strokeStyle = 'rgba(248,244,235,0.58)';
       ctx.lineWidth = 1.8;
       for (let sx = 40; sx < W-20; sx += 92) {
         const wx = worldOffset + sx + offset;
