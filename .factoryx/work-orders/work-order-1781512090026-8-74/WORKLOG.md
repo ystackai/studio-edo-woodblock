@@ -62,3 +62,4 @@ Screenshots:
 
 - PR #151 opened: https://github.com/ystackai/studio-edo-woodblock/pull/151
 - gh pr view: OPEN, REVIEW_REQUIRED, no comments/reviews, "facts" check queued (standard). No blocking input. Safe to continue polish on same branch/PR.
+- Small polish landed: worldOffset -120 so first gates/letters/crests visible within 1s of run (stronger "immediately" + verb demo). Commit 4e5037e on canonical.
