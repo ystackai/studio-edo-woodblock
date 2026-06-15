@@ -86,6 +86,7 @@ check('studio.json',
   { name: 'studio contains floating-world entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-world') },
   { name: 'studio contains floating-moment entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-moment') },
   { name: 'studio contains floating-score entry', test: c => JSON.parse(c).games.shipped.some(g => g.slug === 'floating-score') },
+  { name: 'studio contains floating-world-variants upcoming', test: c => JSON.parse(c).games.upcoming && JSON.parse(c).games.upcoming.slug === '88-floating-world-variants' },
 );
 
 // Asset manifest check
@@ -96,6 +97,7 @@ check('.ystack/current/asset-manifest.json',
   { name: 'contains floating-world', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-world') },
   { name: 'contains floating-moment', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-moment') },
   { name: 'contains floating-score', test: c => JSON.parse(c).assets.some(a => a.slug === 'floating-score') },
+  { name: 'contains 88-floating-world-variants', test: c => JSON.parse(c).assets.some(a => a.slug === '88-floating-world-variants') },
 
 );
 
@@ -104,11 +106,36 @@ check('drops/index.html',
   { name: 'drops index exists', test: () => true },
   { name: 'drops index has studio slug', test: c => c.includes('edo-woodblock') },
   { name: 'drops index lists floating-score', test: c => c.includes('floating-score') },
+  { name: 'drops index lists 88-floating-world-variants', test: c => c.includes('88-floating-world-variants') },
+);
+
+// New drop — Floating World Variants (judgeable A/B/C)
+check('drops/88-floating-world-variants/index.html',
+  { name: 'contains canvas element', test: c => c.includes('<canvas') },
+  { name: 'contains variant selector', test: c => c.includes('variant-btn') && c.includes('data-variant') },
+  { name: 'contains all three variants', test: c => c.includes('data-variant="a"') && c.includes('data-variant="b"') && c.includes('data-variant="c"') },
+  { name: 'contains Great Empty Wave', test: c => c.includes('Great Empty Wave') },
+  { name: 'contains Rain Bridge', test: c => c.includes('Rain Bridge') },
+  { name: 'contains Held Breath', test: c => c.includes('Held Breath') },
+  { name: 'contains caption element', test: c => c.includes('caption') },
+  { name: 'contains animation loop', test: c => c.includes('requestAnimationFrame') },
+  { name: 'contains pointer interaction', test: c => c.includes('pointerdown') },
+  { name: 'contains keyboard variant switching', test: c => c.includes('keydown') && c.includes("setVariant('a')") },
+);
+
+check('drops/88-floating-world-variants/JUDGING.md',
+  { name: 'JUDGING.md exists', test: () => true },
+  { name: 'lists vote options', test: c => c.includes('Great Empty Wave') && c.includes('Rain Bridge') && c.includes('Held Breath') },
+  { name: 'contains Discord vote prompt', test: c => c.includes('Discord') },
+);
+
+check('.factoryx/preview-entrypoint',
+  { name: 'preview entrypoint points to variants drop', test: c => c.trim() === 'drops/88-floating-world-variants/index.html' },
 );
 
 // Games index redirect check
 check('games/index.html',
-  { name: 'games/index.html redirects to floating-score', test: c => c.includes('floating-score') },
+  { name: 'games/index.html redirects to floating-world-variants', test: c => c.includes('88-floating-world-variants') },
 );
 
 // --- Regression test: Begin/startGame interaction ---

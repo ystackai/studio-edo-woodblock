@@ -34,6 +34,13 @@
       "slug": "floating-score",
       "title": "Floating Score",
       "description": "Catch ukiyo-e elements as they drift across the canvas. Score points, build streaks, level up through faster rounds."
+    },
+    {
+      "type": "html-game",
+      "path": "drops/88-floating-world-variants/index.html",
+      "slug": "88-floating-world-variants",
+      "title": "Floating World Variants",
+      "description": "Three judgeable ukiyo-e modes — Hokusai wave, Hiroshige rain bridge, Sharaku held breath — vote A/B/C from one preview."
     }
   ]
 }

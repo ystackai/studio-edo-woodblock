@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Floating World Variants — Pictures of the Floating World</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #E8DFD0;
+      font-family: 'Noto Serif JP', 'Georgia', serif;
+      -webkit-user-select: none; user-select: none;
+      touch-action: none;
+    }
+    #canvas {
+      display: block; width: 100%; height: 100%;
+      cursor: crosshair;
+    }
+    #chrome {
+      position: fixed; inset: 0; pointer-events: none; z-index: 10;
+    }
+    #selector {
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 4px; padding: 4px;
+      background: rgba(232, 223, 208, 0.72);
+      border: 1px solid rgba(44, 44, 44, 0.12);
+      border-radius: 2px;
+      backdrop-filter: blur(6px);
+      pointer-events: auto;
+    }
+    .variant-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 7px 10px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: rgba(27, 42, 65, 0.45);
+      cursor: pointer;
+      transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+      white-space: nowrap;
+    }
+    .variant-btn:hover { color: rgba(27, 42, 65, 0.75); }
+    .variant-btn.active {
+      color: #1B2A41;
+      border-color: rgba(27, 42, 65, 0.22);
+      background: rgba(242, 237, 230, 0.9);
+    }
+    .variant-btn .key {
+      display: inline-block; margin-right: 5px;
+      font-weight: 700; opacity: 0.55;
+    }
+    #caption {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      max-width: min(92vw, 520px);
+      text-align: center;
+      font-size: 0.72rem; line-height: 1.55;
+      letter-spacing: 0.06em;
+      color: rgba(27, 42, 65, 0.55);
+      padding: 8px 14px;
+      background: rgba(232, 223, 208, 0.55);
+      border-top: 1px solid rgba(44, 44, 44, 0.08);
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+    #caption em {
+      font-style: normal;
+      color: rgba(186, 47, 34, 0.7);
+    }
+    @media (max-width: 520px) {
+      #selector { top: 10px; gap: 2px; padding: 3px; max-width: 96vw; overflow-x: auto; }
+      .variant-btn { font-size: 0.54rem; padding: 6px 7px; letter-spacing: 0.08em; }
+      #caption { font-size: 0.65rem; bottom: 12px; padding: 6px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" aria-label="Interactive ukiyo-e composition"></canvas>
+  <div id="chrome">
+    <nav id="selector" aria-label="Variant selector">
+      <button class="variant-btn active" data-variant="a" aria-pressed="true">
+        <span class="key">A</span>Great Empty Wave
+      </button>
+      <button class="variant-btn" data-variant="b" aria-pressed="false">
+        <span class="key">B</span>Rain Bridge
+      </button>
+      <button class="variant-btn" data-variant="c" aria-pressed="false">
+        <span class="key">C</span>Held Breath
+      </button>
+    </nav>
+    <p id="caption"></p>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    const PALETTE = {
+      paper: '#E8DFD0',
+      paperWarm: '#F2EDE6',
+      indigo: '#1B2A41',
+      indigoMid: '#2A3F5F',
+      indigoLight: '#4A6080',
+      vermilion: '#BA2F22',
+      vermilionFade: 'rgba(186, 47, 34, 0.55)',
+      charcoal: '#2C2C2C',
+      mist: 'rgba(27, 42, 65, 0.08)',
+      water: '#5886A0',
+      gold: '#C4A35A'
+    };
+
+    const CAPTIONS = {
+      a: 'A vast wave held in negative space — press slowly into the paper to lay ink and let the crest tense or recede.',
+      b: 'A bridge at dusk through rainfall — move to thicken the shower; stillness lets distant forms bleed into legibility.',
+      c: 'A theatrical mask in held silhouette — a decisive stroke snaps the print, then breath dissolves the pose.'
+    };
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const captionEl = document.getElementById('caption');
+    const buttons = Array.from(document.querySelectorAll('.variant-btn'));
+
+    let W = 0, H = 0, dpr = 1;
+    let variant = 'a';
+    let paperTex = null;
+    let time = 0;
+
+    const input = {
+      x: -1, y: -1, down: false,
+      pressure: 0, vx: 0, vy: 0,
+      lastX: -1, lastY: -1, lastT: 0,
+      gesture: 0
+    };
+
+    const state = {
+      a: { reveal: 0.58, tension: 0.35, mist: 0.45 },
+      b: { rain: 0.55, bleed: 0.35, clarity: 0.25, stillness: 0 },
+      c: { hold: 0, dissolve: 0, snap: 0, pose: 0 }
+    };
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!paperTex || paperTex.width !== canvas.width) {
+        paperTex = buildPaperTexture(canvas.width, canvas.height);
+      }
+    }
+
+    function buildPaperTexture(pw, ph) {
+      const off = document.createElement('canvas');
+      off.width = pw; off.height = ph;
+      const octx = off.getContext('2d');
+      const img = octx.createImageData(pw, ph);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const n = (Math.random() - 0.5) * 14;
+        const base = 232 + n;
+        d[i] = base + 4;
+        d[i + 1] = base - 2;
+        d[i + 2] = base - 10;
+        d[i + 3] = 255;
+      }
+      octx.putImageData(img, 0, 0);
+      octx.globalAlpha = 0.04;
+      for (let i = 0; i < 800; i++) {
+        const x = Math.random() * pw;
+        const y = Math.random() * ph;
+        const r = Math.random() * 1.2;
+        octx.fillStyle = Math.random() > 0.5 ? '#C8B9A5' : '#A89880';
+        octx.beginPath();
+        octx.arc(x, y, r, 0, Math.PI * 2);
+        octx.fill();
+      }
+      return off;
+    }
+
+    function fillPaper() {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, PALETTE.paperWarm);
+      g.addColorStop(0.55, PALETTE.paper);
+      g.addColorStop(1, '#DDD4C4');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      if (paperTex) {
+        ctx.globalAlpha = 0.35;
+        ctx.drawImage(paperTex, 0, 0, W, H);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function inkNoise(x, y, s) {
+      return (Math.sin(x * 0.031 * s + y * 0.017) + Math.sin(x * 0.07 - y * 0.05)) * 0.5;
+    }
+
+    function drawFuji(sx, sy, scale, alpha) {
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = PALETTE.indigo;
+      ctx.beginPath();
+      ctx.moveTo(-60, 40);
+      ctx.lineTo(0, -80);
+      ctx.lineTo(60, 40);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = PALETTE.paperWarm;
+      ctx.beginPath();
+      ctx.moveTo(-8, -55);
+      ctx.lineTo(0, -80);
+      ctx.lineTo(8, -55);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawVariantA() {
+      const s = state.a;
+      const reveal = s.reveal;
+      const tension = s.tension;
+      const waveScale = Math.min(W, H);
+      const crestY = H * 0.42;
+
+      const sky = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+      sky.addColorStop(0, '#C8D0DC');
+      sky.addColorStop(0.5, PALETTE.paperWarm);
+      sky.addColorStop(1, PALETTE.paper);
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      fillPaper();
+
+      drawFuji(W * 0.82, H * 0.34, waveScale * 0.0016, 0.18 + reveal * 0.2);
+
+      const mistGrad = ctx.createRadialGradient(W * 0.42, crestY, 0, W * 0.42, crestY, waveScale * 0.65);
+      mistGrad.addColorStop(0, `rgba(27, 42, 65, ${0.04 + s.mist * 0.1})`);
+      mistGrad.addColorStop(0.55, `rgba(88, 134, 160, ${0.03 + s.mist * 0.06})`);
+      mistGrad.addColorStop(1, 'rgba(232, 223, 208, 0)');
+      ctx.fillStyle = mistGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      const seaY = H * 0.58;
+      const sea = ctx.createLinearGradient(0, seaY, 0, H);
+      sea.addColorStop(0, `rgba(42, 63, 95, ${0.1 + reveal * 0.18})`);
+      sea.addColorStop(1, `rgba(27, 42, 65, ${0.25 + reveal * 0.12})`);
+      ctx.fillStyle = sea;
+      ctx.fillRect(0, seaY, W, H - seaY);
+
+      const clawDefs = [
+        { base: 0.0, spread: 1.0, lift: 0 },
+        { base: -0.12, spread: 0.92, lift: 0.04 },
+        { base: 0.14, spread: 0.88, lift: 0.02 }
+      ];
+
+      clawDefs.forEach((claw, ci) => {
+        const inkAlpha = 0.35 + reveal * 0.55;
+        ctx.strokeStyle = `rgba(27, 42, 65, ${inkAlpha})`;
+        ctx.lineWidth = 1.8 + tension * 2.2 + ci * 0.4;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        const pts = 56;
+        for (let i = 0; i <= pts; i++) {
+          const t = i / pts;
+          const x = W * (0.08 + t * 0.84) + claw.base * waveScale;
+          const crest = Math.sin(t * Math.PI) * waveScale * (0.18 + reveal * 0.08) * claw.spread;
+          const clawCurve = Math.pow(Math.sin(t * Math.PI * 0.92), 1.6) * waveScale * 0.14 * (1 + tension * 0.35);
+          const y = crestY - crest - clawCurve + claw.lift * waveScale + Math.sin(t * 12 + time * 0.3 + ci) * (1 + tension * 2);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.55 - reveal * 0.35})`;
+      ctx.beginPath();
+      ctx.ellipse(W * 0.38, crestY + waveScale * 0.04, waveScale * 0.34, waveScale * 0.11, -0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+
+      const foamCount = 14 + Math.floor(reveal * 8);
+      for (let i = 0; i < foamCount; i++) {
+        const t = i / foamCount;
+        const fx = W * (0.18 + t * 0.55);
+        const fy = crestY - Math.sin(t * Math.PI) * waveScale * 0.16 - 6;
+        const sz = 1.5 + reveal * 2.5 + (i % 2);
+        ctx.fillStyle = `rgba(242, 237, 230, ${0.5 + reveal * 0.4})`;
+        ctx.beginPath();
+        ctx.ellipse(fx, fy, sz, sz * 0.7, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = `rgba(27, 42, 65, ${0.06 + reveal * 0.08})`;
+      ctx.lineWidth = 1;
+      for (let row = 0; row < 5; row++) {
+        const y = seaY + row * 16 + Math.sin(time * 0.25 + row) * 1.5;
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 14) {
+          const dy = Math.sin(x * 0.018 + time * 0.4 + row) * (1.5 + tension);
+          if (x === 0) ctx.moveTo(x, y + dy);
+          else ctx.lineTo(x, y + dy);
+        }
+        ctx.stroke();
+      }
+
+      if (input.down && input.x > 0) {
+        const press = ctx.createRadialGradient(input.x, input.y, 0, input.x, input.y, 70 + input.pressure * 50);
+        press.addColorStop(0, `rgba(27, 42, 65, ${0.1 + input.pressure * 0.14})`);
+        press.addColorStop(1, 'rgba(232, 223, 208, 0)');
+        ctx.fillStyle = press;
+        ctx.fillRect(input.x - 100, input.y - 100, 200, 200);
+      }
+    }
+
+    function drawVariantB() {
+      const s = state.b;
+      fillPaper();
+
+      const dusk = ctx.createLinearGradient(0, 0, 0, H);
+      dusk.addColorStop(0, '#3D4F6B');
+      dusk.addColorStop(0.35, '#6B7F9A');
+      dusk.addColorStop(0.65, '#B8AFA0');
+      dusk.addColorStop(1, PALETTE.paper);
+      ctx.fillStyle = dusk;
+      ctx.globalAlpha = 0.55 + s.clarity * 0.35;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+
+      const layers = [
+        { y: 0.52, h: 0.12, a: 0.15 + s.clarity * 0.2 },
+        { y: 0.58, h: 0.1, a: 0.22 + s.clarity * 0.25 },
+        { y: 0.64, h: 0.08, a: 0.32 + s.clarity * 0.3 }
+      ];
+      layers.forEach((layer, li) => {
+        const baseY = H * layer.y;
+        ctx.fillStyle = `rgba(27, 42, 65, ${layer.a})`;
+        ctx.beginPath();
+        ctx.moveTo(0, baseY + layer.h * H);
+        for (let x = 0; x <= W; x += 20) {
+          const peak = Math.sin(x * 0.008 + li * 1.2) * H * layer.h * 0.6
+            + Math.sin(x * 0.02 + li) * H * layer.h * 0.2;
+          ctx.lineTo(x, baseY - peak);
+        }
+        ctx.lineTo(W, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fill();
+      });
+
+      const bridgeY = H * 0.48;
+      const bridgeW = Math.min(W * 0.7, 480);
+      const bridgeX = (W - bridgeW) / 2;
+      const archH = bridgeW * 0.18;
+
+      ctx.save();
+      ctx.globalAlpha = 0.7 + s.clarity * 0.25;
+      ctx.strokeStyle = PALETTE.charcoal;
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(bridgeX, bridgeY);
+      ctx.quadraticCurveTo(bridgeX + bridgeW * 0.5, bridgeY - archH, bridgeX + bridgeW, bridgeY);
+      ctx.stroke();
+
+      ctx.lineWidth = 2;
+      for (let p = 0; p <= 8; p++) {
+        const t = p / 8;
+        const px = bridgeX + bridgeW * t;
+        const py = bridgeY - Math.sin(t * Math.PI) * archH * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px, py + 28 + s.bleed * 12);
+        ctx.stroke();
+      }
+
+      const lanternX = bridgeX + bridgeW * 0.62;
+      const lanternY = bridgeY - archH * 0.55;
+      const glow = ctx.createRadialGradient(lanternX, lanternY, 0, lanternX, lanternY, 50 + s.clarity * 30);
+      glow.addColorStop(0, PALETTE.vermilionFade);
+      glow.addColorStop(0.4, 'rgba(186, 47, 34, 0.15)');
+      glow.addColorStop(1, 'rgba(186, 47, 34, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(lanternX - 60, lanternY - 60, 120, 120);
+      ctx.fillStyle = PALETTE.vermilion;
+      ctx.globalAlpha = 0.75 + s.clarity * 0.2;
+      ctx.beginPath();
+      ctx.rect(lanternX - 5, lanternY - 8, 10, 14);
+      ctx.fill();
+      ctx.restore();
+
+      const rainCount = Math.floor(80 + s.rain * 220);
+      ctx.lineWidth = 1;
+      for (let i = 0; i < rainCount; i++) {
+        const seed = i * 127.1;
+        const rx = (Math.sin(seed) * 0.5 + 0.5) * W;
+        const ry = (Math.cos(seed * 1.3) * 0.5 + 0.5) * H;
+        const len = 8 + s.rain * 18 + (i % 5);
+        const drift = 3 + s.bleed * 4;
+        const phase = time * 2 + i;
+        const yOff = (phase * 40 + ry) % (H + 40) - 20;
+        const alpha = 0.08 + s.rain * 0.22 + (i % 3) * 0.04;
+        ctx.strokeStyle = `rgba(27, 42, 65, ${alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(rx + Math.sin(phase) * 2, yOff);
+        ctx.lineTo(rx + drift, yOff + len);
+        ctx.stroke();
+      }
+
+      if (s.bleed > 0.2) {
+        ctx.fillStyle = `rgba(88, 134, 160, ${s.bleed * 0.12})`;
+        ctx.fillRect(0, H * 0.5, W, H * 0.5);
+      }
+
+      if (input.x > 0) {
+        const bleedSpot = ctx.createRadialGradient(input.x, input.y, 0, input.x, input.y, 100);
+        bleedSpot.addColorStop(0, `rgba(27, 42, 65, ${0.06 + s.bleed * 0.1})`);
+        bleedSpot.addColorStop(1, 'rgba(27, 42, 65, 0)');
+        ctx.fillStyle = bleedSpot;
+        ctx.fillRect(input.x - 110, input.y - 110, 220, 220);
+      }
+    }
+
+    function drawVariantC() {
+      const s = state.c;
+      fillPaper();
+
+      const vignette = ctx.createRadialGradient(W * 0.5, H * 0.45, 0, W * 0.5, H * 0.45, Math.max(W, H) * 0.7);
+      vignette.addColorStop(0, 'rgba(232, 223, 208, 0)');
+      vignette.addColorStop(0.7, 'rgba(27, 42, 65, 0.06)');
+      vignette.addColorStop(1, 'rgba(27, 42, 65, 0.18)');
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, W, H);
+
+      const cx = W * 0.5;
+      const cy = H * 0.46;
+      const scale = Math.min(W, H) * 0.0042;
+      const hold = s.hold;
+      const dissolve = s.dissolve;
+      const ink = 1 - dissolve * 0.85;
+      const snap = s.snap;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      ctx.globalAlpha = ink;
+      ctx.fillStyle = PALETTE.charcoal;
+
+      ctx.beginPath();
+      ctx.moveTo(-90, 60);
+      ctx.bezierCurveTo(-100, -20, -40, -90, 0, -70);
+      ctx.bezierCurveTo(40, -90, 100, -20, 90, 60);
+      ctx.lineTo(70, 80);
+      ctx.bezierCurveTo(30, 50, -30, 50, -70, 80);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = PALETTE.paper;
+      ctx.beginPath();
+      ctx.ellipse(-22, -15, 14 + hold * 2, 20 + hold * 3, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(22, -15, 14 + hold * 2, 20 + hold * 3, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = PALETTE.charcoal;
+      ctx.lineWidth = 3 + hold * 2;
+      ctx.beginPath();
+      ctx.moveTo(-35, 5);
+      ctx.quadraticCurveTo(0, 25 + hold * 8, 35, 5);
+      ctx.stroke();
+
+      ctx.fillStyle = PALETTE.charcoal;
+      ctx.beginPath();
+      ctx.moveTo(-120, 30);
+      ctx.quadraticCurveTo(-140, 80, -100, 120);
+      ctx.lineTo(-60, 100);
+      ctx.quadraticCurveTo(-80, 60, -90, 30);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.save();
+      ctx.translate(100, 20);
+      ctx.rotate(0.4 + hold * 0.15 + snap * 0.1);
+      ctx.fillStyle = `rgba(27, 42, 65, ${0.85 * ink})`;
+      ctx.beginPath();
+      ctx.moveTo(0, -40);
+      ctx.quadraticCurveTo(50, -10, 40, 40);
+      ctx.quadraticCurveTo(10, 60, -20, 30);
+      ctx.quadraticCurveTo(-30, -10, 0, -40);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = PALETTE.vermilion;
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = ink * (0.4 + hold * 0.5);
+      ctx.beginPath();
+      ctx.arc(10, 0, 18, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      if (hold > 0.3) {
+        ctx.strokeStyle = `rgba(196, 163, 90, ${hold * 0.35 * ink})`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        ctx.moveTo(-50, -50);
+        ctx.lineTo(50, 50);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      ctx.restore();
+
+      if (dissolve > 0.05) {
+        ctx.globalAlpha = dissolve * 0.4;
+        for (let i = 0; i < 30; i++) {
+          const dx = cx + (Math.random() - 0.5) * W * 0.4;
+          const dy = cy + (Math.random() - 0.5) * H * 0.4;
+          ctx.fillStyle = PALETTE.indigoLight;
+          ctx.fillRect(dx, dy, 1 + Math.random() * 2, 1 + Math.random() * 3);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      if (snap > 0.01 && snap < 0.3) {
+        ctx.strokeStyle = `rgba(27, 42, 65, ${snap * 2})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(input.lastX > 0 ? input.lastX : cx - 40, input.lastY > 0 ? input.lastY : cy);
+        ctx.lineTo(input.x > 0 ? input.x : cx + 40, input.y > 0 ? input.y : cy - 20);
+        ctx.stroke();
+      }
+    }
+
+    function updateVariant(dt) {
+      if (variant === 'a') {
+        const s = state.a;
+        if (input.down && input.pressure > 0) {
+          const speed = Math.hypot(input.vx, input.vy);
+          if (speed < 1.2) {
+            s.reveal = Math.min(1, s.reveal + dt * 0.35 * input.pressure);
+            s.tension = Math.min(1, s.tension + dt * 0.2);
+          } else {
+            s.reveal = Math.max(0.15, s.reveal - dt * 0.15);
+            s.tension = Math.max(0.1, s.tension - dt * 0.25);
+          }
+          s.mist = Math.max(0.2, s.mist - dt * 0.3 * input.pressure);
+        } else {
+          s.mist = Math.min(0.7, s.mist + dt * 0.08);
+          s.tension = Math.max(0.2, s.tension - dt * 0.05);
+        }
+      } else if (variant === 'b') {
+        const s = state.b;
+        if (input.x > 0) {
+          s.rain = Math.min(1, s.rain + dt * 0.4);
+          s.bleed = Math.min(0.9, s.bleed + dt * 0.25);
+          s.stillness = 0;
+        } else {
+          s.stillness += dt;
+          if (s.stillness > 0.8) {
+            s.clarity = Math.min(1, s.clarity + dt * 0.12);
+            s.bleed = Math.max(0.15, s.bleed - dt * 0.04);
+          }
+          s.rain = Math.max(0.35, s.rain - dt * 0.06);
+        }
+      } else if (variant === 'c') {
+        const s = state.c;
+        s.snap = Math.max(0, s.snap - dt * 2.5);
+        if (s.hold > 0) {
+          s.dissolve = Math.min(1, s.dissolve + dt * (0.15 + s.hold * 0.1));
+          if (s.dissolve >= 1) {
+            s.hold = 0;
+            s.dissolve = 0;
+            s.pose = 0;
+          }
+        }
+      }
+    }
+
+    function render() {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      if (variant === 'a') drawVariantA();
+      else if (variant === 'b') drawVariantB();
+      else drawVariantC();
+    }
+
+    let lastFrame = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - lastFrame) / 1000);
+      lastFrame = now;
+      time += dt;
+      updateVariant(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function setVariant(v) {
+      variant = v;
+      buttons.forEach(btn => {
+        const active = btn.dataset.variant === v;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      captionEl.textContent = CAPTIONS[v];
+    }
+
+    function pointerPos(e) {
+      const r = canvas.getBoundingClientRect();
+      const src = e.touches ? e.touches[0] : e;
+      return { x: src.clientX - r.left, y: src.clientY - r.top };
+    }
+
+    function onDown(e) {
+      e.preventDefault();
+      const p = pointerPos(e);
+      input.down = true;
+      input.x = p.x; input.y = p.y;
+      input.lastX = p.x; input.lastY = p.y;
+      input.lastT = performance.now();
+      input.pressure = 0.3;
+      input.vx = 0; input.vy = 0;
+    }
+
+    function onMove(e) {
+      if (!input.down && variant !== 'b') return;
+      e.preventDefault();
+      const p = pointerPos(e);
+      const now = performance.now();
+      const dt = Math.max(1, now - input.lastT);
+      input.vx = (p.x - input.x) / dt * 16;
+      input.vy = (p.y - input.y) / dt * 16;
+      input.lastX = input.x;
+      input.lastY = input.y;
+      input.x = p.x;
+      input.y = p.y;
+      input.lastT = now;
+      if (input.down) {
+        input.pressure = Math.min(1, input.pressure + 0.02);
+      }
+      if (variant === 'b') {
+        state.b.rain = Math.min(1, state.b.rain + 0.008);
+      }
+    }
+
+    function onUp(e) {
+      if (variant === 'c') {
+        const speed = Math.hypot(input.vx, input.vy);
+        if (speed > 2.5 || input.gesture > 0) {
+          state.c.hold = 1;
+          state.c.dissolve = 0;
+          state.c.snap = 1;
+          state.c.pose = 1;
+        }
+      }
+      input.down = false;
+      input.pressure = 0;
+      if (variant !== 'b') {
+        input.x = -1;
+        input.y = -1;
+      }
+    }
+
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => setVariant(btn.dataset.variant));
+    });
+
+    window.addEventListener('keydown', e => {
+      if (e.key === '1' || e.key === 'a' || e.key === 'A') setVariant('a');
+      if (e.key === '2' || e.key === 'b' || e.key === 'B') setVariant('b');
+      if (e.key === '3' || e.key === 'c' || e.key === 'C') setVariant('c');
+    });
+
+    window.addEventListener('resize', resize);
+    resize();
+    setVariant('a');
+    requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
