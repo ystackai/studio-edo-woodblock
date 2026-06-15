@@ -58,6 +58,31 @@
   ctx.scale(DPR, DPR);
   const W = 960, H = 540;
 
+  // Paper grain (offscreen, cheap) — declared + initialized immediately after canvas setup for TDZ safety in harness inlining/eval scenarios (e.g. .factoryx-runtime-check-*.html wrappers that may share top scope or reorder/eval script bodies). Directly addresses prior "Cannot access 'paperGrain' before initialization" at makePaperGrain during verification.
+  let paperGrain = null;
+  function makePaperGrain() {
+    const g = document.createElement('canvas');
+    g.width = 256; g.height = 256;
+    const gc = g.getContext('2d');
+    gc.fillStyle = '#f8f4eb';
+    gc.fillRect(0,0,256,256);
+    gc.fillStyle = 'rgba(15,23,42,0.035)';
+    for (let i=0; i<420; i++) {
+      const x = Math.random()*256, y=Math.random()*256;
+      gc.fillRect(x, y, 1.6, 0.8);
+    }
+    gc.strokeStyle = 'rgba(15,23,42,0.028)';
+    gc.lineWidth = 0.7;
+    for (let i=0; i<38; i++) {
+      gc.beginPath();
+      gc.moveTo(Math.random()*256, Math.random()*256);
+      gc.lineTo(Math.random()*256, Math.random()*256);
+      gc.stroke();
+    }
+    paperGrain = g;
+  }
+  makePaperGrain(); // eager init immediately after decl (pre any later boot/listener/eager-render code)
+
   // DOM refs
   const scoreEl = document.getElementById('score');
   const lettersEl = document.getElementById('letters');
@@ -166,30 +191,6 @@
   function sfxLetter() { playTone(520, 0.09, 'sine', 0.4); playNoise(0.06, 0.18, 2200); }
   function sfxCrash() { playTone(90, 0.6, 'sawtooth', 0.5); playNoise(0.55, 0.4, 420); }
   function sfxDash() { playTone(140, 0.13, 'sawtooth', 0.32); playNoise(0.11, 0.18, 1100); }
-
-  // Paper grain (offscreen, cheap)
-  let paperGrain = null;
-  function makePaperGrain() {
-    const g = document.createElement('canvas');
-    g.width = 256; g.height = 256;
-    const gc = g.getContext('2d');
-    gc.fillStyle = '#f8f4eb';
-    gc.fillRect(0,0,256,256);
-    gc.fillStyle = 'rgba(15,23,42,0.035)';
-    for (let i=0; i<420; i++) {
-      const x = Math.random()*256, y=Math.random()*256;
-      gc.fillRect(x, y, 1.6, 0.8);
-    }
-    gc.strokeStyle = 'rgba(15,23,42,0.028)';
-    gc.lineWidth = 0.7;
-    for (let i=0; i<38; i++) {
-      gc.beginPath();
-      gc.moveTo(Math.random()*256, Math.random()*256);
-      gc.lineTo(Math.random()*256, Math.random()*256);
-      gc.stroke();
-    }
-    paperGrain = g;
-  }
 
   // Wave surface sampler (deterministic, cheap)
   function waveY(wx, layer=0) {
@@ -442,9 +443,6 @@
     ensureAudio();
     doRestart();
   });
-
-  // Initial paper
-  makePaperGrain();
 
   // Draw courier (large, strong silhouette — courier satchel + hat + flowing robe)
   function drawCourier(px, py, bob, lean, isDashing, t, surfSlope = 0) {
