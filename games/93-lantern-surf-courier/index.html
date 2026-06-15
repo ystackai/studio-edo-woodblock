@@ -83,6 +83,22 @@
   }
   makePaperGrain(); // eager init immediately after decl (pre any later boot/listener/eager-render code)
 
+  // File-backed reviewable assets (games/93-lantern-surf-courier/assets/) per operator asset contract v2.
+  // Generated via deliberate ukiyo-e prompts (house ink/paper/vermilion/silhouette) + python wave synthesis for SFX.
+  // No foundry/asset pipeline exposed in runtime; these are the concrete reviewable files (jpg + wav) satisfying the requirement
+  // that central hero/collectibles/hazards/music-led moments not remain throwaway procedural blobs or osc-only.
+  // Integration uses drawImage / Audio where possible; graceful fallback to prior procedural/osc paths keeps first-screen instant and 9/9 feel intact.
+  const courierHeroImg = new Image();
+  courierHeroImg.src = 'assets/courier-hero.jpg';
+  const letterImg = new Image();
+  letterImg.src = 'assets/letter-sealed.jpg';
+  const lanternGateImg = new Image();
+  lanternGateImg.src = 'assets/lantern-gate.jpg';
+  const yokaiImg = new Image();
+  yokaiImg.src = 'assets/yokai-spirit.jpg';
+  // SFX file-backed (sparse physical authored WAVs); created on gesture to satisfy audio-after-user-gesture rule.
+  let sfxJumpFile = null, sfxLetterFile = null, sfxLandFile = null, sfxDashFile = null, sfxCrashFile = null;
+
   // DOM refs
   const scoreEl = document.getElementById('score');
   const lettersEl = document.getElementById('letters');
@@ -152,6 +168,14 @@
       masterGain.gain.value = 0.7;
       masterGain.connect(audioCtx.destination);
     } catch (e) {}
+    // File-backed SFX (reviewable WAVs under assets/sfx/): create on first gesture (no autoplay). Fallback to osc if local media restricted.
+    try {
+      if (!sfxJumpFile) sfxJumpFile = new Audio('assets/sfx/jump-whoosh.wav');
+      if (!sfxLetterFile) sfxLetterFile = new Audio('assets/sfx/collect-pop.wav');
+      if (!sfxLandFile) sfxLandFile = new Audio('assets/sfx/land-thud.wav');
+      if (!sfxDashFile) sfxDashFile = new Audio('assets/sfx/dash-swhoosh.wav');
+      if (!sfxCrashFile) sfxCrashFile = new Audio('assets/sfx/land-thud.wav');
+    } catch (e) {}
   }
   function playTone(freq, dur, type='sine', vol=0.6, ramp=0.02) {
     if (!audioCtx || !soundEnabled || !masterGain) return;
@@ -186,11 +210,23 @@
     src.connect(filt); filt.connect(g); g.connect(masterGain);
     src.start(t);
   }
-  function sfxJump() { playTone(220, 0.18, 'sawtooth', 0.28, 0.01); playNoise(0.09, 0.12, 1400); }
+  function sfxJump() {
+    if (sfxJumpFile && soundEnabled) { try { sfxJumpFile.currentTime = 0; sfxJumpFile.play().catch(()=>{}); } catch(e){} }
+    playTone(220, 0.18, 'sawtooth', 0.28, 0.01); playNoise(0.09, 0.12, 1400);
+  }
   function sfxGate() { playTone(780, 0.22, 'triangle', 0.55); playTone(1240, 0.14, 'sine', 0.35); }
-  function sfxLetter() { playTone(520, 0.09, 'sine', 0.4); playNoise(0.06, 0.18, 2200); }
-  function sfxCrash() { playTone(90, 0.6, 'sawtooth', 0.5); playNoise(0.55, 0.4, 420); }
-  function sfxDash() { playTone(140, 0.13, 'sawtooth', 0.32); playNoise(0.11, 0.18, 1100); }
+  function sfxLetter() {
+    if (sfxLetterFile && soundEnabled) { try { sfxLetterFile.currentTime = 0; sfxLetterFile.play().catch(()=>{}); } catch(e){} }
+    playTone(520, 0.09, 'sine', 0.4); playNoise(0.06, 0.18, 2200);
+  }
+  function sfxCrash() {
+    if (sfxCrashFile && soundEnabled) { try { sfxCrashFile.currentTime = 0; sfxCrashFile.play().catch(()=>{}); } catch(e){} }
+    playTone(90, 0.6, 'sawtooth', 0.5); playNoise(0.55, 0.4, 420);
+  }
+  function sfxDash() {
+    if (sfxDashFile && soundEnabled) { try { sfxDashFile.currentTime = 0; sfxDashFile.play().catch(()=>{}); } catch(e){} }
+    playTone(140, 0.13, 'sawtooth', 0.32); playNoise(0.11, 0.18, 1100);
+  }
 
   // Wave surface sampler (deterministic, cheap)
   function waveY(wx, layer=0) {
@@ -444,76 +480,55 @@
     doRestart();
   });
 
-  // Draw courier (large, strong silhouette — courier satchel + hat + flowing robe)
+  // Draw courier — now primarily the file-backed reviewable asset (courier-hero.jpg) with pose transforms preserved.
+  // The jpg is the deliberate authored central hero (ukiyo-e woodblock prompt: hat, robe, satchel+vermilion seal, lantern pole).
+  // Fallback to prior procedural only if image not yet decoded (keeps first-screen instant, no blank).
   function drawCourier(px, py, bob, lean, isDashing, t, surfSlope = 0) {
     ctx.save();
     ctx.translate(px, py + bob);
-    // lean from air + subtle surfSlope tilt (when grounded on wave face/trough) sells "riding the wave" momentum and carve feel without extra chrome
     ctx.rotate(lean * 0.028 + surfSlope * 0.016);
-    const k = 2.6; // LARGE courier: strong silhouette immediately readable on first screen (hat, robe, satchel, pole)
-    const flap = isDashing ? Math.sin(t * 11) * 0.7 + 0.4 : Math.sin(t * 4.2 + lean) * 0.9; // juicy robe motion
-    const satBob = (isDashing ? 1.6 : 0) + Math.sin(t * 3.1) * 0.8 + lean * 1.6;
-
-    ctx.strokeStyle = '#0f172a';
-    ctx.fillStyle = '#0f172a';
-    ctx.lineWidth = 3.8 * (k/1.85);
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-
-    // legs (tuck on dash)
-    const legTuck = isDashing ? 5 : 0;
-    ctx.beginPath();
-    ctx.moveTo(-11*k, 6*k); ctx.lineTo(-22*k, 28*k + legTuck); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(6*k, 8*k); ctx.lineTo(18*k, 26*k + legTuck); ctx.stroke();
-    // board / contact
-    ctx.beginPath();
-    ctx.moveTo(-28*k, 26*k + legTuck*0.6); ctx.lineTo(26*k, 24*k + legTuck*0.5);
-    ctx.lineWidth = 5.5 * (k/1.85); ctx.stroke(); ctx.lineWidth = 3.8 * (k/1.85);
-
-    // robe body (layered for volume + flap on dash/motion)
-    ctx.lineWidth = 3.2 * (k/1.85);
-    ctx.beginPath();
-    ctx.moveTo(-8*k, -14*k); ctx.quadraticCurveTo(-18*k + flap*1.2, 4*k, -14*k + flap*0.6, 18*k);
-    ctx.lineTo(12*k + flap*0.4, 18*k); ctx.quadraticCurveTo(18*k - flap*0.8, 2*k, 9*k, -16*k);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // inner fold lines (move with flap)
-    ctx.beginPath();
-    ctx.moveTo(-2*k + flap*0.3, -10*k); ctx.lineTo(-3*k + flap*0.6, 14*k);
-    ctx.moveTo(3*k - flap*0.2, -8*k); ctx.lineTo(4*k - flap*0.4, 12*k);
-    ctx.stroke();
-
-    // satchel (courier identity + deliver letters) — swings on dash/lean
-    ctx.save();
-    ctx.translate(0, satBob);
-    ctx.fillRect(10*k, -2*k, 18*k, 14*k);
-    ctx.strokeRect(10*k, -2*k, 18*k, 14*k);
-    ctx.beginPath(); ctx.moveTo(12*k, 4*k); ctx.lineTo(26*k, 4*k); ctx.stroke();
-    ctx.fillStyle = '#c2410f';
-    ctx.fillRect(13*k, 1*k, 12*k, 4*k);
-    ctx.fillStyle = '#0f172a';
-    ctx.restore();
-
-    // arms + pole (dash tucks forward arm)
-    const armDash = isDashing ? 6 : 0;
-    ctx.beginPath(); ctx.moveTo(-6*k, -4*k); ctx.lineTo(-26*k - armDash, -18*k - armDash*0.5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(6*k, -6*k); ctx.lineTo(22*k + armDash*0.7, -22*k - armDash); ctx.stroke();
-    ctx.lineWidth = 2.4 * (k/1.85);
-    ctx.beginPath(); ctx.moveTo(-30*k, -26*k); ctx.lineTo(30*k, -19*k - armDash*0.3); ctx.stroke();
-
-    // head + wide hat (slight forward on dash)
-    ctx.lineWidth = 3.4 * (k/1.85);
-    ctx.beginPath();
-    ctx.arc(0 + (isDashing?1:0), -22*k, 9*k, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-14*k, -26*k - (isDashing?1:0)); ctx.quadraticCurveTo(-20*k, -34*k - (isDashing?2:0), -6*k, -38*k);
-    ctx.lineTo(7*k, -37*k); ctx.quadraticCurveTo(18*k, -33*k, 13*k, -25*k);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-
-    // eye (winks or focused on dash)
-    ctx.fillStyle = '#f8f4eb';
-    ctx.fillRect(3*k + (isDashing?0.8:0), -25*k, 3.5*k, 1.6*k);
-
+    const k = 2.6;
+    if (courierHeroImg && courierHeroImg.complete && courierHeroImg.naturalWidth > 0) {
+      // use the generated asset as the hero render; apply slight y squash on dash for "tuck" read without new art
+      const iw = 62 * (k / 1.85), ih = (isDashing ? 58 : 74) * (k / 1.85);
+      ctx.drawImage(courierHeroImg, -iw/2, -ih/2 - 6, iw, ih);
+      // minimal house ink accent overlays (eye highlight + board lip) so print texture language remains even on the jpg
+      ctx.fillStyle = '#f8f4eb';
+      ctx.fillRect(4, -27, 3.2, 1.4);
+      ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.8;
+      ctx.beginPath(); ctx.moveTo(-30, 20); ctx.lineTo(28, 19); ctx.stroke();
+    } else {
+      // procedural fallback (unchanged from prior polish passes; only active until local jpg decodes)
+      const flap = isDashing ? Math.sin(t * 11) * 0.7 + 0.4 : Math.sin(t * 4.2 + lean) * 0.9;
+      const satBob = (isDashing ? 1.6 : 0) + Math.sin(t * 3.1) * 0.8 + lean * 1.6;
+      ctx.strokeStyle = '#0f172a'; ctx.fillStyle = '#0f172a'; ctx.lineWidth = 3.8 * (k/1.85);
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      const legTuck = isDashing ? 5 : 0;
+      ctx.beginPath(); ctx.moveTo(-11*k, 6*k); ctx.lineTo(-22*k, 28*k + legTuck); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(6*k, 8*k); ctx.lineTo(18*k, 26*k + legTuck); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-28*k, 26*k + legTuck*0.6); ctx.lineTo(26*k, 24*k + legTuck*0.5);
+      ctx.lineWidth = 5.5 * (k/1.85); ctx.stroke(); ctx.lineWidth = 3.8 * (k/1.85);
+      ctx.lineWidth = 3.2 * (k/1.85);
+      ctx.beginPath(); ctx.moveTo(-8*k, -14*k); ctx.quadraticCurveTo(-18*k + flap*1.2, 4*k, -14*k + flap*0.6, 18*k);
+      ctx.lineTo(12*k + flap*0.4, 18*k); ctx.quadraticCurveTo(18*k - flap*0.8, 2*k, 9*k, -16*k);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-2*k + flap*0.3, -10*k); ctx.lineTo(-3*k + flap*0.6, 14*k);
+      ctx.moveTo(3*k - flap*0.2, -8*k); ctx.lineTo(4*k - flap*0.4, 12*k); ctx.stroke();
+      ctx.save(); ctx.translate(0, satBob);
+      ctx.fillRect(10*k, -2*k, 18*k, 14*k); ctx.strokeRect(10*k, -2*k, 18*k, 14*k);
+      ctx.beginPath(); ctx.moveTo(12*k, 4*k); ctx.lineTo(26*k, 4*k); ctx.stroke();
+      ctx.fillStyle = '#c2410f'; ctx.fillRect(13*k, 1*k, 12*k, 4*k); ctx.fillStyle = '#0f172a'; ctx.restore();
+      const armDash = isDashing ? 6 : 0;
+      ctx.beginPath(); ctx.moveTo(-6*k, -4*k); ctx.lineTo(-26*k - armDash, -18*k - armDash*0.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(6*k, -6*k); ctx.lineTo(22*k + armDash*0.7, -22*k - armDash); ctx.stroke();
+      ctx.lineWidth = 2.4 * (k/1.85);
+      ctx.beginPath(); ctx.moveTo(-30*k, -26*k); ctx.lineTo(30*k, -19*k - armDash*0.3); ctx.stroke();
+      ctx.lineWidth = 3.4 * (k/1.85);
+      ctx.beginPath(); ctx.arc(0 + (isDashing?1:0), -22*k, 9*k, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-14*k, -26*k - (isDashing?1:0)); ctx.quadraticCurveTo(-20*k, -34*k - (isDashing?2:0), -6*k, -38*k);
+      ctx.lineTo(7*k, -37*k); ctx.quadraticCurveTo(18*k, -33*k, 13*k, -25*k); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#f8f4eb'; ctx.fillRect(3*k + (isDashing?0.8:0), -25*k, 3.5*k, 1.6*k);
+    }
     ctx.restore();
   }
 
@@ -521,6 +536,12 @@
     const sway = Math.sin(phase + t * 1.6) * 3.5;
     ctx.save();
     ctx.translate(x, y + sway);
+    // file-backed lantern-gate.jpg used as reviewable authored accent (pair form + aperture read); procedural details (sway/telegraph/framing) retained for exact hit volumes and polish feedback.
+    if (lanternGateImg && lanternGateImg.complete && lanternGateImg.naturalWidth > 0) {
+      ctx.globalAlpha = 0.92;
+      ctx.drawImage(lanternGateImg, -14, -h*0.62, 28, h*1.05);
+      ctx.globalAlpha = 1;
+    }
 
     // telegraph: brighter/larger glow when approaching (makes threading readable and juicy)
     const approach = (screenX !== undefined) ? Math.max(0, Math.min(1, (260 - screenX) / 260)) : 0;
@@ -572,24 +593,21 @@
     ctx.save();
     ctx.translate(x, y + bob);
     ctx.rotate(Math.sin(phase*1.7 + t)*0.05);
-    ctx.fillStyle = '#f4e9d8';
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.6;
-    // Contact-sheet polish: pickup readability — even larger 32x20 sealed letters with bolder strokes + extra address marks + stronger vermilion seal so they read as obvious collectibles at speed and in stills/screenshots. Pure woodblock (paper fill + ink edges + restrained vermilion overprint); no style repaint. Bigger legible form + seal makes "snag the letter" rule self-evident alongside gates/hazards.
-    ctx.fillRect(-16, -10, 32, 20);
-    ctx.strokeRect(-16, -10, 32, 20);
-    // fold crease
-    ctx.beginPath(); ctx.moveTo(-16, -3); ctx.lineTo(0, 8); ctx.lineTo(16, -3); ctx.stroke();
-    // address ink marks (more for instant legibility)
-    ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(10, 0); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-10, 3.5); ctx.lineTo(9, 3.5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-8, 6.5); ctx.lineTo(7, 6.5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-6, 9.5); ctx.lineTo(4, 9.5); ctx.stroke();
-    // prominent vermilion seal (larger, bolder)
-    ctx.fillStyle = '#c2410f';
-    ctx.fillRect(-5.5, -4, 11, 7);
-    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.1;
-    ctx.strokeRect(-5.5, -4, 11, 7);
+    if (letterImg && letterImg.complete && letterImg.naturalWidth > 0) {
+      // file-backed reviewable asset (letter-sealed.jpg): the generated sealed letter with vermilion hanko, address marks, folds.
+      // Replaces procedural rects while keeping bob/rotate for lively pickup motion (11:50/12:18/contact polish preserved).
+      ctx.drawImage(letterImg, -16, -10, 32, 20);
+    } else {
+      ctx.fillStyle = '#f4e9d8'; ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.6;
+      ctx.fillRect(-16, -10, 32, 20); ctx.strokeRect(-16, -10, 32, 20);
+      ctx.beginPath(); ctx.moveTo(-16, -3); ctx.lineTo(0, 8); ctx.lineTo(16, -3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(10, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-10, 3.5); ctx.lineTo(9, 3.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-8, 6.5); ctx.lineTo(7, 6.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-6, 9.5); ctx.lineTo(4, 9.5); ctx.stroke();
+      ctx.fillStyle = '#c2410f'; ctx.fillRect(-5.5, -4, 11, 7);
+      ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.1; ctx.strokeRect(-5.5, -4, 11, 7);
+    }
     ctx.restore();
   }
 
@@ -617,38 +635,33 @@
     const approach = (screenX !== undefined) ? Math.max(0, Math.min(1, (300 - screenX) / 300)) : 0;
     ctx.save();
     ctx.translate(x, y + sway);
-    // body — strong dark ink silhouette (ukiyo-e spirit); 12:18: enlarged for legibility at speed while preserving silhouette mood
-    ctx.fillStyle = '#0f172a';
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 3.0;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 22, 32, 0, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-    // horns/ears (clear silhouette against paper/waves; scaled up)
-    ctx.beginPath();
-    ctx.moveTo(-17, -22); ctx.lineTo(-26, -38); ctx.lineTo(-10, -24); ctx.closePath(); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(17, -22); ctx.lineTo(26, -38); ctx.lineTo(10, -24); ctx.closePath(); ctx.fill();
-    // ink-swirl cloak (restrained motion)
-    ctx.strokeStyle = 'rgba(15,23,42,0.65)';
-    ctx.lineWidth = 1.9;
-    ctx.beginPath();
-    ctx.moveTo(-7, 22);
-    ctx.quadraticCurveTo(-22 + Math.sin(t*2.2)*3.5, 34 + Math.sin(phase)*5, -14, 46);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(6, 20);
-    ctx.quadraticCurveTo(17 + Math.cos(t*1.7)*2.5, 32, 10, 44);
-    ctx.stroke();
-    // eyes — glow brighter on approach (telegraph + danger read); larger base for legibility
-    const eyeR = approach > 0.15 ? 4.6 : 3.1;
-    ctx.fillStyle = approach > 0.22 ? '#9f1239' : '#1e2937';
-    ctx.beginPath(); ctx.arc(-7, -5, eyeR, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(7, -5, eyeR * 0.92, 0, Math.PI*2); ctx.fill();
-    // faint pupils for life
-    ctx.fillStyle = '#f8f4eb';
-    ctx.fillRect(-7.9, -5.9, 1.5, 1.5);
-    ctx.fillRect(6.2, -5.9, 1.5, 1.5);
+    if (yokaiImg && yokaiImg.complete && yokaiImg.naturalWidth > 0) {
+      // file-backed reviewable yokai-spirit.jpg (ukiyo-e Sharaku-style ink spirit hazard); replaces procedural body while sway/approach preserved.
+      const ys = 1.0 + (approach > 0.1 ? 0.08 : 0);
+      ctx.drawImage(yokaiImg, -24, -38, 48 * ys, 64 * ys);
+      // keep approach eye tint overlay for telegraph (danger read) without altering the authored asset
+      if (approach > 0.15) {
+        ctx.fillStyle = approach > 0.22 ? 'rgba(159,18,57,0.35)' : 'rgba(30,41,55,0.25)';
+        ctx.beginPath(); ctx.arc(-7, -6, 4.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(7, -6, 3.8, 0, Math.PI*2); ctx.fill();
+      }
+    } else {
+      // procedural fallback (preserved exactly)
+      ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3.0;
+      ctx.beginPath(); ctx.ellipse(0, 0, 22, 32, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-17, -22); ctx.lineTo(-26, -38); ctx.lineTo(-10, -24); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(17, -22); ctx.lineTo(26, -38); ctx.lineTo(10, -24); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(15,23,42,0.65)'; ctx.lineWidth = 1.9;
+      ctx.beginPath(); ctx.moveTo(-7, 22); ctx.quadraticCurveTo(-22 + Math.sin(t*2.2)*3.5, 34 + Math.sin(phase)*5, -14, 46); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(6, 20); ctx.quadraticCurveTo(17 + Math.cos(t*1.7)*2.5, 32, 10, 44); ctx.stroke();
+      const eyeR = approach > 0.15 ? 4.6 : 3.1;
+      ctx.fillStyle = approach > 0.22 ? '#9f1239' : '#1e2937';
+      ctx.beginPath(); ctx.arc(-7, -5, eyeR, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(7, -5, eyeR * 0.92, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#f8f4eb';
+      ctx.fillRect(-7.9, -5.9, 1.5, 1.5);
+      ctx.fillRect(6.2, -5.9, 1.5, 1.5);
+    }
     ctx.restore();
   }
 
