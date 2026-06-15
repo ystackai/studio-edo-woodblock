@@ -235,7 +235,7 @@
     if (runTime > 6.5 && (yokai.length === 0 || yokai[yokai.length-1].x < ahead - 610) && Math.random() < yChance) {
       const x = ahead + 155 + Math.random()*270;
       const baseY = waveY(x, 0) - 64 - Math.random()*86;
-      yokai.push({ x, baseY, phase: Math.random()*6.28, h: 66 + Math.random()*14 });
+      yokai.push({ x, baseY, phase: Math.random()*6.28, h: 78 + Math.random()*16 }); // 12:18: larger h for legibility (matches enlarged drawYokai silhouette)
     }
   }
 
@@ -313,7 +313,7 @@
     }
   }
   function spawnScorePop(x, y, n, c='#0f172a') {
-    scorePops.push({ x, y, n, life: 0.85, vy: -46 });
+    scorePops.push({ x, y, n, life: 1.05, vy: -52 }); // 12:18: longer life + higher launch for clearer, crisper success feedback on pickups/threads/collisions (visible longer in motion/screenshots)
   }
 
   // Input wiring (gesture first, large targets)
@@ -554,18 +554,19 @@
     ctx.rotate(Math.sin(phase*1.7 + t)*0.07);
     ctx.fillStyle = '#f4e9d8';
     ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.1;
-    // bigger sealed letter pickup (clear silhouette, strong vermilion seal, visible fold/address; reads immediately even at speed / in Discord shots; preserves woodblock paper+ink mood)
-    ctx.fillRect(-11, -7, 22, 14);
-    ctx.strokeRect(-11, -7, 22, 14);
-    // fold crease
-    ctx.beginPath(); ctx.moveTo(-11, -2); ctx.lineTo(0, 6); ctx.lineTo(11, -2); ctx.stroke();
-    // address ink marks (subtle, makes it read as "sealed letter" not generic paper)
-    ctx.beginPath(); ctx.moveTo(-7, 1); ctx.lineTo(6, 1); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-6, 3.5); ctx.lineTo(4, 3.5); ctx.stroke();
-    // prominent vermilion seal (bigger for collectible clarity + juicy feedback)
+    ctx.lineWidth = 2.4;
+    // 12:18 post-input polish per blocking feedback: even larger + more legible sealed letters (28x18 logical, stronger seal + extra address marks + bolder strokes) so pickups read instantly at speed / in Discord shots; still pure woodblock paper+ink + vermilion overprint, no repaint of mood or courier/waves. Larger size + marks make collection rule obvious without changing timing or hit feel.
+    ctx.fillRect(-14, -9, 28, 18);
+    ctx.strokeRect(-14, -9, 28, 18);
+    // fold crease (scaled for new size)
+    ctx.beginPath(); ctx.moveTo(-14, -3); ctx.lineTo(0, 7); ctx.lineTo(14, -3); ctx.stroke();
+    // address ink marks (more/longer for legibility at speed; reads as sealed letter)
+    ctx.beginPath(); ctx.moveTo(-9, 1); ctx.lineTo(8, 1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-8, 4.2); ctx.lineTo(6, 4.2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-6, 7.2); ctx.lineTo(3, 7.2); ctx.stroke();
+    // prominent vermilion seal (larger, still centered)
     ctx.fillStyle = '#c2410f';
-    ctx.fillRect(-3.5, -2, 7, 4.5);
+    ctx.fillRect(-4.5, -3, 9, 6);
     ctx.restore();
   }
 
@@ -574,18 +575,18 @@
     const lift = approach * 7.5; // crest "builds" visually as it approaches — telegraph
     ctx.strokeStyle = '#0f172a';
     ctx.fillStyle = approach > 0.35 ? '#111827' : '#1e2937';
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = 3.8;
     ctx.beginPath();
-    ctx.moveTo(x-38, y + 34);
-    ctx.quadraticCurveTo(x-14, y-14 - lift*0.6, x, y-28 - lift);
-    ctx.quadraticCurveTo(x+16, y-12 - lift*0.4, x+36, y + 32);
-    ctx.lineTo(x+36, y + 46);
-    ctx.lineTo(x-38, y + 46);
+    ctx.moveTo(x-46, y + 38);
+    ctx.quadraticCurveTo(x-18, y-18 - lift*0.65, x, y-34 - lift);
+    ctx.quadraticCurveTo(x+18, y-14 - lift*0.45, x+44, y + 36);
+    ctx.lineTo(x+44, y + 52);
+    ctx.lineTo(x-46, y + 52);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    // foam hint (very restrained) + stronger on approach
+    // foam hint (very restrained) + stronger on approach; wider for legibility per 12:18
     ctx.strokeStyle = approach > 0.3 ? 'rgba(248,244,235,0.82)' : 'rgba(248,244,235,0.65)';
-    ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.moveTo(x-12, y-16 - lift*0.3); ctx.quadraticCurveTo(x, y-24 - lift*0.5, x+11, y-14); ctx.stroke();
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(x-16, y-20 - lift*0.35); ctx.quadraticCurveTo(x, y-30 - lift*0.55, x+14, y-16); ctx.stroke();
   }
 
   function drawYokai(x, y, phase, t, screenX) {
@@ -593,38 +594,38 @@
     const approach = (screenX !== undefined) ? Math.max(0, Math.min(1, (300 - screenX) / 300)) : 0;
     ctx.save();
     ctx.translate(x, y + sway);
-    // body — strong dark ink silhouette (ukiyo-e spirit)
+    // body — strong dark ink silhouette (ukiyo-e spirit); 12:18: enlarged for legibility at speed while preserving silhouette mood
     ctx.fillStyle = '#0f172a';
     ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.8;
+    ctx.lineWidth = 3.0;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 18, 26, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 0, 22, 32, 0, 0, Math.PI*2);
     ctx.fill(); ctx.stroke();
-    // horns/ears (clear silhouette against paper/waves)
+    // horns/ears (clear silhouette against paper/waves; scaled up)
     ctx.beginPath();
-    ctx.moveTo(-14, -18); ctx.lineTo(-22, -32); ctx.lineTo(-8, -20); ctx.closePath(); ctx.fill();
+    ctx.moveTo(-17, -22); ctx.lineTo(-26, -38); ctx.lineTo(-10, -24); ctx.closePath(); ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(14, -18); ctx.lineTo(22, -32); ctx.lineTo(8, -20); ctx.closePath(); ctx.fill();
+    ctx.moveTo(17, -22); ctx.lineTo(26, -38); ctx.lineTo(10, -24); ctx.closePath(); ctx.fill();
     // ink-swirl cloak (restrained motion)
     ctx.strokeStyle = 'rgba(15,23,42,0.65)';
-    ctx.lineWidth = 1.8;
+    ctx.lineWidth = 1.9;
     ctx.beginPath();
-    ctx.moveTo(-6, 18);
-    ctx.quadraticCurveTo(-18 + Math.sin(t*2.2)*3, 28 + Math.sin(phase)*4, -12, 38);
+    ctx.moveTo(-7, 22);
+    ctx.quadraticCurveTo(-22 + Math.sin(t*2.2)*3.5, 34 + Math.sin(phase)*5, -14, 46);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(5, 16);
-    ctx.quadraticCurveTo(14 + Math.cos(t*1.7)*2, 26, 8, 36);
+    ctx.moveTo(6, 20);
+    ctx.quadraticCurveTo(17 + Math.cos(t*1.7)*2.5, 32, 10, 44);
     ctx.stroke();
-    // eyes — glow brighter on approach (telegraph + danger read)
-    const eyeR = approach > 0.15 ? 3.9 : 2.5;
+    // eyes — glow brighter on approach (telegraph + danger read); larger base for legibility
+    const eyeR = approach > 0.15 ? 4.6 : 3.1;
     ctx.fillStyle = approach > 0.22 ? '#9f1239' : '#1e2937';
-    ctx.beginPath(); ctx.arc(-6, -4, eyeR, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(6, -4, eyeR * 0.92, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-7, -5, eyeR, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(7, -5, eyeR * 0.92, 0, Math.PI*2); ctx.fill();
     // faint pupils for life
     ctx.fillStyle = '#f8f4eb';
-    ctx.fillRect(-6.8, -4.8, 1.3, 1.3);
-    ctx.fillRect(5.3, -4.8, 1.3, 1.3);
+    ctx.fillRect(-7.9, -5.9, 1.5, 1.5);
+    ctx.fillRect(6.2, -5.9, 1.5, 1.5);
     ctx.restore();
   }
 
@@ -1044,9 +1045,9 @@
 
     // floating score pops (crisp, immediate "I scored by threading/collecting here" — makes collection rules obvious without extra UI or text explanations)
     ctx.textAlign = 'center';
-    ctx.font = '700 13px system-ui, sans-serif';
+    ctx.font = '700 15px system-ui, sans-serif';
     for (const p of scorePops) {
-      const a = Math.max(0.08, p.life / 0.85);
+      const a = Math.max(0.08, p.life / 1.05);
       ctx.globalAlpha = a;
       ctx.fillStyle = p.c;
       ctx.fillText('+' + p.n, p.x, p.y);

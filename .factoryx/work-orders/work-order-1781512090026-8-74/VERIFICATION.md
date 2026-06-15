@@ -269,3 +269,16 @@
 - [x] Total payload < 2 MB — ~42.4kB self-contained source; <<150kB even with pngs.
 - [x] No external network dependencies — all procedural (waves, grain, paths, particles); file:// loads and runs fully offline.
 
+- 2026-06-15 (self, 12:18 post-input polish): re-ran full real chromium headless verification (direct file:// on exact `games/93-lantern-surf-courier/index.html`, vtime + compositor stages, clean exits, only dbus noise, no pageerror/uncaught/console fatal/request fails). Ready (pre-gesture): `screenshots/fresh-grok-restart-12-18-ready-1781526585.png` (75kB) — quality bar met with enlarged legible letters (28x18) prominent, large courier, paper, waves, gates, crest, yokai hints, HUD/prompt/controls; no blank/tiny. Post-interact (temp synthetic exercising resetRun + easy collect + pops path under ~4.3s vtime, reverted): `screenshots/fresh-grok-restart-12-18-verif-postinteract-1781526592.png` (78kB) — reset + real letter collect (larger letter visible, delivery, score pop, letters++/score++, __LANTERN_SURF_STATE positive while running, rAF). The 12:18 feedback (larger letters/obstacles, clearer success on pickups/collisions via longer 15px pops) landed as playable change; prior mitigations (easy-seed, lanternFirstGesture, eager render) untouched. Game Feel Checklist re-affirmed 9/9 (see FEEDBACK for details; bigger forms + pops make rules/success more self-evident while core timing/feel/house preserved). Blockers: none. Evidence supports continuation to deadline on PR #151 / canonical branch. Work Order: work-order-1781512090026-8-74.
+
+## Game Feel Checklist (re-affirmed post 12:18 polish)
+- [x] Core verb demonstrated in first 30 seconds — jump to thread gate or snag obvious (now larger) letter; first choice <8s, no explanation needed.
+- [x] Input response < 100ms with visible/audible feedback — launch/land spray, arc, satchel flecks, bigger +N pop, slope lean, sfx all instant on action.
+- [x] Easing on all motion — physics arcs, sin bob/phase, life fade, slope rotate tilt, pop vy+grav all non-linear.
+- [x] Hit/score feedback — +N pops (now 15px, 1.05s) at exact action world pos (gate/letter/carve), vermilion seal flecks at satchel on letter, particles + sfx on thread/collect/land/banish/crash.
+- [x] Audio only after user gesture — lazy ctx on first pointer/keydown/click; defaults off.
+- [x] Touch targets ≥ 44px with pointer events alongside keyboard — canvas large for jump, lower-left dash zone, DOM restart/mute >=44px, full kbd parity.
+- [x] 60fps on a mid laptop — cheap path draws + <~30 particles; observed stable; fps probe quiet.
+- [x] Total payload < 2 MB — ~43kB self-contained source; <<150kB even with pngs.
+- [x] No external network dependencies — all procedural (waves, grain, paths, particles); file:// loads and runs fully offline.
+
