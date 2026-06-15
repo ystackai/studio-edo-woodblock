@@ -1078,18 +1078,24 @@
     }
     ctx.globalAlpha = 1;
 
-    // floating score pops + fail X (contact-sheet: larger 18px X for fail impact + 16px success; eased float makes "what I did right/wrong" instantly readable at the exact world position of gate/letter/crest/yokai. Pure ink on paper.)
+    // floating score pops + fail X (contact-sheet + continuation: drawn ink X stamp for crisp fail impact at exact collision sites; makes "wrong height / dash the crest or yokai" rule obvious in motion and Discord stills. Woodblock cross-strokes + radial flecks, no font, pure ink on paper; complements +N success pops. Longer visible for readability.)
     ctx.textAlign = 'center';
     ctx.font = '700 16px system-ui, sans-serif';
     for (const p of scorePops) {
       const isFail = !!p.fail;
-      const a = Math.max(0.06, p.life / (isFail ? 1.18 : 1.12));
+      const a = Math.max(0.06, p.life / (isFail ? 1.22 : 1.12));
       ctx.globalAlpha = a;
       ctx.fillStyle = p.c || '#0f172a';
       if (isFail) {
-        ctx.font = '800 18px system-ui, sans-serif';
-        ctx.fillText('X', p.x, p.y);
-        ctx.font = '700 16px system-ui, sans-serif';
+        // hand-cut woodblock style X: two bold crossing strokes with light second pass for print depth; stronger legibility/impact than system font at speed
+        const s = 10;
+        ctx.lineWidth = 3.4;
+        ctx.strokeStyle = p.c || '#0f172a';
+        ctx.beginPath(); ctx.moveTo(p.x - s, p.y - s + 0.8); ctx.lineTo(p.x + s, p.y + s - 0.8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(p.x + s - 0.8, p.y - s); ctx.lineTo(p.x - s + 0.8, p.y + s); ctx.stroke();
+        ctx.lineWidth = 1.6; ctx.globalAlpha = a * 0.55;
+        ctx.beginPath(); ctx.moveTo(p.x - s * 0.65, p.y - s * 0.65); ctx.lineTo(p.x + s * 0.65, p.y + s * 0.65); ctx.stroke();
+        ctx.lineWidth = 1.6; ctx.globalAlpha = a;
       } else {
         ctx.fillText('+' + p.n, p.x, p.y);
       }
