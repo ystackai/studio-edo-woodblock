@@ -895,6 +895,38 @@ function drawLanterns() {
   }
 }
 
+// ═══ Letters Drawing ═══
+function drawLetters() {
+  for (const l of letters) {
+    if (l.x + l.w < -70 || l.x > W + 70) continue;
+    ctx.save();
+    const bob = Math.sin(l.bob) * 2 * scale;
+    const lx = l.x, ly = l.y + bob;
+    // Paper scroll body
+    ctx.globalAlpha = l.done ? l.life : (0.75 + Math.sin(l.bob * 1.3) * 0.15);
+    ctx.fillStyle = C.paper;
+    ctx.fillRect(lx, ly, l.w, l.h);
+    // Red seal stamp (木刀印)
+    ctx.globalAlpha = l.done ? l.life * 0.7 : 0.6;
+    ctx.fillStyle = C.verm;
+    ctx.fillRect(lx + l.w / 2 - 3 * scale, ly + l.h / 2 - 3 * scale, 6 * scale, 6 * scale);
+    // Paper fold lines
+    ctx.globalAlpha = l.done ? l.life * 0.3 : 0.2;
+    ctx.strokeStyle = C.inkD; ctx.lineWidth = 0.5 * scale;
+    ctx.beginPath(); ctx.moveTo(lx + 2 * scale, ly + l.h / 2); ctx.lineTo(lx + l.w - 2 * scale, ly + l.h / 2); ctx.stroke();
+    // Glow for collectible letters
+    if (!l.done) {
+      ctx.globalAlpha = 0.12 + Math.sin(l.bob * 0.7) * 0.06;
+      const gl = ctx.createRadialGradient(lx + l.w / 2, ly + l.h / 2, 1, lx + l.w / 2, ly + l.h / 2, 18 * scale);
+      gl.addColorStop(0, 'rgba(242,237,216,0.5)'); gl.addColorStop(1, 'transparent');
+      ctx.fillStyle = gl;
+      ctx.fillRect(lx - 16 * scale, ly - 16 * scale, l.w + 32 * scale, l.h + 32 * scale);
+    }
+    ctx.restore();
+  }
+}
+
+
 // ═══ Player Drawing ═══
 function drawPlayer() {
   if (!P.alive && P.hitA <= 0) return;
