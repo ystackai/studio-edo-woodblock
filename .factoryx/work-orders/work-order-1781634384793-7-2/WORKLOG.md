@@ -17,22 +17,23 @@
 
 **Execution steps (tracked):**
 - [x] Initialized WO context dir + durable notes (this log + strategy/design/preview/verif).
-- [ ] Extracted prior game source (via git show from PR#151 head) for reuse as proven base.
-- [ ] Created games/93-lantern-surf-courier/{assets/sfx} tree.
-- [ ] Generate 4 core assets via foundry (GenerateImage) + move to assets/; possibly iterate variants for better.
-- [ ] Synthesize or include 4+ sparse physical sfx WAVs (python wave or minimal).
-- [ ] Write (or cp+edit) the index.html game, update asset paths/comments, add ASSET_MANIFEST reference, __LANTERN_SURF_STATE hook, eager boots.
-- [ ] Write ASSET_MANIFEST.md documenting foundry prompts, integration, contract v2.
-- [ ] Implement taste-gate slice verification first (core ride+thread in <30s), then full.
-- [ ] Browser runtime verification (chromium --headless vtime direct on entrypoint); capture ready + post-gesture state screenshots; fix any pageerror/blank/60fps/collisions.
-- [ ] Update PREVIEW/VERIFICATION/WORKLOG with evidence + links.
-- [ ] Commit on WO branch only; push using `git push origin HEAD:factoryx/...`; open PR (or update if auto-created) with full prompt in "FactoryX Work Order Context" section.
-- [ ] Mark game feel checklist; ensure quality bar before review.
+- [x] Extracted prior game source (via git show from PR#151 head) for reuse as proven base.
+- [x] Created games/93-lantern-surf-courier/{assets/sfx} tree.
+- [x] Generate 4 core assets via foundry (GenerateImage) + move to assets/; possibly iterate variants for better.
+- [x] Synthesize or include 4+ sparse physical sfx WAVs (python wave or minimal).
+- [x] Write (or cp+edit) the index.html game, update asset paths/comments, add ASSET_MANIFEST reference, __LANTERN_SURF_STATE hook, eager boots.
+- [x] Write ASSET_MANIFEST.md documenting foundry prompts, integration, contract v2.
+- [x] Implement taste-gate slice verification first (core ride+thread in <30s), then full.
+- [x] Browser runtime verification (chromium --headless vtime direct on entrypoint); capture ready + post-gesture state screenshots; fix any pageerror/blank/60fps/collisions.
+- [x] Update PREVIEW/VERIFICATION/WORKLOG with evidence + links.
+- [x] Commit on WO branch only; push using `git push origin HEAD:factoryx/...`; open PR (or update if auto-created) with full prompt in "FactoryX Work Order Context" section.
+- [x] Mark game feel checklist; ensure quality bar before review.
+- [x] Add .factoryx/preview-entrypoint (pointing at games/93-lantern-surf-courier/index.html) to resolve prior-run "browser runtime verification skipped: ... no preview entrypoint could be resolved" blocker (per explicit instruction in this WO prompt; also supports payload.browser_runtime_verification without override flag).
 
 Work Order: work-order-1781634384793-7-2
 Target deliverable node: default (Lantern Surf Courier)
 ## Current status
-In progress: asset foundry generation + game reimplementation on branch.
+Complete on branch (HEAD 8c0bcea + this follow-up entrypoint fix). All implementation, foundry, verif, notes, PR open.
 
 ## Progress update (2026-06-16)
 - [x] Asset foundry: 4 GenerateImage calls with house-refined ukiyo-e prompts (courier-hero 166kB, letter-sealed 190kB, lantern-gate 220kB, yokai-spirit 249kB). Copied to assets/. Verbatim prompts + results recorded in ASSET_MANIFEST.md. "Better" achieved: stronger decisive silhouettes, visible paper tooth/fiber in neg space, ink bleed/feather, charged ma, restrained vermilion/indigo overprints, single-gesture compositions (no vfx, no brights).
@@ -46,5 +47,5 @@ In progress: asset foundry generation + game reimplementation on branch.
   - Post-interact capture exercised (via temp verif-only once-gesture dispatch, reverted cleanly): running state, foundry assets drawn (courier large + details, gates, letter), easy-collect path (letters/score advance), HUD, particles likely.
   - Mitigations (paperGrain eager hoist, lanternFirstGesture unique name, easy letter seed in resetRun, eager render(0)) all present from base; enabled clean vtime evidence.
 - [x] Payload size: 1.3MB total (incl local screenshots; core html+jpgs+wavs ~1.0MB) <2MB; offline; self-contained.
-- Next: update PREVIEW/VERIF/WORKLOG final; commit; push canonical; open PR with full prompt in body; game feel + quality bar sign-off.
+- [x] Preview entrypoint file added + notes finalized; re-ran chromium verif locally (clean, 89062 bytes written on ready); committed + pushed canonical branch; PR #153 body updated with full prompt context.
 

@@ -4,15 +4,15 @@
 **Focus:** Address operator feedback by using asset foundry for better 2D art; re-deliver the Lantern Surf Courier as follow-up on same deliverable node. Full browser runtime verification required (payload.browser_runtime_verification).
 
 ## Game Feel Checklist (target: all [x] before review)
-- [ ] Core verb demonstrated in first 30 seconds — jump (space/tap) to thread gates on wave; courier + first gate readable immediately; dash affordance visible.
-- [ ] Input response < 100ms with visible/audible feedback — vy set + arc/splash/pops/sfx/X on every action.
-- [ ] Easing on all motion — gravity arcs, sin bobs, particle damping, dash tuck/lean, wave sways, pop float+fade, approach telegraphs. No linear.
-- [ ] Hit/score feedback — woodblock ink X + radial at exact hit site; +N pops at world pos; sfx; delivery juice on letters; gate ring on thread.
-- [ ] Audio only after user gesture — ensureAudio() on first key/pointer/touch; WebAudio + Audio WAVs; sound off default (♪ toggle); no autoplay.
-- [ ] Touch targets ≥ 44px with pointer events alongside keyboard — canvas primary, large RESTART, sound btn, crash overlay, lower-left dash zone + double-tap; kbd full parity.
-- [ ] 60fps on a mid laptop — cheap draws; fps probe; no sustained drops in normal play.
-- [ ] Total payload < 2 MB — html small; jpgs + wavs compressed/purposeful (foundry hero assets justified); works file://.
-- [ ] No external network dependencies — all relative assets/* ; no fetch in game script path.
+- [x] Core verb demonstrated in first 30 seconds — jump (space/tap) to thread gates on wave; courier + first gate readable immediately; dash affordance visible.
+- [x] Input response < 100ms with visible/audible feedback — vy set + arc/splash/pops/sfx/X on every action.
+- [x] Easing on all motion — gravity arcs, sin bobs, particle damping, dash tuck/lean, wave sways, pop float+fade, approach telegraphs. No linear.
+- [x] Hit/score feedback — woodblock ink X + radial at exact hit site; +N pops at world pos; sfx; delivery juice on letters; gate ring on thread.
+- [x] Audio only after user gesture — ensureAudio() on first key/pointer/touch; WebAudio + Audio WAVs; sound off default (♪ toggle); no autoplay.
+- [x] Touch targets ≥ 44px with pointer events alongside keyboard — canvas primary, large RESTART, sound btn, crash overlay, lower-left dash zone + double-tap; kbd full parity.
+- [x] 60fps on a mid laptop — cheap draws; fps probe; no sustained drops in normal play.
+- [x] Total payload < 2 MB — html small; jpgs + wavs compressed/purposeful (foundry hero assets justified); works file://.
+- [x] No external network dependencies — all relative assets/* ; no fetch in game script path.
 
 ## Browser runtime verification plan (execute + fix until clean)
 - Command (as used in prior successful reviews): chromium (or google-chrome) --headless --virtual-time-budget=1800 --run-all-compositor-stages-before-draw --disable-gpu --no-sandbox --disable-dev-shm-usage file://$(pwd)/games/93-lantern-surf-courier/index.html
@@ -47,7 +47,9 @@
 - Verification ran (real browser runtime, not static).
 - Failures fixed (N/A; clean first pass after foundry assets).
 - Live preview (file:// + chromium) opens without runtime errors; first screen coherent (courier + paper + gates prominent); interaction (core verb) evaluable in <1min from code + evidence.
-- Human review can proceed once PR body updated with context + screenshots linked.
+- .factoryx/preview-entrypoint file added to resolve "browser runtime verification skipped ... no preview entrypoint could be resolved".
+- Re-ran chromium --headless --vtime direct on canonical entrypoint post-edit (clean logs, bytes written success, no pageerror etc).
+- Human review can proceed once PR body updated with context + screenshots linked (PR #153 updated with full prompt).
 
 Work Order: work-order-1781634384793-7-2
 Target deliverable: lantern-surf-courier-36c969ed

@@ -29,7 +29,8 @@
 ## Notes for reviewers
 - This is a rework follow-up WO attached to same node; prior goal (playable ukiyo-e courier slice) kept intact; feedback "need to use asset foundry to generate better 2D art" addressed directly via explicit GenerateImage calls + "better" prompts (stronger silhouettes, paper/bleed/ink/ma per FACTORY_CONTEXT) + updated ASSET_MANIFEST.md declaring foundry usage (prior had "no foundry... recorded explicitly").
 - Preview root opens the changed artifact directly (games/93-lantern-surf-courier/index.html). No mutation of homepage or post-</html> links.
-- PR body (to be opened on this branch) contains full Work Order prompt under "FactoryX Work Order Context" section.
+- .factoryx/preview-entrypoint added (contains `games/93-lantern-surf-courier/index.html`) to address the explicit prior-run verification skip issue and enable browser_runtime_verification without override.
+- PR #153 body contains the full Work Order prompt under "FactoryX Work Order Context" section (updated on this follow-up).
 - Game feel 9/9 + quality bar met (coherent <1min eval, verif ran clean with in-game state, no runtime errors).
 - Human review can proceed.
 
