@@ -57,10 +57,21 @@ Base HEAD at start: 84a120b547ab6cb9ce42ddddf7d594ca968882fa (post indigo stutte
 - PREVIEW.md and VERIFICATION.md written with full details, 9/9 checklist, house style notes, and explicit mapping back to the "home page" feedback.
 - Updated this WORKLOG.
 
-## Next
-- Update WORKLOG with any manual playtest notes if needed.
-- git add only the relevant paths (deliverable + .factoryx/preview-entrypoint + this WO dir).
-- Commit with clear message referencing the WO id and feedback addressed.
-- Push to the canonical remote branch (factoryx/factory-edo-woodblock/work-order-1781665243422-followup).
-- Create the PR (since none existed) with full original prompt embedded in "FactoryX Work Order Context" section + summary of changes, preview path, verif evidence, screenshots.
-- Final gh pr view + report URL.
+## Push + PR attempt (2026-06-17)
+- Local commit 33f6c54 created with focused diff (15 files, 1011 insertions) on the canonical branch.
+- `git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665243422-followup` attempted (and with x-access-token form).
+- Result: auth failure ("Invalid username or token", "The github.com token in GH_TOKEN is no longer valid" from gh auth status).
+- Tokens present in env (GITHUB_TOKEN/GH_TOKEN, 40 chars, ghs_...) but expired/invalid for git+https and gh cli in this runtime (common in some sandboxed FactoryX worker images; not a code issue).
+- Per instructions: "Leave code changes in place and report any PR URL you create."
+- Remote branch may lag; local is source of truth for this session. Human admin or later runner with valid bot token can push + open PR from the exact commit.
+- Added PR_BODY.md containing the full required "FactoryX Work Order Context" + original prompt excerpt + implementation summary + preview/verif links + evidence so it can be pasted into the PR creation form or body update.
+- No other branches created. Only canonical WO branch used.
+
+## Next (for valid token runner or admin)
+- Push the branch if behind.
+- gh pr create --head factoryx/factory-edo-woodblock/work-order-1781665243422-followup --base main --title "Rework: Mist settles on one carved horizon - fix home page preview (work-order-1781665243422-followup)" --body-file .factoryx/work-orders/work-order-1781665243422-followup/PR_BODY.md
+- Or update existing if one appears.
+- Then gh pr view and attach the WO id notes.
+- Report the resulting https://github.com/ystackai/studio-edo-woodblock/pull/NNN URL back into WORKLOG + final response.
+
+Changes remain in place on the branch. All verification artifacts, direct entrypoint, assets, and memory are committed. The home-page bug is resolved.
