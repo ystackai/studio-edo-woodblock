@@ -2,425 +2,485 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>The Indigo Stutter</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #FFFFFF;
-      font-family: 'IBM Plex Mono', monospace;
-      overflow: hidden;
-      position: relative;
-      height: 100vh;
-      width: 100vw;
-    }
-
-    #start-button {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #FFFFFF;
-      border: 2px solid #0A0F3C;
-      color: #0A0F3C;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 16px;
-      padding: 20px 40px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      z-index: 10;
-      user-select: none;
-    }
-
-    #start-button:hover {
-      background: #0A0F3C;
-      color: #FFFFFF;
-    }
-
-    #water-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    #water {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: #0A0F3C;
-      transform-origin: bottom;
-      opacity: 0.9;
-    }
-
-    #list-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      padding: 20px;
-      box-sizing: border-box;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .list-item {
-      font-size: 2px;
-      color: #4A4A55;
-      margin-bottom: 10px;
-      opacity: 1;
-      transition: opacity 0.5s ease, filter 0.5s ease;
-    }
-
-    #cursor-trail
-    .cursor-trail-dot {
-      position: absolute;
-      width: 4px;
-      height: 4px;
-      background: #0A0F3C;
-      border-radius: 50%;
-      pointer-events: none;
-      opacity: 0.7;
-      transform: translate(-50%, -50%);
-      z-index: 100;
-    } {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background: #0A0F3C;
-      border-radius: 50%;
-      pointer-events: none;
-      opacity: 0;
-      transform: translate(-50%, -50%);
-      z-index: 100;
-    }
-
-    #reflection {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    #final-brushstroke {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 200px;
-      height: 200px;
-      background: #0A0F3C;
-      border-radius: 50%;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    #cursor {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background: #FFFFFF;
-      border: 1px solid #0A0F3C;
-      border-radius: 50%;
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      z-index: 1000;
-      transition: transform 0.1s ease;
-    }
-
-    #cursor::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 8px;
-      height: 8px;
-      background: #0A0F3C;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-    }
+    :root { --paper:#f4f0e6; --ink:#0A0F3C; --mist:#3a4a6b; }
+    html, body { margin:0; padding:0; background:#0f172a; height:100%; width:100%; overflow:hidden; font-family: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace; }
+    .wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; gap:8px; padding: 12px 8px; box-sizing:border-box; }
+    .frame { background: #c8b8a0; padding: 14px 14px 10px; border-radius: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(120,90,60,0.25); }
+    canvas { display:block; width: min(92vw, 960px); height: auto; background: var(--paper); touch-action: none; cursor: none; image-rendering: crisp-edges; }
+    .label { font-size: 10px; letter-spacing: 0.08em; color: #5c5143; text-transform: uppercase; opacity: 0.85; user-select:none; }
+    .controls { display:flex; gap:10px; align-items:center; margin-top: 2px; }
+    .reink { font-size:11px; padding: 6px 14px; border: 1px solid #5c5143; background: #f4f0e6; color:#0A0F3C; border-radius: 999px; cursor:pointer; user-select:none; transition: all 0.1s ease; }
+    .reink:hover { background:#0A0F3C; color:#f4f0e6; border-color:#0A0F3C; }
+    .mute { font-size:11px; padding: 6px 10px; border: 1px solid #5c5143; background: #f4f0e6; color:#0A0F3C; border-radius: 999px; cursor:pointer; user-select:none; min-width:28px; text-align:center; }
+    .mute.muted { opacity:0.6; }
+    .caption { position:absolute; font-size:9.5px; color:#0A0F3C; opacity:0; pointer-events:none; letter-spacing:0.02em; transition:opacity 420ms ease; white-space:nowrap; }
   </style>
 </head>
 <body>
-  <div id="start-button">START</div>
-
-  <div id="water-container">
-    <div id="water"></div>
+  <div class="wrap">
+    <div class="label" style="margin-bottom:2px">the floating world trembles</div>
+    <div class="frame" style="position:relative">
+      <canvas id="print" width="960" height="620" aria-label="The Indigo Stutter — living ukiyo-e print. Sustain gentle contact on the trembling indigo lines to still them."></canvas>
+      <div id="caption" class="caption" style="left:52px; bottom:38px;">the hand that stills the ink</div>
+    </div>
+    <div class="controls">
+      <button id="reink" class="reink" aria-label="Re-ink the print (reset to full stutter)">re-ink</button>
+      <button id="mute" class="mute" aria-label="Toggle sound">♪</button>
+    </div>
   </div>
 
-  <div id="list-container"></div>
+<script>
+(function(){
+  const canvas = document.getElementById('print');
+  const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+  const W = 960, H = 620;
+  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = 'min(92vw, 960px)';
+  canvas.style.height = 'auto';
+  ctx.scale(DPR, DPR);
+  ctx.imageSmoothingEnabled = false;
 
-  <div id="cursor-trail"></div>
-  <div id="cursor"></div>
-  <div id="reflection"></div>
-  <div id="final-brushstroke"></div>
+  const captionEl = document.getElementById('caption');
+  const reinkBtn = document.getElementById('reink');
+  const muteBtn = document.getElementById('mute');
 
-  <script>
-    // Game state
-    let gameState = 'waiting'; // waiting, starting, rising, dissolving, ending
-    let waterLevel = 0;
-    let heartbeatInterval;
-    let audioContext;
-    let chimeOscillator;
-    let heartbeatOscillator;
-    let wetDropOscillator;
-    let dissolveTimeouts = [];
+  // Living zones: key ink lines that stutter (wave/horizon segments + one veil)
+  // Points are in logical 960x620 space
+  let zones = [
+    { points: [{x:80,y:398},{x:220,y:412},{x:360,y:389},{x:510,y:407},{x:670,y:395},{x:820,y:418},{x:895,y:401}], baseJ: 3.8, curJ: 3.8, phase: 0.6 },
+    { points: [{x:95,y:431},{x:240,y:447},{x:400,y:425},{x:560,y:449},{x:710,y:432},{x:860,y:451}], baseJ: 3.1, curJ: 3.1, phase: 1.9 },
+    { points: [{x:120,y:312},{x:280,y:298},{x:470,y:319},{x:630,y:291},{x:780,y:317},{x:875,y:304}], baseJ: 2.7, curJ: 2.7, phase: 4.2 },
+  ];
 
-    // List of hateful things
-    const hatefulThings = [
-      "My own reflection",
-      "The weight of my own voice",
-      "The silence I've made",
-      "The air I've wasted",
-      "The time I've stolen"
-    ];
+  // Boat silhouette (decisive, mostly stable; slight jitter on hull for life)
+  const boat = [
+    { points: [{x:612,y:472},{x:638,y:468},{x:671,y:471},{x:689,y:478},{x:671,y:484},{x:632,y:483}], baseJ: 1.1, curJ: 1.1, phase: 0.3 },
+    { points: [{x:655,y:468},{x:655,y:442},{x:662,y:439}], baseJ: 0.7, curJ: 0.7, phase: 2.1 }
+  ];
 
-    // DOM elements
-    const startButton = document.getElementById('start-button');
-    const waterContainer = document.getElementById('water-container');
-    const water = document.getElementById('water');
-    const listContainer = document.getElementById('list-container');
-    const cursorTrail = document.getElementById('cursor-trail');
-    const cursor = document.getElementById('cursor');
-    const reflection = document.getElementById('reflection');
-    const finalBrushstroke = document.getElementById('final-brushstroke');
+  let reveal = 0;
+  let lastStill = 0;
+  let isPressing = false;
+  let pressX = W * 0.55, pressY = 410;
+  let mouseX = pressX, mouseY = pressY;
+  let isOver = false;
+  let hasResolvedOnce = false;
+  let captionTimer = 0;
+  let muted = false;
 
-    // Initialize audio context on first user interaction
-    function initAudio() {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
+  // Assets (real file-backed generated ukiyo-e layers)
+  const assets = { base: new Image(), reveal: new Image(), baseOk: false, revealOk: false };
+  let assetsLoaded = 0;
+  function onAssetLoad() { assetsLoaded++; if (assetsLoaded >= 2) requestDraw(); }
+  assets.base.onload = () => { assets.baseOk = true; onAssetLoad(); };
+  assets.reveal.onload = () => { assets.revealOk = true; onAssetLoad(); };
+  assets.base.onerror = () => { assets.baseOk = false; onAssetLoad(); };
+  assets.reveal.onerror = () => { assets.revealOk = false; onAssetLoad(); };
+  assets.base.src = 'assets/base-motif.jpg';
+  assets.reveal.src = 'assets/reveal-detail.jpg';
+
+  // Audio (created only on first user gesture)
+  let audioCtx = null, master = null, toneOsc1 = null, toneOsc2 = null, toneGain = null, toneFilter = null;
+  let nextDropAt = 0;
+
+  function initAudio() {
+    if (audioCtx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    master = audioCtx.createGain();
+    master.gain.value = muted ? 0 : 0.68;
+    master.connect(audioCtx.destination);
+
+    toneOsc1 = audioCtx.createOscillator(); toneOsc1.type = 'sine'; toneOsc1.frequency.value = 196;
+    toneOsc2 = audioCtx.createOscillator(); toneOsc2.type = 'sine'; toneOsc2.frequency.value = 294;
+    toneFilter = audioCtx.createBiquadFilter(); toneFilter.type = 'lowpass'; toneFilter.frequency.value = 980;
+    toneGain = audioCtx.createGain(); toneGain.gain.value = 0.01;
+    const tG2 = audioCtx.createGain(); tG2.gain.value = 0.6;
+    toneOsc1.connect(toneFilter); toneOsc2.connect(toneFilter);
+    toneFilter.connect(toneGain); toneGain.connect(tG2); tG2.connect(master);
+    toneOsc1.start(); toneOsc2.start();
+
+    nextDropAt = audioCtx.currentTime + 0.08;
+  }
+
+  function setMuted(m) {
+    muted = m;
+    muteBtn.classList.toggle('muted', muted);
+    if (master) master.gain.value = muted ? 0 : 0.68;
+  }
+  muteBtn.addEventListener('click', () => setMuted(!muted));
+  muteBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); setMuted(!muted); }, {passive:false});
+
+  function updateTone(still) {
+    if (!toneGain || !toneFilter) return;
+    toneGain.gain.value = Math.max(0.012, still * 0.58);
+    toneFilter.frequency.value = 820 + still * 620;
+  }
+
+  function playDrop(still) {
+    if (!audioCtx || muted) return;
+    const t = audioCtx.currentTime;
+    const dur = 0.11 + still * 0.04;
+    const src = audioCtx.createBufferSource();
+    const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.6), audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i=0; i<data.length; i++) {
+      const tt = i / audioCtx.sampleRate;
+      data[i] = (Math.random()*2-1) * (1 - tt*1.6);
     }
+    src.buffer = buf;
+    const lp = audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 720 + still*180;
+    const g = audioCtx.createGain(); g.gain.value = 0.38 * (0.6 + still*0.4);
+    const decay = audioCtx.createGain();
+    g.connect(lp); lp.connect(decay); decay.connect(master);
+    src.connect(g);
+    g.gain.setValueAtTime(g.gain.value, t);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    src.start(t); src.stop(t + 0.7);
+  }
 
-    // Create a chime sound
-    function playChime() {
-      initAudio();
-      chimeOscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+  function scheduleDrops(still) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime;
+    if (now < nextDropAt) return;
+    playDrop(still);
+    const gap = 0.195 - still * 0.138;
+    nextDropAt = now + Math.max(0.055, gap + (Math.random()-0.5)*0.018);
+  }
 
-      chimeOscillator.type = 'sine';
-      chimeOscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-      chimeOscillator.frequency.exponentialRampToValueAtTime(1000, audioContext.currentTime + 0.1);
+  function toLogical(e) {
+    const r = canvas.getBoundingClientRect();
+    const sx = (e.clientX - r.left) / r.width;
+    const sy = (e.clientY - r.top) / r.height;
+    return { x: Math.max(12, Math.min(W-12, sx * W)), y: Math.max(12, Math.min(H-12, sy * H)) };
+  }
 
-      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+  function setPress(e, down) {
+    const p = toLogical(e);
+    pressX = p.x; pressY = p.y;
+    mouseX = p.x; mouseY = p.y;
+    isPressing = down;
+    isOver = true;
+    if (down && !audioCtx) initAudio();
+    if (down) requestDraw();
+  }
 
-      chimeOscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+  canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); setPress(e, true); }, {passive:false});
+  canvas.addEventListener('pointermove', (e) => {
+    const p = toLogical(e);
+    mouseX = p.x; mouseY = p.y;
+    isOver = true;
+    if (isPressing) { pressX = p.x; pressY = p.y; }
+    requestDraw();
+  });
+  window.addEventListener('pointerup', (e) => { isPressing = false; requestDraw(); });
+  canvas.addEventListener('pointerleave', () => { isOver = false; requestDraw(); });
+  canvas.addEventListener('pointerenter', () => { isOver = true; });
 
-      chimeOscillator.start(audioContext.currentTime);
-      chimeOscillator.stop(audioContext.currentTime + 0.1);
-    }
+  canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); if(e.touches[0]) setPress(e.touches[0], true); }, {passive:false});
+  canvas.addEventListener('touchmove', (e)=>{ e.preventDefault(); if(e.touches[0]){ const p=toLogical(e.touches[0]); mouseX=p.x; mouseY=p.y; if(isPressing){pressX=p.x;pressY=p.y;} requestDraw(); } }, {passive:false});
+  canvas.addEventListener('touchend', (e)=>{ e.preventDefault(); isPressing=false; requestDraw(); });
 
-    // Create a heartbeat sound
-    function playHeartbeat() {
-      initAudio();
-      heartbeatOscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      heartbeatOscillator.type = 'sine';
-      heartbeatOscillator.frequency.setValueAtTime(120, audioContext.currentTime);
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-      heartbeatOscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      heartbeatOscillator.start(audioContext.currentTime);
-      heartbeatOscillator.stop(audioContext.currentTime + 0.5);
-    }
-
-    // Create a wet drop sound
-    function playWetDrop() {
-      initAudio();
-      wetDropOscillator = audioContext.createBufferSource();
-      const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 3, audioContext.sampleRate);
-      const data = buffer.getChannelData(0);
-      
-      // Generate noise burst with low-pass filtering
-      for (let i = 0; i < buffer.length; i++) {
-        const t = i / buffer.sampleRate;
-        data[i] = Math.random() * 2 - 1;
-        if (t > 0.5) {
-          data[i] *= (1 - (t - 0.5) * 2);
+  let keyPressing = false;
+  window.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      if (isOver || document.activeElement === canvas) {
+        e.preventDefault();
+        if (!keyPressing) {
+          keyPressing = true;
+          isPressing = true;
+          if (!audioCtx) initAudio();
+          requestDraw();
         }
       }
-      
-      const filter = audioContext.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(800, audioContext.currentTime);
-      
-      const gainNode = audioContext.createGain();
-      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 3);
-      
-      wetDropOscillator.buffer = buffer;
-      wetDropOscillator.connect(filter);
-      filter.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      wetDropOscillator.start(audioContext.currentTime);
-      wetDropOscillator.stop(audioContext.currentTime + 3);
+    } else if (e.key.toLowerCase() === 'r') {
+      e.preventDefault();
+      resetPrint();
+    } else if (e.key.toLowerCase() === 'm' || e.key === '?') {
+      e.preventDefault();
+      setMuted(!muted);
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      keyPressing = false;
+      if (!('pointerId' in e)) isPressing = false;
+      requestDraw();
+    }
+  });
+
+  reinkBtn.addEventListener('click', resetPrint);
+  reinkBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); resetPrint(); }, {passive:false});
+
+  function distToPoints(px, py, pts) {
+    let d = 9999;
+    for (let i=0; i<pts.length; i++) {
+      const q = pts[i];
+      const dx = px - q.x, dy = py - q.y;
+      d = Math.min(d, Math.hypot(dx, dy));
+    }
+    return d;
+  }
+
+  function updateStillness(dt) {
+    let sum = 0, n = 0;
+    const contact = isPressing;
+    for (let z of zones) {
+      const d = distToPoints(pressX, pressY, z.points);
+      const near = contact && d < 62;
+      const tgt = near ? 0.12 : z.baseJ;
+      z.curJ = z.curJ * 0.87 + tgt * 0.13;
+      z.phase += (0.022 + (z.curJ / Math.max(0.6, z.baseJ)) * 0.007) * (dt / 16.2);
+      sum += z.curJ / z.baseJ; n++;
+    }
+    for (let b of boat) {
+      const d = distToPoints(pressX, pressY, b.points);
+      const near = contact && d < 58;
+      const tgt = near ? 0.08 : b.baseJ;
+      b.curJ = b.curJ * 0.89 + tgt * 0.11;
+      b.phase += 0.014 * (dt / 16.2);
+      sum += b.curJ / b.baseJ; n++;
+    }
+    const raw = 1 - (sum / n);
+    lastStill = lastStill * 0.72 + raw * 0.28;
+
+    if (contact) {
+      reveal = Math.min(1.0, reveal + 0.0095 * (0.55 + lastStill * 0.45) * (dt / 16.2));
+    } else {
+      reveal = Math.max(0, reveal - 0.0022 * (dt / 16.2));
     }
 
-    // Start the game
-    function startGame() {
-      gameState = 'starting';
-      startButton.style.display = 'none';
-      
-      // Play the fake chime
-      playChime();
-
-      // Show water container and list
-      waterContainer.style.opacity = 1;
-      listContainer.style.opacity = 1;
-
-      // Create list items
-      createListItems();
-
-      // Start the heartbeat pulse
-      heartbeatInterval = setInterval(playHeartbeat, 400);
-
-      // Start water rising
-      riseWater();
+    if (lastStill > 0.62 && reveal > 0.38 && !hasResolvedOnce) {
+      hasResolvedOnce = true;
+      captionEl.style.opacity = '0.82';
+      captionTimer = 4200;
+    }
+    if (captionTimer > 0) {
+      captionTimer -= dt;
+      if (captionTimer <= 0) captionEl.style.opacity = '0';
     }
 
-    // Create the list items
-    function createListItems() {
-      listContainer.innerHTML = '';
-      hatefulThings.forEach((item, index) => {
-        const listItem = document.createElement('div');
-        listItem.className = 'list-item';
-        listItem.textContent = item;
-        listItem.style.opacity = 1;
-        listItem.style.filter = 'blur(0px)';
-        listContainer.appendChild(listItem);
-      });
+    if (audioCtx) {
+      updateTone(lastStill);
+      scheduleDrops(lastStill);
     }
 
-    // Rise water animation
-    function riseWater() {
-      gameState = 'rising';
-      let startTime = performance.now();
-      const duration = 8000; // 8 seconds to rise to top
+    window.__INDIGO_STUTTER_STATE = {
+      still: +lastStill.toFixed(3),
+      reveal: +reveal.toFixed(3),
+      audioActive: !!audioCtx,
+      resolved: hasResolvedOnce,
+      pressing: isPressing
+    };
+  }
 
-      function animateWater() {
-        const elapsed = performance.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // Update water level (from bottom up)
-        waterLevel = progress;
-        water.style.transform = `scaleY(${progress})`;
-
-        // Slow heartbeat pulse as water rises
-        if (heartbeatInterval) {
-          clearInterval(heartbeatInterval);
-          const pulseInterval = 400 + (progress * 1000); // Gradually slow down
-          heartbeatInterval = setInterval(playHeartbeat, pulseInterval);
-        }
-
-        // Dissolve text as water rises
-        if (progress > 0.2) {
-          dissolveText();
-        }
-
-        if (progress < 1) {
-          requestAnimationFrame(animateWater);
-        } else {
-          finishGame();
-        }
-      }
-
-      requestAnimationFrame(animateWater);
+  function drawPaper() {
+    ctx.save();
+    ctx.fillStyle = '#f4f0e6';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(115,95,70,0.028)';
+    for (let i = 0; i < 210; i++) {
+      const x = ((i * 37 + 11) % W) + (Math.sin(i) * 0.6);
+      const y = ((i * 19 + 7) % H);
+      ctx.fillRect(x, y, 1.2, 1.6);
     }
+    ctx.restore();
+  }
 
-    // Dissolve text effect
-    function dissolveText() {
-      if (gameState !== 'rising') return;
-
-      const listItems = document.querySelectorAll('.list-item');
-      const itemsToDissolve = Math.floor(listItems.length * waterLevel);
-
-      for (let i = 0; i < itemsToDissolve; i++) {
-        if (listItems[i]) {
-          // Add timeout to ensure we don't do this too quickly
-          setTimeout(() => {
-            if (listItems[i]) {
-              listItems[i].style.opacity = 0;
-              listItems[i].style.filter = 'blur(5px)';
-            }
-          }, 100 * i);
-        }
-      }
+  function drawMist(t) {
+    ctx.save();
+    const p = (t * 0.00032) % (Math.PI * 2);
+    ctx.fillStyle = '#2f3f5e';
+    for (let k=0; k<3; k++) {
+      const ox = Math.sin(p + k*1.7) * (38 + k*11);
+      const oy = Math.cos(p*0.6 + k) * (14 + k*4);
+      ctx.globalAlpha = 0.085 + k*0.018;
+      ctx.beginPath();
+      ctx.ellipse(280 + ox + k*90, 210 + oy + k*35, 310 + k*40, 95 + k*18, -0.2 + k*0.1, 0, Math.PI*2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(620 + ox*0.6, 295 + oy*0.7 + k*22, 260, 72, 0.1 - k*0.05, 0, Math.PI*2);
+      ctx.fill();
     }
+    ctx.restore();
+  }
 
-    // Finish the game
-    function finishGame() {
-      gameState = 'dissolving';
-      
-      // Stop heartbeat
-      clearInterval(heartbeatInterval);
-
-      // Play wet drop sound
-      playWetDrop();
-
-      // Show reflection for a moment
-      reflection.style.opacity = 1;
-      reflection.style.background = 'radial-gradient(circle, rgba(10,15,60,0.8) 0%, rgba(10,15,60,0) 70%)';
-
-      // Dissolve reflection after a delay
-      setTimeout(() => {
-        reflection.style.opacity = 0;
-        
-        // Show final brushstroke
-        finalBrushstroke.style.opacity = 1;
-        
-        // Fade out everything after delay
-        setTimeout(() => {
-          gameState = 'ending';
-          // Fade out everything
-          document.body.style.opacity = 0;
-        }, 2000);
-      }, 1000);
+  function drawBase() {
+    if (assets.baseOk) {
+      ctx.save();
+      ctx.globalAlpha = 0.96;
+      ctx.drawImage(assets.base, 0, 0, W, H);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.strokeStyle = '#0A0F3C'; ctx.lineWidth = 2.4; ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.moveTo(70,410); ctx.quadraticCurveTo(320,378, 520,405); ctx.quadraticCurveTo(740,385, 900,412); ctx.stroke();
+      ctx.globalAlpha = 0.55; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(95,440); ctx.quadraticCurveTo(340,418, 580,442); ctx.quadraticCurveTo(760,425, 885,448); ctx.stroke();
+      ctx.restore();
+      ctx.save(); ctx.fillStyle = '#0A0F3C'; ctx.globalAlpha=0.85;
+      ctx.beginPath(); ctx.moveTo(618,475); ctx.lineTo(642,470); ctx.lineTo(678,472); ctx.lineTo(692,480); ctx.lineTo(678,485); ctx.lineTo(638,484); ctx.closePath(); ctx.fill();
+      ctx.fillRect(658,445,3,27);
+      ctx.restore();
     }
+  }
 
-    // Mouse movement tracking for cursor trail
-    document.addEventListener('mousemove', (e) => {
-      if (gameState === 'waiting') return;
-      
-      cursor.style.left = e.clientX + 'px';
-      cursor.style.top = e.clientY + 'px';
+  function drawJitteredPath(pts, baseJ, curJ, phase, lw, alpha) {
+    if (!pts || pts.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = '#0A0F3C';
+    ctx.lineWidth = lw;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    for (let i=0; i<pts.length; i++) {
+      const p = pts[i];
+      const j = curJ * Math.sin(phase + i * 0.82 + p.y * 0.0027);
+      const ox = j * 0.58;
+      const oy = j * 0.31;
+      if (i===0) ctx.moveTo(p.x + ox, p.y + oy);
+      else ctx.lineTo(p.x + ox, p.y + oy);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
 
-      if (gameState === 'starting' || gameState === 'rising') {
-        // Create cursor trail
-        cursorTrail.style.left = e.clientX + 'px';
-        cursorTrail.style.top = e.clientY + 'px';
-        cursorTrail.style.opacity = 1;
+  function drawPrimaryInk(t) {
+    for (let z of zones) {
+      drawJitteredPath(z.points, z.baseJ, z.curJ, z.phase, 2.35, 0.96);
+      drawJitteredPath(z.points, z.baseJ, z.curJ, z.phase + 0.9, 4.1, 0.22);
+      drawJitteredPath(z.points, z.baseJ, z.curJ, z.phase - 1.1, 5.8, 0.09);
+    }
+    for (let b of boat) {
+      drawJitteredPath(b.points, b.baseJ, b.curJ, b.phase, 1.85, 0.92);
+    }
+  }
 
-        // Fade out trail after delay
-        setTimeout(() => {
-          cursorTrail.style.opacity = 0;
-        }, 200);
-      }
-    });
+  function drawReveal() {
+    if (reveal < 0.02) return;
+    ctx.save();
+    const a = 0.06 + reveal * 0.46;
+    ctx.globalAlpha = a;
+    if (assets.revealOk) {
+      ctx.drawImage(assets.reveal, 0, 0, W, H);
+    } else {
+      ctx.strokeStyle = '#0A0F3C'; ctx.lineWidth = 1.3; ctx.globalAlpha = a * 0.7;
+      ctx.beginPath(); ctx.moveTo(140,428); ctx.quadraticCurveTo(310,408, 490,430); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(590,310); ctx.lineTo(615,288); ctx.stroke();
+    }
+    ctx.restore();
+  }
 
-    // Start button click handler
-    startButton.addEventListener('click', startGame);
+  function drawPressure() {
+    if (!isPressing) return;
+    ctx.save();
+    const r = 11 + Math.sin(Date.now() / 140) * 2.5;
+    ctx.strokeStyle = 'rgba(10,15,60,0.38)';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(pressX, pressY, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 0.18;
+    ctx.beginPath(); ctx.arc(pressX, pressY, r * 1.65, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
 
-    // Initialize cursor position
-    cursor.style.left = '50%';
-    cursor.style.top = '50%';
-  </script>
+  function drawBrush() {
+    if (!isOver) return;
+    const x = isPressing ? pressX : mouseX;
+    const y = isPressing ? pressY : mouseY;
+    ctx.save();
+    ctx.fillStyle = 'rgba(244,240,230,0.72)';
+    ctx.strokeStyle = 'rgba(10,15,60,0.55)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath(); ctx.arc(x, y, 6.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawSeal() {
+    if (reveal < 0.82) return;
+    ctx.save();
+    ctx.fillStyle = '#9c3a2e';
+    ctx.globalAlpha = 0.18 + (reveal - 0.82) * 1.8;
+    ctx.beginPath(); ctx.arc(842, 498, 7.5, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 1.2; ctx.strokeStyle = '#9c3a2e'; ctx.globalAlpha *= 0.7;
+    ctx.beginPath(); ctx.arc(842, 498, 7.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  let lastT = performance.now();
+  let drawPending = false;
+  function requestDraw() { if (!drawPending) { drawPending = true; requestAnimationFrame(draw); } }
+
+  function draw() {
+    drawPending = false;
+    const now = performance.now();
+    const dt = Math.min(42, now - lastT);
+    lastT = now;
+
+    updateStillness(dt);
+
+    ctx.save();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    drawPaper();
+    drawMist(now);
+    drawBase();
+    drawPrimaryInk(now);
+    drawReveal();
+    drawPressure();
+    drawSeal();
+    drawBrush();
+
+    ctx.restore();
+  }
+
+  function resetPrint() {
+    for (let z of zones) { z.curJ = z.baseJ; z.phase = Math.random() * 6.28; }
+    for (let b of boat) { b.curJ = b.baseJ; b.phase = Math.random() * 4; }
+    reveal = 0;
+    lastStill = 0;
+    isPressing = false;
+    keyPressing = false;
+    hasResolvedOnce = false;
+    captionEl.style.opacity = '0';
+    captionTimer = 0;
+    nextDropAt = audioCtx ? audioCtx.currentTime + 0.4 : 0;
+    if (toneGain) toneGain.gain.value = 0.01;
+    for (let z of zones) z.phase += 1.2;
+    requestDraw();
+  }
+
+  function boot() {
+    for (let z of zones) z.phase = Math.random() * 6.28;
+    for (let b of boat) b.phase = Math.random() * 5;
+    lastStill = 0.08;
+    reveal = 0;
+
+    setTimeout(() => {
+      for (let z of zones) z.curJ = z.baseJ * 0.96;
+      requestDraw();
+    }, 120);
+
+    setInterval(() => { if (!drawPending) requestDraw(); }, 16);
+    requestDraw();
+
+    window.__INDIGO_STUTTER_STATE = { still: 0.08, reveal: 0, audioActive: false, resolved: false, pressing: false };
+  }
+
+  reinkBtn.addEventListener('click', resetPrint);
+  reinkBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); resetPrint(); }, {passive:false});
+
+  boot();
+  setTimeout(requestDraw, 420);
+})();
+</script>
 </body>
 </html>
