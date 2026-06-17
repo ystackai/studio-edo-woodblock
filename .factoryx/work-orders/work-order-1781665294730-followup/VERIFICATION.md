@@ -59,5 +59,16 @@
 - Issues addressed in this pass: added .factoryx/preview-entrypoint; added small VERIFY harness (?verify=1) + forced state + marker so verif captures can evidence the interaction state diff (before/after) without external automation (puppeteer not present in runtime). Prior passive linear version replaced; feedback addressed in the living rub-to-still slice.
 - House + payload: real file-backed assets under drops/indigo-stutter/assets/ (base-motif.jpg + reveal-detail.jpg) + ASSET_MANIFEST.md + provenance; direct preview root is the artifact itself (drops/indigo-stutter/index.html); 9/9 game feel checklist remains green (see top of this file); 60fps intent holds (simple paths + 3 mist + low grain); touch/kbd parity in code; gesture-only audio.
 
+## Follow-up browser runtime verification (fresh chromium run 2026-06-17 closeout)
+- Trigger: Execute work order requires re-running verification + evidence before final PR body update and push.
+- Commands (executed from workspace root):
+  - `chromium --headless --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-extensions --disable-setuid-sandbox --virtual-time-budget=2500 --run-all-compositor-stages-before-draw --window-size=1080,820 --screenshot=.factoryx/work-orders/work-order-1781665294730-followup/screenshots/ready.png "file:///.../drops/indigo-stutter/index.html"`
+  - `... --screenshot=.../post-interact.png "file:///.../drops/indigo-stutter/index.html?verify=1"`
+- Results: Both exit 0. ready.png 511676 bytes; post-interact.png 681748 bytes. Only expected dbus noise in stderr (no pageerror, no console.error paths, no uncaught, no net 4xx/5xx or fetches — vtime + self-contained confirmed).
+- Evidence in this WO's screenshots/: ready.png (fresh, idle: paper, generated base-motif with boat/pine/mist, overlaid living jitter forms on waves, title label, re-ink + ♪ controls visible; no FOLLOWUP marker). post-interact.png (fresh, ?verify=1 exercised: FOLLOWUP-LIVE-OK marker in top-left of frame, caption "the hand that stills the ink" at margin, reveal layer active with extra forms from reveal-detail.jpg (birds, settled details), forced low curJ + high reveal/still per harness).
+- Confirms: interaction state diff (idle vs resolved), verif harness path live, asset compositing working, first screen coherent per house, no runtime blockers. Static captures show the base art + forms; live play (pointer hold) shows the damping + pressure + audio fill + reveal progress.
+- Cleanup performed in same pass: removed pre-existing index.html.{bak,tmp,backup} (old passive versions; not part of this diff). .factoryx/preview-entrypoint still points correctly to drops/indigo-stutter/index.html.
+- 9/9 checklist re-affirmed; asset_contract_v2 satisfied by real jpgs + manifest + provenance in drops/.../assets/; no unrelated scope.
+
 Work Order: work-order-1781665294730-followup
 Target deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec

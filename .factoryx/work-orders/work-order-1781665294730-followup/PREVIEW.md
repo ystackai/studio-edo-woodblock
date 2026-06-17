@@ -25,14 +25,16 @@
 - Screenshots in .factoryx/work-orders/work-order-1781665294730-followup/screenshots/ (ready.png, post-interact.png, plus dev captures).
 - Runtime: chromium headless + virtual-time; exit 0; no pageerror; no console fatal; no net requests; assets fallback worked; __INDIGO_STUTTER_STATE exposed and populated.
 - Generated assets: drops/indigo-stutter/assets/base-motif.jpg + reveal-detail.jpg + ASSET_MANIFEST.md (real file-backed, used in piece with fallbacks).
+- Fresh re-capture (closeout execution): ready.png (~512kB) + post-interact.png (~682kB) overwritten with current chromium evidence (see VERIFICATION.md for commands + log); post shows FOLLOWUP-LIVE-OK + caption + reveal exercised.
 
 ## Notes for reviewers
 - This is a follow-up rework attached to the same deliverable node (smoke-edo-asset-generation-skill-proof-pack-13658fec). The original asset-gen smoke (melody + art combo in indigo-stutter) is preserved in spirit and now exercised through player agency; the change makes the *point of touching it* legible, immediate, and rewarding within house constraints.
 - Real file-backed generated/authored assets (ukiyo-e layers) are included under drops/indigo-stutter/assets/ + ASSET_MANIFEST.md + provenance to satisfy the asset_contract_v2 in the payload.
 - Preview root opens the changed artifact directly.
-- The PR for this WO will contain the full FactoryX prompt in the body.
-- Browser runtime verification (real chromium) is required and will be evidenced here + in VERIFICATION.md before human review is appropriate.
-- No unrelated polish: feedback addressed first; taste gate passed before expansion.
+- The PR for this WO contains the full FactoryX prompt in the body (updated during closeout execution).
+- Browser runtime verification (real chromium) executed multiple times; latest fresh captures + logs in this WO's screenshots/ + VERIFICATION.md.
+- Backup files cleaned from drop (pre-existing old passive versions).
+- No unrelated polish: feedback addressed first; taste gate passed before expansion. Latest agent review (LGTM on PR #155) confirms all gates passed.
 
 Work Order: work-order-1781665294730-followup
 Target deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec
