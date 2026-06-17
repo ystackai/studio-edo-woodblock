@@ -21,5 +21,9 @@ music and art are terrible please improve
 - If after real chromium runs + honest play the ward is still not the obvious thing to touch, or the opening not felt as "the road opened because of me", we will strengthen (more contrast on the ward, a slow telegraph pulse, caption after first 3s progress, larger active zone) on the same branch before presenting for review.
 - Any PR comments about remaining "gamey" residue or audio that still feels "terrible" will be addressed as blocking.
 
+## Handoff / reporting note (this pass)
+- Fresh chromium verif + logging run performed; all gates still clean. Notes updated with PR report.
+- PR URL: https://github.com/ystackai/studio-edo-woodblock/pull/154 (no new PR/branch; operator handoff followed exactly).
+
 Work Order: work-order-1781634385201-7-4
 Target deliverable: rekick-edo-inkblade-road-opening-slice-with-generated-assets-7236f90a

@@ -54,5 +54,13 @@
 - Honest taste gate: verb discoverable <5s, point ("my carving opens the road") felt by 18-22s, full cycle + release melancholy by 40s. The art now feels like a single ukiyo-e print you are finishing with the blade; the audio change is the direct consequence of attention. No "terrible" residue — sparse, physical, tied to verb, house palette, restraint.
 - No further pivot needed; slice is coherent, replayable, and reviewable. Minor polish (caption timing, lift density, tone base freq) can be done on same branch if PR feedback arrives.
 
+## Handoff repair pass (2026-06-17)
+- Inspected branch: HEAD dc44414 exactly matches remote (00 ahead/behind after fetch). gh pr view blocked by 401 (worker token git-only); public PR page + bot deployment comment confirm PR #154 is live, carries WO context, targets the correct branch, and has preview deployment.
+- Performed fresh real-browser chromium verification (ready + forced-opened captures, full logging run exercising __INKBLADE_SLICE + verif path). Confirmed: zero game errors, [verif] log lines present, screenshots updated (208k/212k), source pristine post-revert.
+- Updated VERIFICATION.md + PREVIEW.md + this log with explicit PR URL report and handoff notes. No code changes; no new branches/PRs created (per operator instruction).
+- Git push of notes will be done on canonical ref only.
+- PR URL (explicit report per payload): https://github.com/ystackai/studio-edo-woodblock/pull/154
+- This closes the "agent completed but did not report a GitHub PR URL" gap for the deliverable.
+
 Work Order: work-order-1781634385201-7-4
 Branch: factoryx/factory-edo-woodblock/work-order-1781634385201-7-4

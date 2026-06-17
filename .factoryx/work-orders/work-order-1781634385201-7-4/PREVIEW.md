@@ -33,5 +33,10 @@
 - Browser runtime verification (real chromium) is required and will be evidenced here + in VERIFICATION.md before human review is appropriate.
 - Total payload self-contained and light; works offline after load.
 
+## PR report (handoff repair)
+- Do not create another branch or PR. The canonical is https://github.com/ystackai/studio-edo-woodblock/pull/154 (already exists for commit dc44414 on factoryx/factory-edo-woodblock/work-order-1781634385201-7-4).
+- PR URL: https://github.com/ystackai/studio-edo-woodblock/pull/154
+- (Confirmed via public page: contains FactoryX Work Order Context, references the deliverable + feedback, has review-preview deploy.)
+
 Work Order: work-order-1781634385201-7-4
 Target deliverable: rekick-edo-inkblade-road-opening-slice-with-generated-assets-7236f90a
