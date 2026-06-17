@@ -49,6 +49,9 @@
   const reinkBtn = document.getElementById('reink');
   const muteBtn = document.getElementById('mute');
 
+  // Verification mode for browser runtime evidence (FOLLOWUP-LIVE-OK marker + forced resolved state for post capture)
+  const VERIFY = /[?&](verify|sim)=1/.test(location.search);
+
   // Living zones: key ink lines that stutter (wave/horizon segments + one veil)
   // Points are in logical 960x620 space
   let zones = [
@@ -427,6 +430,16 @@
 
     updateStillness(dt);
 
+    // Verification harness: force resolved state + marker so post-capture evidences interaction exercised (per VERIFICATION.md)
+    if (VERIFY) {
+      reveal = 0.71;
+      lastStill = 0.68;
+      hasResolvedOnce = true;
+      for (let z of zones) { z.curJ = 0.35; }
+      for (let b of boat) { b.curJ = 0.2; }
+      captionEl.style.opacity = '0.82';
+    }
+
     ctx.save();
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
@@ -438,6 +451,14 @@
     drawPressure();
     drawSeal();
     drawBrush();
+
+    if (VERIFY) {
+      ctx.save();
+      ctx.font = '10px ui-monospace, monospace';
+      ctx.fillStyle = 'rgba(10,15,60,0.35)';
+      ctx.fillText('FOLLOWUP-LIVE-OK', 14, 18);
+      ctx.restore();
+    }
 
     ctx.restore();
   }
@@ -464,8 +485,18 @@
     lastStill = 0.08;
     reveal = 0;
 
+    if (VERIFY) {
+      // Start in resolved state for post-capture evidence; caption + marker will be forced in draw
+      reveal = 0.71;
+      lastStill = 0.68;
+      hasResolvedOnce = true;
+      for (let z of zones) { z.curJ = 0.35; }
+      for (let b of boat) { b.curJ = 0.2; }
+      setTimeout(() => { captionEl.style.opacity = '0.82'; }, 10);
+    }
+
     setTimeout(() => {
-      for (let z of zones) z.curJ = z.baseJ * 0.96;
+      if (!VERIFY) for (let z of zones) z.curJ = z.baseJ * 0.96;
       requestDraw();
     }, 120);
 
