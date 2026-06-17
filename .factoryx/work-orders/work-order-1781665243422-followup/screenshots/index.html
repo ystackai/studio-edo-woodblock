@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidence — Mist settles on one carved horizon (work-order-1781665243422-followup)</title>
+<style>
+body { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#0f172a; color:#e2e8f0; margin:0; padding:24px; }
+h1 { font-size:14px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin:0 0 12px; }
+.grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap:18px; }
+.card { background:#1e2937; border:1px solid #334155; border-radius:4px; overflow:hidden; }
+.card img { width:100%; height:auto; display:block; background:#111827; }
+.meta { padding:8px 12px; font-size:11px; color:#94a3b8; }
+.note { margin:12px 0 24px; font-size:12px; line-height:1.5; color:#cbd5e1; max-width:860px; }
+</style>
+</head>
+<body>
+<h1>Browser runtime verification evidence — Mist settles on one carved horizon</h1>
+<p class="note">Direct entrypoint: <code>games/mist-settles-on-one-carved-horizon-5ca8e144/index.html</code> (via <code>.factoryx/preview-entrypoint</code>).<br>
+Ready = idle first paint (no gesture). Post = <code>?verify=1</code> forced sustained baren + cumulative settling + FOLLOWUP-LIVE-OK marker (gated harness, does not affect normal play or first screen).<br>
+Only dbus noise in logs (expected in this container); zero pageerror / uncaught / fetch / console errors from the game. Non-blank 953 kB captures.</p>
+<div class="grid">
+  <div class="card">
+    <img src="ready.png" alt="Ready / idle first screen — paper grain, authored horizon base, drifting mist as primary material, single wave horizon visible, no chrome, complete on first sight">
+    <div class="meta">ready.png — 953048 bytes — idle load, mist drifting, wave present, assets composited or fallback graceful</div>
+  </div>
+  <div class="card">
+    <img src="post-interact.png" alt="Post-interact (verify) — FOLLOWUP-LIVE-OK marker, forced high pressDepth + cumulative, local bleeds + mist reaction, deeper settled ink on horizon">
+    <div class="meta">post-interact.png — 952803 bytes — ?verify=1 exercised: marker visible, state forced resolved, bleeds present, mist thinned under baren zone</div>
+  </div>
+</div>
+<p class="note" style="margin-top:18px">Work Order: work-order-1781665243422-followup<br>Deliverable: mist-settles-on-one-carved-horizon-5ca8e144<br>Verification date: 2026-06-17</p>
+</body>
+</html>
