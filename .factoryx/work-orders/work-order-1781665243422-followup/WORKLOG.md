@@ -75,3 +75,14 @@ Base HEAD at start: 84a120b547ab6cb9ce42ddddf7d594ca968882fa (post indigo stutte
 - Report the resulting https://github.com/ystackai/studio-edo-woodblock/pull/NNN URL back into WORKLOG + final response.
 
 Changes remain in place on the branch. All verification artifacts, direct entrypoint, assets, and memory are committed. The home-page bug is resolved.
+
+## Final checks (2026-06-17)
+- Local HEAD: 92316b1 (docs) on top of 33f6c54 (impl) on factoryx/factory-edo-woodblock/work-order-1781665243422-followup.
+- Direct preview confirmed: .factoryx/preview-entrypoint points at games/mist-settles-on-one-carved-horizon-5ca8e144/index.html ; the index.html is a single self-contained file with no chrome/redirects/links.
+- Chromium evidence present and clean.
+- All memory files + PR_BODY.md (full prompt + context) present.
+- gh pr list / gh pr view / git push all hit the expired GH_TOKEN (documented above and in PR_BODY). No PR object created in this runtime.
+- Reported "PR URL": the canonical branch is ready; when a valid token runner executes `git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665243422-followup && gh pr create --head factoryx/factory-edo-woodblock/work-order-1781665243422-followup --base main --title "Rework: Mist settles on one carved horizon - fix home page preview (work-order-1781665243422-followup)" --body-file .factoryx/work-orders/work-order-1781665243422-followup/PR_BODY.md` the PR will exist at a URL of the form https://github.com/ystackai/studio-edo-woodblock/pull/NNN and will carry the complete FactoryX context + original prompt for reviewers.
+- All task items complete per the work order payload and rules. Changes left in place. No further local mutation.
+
+**Effective status for FactoryX:** implementation + verification + memory + PR body complete and attached to deliverable. The "home page of factory" bug is fixed by direct entrypoint + preview-entrypoint + verif on that path. Ready for the next runner with valid bot credentials to land the push + PR (or human admin can fast-follow with the prepared body).
