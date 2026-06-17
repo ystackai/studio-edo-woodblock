@@ -54,8 +54,10 @@
 - Verified at each gate: after assets, after first playable canvas, after audio, full verif run before push.
 
 ## Blockers encountered / resolved
-- (none yet; images gen + code + verif planned in one flow)
-- Note on branch guard: will fetch/rebase if needed before push; pre-push hook will enforce.
+- Artifact implementation and verification are complete: images, code, browser evidence, 9/9 checklist, house style, asset contract, and taste gate all passed.
+- Runtime GitHub token handoff originally blocked push/PR creation, but operator repair later pushed the canonical branch and opened PR #157.
+- Current PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 at commit a24cb54 on `factoryx/factory-edo-woodblock/work-order-1781665294727-followup`.
+- No remaining runtime blocker for this work order; continue from PR #157 if further review feedback arrives.
 
 ## Evidence so far
 - Assets generated: drops/indigo-stutter/assets/base-motif.jpg (201k), reveal-detail.jpg (403k) + ASSET_MANIFEST.md (real file-backed, provenance to this WO + feedback text).
@@ -64,6 +66,8 @@
 - .factoryx/preview-entrypoint written (points to drops/indigo-stutter/index.html).
 - Browser runtime verif (real chromium + xvfb): ready.png 620kB + post-interact.png 950kB (valid PNGs, non-blank, post delta confirms reveal asset + forced state + FOLLOWUP-LIVE-OK marker). Logs clean after filter (no pageerror/console/net/uncaught). 9/9 checklist green. See VERIFICATION.md + screenshots/.
 - All per asset_contract_v2, taste-gate, WORKFLOW, house style, and the verbatim feedback.
+- Commit: a24cb54 on factoryx/factory-edo-woodblock/work-order-1781665294727-followup (focused; 17 files, net improvement for feedback).
+- PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (opened by operator repair after the runtime token handoff failed).
 
 Work Order: work-order-1781665294727-followup
-Next: inspect PR, commit, push, open/update PR with full context (step 9)
+Status: implementation complete, verification clean, branch pushed, PR #157 opened, preview published, and work order closed.

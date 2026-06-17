@@ -2,7 +2,7 @@
 
 **Review Work Order:** work-order-1781665294727-followup
 **Canonical entrypoint:** `drops/indigo-stutter/index.html`
-**Target PR:** (to be created/updated on push; see WORKLOG for URL)
+**Target PR:** https://github.com/ystackai/studio-edo-woodblock/pull/157
 
 ## How to preview (for human reviewers of the PR)
 - Direct: open `drops/indigo-stutter/index.html` in a modern browser (file:// is valid and required for verification; also works when served under the drop path e.g. /edo-woodblock/drops/indigo-stutter/).
