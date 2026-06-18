@@ -47,8 +47,15 @@
 ## Evidence checkpoints
 - 20 GLB files committed and listed in manifest with provenance.
 - Live preview opens the 3D models directly (no "go to assets" tab).
-- Browser verification passes with actual shaded geometry from the .glb binaries.
+- Browser verification passes with actual shaded geometry from the .glb binaries (chromium swiftshader captures + static checks + node verify snippet).
 - A reviewer can select any of the 20, orbit, stage the instant, and see intentional differentiated 3D forms.
+- Verification run: `npm test --if-present` passes after installing declared Playwright browser cache in the worker container; output includes `PASS: 20 GLB models present for kawanakajima` and `All verifications passed.`
+
+## Push
+- GLB delivery commit: `788e46e`.
+- Follow-up verification commit moves `verify.js` result handling after the Kawanakajima 3D checks so the asset checks actually execute before `process.exit`.
+- `git push origin HEAD:factoryx/factory-edo-woodblock/work-order` executed through a short-lived GitHub App installation token minted inside the trusted daemon.
+- No parallel branches created.
 
 All durable artifacts live only under `.factoryx/work-orders/work-order-1781810487033-7-1/`.
 

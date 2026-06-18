@@ -125,16 +125,6 @@ if (execSync) {
   }
 }
 
-// Output
-if (errors.length === 0) {
-  console.log('✅ All verifications passed.');
-  process.exit(0);
-} else {
-  console.log(`❌ ${errors.length} verification(s) failed:\n`);
-  errors.forEach(e => console.log('  ' + e));
-  process.exit(1);
-}
-
 // --- Floating Score polish checks ---
 check('drops/floating-score/index.html',
   { name: 'has Web Audio API (playTone)', test: c => c.includes('playTone') },
@@ -181,5 +171,13 @@ check('games/94-kawanakajima/index.html',
   });
 })();
 
-
-
+// Output
+if (errors.length === 0) {
+  console.log("All verifications passed.");
+  process.exit(0);
+} else {
+  console.log(`${errors.length} verification(s) failed:
+`);
+  errors.forEach(e => console.log("  " + e));
+  process.exit(1);
+}
