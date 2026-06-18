@@ -1,9 +1,8 @@
 {
   "scripts": {
-    "test": "bash verify.sh && node verify.js",
-    "verify": "bash verify.sh && node verify.js"
+    "test": "node .factoryx/verify-living-print.mjs"
   },
   "dependencies": {
-    "playwright": "^1.60.0"
+    "puppeteer-core": "^25.1.0"
   }
 }
