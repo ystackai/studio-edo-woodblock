@@ -27,7 +27,7 @@
 - See `.factoryx/work-orders/work-order-1781810487033-7-1/VERIFICATION.md` + screenshots/.
 
 ## Preview / Review Instructions
-- Open `games/94-kawanakajima/index.html` (file:// or preview tree).
+- Open the factory preview tree or serve `games/94-kawanakajima/index.html` over HTTP; direct file:// is not a valid GLB fetch path for this page.
 - Drag either 3D canvas to orbit a model; use roster to load any of the 20 specific GLBs; Space or "THE INSTANT" to confront the pair.
 - 1-5 for quick pairs; V for views; R reset.
 - The 3D geometry (distinct crests/weapons) is the reviewable subject; screenshots demonstrate it.
@@ -41,3 +41,9 @@
 Definition of done items addressed; review questions satisfied (scope visible, interaction coherent <60s, assets intentional file-backed 3D, verification documented).
 
 Work Order: work-order-1781810487033-7-1
+
+
+### 2026-06-18 preview-render repair
+- Fixed a blank-preview failure where GLB files existed but the browser did not render them.
+- Added an HTTP-served Playwright regression that asserts seeded/swapped GLBs load and produce nonblank WebGL pixels.
+- Verified the public preview URL for `work-order-1781811296692-7-9` renders visible 3D samurai models.

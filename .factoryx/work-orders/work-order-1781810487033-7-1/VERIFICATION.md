@@ -2,7 +2,7 @@
 
 **Status:** Implementation complete. Real browser verification with WebGL + GLB loads required and executed.
 
-**Entrypoint:** games/94-kawanakajima/index.html (direct file:// load)
+**Entrypoint:** games/94-kawanakajima/index.html (served over HTTP/public preview; file:// does not exercise GLB fetches in Chromium)
 
 **Preview guard:** `.factoryx/preview-entrypoint` present with `games/94-kawanakajima/index.html`
 
@@ -21,10 +21,10 @@
      --virtual-time-budget=4200 --run-all-compositor-stages-before-draw \
      --window-size=1100,780 \
      --screenshot=.factoryx/work-orders/work-order-1781810487033-7-1/screenshots/ready.png \
-     "file:///workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/94-kawanakajima/index.html"
+     "http://127.0.0.1:<ephemeral>/games/94-kawanakajima/index.html"
    ```
    - Guard: no pageerror or uncaught during load + RAFs.
-   - Guard: successful relative fetch of .glb files (no 404).
+   - Guard: successful HTTP relative fetch of .glb files (no 404/requestfailed).
    - Capture shows non-blank 3D geometry (visible shaded meshes from the committed GLBs, not solid rect or 2D fallback).
    - `window.__KAWANAKAJIMA_3D_STATE` present with modelsLoaded containing at least the seeded keys, left/right populated.
 
@@ -40,7 +40,7 @@
    - Central assets are the file-backed GLBs (evidence: manifest + live renders + screenshots showing distinct crest/weapon geometry).
    - Sound sparse and gesture-gated (no autoplay).
    - Paper/ink frame, ma, restraint preserved around the 3D viewports.
-   - Works file:// and preview tree.
+   - Works when served through the factory preview tree; direct file:// is not accepted for this GLB-fetching page.
    - 60fps on modest hardware for simple static meshes + 2D overlays.
 
 ## Known limitations
@@ -61,9 +61,9 @@ Static checks:
 - index.html contains relative model paths, WebGL context, __KAWANAKAJIMA_3D_STATE exposure, orbit + load code.
 - No external net after load (all relative).
 
-Chromium command used (WebGL swiftshader, virtual time):
-  chromium --headless ... --use-gl=swiftshader --enable-webgl ... --screenshot=.../ready.png "file://.../games/94-kawanakajima/index.html"
-Same for inspected and post-instant (longer budget for swap + clash).
+Chromium command used (WebGL swiftshader, HTTP-served page):
+  node test-kawanakajima-3d.js
+The harness starts an ephemeral 127.0.0.1 static server, loads /games/94-kawanakajima/index.html, waits for seeded t1/u1, swaps to t4/u4, and asserts nonblank varied pixels in both WebGL canvases with no relevant console/request errors.
 
 No pageerror observed in run output; pngs contain rendered content (size confirms non-trivial paint).
 
@@ -75,3 +75,11 @@ No pageerror observed in run output; pngs contain rendered content (size confirm
 - All guards satisfied; ready for PR update and review.
 
 Work Order: work-order-1781810487033-7-1
+
+
+## Postmortem correction — 2026-06-18
+- The earlier verification language was wrong: `file://` screenshots do not prove the deployed GLB path, because Chromium fetch() cannot load the relative .glb files from file://.
+- The preview reached publication because static checks only proved files/headers existed, not that the browser could load and rasterize them.
+- Repaired runtime bugs: `setModel()` now maps model keys by clan (`t`/`u`) instead of viewport side (`left`/`right`); WebGL programs are cached per context with WeakMap; matrix multiplication now matches WebGL column-major uniforms; camera framing now centers the loaded models.
+- Added `test-kawanakajima-3d.js` and wired it into `verify.sh`, so the gate fails if seeded/swapped GLBs do not load and render nonblank pixels over HTTP.
+- Public preview was revalidated at work-order-1781811296692-7-9 with two visible GLB samurai, no current load errors, and thousands of non-background pixels per canvas.

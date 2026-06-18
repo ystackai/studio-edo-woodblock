@@ -13,6 +13,15 @@ else
   exit 1
 fi
 
+# --- Regression test: Kawanakajima 3D browser preview ---
+if [ -f "test-kawanakajima-3d.js" ]; then
+  echo "PASS: test-kawanakajima-3d.js exists"
+  node test-kawanakajima-3d.js || { echo "FAIL: test-kawanakajima-3d.js failed"; exit 1; }
+else
+  echo "FAIL: test-kawanakajima-3d.js not found"
+  exit 1
+fi
+
 # Check that the game HTML file exists
 FILE="drops/floating-score/index.html"
 if [ ! -f "$FILE" ]; then
@@ -140,7 +149,7 @@ else
 fi
 
 echo ""
-echo "=== All verifications passed ==="
+echo "=== Core Floating Score checks passed ==="
 
 # --- New polish checks ---
 
@@ -394,3 +403,5 @@ else
   echo "FAIL: missing toggleMute function"
   exit 1
 fi
+
+echo "=== All verifications passed ==="

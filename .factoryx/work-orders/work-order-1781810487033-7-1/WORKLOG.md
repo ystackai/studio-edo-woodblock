@@ -60,3 +60,10 @@
 All durable artifacts live only under `.factoryx/work-orders/work-order-1781810487033-7-1/`.
 
 Work Order: work-order-1781810487033-7-1
+
+
+## 2026-06-18 preview render failure repair
+- Investigated why Kawanakajima published with blank review panes despite 20 GLB files existing. Root cause was verification weakness plus three runtime bugs: side-based model lookup (`MODELS.l/r`) instead of clan-key lookup (`MODELS.t/u`), shared WebGL program cache across two contexts, and row-major matrix multiplication feeding column-major WebGL uniforms.
+- Replaced the invalid file:// claim with an HTTP-served Playwright regression (`test-kawanakajima-3d.js`). The test now loads the same relative asset path shape as the public preview, waits for seeded `t1/u1`, swaps to `t4/u4`, and asserts both WebGL canvases contain nonblank model pixels.
+- Ran `npm test --if-present` in the FactoryX runtime container; it passes with the new Kawanakajima browser gate.
+- Republished the corrected `games/94-kawanakajima` preview tree for work-order-1781811296692-7-9 and confirmed the public URL renders visible 3D samurai models.

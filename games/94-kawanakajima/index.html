@@ -112,7 +112,7 @@
   // === 3D: minimal GLB + WebGL (self-contained, no external deps) ===
   const glCanvases = { left: null, right: null };
   let glLeft = null, glRight = null;
-  let glPrograms = {};
+  const glPrograms = new WeakMap();
   let modelCache = {}; // key -> {pos, norm, col, idx, min, max}
   let loadedModels = { left: null, right: null };
   let camLeft = { yaw: 0.6, pitch: 0.15, dist: 2.6 };
@@ -192,8 +192,8 @@
   }
 
   function getProgram(gl) {
-    if (!glPrograms[gl]) glPrograms[gl] = makeProgram(gl);
-    return glPrograms[gl];
+    if (!glPrograms.has(gl)) glPrograms.set(gl, makeProgram(gl));
+    return glPrograms.get(gl);
   }
 
   function parseGLB(ab) {
@@ -261,7 +261,15 @@
   }
   function mat4Mul(a, b) {
     const o = new Float32Array(16);
-    for (let i=0;i<4;i++) for (let j=0;j<4;j++) o[i*4+j] = a[i*4]*b[j] + a[i*4+1]*b[4+j] + a[i*4+2]*b[8+j] + a[i*4+3]*b[12+j];
+    for (let col=0; col<4; col++) {
+      for (let row=0; row<4; row++) {
+        o[col*4+row] =
+          a[0*4+row] * b[col*4+0] +
+          a[1*4+row] * b[col*4+1] +
+          a[2*4+row] * b[col*4+2] +
+          a[3*4+row] * b[col*4+3];
+      }
+    }
     return o;
   }
   function mat4RotY(yaw) { const c=Math.cos(yaw),s=Math.sin(yaw); const m=new Float32Array(16); m[0]=c;m[2]=s;m[5]=1;m[8]=-s;m[10]=c;m[15]=1; return m; }
@@ -275,7 +283,7 @@
 
   function makeMVPMatrices(cam, aspect) {
     const eye = [ Math.sin(cam.yaw)*cam.dist*Math.cos(cam.pitch), Math.sin(cam.pitch)*cam.dist*0.7, Math.cos(cam.yaw)*cam.dist*Math.cos(cam.pitch) ];
-    const center = [0, 0.15, 0];
+    const center = [0, 0.48, 0];
     const up = [0,1,0];
     const view = mat4LookAt(eye, center, up);
     const proj = mat4Perspective(0.9, aspect, 0.1, 20);
@@ -297,7 +305,9 @@
   }
 
   async function setModel(which, key) { // which 'left'|'right'
-    const url = MODELS[which[0]][parseInt(key.slice(1))-1];
+    const clan = key[0];
+    const url = MODELS[clan]?.[parseInt(key.slice(1), 10)-1];
+    if (!url) throw new Error("unknown model key " + key + " for " + which);
     const data = await loadModel(key, url);
     const gl = (which === 'left' ? glLeft : glRight);
     const buf = uploadModel(gl, data);
@@ -305,7 +315,7 @@
     // auto frame
     const cam = (which==='left'? camLeft : camRight);
     const span = Math.max(data.max[0]-data.min[0], data.max[1]-data.min[1], data.max[2]-data.min[2]);
-    cam.dist = Math.max(1.8, span * 1.35);
+    cam.dist = Math.max(2.25, span * 1.6);
     render3D();
     return key;
   }
