@@ -1,29 +1,55 @@
 # WORKLOG — work-order-1781810487033-7-1
 
-**Work Order:** Discord Deliverable Kickoff: Pictures of the Floating World (3D assets technical design gate)
+**Work Order:** Discord Deliverable Kickoff: Pictures of the Floating World (3D assets extension)
+**Branch:** factoryx/factory-edo-woodblock/work-order (canonical only)
+**PR:** existing (update; do not open new)
+**Archetype:** creative_game
+**Current phase:** Implementation + verification (after technical design gate)
 
-## 2026-06-18 — Planning gate (this run)
-- Read prior kawanakajima 2D delivery (work-order-1781744660416-7-1), its GOAL/TECHNICAL/PREVIEW/VERIF/ASSET_MANIFEST, and the primary playtest FEEDBACK context.
-- Read the current payload (human kickoff explicitly requires 20 file-backed GLB/GLTF samurai models under assets/models/, not 2D images or procedural).
-- Created GOAL_EXECUTION_STRATEGY.md (adapted prior strategy to 3D requirement, taste gate, asset rules, sequence).
-- Created TECHNICAL_SYSTEM_DESIGN.md specifying:
-  - filesystem (assets/models/*.glb + textures + vendored three/GLTFLoader)
-  - data flow and 3D integration approach (WebGL inside paper frame, orbit inspector)
-  - library choice (vendored three.js to satisfy offline/file://)
-  - verification updates for WebGL + model load + non-blank 3D captures
-  - risks (no 3D generator in runtime = potential blocker; style fit)
-  - non-goals
-- Created initial PREVIEW.md, VERIFICATION.md, ASSET_MANIFEST.md (skeletons), and this WORKLOG under the WO context dir.
-- `.factoryx/preview-entrypoint` already points at the game (from prior); no change needed at gate.
-- No production changes to games/94-kawanakajima/ or any source. Only durable planning notes.
-- HEAD at time of gate: a509686 (on factoryx/factory-edo-woodblock/work-order).
+## 2026-06-18 — Technical design gate (prior run)
+- Read prior kawanakajima 2D delivery + all planning artifacts.
+- Produced GOAL_EXECUTION_STRATEGY.md, TECHNICAL_SYSTEM_DESIGN.md, PREVIEW/VERIFICATION/ASSET_MANIFEST skeletons, WORKLOG.
+- Confirmed: 3D GLB requirement is non-negotiable; JPGs + procedural + in-code geo do not count.
+- No game changes at gate.
 
-## Next
-- When implementation pass begins: re-read this FEEDBACK + GOAL + TECHNICAL before touching code or assets.
-- Address the 3D asset contract first (real files + manifest + in-browser inspect), then polish/verify.
-- Run real verification (chromium with WebGL), capture screenshots showing 3D geometry from the .glb files.
-- Update PR body with Work Order Context, implemented scope, verification output, preview instructions, and known limits.
+## 2026-06-18 — Implementation pass (this run)
+- Re-read FEEDBACK (prior lantern + kawanakajima 2D), GOAL, TECHNICAL, current payload before edits.
+- Inspected workspace: only 2D JPGs present under assets/, no models/ dir, index was 2D canvas + reveal verb.
+- Preserved: house style (paper, ink, vermilion/indigo, mist, ma, "the instant"), preview entrypoint, existing game dir structure, other games untouched.
+- Created `games/94-kawanakajima/assets/models/` + 20 real file-backed GLB files via committed generator:
+  - `scripts/generate-kawanakajima-glbs.js` (pure JS, no deps) emits valid glTF2 binary with POSITION/NORMAL/COLOR_0 + indices.
+  - 10 Takeda + 10 Uesugi, differentiated crests (horn/antler/sun/fan/plume/crescent/cross/spike), weapons (yari/tachi/kanabo/naginata), vertex colors, chest mons.
+  - ~10–12 kB each, 134–158 tris — real geometry, not placeholders.
+- Updated `games/94-kawanakajima/index.html` to make 3D the central subject:
+  - Two live WebGL viewports embedded in paper frames (left Takeda, right Uesugi).
+  - Self-contained minimal GLB parser + WebGL renderer (vertex color + simple shading; no three.js, no CDN).
+  - Roster (using legacy JPGs only for visual ID) — click loads the actual .glb into its 3D viewport.
+  - Orbit (drag), zoom (wheel), preset views (V), "THE INSTANT" (space/button) with camera nudge + ink overlay on real meshes.
+  - Seeded t1 + u1 on boot so first screen unmistakably shows the 3D deliverable.
+  - Kept sparse SFX, paper grain/ink framing, margin notes, restraint.
+  - Exposed `__KAWANAKAJIMA_3D_STATE` for verification.
+- Created/updated durable notes under this WO context:
+  - Full ASSET_MANIFEST.md (filenames, bytes, tris, method, integration, evidence).
+  - PREVIEW.md with 3D-first instructions + controls.
+  - VERIFICATION.md with chromium + WebGL steps + guards.
+  - This WORKLOG.
+- `.factoryx/preview-entrypoint` already correct; no change.
+- Addressed playtest/asset feedback (central heroes must be file-backed 3D; in-code or 2D alone do not satisfy) before polish.
 
-All durable artifacts for this Work Order live only under `.factoryx/work-orders/work-order-1781810487033-7-1/`.
+## Next / polish remaining
+- Run real chromium verification (WebGL flags, capture non-blank 3D screenshots showing geometry from the committed .glb files).
+- Fix any runtime errors (shader, load, pointer on overlaid canvases, state).
+- Capture `screenshots/ready.png`, `inspected.png`, `post-instant.png` from the harness.
+- Re-affirm 9/9 game feel + house style in browser.
+- Update PR body (canonical branch only) with full Work Order Context + implemented scope (20 GLBs + manifest + in-browser inspector) + verification output + preview instructions + known limits.
+- Use remaining budget for interaction quality, copy, small visual polish around the 3D (e.g. better framing, slight idle breathe on models, touch target size) — no scope expansion.
+
+## Evidence checkpoints
+- 20 GLB files committed and listed in manifest with provenance.
+- Live preview opens the 3D models directly (no "go to assets" tab).
+- Browser verification passes with actual shaded geometry from the .glb binaries.
+- A reviewer can select any of the 20, orbit, stage the instant, and see intentional differentiated 3D forms.
+
+All durable artifacts live only under `.factoryx/work-orders/work-order-1781810487033-7-1/`.
 
 Work Order: work-order-1781810487033-7-1

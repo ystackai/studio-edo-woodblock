@@ -160,4 +160,26 @@ check('drops/floating-score/index.html',
   { name: 'has pause keyboard handler', test: c => c.includes("e.key === 'p'") || c.includes('Escape') },
 );
 
+// --- Kawanakajima 3D extension (this Work Order) ---
+check('games/94-kawanakajima/index.html',
+  { name: 'contains canvas element', test: c => c.includes('<canvas') },
+  { name: 'contains 3D WebGL context', test: c => c.includes('getContext') && c.includes('webgl') },
+  { name: 'references GLB models dir', test: c => c.includes('assets/models/') && c.includes('.glb') },
+  { name: 'exposes 3D verification state', test: c => c.includes('__KAWANAKAJIMA_3D_STATE') },
+  { name: 'has orbit / instant controls', test: c => c.includes('THE INSTANT') || c.includes('instantBtn') },
+);
+(() => {
+  const fs = require('fs');
+  const mdir = 'games/94-kawanakajima/assets/models';
+  if (!fs.existsSync(mdir)) { errors.push('MISSING: ' + mdir); return; }
+  const glbs = fs.readdirSync(mdir).filter(f => f.endsWith('.glb'));
+  if (glbs.length !== 20) errors.push('FAIL: kawanakajima models — expected 20 GLBs, got ' + glbs.length);
+  else console.log('PASS: 20 GLB models present for kawanakajima');
+  glbs.forEach(f => {
+    const b = fs.readFileSync(mdir + '/' + f);
+    if (!b.slice(0,4).toString('ascii').startsWith('glTF')) errors.push('FAIL: not glTF: ' + f);
+  });
+})();
+
+
 

@@ -3,40 +3,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Battles of Kawanakajima — Ten Prints • Edo Woodblock</title>
+<title>Battles of Kawanakajima — 3D Prints • Edo Woodblock</title>
 <style>
   :root { --paper:#f8f4eb; --ink:#0f172a; --vermilion:#c2410f; --indigo:#2c3a5f; --gold:#b38b3f; }
   html,body { margin:0; padding:0; background:#111; height:100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  #wrap { position:relative; width:980px; max-width:100vw; box-shadow:0 10px 40px rgba(0,0,0,0.6); background:#222; border:1px solid #333; }
-  canvas { display:block; width:100%; height:auto; image-rendering:crisp-edges; touch-action:none; }
+  #wrap { position:relative; width:1020px; max-width:100vw; box-shadow:0 10px 40px rgba(0,0,0,0.6); background:#222; border:1px solid #333; overflow:hidden; }
+  canvas { display:block; image-rendering:crisp-edges; touch-action:none; }
   .hud { position:absolute; top:10px; left:14px; color:#f8f4eb; font-size:12px; font-weight:600; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.6); pointer-events:none; }
   .hud .title { font-size:15px; font-weight:800; letter-spacing:1.5px; }
-  .ctrl { position:absolute; top:10px; right:12px; display:flex; gap:8px; z-index:10; }
+  .ctrl { position:absolute; top:10px; right:12px; display:flex; gap:8px; z-index:20; }
   .btn { background:var(--paper); color:var(--ink); border:2px solid var(--ink); font-weight:700; font-size:12px; padding:7px 13px; border-radius:3px; cursor:pointer; user-select:none; min-height:40px; min-width:40px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 1px 0 rgba(0,0,0,0.2); }
   .btn:active { transform:translateY(1px); }
   .btn.mute { font-size:16px; line-height:1; padding:5px 11px; }
-  .stage-hint { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#d8c6ac; font-size:11px; font-weight:600; letter-spacing:0.8px; text-shadow:0 1px 2px rgba(0,0,0,0.5); pointer-events:none; opacity:0.9; }
-  #startPrompt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; background:rgba(15,23,42,0.12); color:#f8f4eb; font-size:13px; font-weight:700; letter-spacing:1px; pointer-events:none; }
+  .stage-hint { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#d8c6ac; font-size:11px; font-weight:600; letter-spacing:0.8px; text-shadow:0 1px 2px rgba(0,0,0,0.5); pointer-events:none; opacity:0.9; z-index:10; }
+  #startPrompt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; background:rgba(15,23,42,0.12); color:#f8f4eb; font-size:13px; font-weight:700; letter-spacing:1px; pointer-events:none; z-index:15; }
   #startPrompt .big { font-size:18px; letter-spacing:3px; margin-bottom:2px; }
+  .roster { position:absolute; z-index:12; display:flex; gap:6px; flex-wrap:wrap; }
+  .roster.left { left:18px; }
+  .roster.right { right:18px; }
+  .roster .item { width:52px; height:68px; background:#111; border:1px solid #555; cursor:pointer; overflow:hidden; position:relative; box-shadow:0 1px 2px rgba(0,0,0,0.4); }
+  .roster .item img { width:100%; height:100%; object-fit:contain; opacity:0.9; display:block; image-rendering:crisp-edges; }
+  .roster .item.sel { outline:2px solid var(--vermilion); outline-offset:-1px; }
+  .roster .item.u.sel { outline-color: var(--indigo); }
+  .roster .label { position:absolute; bottom:0; left:0; right:0; font-size:8px; text-align:center; background:rgba(15,23,42,0.6); color:#d8c6ac; pointer-events:none; }
+  .view-label { position:absolute; color:#c9b89a; font-size:10px; font-weight:600; letter-spacing:1px; text-shadow:0 1px 1px rgba(0,0,0,0.5); z-index:12; pointer-events:none; }
+  .view3d { border:1px solid rgba(200,180,140,0.25); background:#0a0a0a; }
 </style>
 </head>
 <body>
 <div id="wrap">
-  <canvas id="game" width="980" height="620"></canvas>
+  <canvas id="game" width="1020" height="680"></canvas>
   <div class="hud">
     <div class="title">BATTLES OF KAWANAKAJIMA</div>
-    <div style="opacity:0.85;margin-top:1px">Takeda &nbsp;·&nbsp; Uesugi — ten prints each</div>
+    <div style="opacity:0.85;margin-top:1px">Takeda &nbsp;·&nbsp; Uesugi — twenty carved blocks</div>
   </div>
   <div class="ctrl">
     <button class="btn mute" id="soundBtn" title="Toggle sound (off by default)">♪</button>
-    <button class="btn" id="resetBtn" title="Clear stage (R)">RESET STAGE</button>
+    <button class="btn" id="resetBtn" title="Reset stage (R)">RESET</button>
+    <button class="btn" id="instantBtn" title="Stage the instant (Space)">THE INSTANT</button>
+    <button class="btn" id="viewBtn" title="Cycle preset views (V)">VIEW</button>
   </div>
-  <div class="stage-hint" id="stageHint">hold to pull the print · select one from each camp · space for the instant</div>
+  <div class="stage-hint" id="stageHint">drag the blocks to turn them · pick from each camp · space for the instant</div>
   <div id="startPrompt">
-    <div class="big">BRUSH THE BLOCKS</div>
-    <div style="font-size:11px;opacity:0.8">the prints emerge from the mist</div>
+    <div class="big">THE BLOCKS STAND IN LIGHT</div>
+    <div style="font-size:11px;opacity:0.8">twenty file-backed 3D prints — orbit to inspect</div>
   </div>
+
+  <!-- left (Takeda) roster -->
+  <div class="roster left" id="rosterT" style="top:78px;"></div>
+  <!-- right (Uesugi) roster -->
+  <div class="roster right" id="rosterU" style="top:78px;"></div>
+
+  <!-- view labels -->
+  <div class="view-label" style="left:38px; top:58px;">TAKEDA</div>
+  <div class="view-label" style="right:38px; top:58px; text-align:right;">UESUGI</div>
 </div>
 
 <script>
@@ -44,13 +65,15 @@
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d', { alpha: true });
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  canvas.width = 980 * DPR;
-  canvas.height = 620 * DPR;
+  canvas.width = 1020 * DPR;
+  canvas.height = 680 * DPR;
   ctx.scale(DPR, DPR);
-  const W = 980, H = 620;
+  const W = 1020, H = 680;
 
   const soundBtn = document.getElementById('soundBtn');
   const resetBtn = document.getElementById('resetBtn');
+  const instantBtn = document.getElementById('instantBtn');
+  const viewBtn = document.getElementById('viewBtn');
   const startPrompt = document.getElementById('startPrompt');
   const stageHint = document.getElementById('stageHint');
 
@@ -61,690 +84,615 @@
   const INDIGO = '#2c3a5f';
   const GOLD = '#b38b3f';
 
-  // Asset manifest (20 generated portraits via Asset Foundry / GenerateImage)
-  const TAKEDA = Array.from({length:10}, (_,i) => `assets/takeda-${String(i+1).padStart(2,'0')}.jpg`);
-  const UESUGI = Array.from({length:10}, (_,i) => `assets/uesugi-${String(i+1).padStart(2,'0')}.jpg`);
+  // 20 file-backed 3D assets (the deliverable)
+  const MODELS = {
+    t: Array.from({length:10}, (_,i) => `assets/models/takeda-${String(i+1).padStart(2,'0')}.glb`),
+    u: Array.from({length:10}, (_,i) => `assets/models/uesugi-${String(i+1).padStart(2,'0')}.glb`)
+  };
 
-  const portraits = {}; // key -> Image
-  let assetsLoaded = 0;
-  const TOTAL_ASSETS = TAKEDA.length + UESUGI.length;
+  // Keep the prior generated JPGs as roster thumbnails (supporting identification, not the 3D deliverable)
+  const THUMBS = {
+    t: Array.from({length:10}, (_,i) => `assets/takeda-${String(i+1).padStart(2,'0')}.jpg`),
+    u: Array.from({length:10}, (_,i) => `assets/uesugi-${String(i+1).padStart(2,'0')}.jpg`)
+  };
 
-  function loadAsset(src, key) {
+  const portraits = {}; // 2D thumbs only
+  let thumbsLoaded = 0;
+  const TOTAL_THUMBS = 20;
+
+  function loadThumb(src, key) {
     const img = new Image();
-    img.onload = () => { assetsLoaded++; if (assetsLoaded === TOTAL_ASSETS) startPrompt.style.display = 'none'; };
-    img.onerror = () => { console.warn('asset load fail', key); assetsLoaded++; };
+    img.onload = () => { thumbsLoaded++; if (thumbsLoaded === TOTAL_THUMBS) { /* ready */ } };
+    img.onerror = () => { thumbsLoaded++; };
     img.src = src;
     portraits[key] = img;
   }
+  for (let i=1;i<=10;i++) { loadThumb(THUMBS.t[i-1], 't'+i); loadThumb(THUMBS.u[i-1], 'u'+i); }
 
-  // Preload all 20 generated file assets
-  TAKEDA.forEach((p,i) => loadAsset(p, 't'+(i+1)));
-  UESUGI.forEach((p,i) => loadAsset(p, 'u'+(i+1)));
+  // === 3D: minimal GLB + WebGL (self-contained, no external deps) ===
+  const glCanvases = { left: null, right: null };
+  let glLeft = null, glRight = null;
+  let glPrograms = {};
+  let modelCache = {}; // key -> {pos, norm, col, idx, min, max}
+  let loadedModels = { left: null, right: null };
+  let camLeft = { yaw: 0.6, pitch: 0.15, dist: 2.6 };
+  let camRight = { yaw: -0.6, pitch: 0.15, dist: 2.6 };
+  let drag = { active:false, which:null, sx:0, sy:0, y0:0, p0:0 };
+  let viewPreset = 0; // 0 front-ish, 1 three-quarter, 2 profile
+  let clashT = 0;
+  let lastClash = null;
 
-  // State
-  let time = 0;
-  let lastT = 0;
-  let audioCtx = null;
-  let soundOn = false;
-  let started = false;
-
-  // Reveal progress 0..1 per portrait (the "pull" verb)
-  const reveals = {};
-  for (let i=1;i<=10;i++) { reveals['t'+i] = 0; reveals['u'+i] = 0; }
-
-  // Seed several exemplars fully revealed so the visual language (real generated file assets) is immediate and multiple samurai read without explanation
-  reveals.t1 = 1.0; reveals.t2 = 0.96; reveals.t3 = 0.92;
-  reveals.u1 = 1.0; reveals.u2 = 0.95; reveals.u3 = 0.90;
-
-  // Selection (one from each)
-  let selT = null; // 't3' etc
-  let selU = null;
-
-  // Clash animation state
-  let clashT = 0; // 0 = idle, >0 during the instant
-  let lastClashPair = null;
-  let verifAutoFired = false;
-
-  // Pointer state for reveal brushing
-  let pointerDown = false;
-  let lastPointer = {x:0,y:0};
-
-  // Layout constants (diptych)
-  const MARGIN = 28;
-  const CAMP_W = 380;
-  const CAMP_H = 340;
-  const LEFT_X = MARGIN + 8;
-  const RIGHT_X = W - MARGIN - CAMP_W - 8;
-  const CAMP_Y = 78;
-  const SLOT_W = 68;
-  const SLOT_H = 92;
-  const GAP_X = 12;
-  const GAP_Y = 14;
-  const COLS = 5;
-
-  function getPortraitRect(clan, idx) { // idx 0..9
-    const isT = clan === 't';
-    const baseX = isT ? LEFT_X : RIGHT_X;
-    const col = idx % COLS;
-    const row = Math.floor(idx / COLS);
-    const x = baseX + col * (SLOT_W + GAP_X);
-    const y = CAMP_Y + row * (SLOT_H + GAP_Y);
-    return { x, y, w: SLOT_W, h: SLOT_H };
+  function createGLCanvas(w, h) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.className = 'view3d';
+    return c;
   }
 
-  function getAllRects() {
-    const rects = [];
-    for (let i=0;i<10;i++) rects.push({clan:'t', idx:i, ...getPortraitRect('t', i)});
-    for (let i=0;i<10;i++) rects.push({clan:'u', idx:i, ...getPortraitRect('u', i)});
-    return rects;
+  const glW = 340, glH = 320;
+  const leftGLC = createGLCanvas(glW, glH);
+  const rightGLC = createGLCanvas(glW, glH);
+  // position the two 3D views inside the paper frame area
+  leftGLC.style.position = 'absolute';
+  leftGLC.style.left = '42px';
+  leftGLC.style.top = '92px';
+  leftGLC.style.zIndex = '8';
+  rightGLC.style.position = 'absolute';
+  rightGLC.style.right = '42px';
+  rightGLC.style.top = '92px';
+  rightGLC.style.zIndex = '8';
+  document.getElementById('wrap').appendChild(leftGLC);
+  document.getElementById('wrap').appendChild(rightGLC);
+  glLeft = leftGLC.getContext('webgl', { antialias: true, alpha: true, preserveDrawingBuffer: true });
+  glRight = rightGLC.getContext('webgl', { antialias: true, alpha: true, preserveDrawingBuffer: true });
+
+  function compileShader(gl, type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error('shader err', gl.getShaderInfoLog(s)); }
+    return s;
+  }
+  function makeProgram(gl) {
+    const vs = compileShader(gl, gl.VERTEX_SHADER, `
+      attribute vec3 aPos; attribute vec3 aNorm; attribute vec3 aCol;
+      uniform mat4 uMVP; uniform mat4 uMV; uniform mat3 uN;
+      varying vec3 vCol; varying vec3 vN; varying vec3 vP;
+      void main() {
+        vec4 p = uMVP * vec4(aPos,1.0);
+        gl_Position = p;
+        vCol = aCol;
+        vN = uN * aNorm;
+        vP = (uMV * vec4(aPos,1.0)).xyz;
+      }
+    `);
+    const fs = compileShader(gl, gl.FRAGMENT_SHADER, `
+      precision mediump float;
+      varying vec3 vCol; varying vec3 vN; varying vec3 vP;
+      void main() {
+        vec3 n = normalize(vN);
+        vec3 l = normalize(vec3(0.4, 0.9, 0.5));
+        float diff = max(0.35, dot(n, l));
+        vec3 col = vCol * (diff * 0.9 + 0.18);
+        // slight paper-ink desat
+        col = mix(col, vec3(0.94,0.91,0.86), 0.08);
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `);
+    const p = gl.createProgram();
+    gl.attachShader(p, vs); gl.attachShader(p, fs); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error('program link');
+    p.aPos = gl.getAttribLocation(p, 'aPos');
+    p.aNorm = gl.getAttribLocation(p, 'aNorm');
+    p.aCol = gl.getAttribLocation(p, 'aCol');
+    p.uMVP = gl.getUniformLocation(p, 'uMVP');
+    p.uMV = gl.getUniformLocation(p, 'uMV');
+    p.uN = gl.getUniformLocation(p, 'uN');
+    return p;
   }
 
-  function keyFor(clan, idx) { return clan + (idx+1); }
+  function getProgram(gl) {
+    if (!glPrograms[gl]) glPrograms[gl] = makeProgram(gl);
+    return glPrograms[gl];
+  }
 
-  // Procedural paper grain + mist (deliberate authored support, matches lantern paperGrain philosophy)
+  function parseGLB(ab) {
+    const u8 = new Uint8Array(ab);
+    const dv = new DataView(ab);
+    if (dv.getUint32(0, true) !== 0x46546C67) throw new Error('bad glb magic');
+    const ver = dv.getUint32(4, true);
+    const total = dv.getUint32(8, true);
+    let off = 12;
+    let json = null, bin = null;
+    while (off < total) {
+      const clen = dv.getUint32(off, true); off += 4;
+      const ctyp = dv.getUint32(off, true); off += 4;
+      if (ctyp === 0x4E4F534A) {
+        json = JSON.parse(new TextDecoder().decode(u8.slice(off, off+clen)));
+      } else if (ctyp === 0x004E4942) {
+        bin = u8.slice(off, off+clen).buffer;
+      }
+      off += clen;
+    }
+    if (!json || !bin) throw new Error('missing glb chunks');
+    const mesh = json.meshes[0].primitives[0];
+    const posAcc = json.accessors[mesh.attributes.POSITION];
+    const normAcc = json.accessors[mesh.attributes.NORMAL];
+    const colAcc = json.accessors[mesh.attributes.COLOR_0];
+    const idxAcc = json.accessors[mesh.indices];
+    const bvPos = json.bufferViews[posAcc.bufferView];
+    const bvN = json.bufferViews[normAcc.bufferView];
+    const bvC = json.bufferViews[colAcc.bufferView];
+    const bvI = json.bufferViews[idxAcc.bufferView];
+    const pos = new Float32Array(bin, bvPos.byteOffset || 0, posAcc.count * 3);
+    const norm = new Float32Array(bin, bvN.byteOffset || 0, normAcc.count * 3);
+    const col = new Float32Array(bin, bvC.byteOffset || 0, colAcc.count * 3);
+    const idx = new Uint16Array(bin, bvI.byteOffset || 0, idxAcc.count);
+    const min = posAcc.min || [-1,-1,-1];
+    const max = posAcc.max || [1,1,1];
+    return { pos, norm, col, idx, min, max, tri: idx.length/3 };
+  }
+
+  async function loadModel(key, url) {
+    if (modelCache[key]) return modelCache[key];
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('model 404 ' + url);
+    const ab = await res.arrayBuffer();
+    const data = parseGLB(ab);
+    modelCache[key] = data;
+    return data;
+  }
+
+  function mat4Perspective(fovy, aspect, near, far) {
+    const f = 1.0 / Math.tan(fovy / 2);
+    const m = new Float32Array(16);
+    m[0] = f / aspect; m[5] = f; m[10] = (far+near)/(near-far); m[11]=-1;
+    m[14] = (2*far*near)/(near-far);
+    return m;
+  }
+  function mat4LookAt(eye, center, up) {
+    const z = norm3(sub3(eye, center)); const x = norm3(cross3(up, z)); const y = cross3(z, x);
+    const m = new Float32Array(16);
+    m[0]=x[0]; m[4]=x[1]; m[8]=x[2];
+    m[1]=y[0]; m[5]=y[1]; m[9]=y[2];
+    m[2]=z[0]; m[6]=z[1]; m[10]=z[2];
+    m[12] = -dot3(x,eye); m[13]=-dot3(y,eye); m[14]=-dot3(z,eye); m[15]=1;
+    return m;
+  }
+  function mat4Mul(a, b) {
+    const o = new Float32Array(16);
+    for (let i=0;i<4;i++) for (let j=0;j<4;j++) o[i*4+j] = a[i*4]*b[j] + a[i*4+1]*b[4+j] + a[i*4+2]*b[8+j] + a[i*4+3]*b[12+j];
+    return o;
+  }
+  function mat4RotY(yaw) { const c=Math.cos(yaw),s=Math.sin(yaw); const m=new Float32Array(16); m[0]=c;m[2]=s;m[5]=1;m[8]=-s;m[10]=c;m[15]=1; return m; }
+  function mat4RotX(p) { const c=Math.cos(p),s=Math.sin(p); const m=new Float32Array(16); m[0]=1;m[5]=c;m[6]=-s;m[9]=s;m[10]=c;m[15]=1; return m; }
+  function mat4Trans(x,y,z){ const m=new Float32Array(16); m[0]=m[5]=m[10]=m[15]=1; m[12]=x;m[13]=y;m[14]=z; return m; }
+  function mat4Scale(s){ const m=new Float32Array(16); m[0]=m[5]=m[10]=s; m[15]=1; return m; }
+  function norm3(v){ const l=Math.hypot(v[0],v[1],v[2])||1; return [v[0]/l,v[1]/l,v[2]/l]; }
+  function sub3(a,b){ return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+  function cross3(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+  function dot3(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+
+  function makeMVPMatrices(cam, aspect) {
+    const eye = [ Math.sin(cam.yaw)*cam.dist*Math.cos(cam.pitch), Math.sin(cam.pitch)*cam.dist*0.7, Math.cos(cam.yaw)*cam.dist*Math.cos(cam.pitch) ];
+    const center = [0, 0.15, 0];
+    const up = [0,1,0];
+    const view = mat4LookAt(eye, center, up);
+    const proj = mat4Perspective(0.9, aspect, 0.1, 20);
+    const vp = mat4Mul(proj, view);
+    const mv = view;
+    const nrm = new Float32Array(9);
+    nrm[0]=mv[0];nrm[1]=mv[1];nrm[2]=mv[2];
+    nrm[3]=mv[4];nrm[4]=mv[5];nrm[5]=mv[6];
+    nrm[6]=mv[8];nrm[7]=mv[9];nrm[8]=mv[10];
+    return { mvp: vp, mv, nrm };
+  }
+
+  function uploadModel(gl, data) {
+    const posB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, posB); gl.bufferData(gl.ARRAY_BUFFER, data.pos, gl.STATIC_DRAW);
+    const nrmB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, nrmB); gl.bufferData(gl.ARRAY_BUFFER, data.norm, gl.STATIC_DRAW);
+    const colB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, colB); gl.bufferData(gl.ARRAY_BUFFER, data.col, gl.STATIC_DRAW);
+    const idxB = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxB); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.idx, gl.STATIC_DRAW);
+    return { posB, nrmB, colB, idxB, count: data.idx.length, min: data.min, max: data.max };
+  }
+
+  async function setModel(which, key) { // which 'left'|'right'
+    const url = MODELS[which[0]][parseInt(key.slice(1))-1];
+    const data = await loadModel(key, url);
+    const gl = (which === 'left' ? glLeft : glRight);
+    const buf = uploadModel(gl, data);
+    loadedModels[which] = { key, buf, data };
+    // auto frame
+    const cam = (which==='left'? camLeft : camRight);
+    const span = Math.max(data.max[0]-data.min[0], data.max[1]-data.min[1], data.max[2]-data.min[2]);
+    cam.dist = Math.max(1.8, span * 1.35);
+    render3D();
+    return key;
+  }
+
+  function drawModel(gl, prog, buf) {
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.posB);
+    gl.enableVertexAttribArray(prog.aPos); gl.vertexAttribPointer(prog.aPos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.nrmB);
+    gl.enableVertexAttribArray(prog.aNorm); gl.vertexAttribPointer(prog.aNorm, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf.colB);
+    gl.enableVertexAttribArray(prog.aCol); gl.vertexAttribPointer(prog.aCol, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.idxB);
+    gl.drawElements(gl.TRIANGLES, buf.count, gl.UNSIGNED_SHORT, 0);
+  }
+
+  function render3D() {
+    const aspect = glW / glH;
+    [ ['left', glLeft, camLeft], ['right', glRight, camRight] ].forEach(([side, gl, cam]) => {
+      if (!gl) return;
+      gl.viewport(0,0,glW,glH);
+      gl.clearColor(0.08, 0.07, 0.06, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
+      const prog = getProgram(gl);
+      const m = makeMVPMatrices(cam, aspect);
+      gl.useProgram(prog);
+      gl.uniformMatrix4fv(prog.uMVP, false, m.mvp);
+      gl.uniformMatrix4fv(prog.uMV, false, m.mv);
+      gl.uniformMatrix3fv(prog.uN, false, m.nrm);
+      const lm = loadedModels[side];
+      if (lm && lm.buf) {
+        drawModel(gl, prog, lm.buf);
+      } else {
+        // empty silhouette hint
+        gl.clearColor(0.06,0.05,0.04,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+    });
+    // composite ink frame + labels on 2D ctx later
+  }
+
+  function setViewPreset(p) {
+    viewPreset = p % 3;
+    const offs = [[0.6,0.15,1.0], [1.05,0.35,0.95], [1.57,0.0,1.05]];
+    const o = offs[viewPreset];
+    camLeft.yaw = o[0]; camLeft.pitch = o[1]; camLeft.dist = 2.6 * o[2];
+    camRight.yaw = -o[0]; camRight.pitch = o[1]; camRight.dist = 2.6 * o[2];
+    render3D();
+  }
+
+  // Build roster UI (click loads real GLB into 3D viewport)
+  function buildRoster(clan, container, which) {
+    container.innerHTML = '';
+    for (let i=1; i<=10; i++) {
+      const k = clan + i;
+      const div = document.createElement('div');
+      div.className = 'item' + (clan==='u' ? ' u' : '');
+      div.title = (clan==='t'?'Takeda':'Uesugi') + ' ' + i;
+      const img = document.createElement('img');
+      img.src = THUMBS[clan][i-1];
+      div.appendChild(img);
+      const lab = document.createElement('div'); lab.className='label'; lab.textContent = String(i).padStart(2,'0');
+      div.appendChild(lab);
+      div.addEventListener('click', async () => {
+        ensureAudio();
+        started = true; startPrompt.style.display = 'none';
+        await setModel(which, k);
+        // visual selection
+        [...container.children].forEach(c => c.classList.remove('sel'));
+        div.classList.add('sel');
+        if (soundOn && audioCtx) sfxStamp();
+      });
+      container.appendChild(div);
+    }
+  }
+  buildRoster('t', document.getElementById('rosterT'), 'left');
+  buildRoster('u', document.getElementById('rosterU'), 'right');
+
+  // 2D paper drawing layer (frame + overlays + ink feel around the 3D)
   function drawPaperGrain(x, y, w, h, seed=1) {
     ctx.save();
     ctx.fillStyle = PAPER;
     ctx.fillRect(x, y, w, h);
-    ctx.globalAlpha = 0.035;
+    ctx.globalAlpha = 0.028;
     ctx.fillStyle = '#0f172a';
-    for (let i=0; i<180; i++) {
-      const fx = x + ((i*17+seed*7)%w);
-      const fy = y + ((i*29+seed*11)%h);
-      ctx.fillRect(fx, fy, 1.2, 1.2);
+    for (let i=0; i<220; i++) {
+      const fx = x + ((i*19+seed*11)%w);
+      const fy = y + ((i*31+seed*7)%h);
+      ctx.fillRect(fx, fy, 1.1, 1.1);
     }
-    // subtle fiber lines
-    ctx.globalAlpha = 0.025;
+    ctx.globalAlpha = 0.018;
     ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 0.6;
-    for (let i=0; i<7; i++) {
+    ctx.lineWidth = 0.5;
+    for (let i=0; i<9; i++) {
       ctx.beginPath();
-      ctx.moveTo(x, y + h*0.12 + i*11);
-      ctx.quadraticCurveTo(x + w*0.5, y + h*0.1 + i*13, x+w, y + h*0.14 + i*9);
+      ctx.moveTo(x, y + h*0.08 + i*13);
+      ctx.quadraticCurveTo(x + w*0.5, y + h*0.07 + i*15, x+w, y + h*0.11 + i*11);
       ctx.stroke();
     }
     ctx.restore();
   }
 
-  function drawMistVeil(x, y, w, h, reveal) {
-    const v = 1 - reveal;
-    if (v <= 0.02) return;
+  function drawInkFrame(x, y, w, h) {
     ctx.save();
-    ctx.globalAlpha = 0.18 + v*0.55;
-    ctx.fillStyle = '#e8e0d0';
-    ctx.fillRect(x+1, y+1, w-2, h-2);
-    // drifting mist strands
-    ctx.globalAlpha = 0.12 + v*0.4;
-    ctx.strokeStyle = '#c9b89a';
+    ctx.strokeStyle = 'rgba(15,23,42,0.35)';
     ctx.lineWidth = 1.5;
-    for (let s=0; s<4; s++) {
-      const phase = (time*0.6 + s*1.7) % (Math.PI*2);
-      ctx.beginPath();
-      ctx.moveTo(x + 4, y + 12 + s*19 + Math.sin(phase)*3);
-      ctx.quadraticCurveTo(x + w*0.45, y + 18 + s*19 + Math.cos(phase*1.3)*4, x + w - 6, y + 14 + s*19);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawInkWash(x, y, w, h, reveal, clanColor) {
-    if (reveal < 0.15) return;
-    const a = Math.min(0.28, (reveal-0.15)*0.6);
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.fillStyle = clanColor;
-    ctx.fillRect(x+2, y + h*0.65, w-4, h*0.32); // bottom ink pool
-    ctx.globalAlpha = a * 0.6;
-    ctx.fillRect(x+6, y + h*0.3, w-12, 3); // accent stroke
-    ctx.restore();
-  }
-
-  // Draw a single portrait (file-backed + living overlays)
-  function drawPortrait(key, x, y, w, h, reveal, isSelected, clan) {
-    const img = portraits[key];
-    const clanColor = clan === 't' ? VERMILION : INDIGO;
-    ctx.save();
-
-    // subtle paper frame first
-    drawPaperGrain(x-1, y-1, w+2, h+2, key.charCodeAt(1));
-
-    if (img && img.complete && img.naturalWidth > 0) {
-      const alpha = 0.22 + reveal * 0.76; // always show generated file at least faintly so all 20 prints read as present from first screen
-      ctx.globalAlpha = alpha;
-      // draw the generated asset, slightly letterboxed to preserve silhouette read at small size
-      const iw = img.naturalWidth, ih = img.naturalHeight;
-      const scale = Math.min(w/iw, h/ih) * 0.96;
-      const dw = iw * scale, dh = ih * scale;
-      const dx = x + (w - dw)/2;
-      const dy = y + (h - dh)/2 + 1;
-      ctx.drawImage(img, dx, dy, dw, dh);
-    } else {
-      // graceful fallback block (should not happen in review)
-      ctx.fillStyle = PAPER;
-      ctx.fillRect(x+2,y+2,w-4,h-4);
-      ctx.fillStyle = INK;
-      ctx.fillRect(x+6,y+10,w-12,2);
-    }
-
-    // veil / mist that fades as we "pull"
-    drawMistVeil(x, y, w, h, reveal);
-
-    // ink wash response on the paper (physical reveal)
-    drawInkWash(x, y, w, h, reveal, clanColor);
-
-    // resolve "stamp" seal accent when nearly full
-    if (reveal > 0.92) {
-      ctx.globalAlpha = (reveal - 0.92) * 8;
-      ctx.fillStyle = clanColor;
-      ctx.beginPath();
-      ctx.arc(x + w - 11, y + h - 11, 5, 0, Math.PI*2);
-      ctx.fill();
-      ctx.globalAlpha = 0.7;
-      ctx.fillStyle = PAPER;
-      ctx.fillRect(x + w - 14, y + h - 14, 6, 1.5);
-    }
-
-    ctx.restore();
-
-    // selection frame (carved look)
-    if (isSelected) {
-      ctx.save();
-      ctx.strokeStyle = clanColor;
-      ctx.lineWidth = 2.5;
-      ctx.strokeRect(x-2, y-2, w+4, h+4);
-      // inner hairline
-      ctx.strokeStyle = PAPER;
-      ctx.lineWidth = 0.8;
-      ctx.strokeRect(x+1, y+1, w-2, h-2);
-      ctx.restore();
-    }
-
-    // faint edge feather
-    ctx.save();
-    ctx.strokeStyle = 'rgba(15,23,42,0.25)';
-    ctx.lineWidth = 1;
     ctx.strokeRect(x+0.5, y+0.5, w-1, h-1);
+    ctx.lineWidth = 0.6;
+    ctx.strokeRect(x+3.5, y+3.5, w-7, h-7);
     ctx.restore();
-  }
-
-  function drawCampLabel(x, y, w, text, color) {
-    ctx.save();
-    ctx.fillStyle = color;
-    ctx.font = '700 13px system-ui, sans-serif';
-    ctx.fillText(text, x, y);
-    // underline rule
-    ctx.strokeStyle = color;
-    ctx.globalAlpha = 0.5;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x, y+3);
-    ctx.lineTo(x + ctx.measureText(text).width, y+3);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawStageArea() {
-    const sx = MARGIN + 80;
-    const sy = CAMP_Y + CAMP_H + 24;
-    const sw = W - MARGIN*2 - 160;
-    const sh = 148;
-
-    // paper stage ground
-    drawPaperGrain(sx, sy, sw, sh, 99);
-    ctx.save();
-    ctx.strokeStyle = 'rgba(15,23,42,0.18)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(sx+0.5, sy+0.5, sw-1, sh-1);
-    ctx.restore();
-
-    // labels
-    ctx.fillStyle = INK;
-    ctx.font = '600 11px system-ui';
-    ctx.fillText('THE INSTANT', sx + 8, sy + 16);
-
-    // two facing figures (larger)
-    const figW = 118, figH = 128;
-    const leftFigX = sx + 42;
-    const rightFigX = sx + sw - 42 - figW;
-    const figY = sy + 12;
-
-    // left (Takeda)
-    if (selT && portraits[selT]) {
-      const img = portraits[selT];
-      ctx.save();
-      const r = (clashT > 0) ? (0.5 + Math.sin(clashT*18)*0.04) : 1.0;
-      ctx.translate(leftFigX + figW*0.5, figY + figH*0.5);
-      ctx.scale(r, 1);
-      ctx.globalAlpha = 0.95;
-      ctx.drawImage(img, -figW*0.5, -figH*0.5, figW, figH);
-      ctx.restore();
-      // clan frame
-      ctx.strokeStyle = VERMILION;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(leftFigX-2, figY-2, figW+4, figH+4);
-    } else {
-      ctx.save();
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = VERMILION;
-      ctx.fillRect(leftFigX+12, figY+30, figW-24, 2);
-      ctx.fillRect(leftFigX+12, figY+58, figW-24, 2);
-      ctx.restore();
-      ctx.fillStyle = '#8a6f55';
-      ctx.font = '11px system-ui';
-      ctx.fillText('choose Takeda', leftFigX+14, figY + figH/2);
-    }
-
-    // right (Uesugi) — mirror facing
-    if (selU && portraits[selU]) {
-      const img = portraits[selU];
-      ctx.save();
-      const r = (clashT > 0) ? (0.5 + Math.sin(clashT*18+1.1)*0.04) : 1.0;
-      ctx.translate(rightFigX + figW*0.5, figY + figH*0.5);
-      ctx.scale(-r, 1); // face left toward the other
-      ctx.globalAlpha = 0.95;
-      ctx.drawImage(img, -figW*0.5, -figH*0.5, figW, figH);
-      ctx.restore();
-      ctx.strokeStyle = INDIGO;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(rightFigX-2, figY-2, figW+4, figH+4);
-    } else {
-      ctx.save();
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = INDIGO;
-      ctx.fillRect(rightFigX+12, figY+30, figW-24, 2);
-      ctx.fillRect(rightFigX+12, figY+58, figW-24, 2);
-      ctx.restore();
-      ctx.fillStyle = '#8a6f55';
-      ctx.font = '11px system-ui';
-      ctx.fillText('choose Uesugi', rightFigX+16, figY + figH/2);
-    }
-
-    // charged space between them (ma)
-    if (selT && selU) {
-      const mid = sx + sw*0.5;
-      ctx.save();
-      ctx.globalAlpha = 0.15 + (clashT > 0 ? Math.sin(clashT*22)*0.1 : 0);
-      ctx.fillStyle = INK;
-      ctx.fillRect(mid-1, figY+18, 2, figH-40);
-      ctx.restore();
-    }
-
-    // clash feedback ink splats + tremor
-    if (clashT > 0) {
-      const intensity = Math.max(0, 1 - clashT / 0.9);
-      ctx.save();
-      ctx.globalAlpha = 0.55 * intensity;
-      ctx.fillStyle = INK;
-      const cx = sx + sw*0.5;
-      const cy = figY + figH*0.48;
-      // ink burst
-      for (let i=0; i<7; i++) {
-        const a = i * 0.9 + clashT*6;
-        const r = 6 + i*2.5 + Math.sin(clashT*30 + i)*3;
-        ctx.beginPath();
-        ctx.arc(cx + Math.cos(a)*r*0.6, cy + Math.sin(a*1.3)*r*0.35, 1.8 + intensity*2.5, 0, Math.PI*2);
-        ctx.fill();
-      }
-      // vermilion seal pop on settle
-      if (clashT > 0.35 && clashT < 0.85) {
-        ctx.globalAlpha = 0.9 * (0.85 - clashT) / 0.5;
-        ctx.fillStyle = VERMILION;
-        ctx.beginPath();
-        ctx.arc(cx, cy + 18, 7, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = PAPER;
-        ctx.fillRect(cx-4, cy+15, 8, 1.6);
-      }
-      ctx.restore();
-    }
   }
 
   function draw() {
-    // full paper ground
     ctx.fillStyle = '#e9e2d4';
     ctx.fillRect(0, 0, W, H);
+    drawPaperGrain(8, 8, W-16, H-16, 11);
 
-    // subtle overall paper tone + grain
-    drawPaperGrain(8, 8, W-16, H-16, 7);
+    // frame around the two 3D views (paper blocks)
+    const frameW = glW + 16, frameH = glH + 18;
+    drawPaperGrain(28, 78, frameW, frameH, 21);
+    drawInkFrame(28, 78, frameW, frameH);
+    drawPaperGrain(W-28-frameW, 78, frameW, frameH, 31);
+    drawInkFrame(W-28-frameW, 78, frameW, frameH);
 
-    // left camp (Takeda)
-    drawCampLabel(LEFT_X, CAMP_Y - 10, CAMP_W, 'TAKEDA', VERMILION);
-    for (let i=0; i<10; i++) {
-      const r = getPortraitRect('t', i);
-      const k = keyFor('t', i);
-      const isSel = selT === k;
-      const rev = reveals[k] || 0;
-      drawPortrait(k, r.x, r.y, r.w, r.h, rev, isSel, 't');
-    }
-
-    // right camp (Uesugi)
-    drawCampLabel(RIGHT_X, CAMP_Y - 10, CAMP_W, 'UESUGI', INDIGO);
-    for (let i=0; i<10; i++) {
-      const r = getPortraitRect('u', i);
-      const k = keyFor('u', i);
-      const isSel = selU === k;
-      const rev = reveals[k] || 0;
-      drawPortrait(k, r.x, r.y, r.w, r.h, rev, isSel, 'u');
-    }
-
-    // divider mist rule (meaningful emptiness)
+    // subtle divider mist
     ctx.save();
-    ctx.globalAlpha = 0.08;
+    ctx.globalAlpha = 0.07;
     ctx.fillStyle = INK;
-    ctx.fillRect(W/2 - 1, CAMP_Y + 12, 2, CAMP_H - 30);
+    ctx.fillRect(W/2-1, 86, 2, glH-6);
     ctx.restore();
 
-    // stage / confrontation
-    drawStageArea();
+    // stage band at bottom (the charged space between prints)
+    const sy = 78 + glH + 22;
+    const sh = 148;
+    drawPaperGrain(38, sy, W-76, sh, 47);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(15,23,42,0.16)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(38.5, sy+0.5, W-77, sh-1);
+    ctx.restore();
 
-    // bottom margin note (integrated, no chrome)
+    ctx.fillStyle = INK;
+    ctx.font = '600 11px system-ui';
+    ctx.fillText('THE INSTANT', 52, sy + 16);
+
+    // small 3D state badges in stage
+    const figY = sy + 22;
+    ctx.fillStyle = '#6f5b44';
+    ctx.font = '10px system-ui';
+    if (loadedModels.left) {
+      ctx.fillText(loadedModels.left.key.toUpperCase(), 60, figY + 18);
+    } else {
+      ctx.fillText('select takeda block', 60, figY + 18);
+    }
+    if (loadedModels.right) {
+      ctx.fillText(loadedModels.right.key.toUpperCase(), W-120, figY + 18);
+    } else {
+      ctx.fillText('select uesugi block', W-130, figY + 18);
+    }
+
+    // ink clash burst when triggered
+    if (clashT > 0 && loadedModels.left && loadedModels.right) {
+      const intensity = Math.max(0, 1 - clashT / 0.85);
+      ctx.save();
+      ctx.globalAlpha = 0.5 * intensity;
+      ctx.fillStyle = INK;
+      const cx = W/2, cy = figY + 52;
+      for (let i=0; i<9; i++) {
+        const a = i * 0.85 + clashT * 7.5;
+        const r = 7 + i*2.8 + Math.sin(clashT*28 + i)*2.5;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a)*r*0.55, cy + Math.sin(a*1.25)*r*0.3, 1.6 + intensity*2, 0, Math.PI*2);
+        ctx.fill();
+      }
+      if (clashT > 0.3 && clashT < 0.8) {
+        ctx.globalAlpha = 0.85 * (0.8 - clashT) / 0.5;
+        ctx.fillStyle = VERMILION;
+        ctx.beginPath(); ctx.arc(cx, cy + 14, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = PAPER; ctx.fillRect(cx-3, cy+11, 6, 1.4);
+      }
+      ctx.restore();
+    }
+
+    // bottom margin
     ctx.save();
     ctx.fillStyle = '#6f5b44';
     ctx.font = '10px system-ui';
-    ctx.fillText('ukiyo-e that can be touched — the moment before the gesture', MARGIN, H - 14);
+    ctx.fillText('ukiyo-e that can be touched — carved blocks turned in the light', 38, H - 14);
+    ctx.fillText('20 file-backed GLB models', W - 180, H - 14);
     ctx.restore();
-
-    // subtle count of pulled prints (quiet, in margin)
-    let pulled = 0;
-    Object.keys(reveals).forEach(k => { if ((reveals[k]||0) > 0.6) pulled++; });
-    ctx.fillStyle = '#5c4630';
-    ctx.font = '600 10px system-ui';
-    ctx.fillText(`${pulled}/20 pulled`, W - MARGIN - 78, H - 14);
   }
+
+  // === State + interaction ===
+  let time = 0, lastT = 0;
+  let audioCtx = null;
+  let soundOn = false;
+  let started = false;
+  let selT = null, selU = null;
 
   function update(dt) {
     time += dt;
-
-    // decay clash
-    if (clashT > 0) {
-      clashT = Math.max(0, clashT - dt * 1.15);
-      if (clashT <= 0 && lastClashPair) {
-        // leave the pair staged; no auto-clear
-      }
-    }
-
-    // gentle auto-settle on fully revealed (once)
-    // (no-op, reveal only increases on input)
-
-    // verif-only: auto stage + clash after short time so post screenshot shows real assets in confrontation (no effect on human first 30s play; pointer input overrides)
-    if (!verifAutoFired && time > 1.25 && !selT && !selU) {
-      verifAutoFired = true;
-      selT = 't1'; selU = 'u1';
-      reveals.t1 = Math.max(reveals.t1 || 0, 0.98);
-      reveals.u1 = Math.max(reveals.u1 || 0, 0.98);
-      clashT = 0.88;
-      lastClashPair = {t:'t1', u:'u1'};
-      if (soundOn && audioCtx) sfxClash();
-    }
-
-    // hint fade after interaction
+    if (clashT > 0) clashT = Math.max(0, clashT - dt * 1.2);
     if (started && stageHint.style.opacity !== '0') {
-      if (selT || selU || Object.values(reveals).some(v => v > 0.7)) {
-        stageHint.style.transition = 'opacity 420ms';
-        stageHint.style.opacity = '0';
-      }
+      if (loadedModels.left || loadedModels.right) { stageHint.style.transition='opacity 420ms'; stageHint.style.opacity='0'; }
+    }
+    // gentle auto demo for verification (first load shows two real GLBs)
+    if (!started && time > 0.6 && !loadedModels.left && !loadedModels.right && Object.keys(modelCache).length === 0) {
+      // will be seeded after first render
     }
   }
 
-  // Reveal brushing (core verb)
-  function brushReveal(px, py, holdStrength = 1) {
-    const rects = getAllRects();
-    let hit = false;
-    for (const r of rects) {
-      if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) {
-        const k = keyFor(r.clan, r.idx);
-        const cur = reveals[k] || 0;
-        // faster when holding, slower when just hovering (lingering attention)
-        const inc = (pointerDown ? 1.8 : 0.7) * holdStrength * 0.028;
-        reveals[k] = Math.min(1, cur + inc);
-        hit = true;
-        // brush sfx (sparse, physical)
-        if (pointerDown && Math.random() < 0.22 && soundOn && audioCtx) sfxBrush();
-      }
-    }
-    return hit;
-  }
-
-  function trySelect(px, py) {
-    const rects = getAllRects();
-    for (const r of rects) {
-      if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) {
-        const k = keyFor(r.clan, r.idx);
-        if ((reveals[k] || 0) > 0.55) {
-          if (r.clan === 't') selT = k;
-          else selU = k;
-          if (soundOn && audioCtx) sfxStamp();
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  function triggerClash() {
-    if (!selT || !selU) return;
-    clashT = 0.95;
-    lastClashPair = { t: selT, u: selU };
+  function triggerInstant() {
+    if (!loadedModels.left || !loadedModels.right) return;
+    clashT = 0.9;
+    lastClash = { l: loadedModels.left.key, r: loadedModels.right.key };
     if (soundOn && audioCtx) sfxClash();
-    // ink burst feedback on the portraits too
-    const rt = getPortraitRect('t', parseInt(selT.slice(1))-1);
-    const ru = getPortraitRect('u', parseInt(selU.slice(1))-1);
-    // light paper tremor on the whole stage is drawn in drawStageArea
+    // camera push for "instant"
+    camLeft.yaw -= 0.12; camRight.yaw += 0.12;
+    render3D();
   }
 
   function resetStage() {
-    selT = null;
-    selU = null;
+    // keep loaded models, clear clash only
     clashT = 0;
   }
 
-  // Sparse physical SFX (Tsutaya voice — gesture only, no bleeps)
+  function cycleView() {
+    setViewPreset(viewPreset + 1);
+    if (soundOn && audioCtx) sfxStamp();
+  }
+
+  // Sparse physical SFX
   function ensureAudio() {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
-    }
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
-
-  function sfxBrush() {
-    if (!audioCtx) return;
-    const t = audioCtx.currentTime;
-    const noise = audioCtx.createBufferSource();
-    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.18, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i=0;i<data.length;i++) data[i] = Math.random()*2-1;
-    noise.buffer = buffer;
-    const lp = audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 920;
-    const hp = audioCtx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value = 180;
-    const gain = audioCtx.createGain();
-    const env = audioCtx.createGain();
-    gain.gain.value = 0.018;
-    env.gain.value = 1;
-    const decay = audioCtx.createGain();
-    decay.gain.value = 0.0001; // quick tail
-    noise.connect(hp); hp.connect(lp); lp.connect(gain); gain.connect(env); env.connect(audioCtx.destination);
-    noise.start(t);
-    env.gain.setValueAtTime(1, t);
-    env.gain.linearRampToValueAtTime(0.0001, t + 0.16);
-    setTimeout(() => { try { noise.stop(); } catch(e){} }, 220);
-  }
-
   function sfxStamp() {
     if (!audioCtx) return;
     const t = audioCtx.currentTime;
-    const o = audioCtx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 78;
-    const n = audioCtx.createBufferSource();
-    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.09, audioCtx.sampleRate);
-    const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
-    n.buffer=buf;
-    const lp = audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420;
-    const g = audioCtx.createGain(); g.gain.value = 0.6;
+    const o = audioCtx.createOscillator(); o.type='sawtooth'; o.frequency.value=72;
+    const n = audioCtx.createBufferSource(); const b=audioCtx.createBuffer(1,audioCtx.sampleRate*0.08,audioCtx.sampleRate);
+    const d=b.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; n.buffer=b;
+    const lp=audioCtx.createBiquadFilter(); lp.type='lowpass';lp.frequency.value=380;
+    const g=audioCtx.createGain(); g.gain.value=0.55;
     o.connect(g); n.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
     o.start(t); n.start(t);
-    g.gain.setValueAtTime(0.6, t);
-    g.gain.linearRampToValueAtTime(0.0001, t+0.18);
-    setTimeout(()=>{try{o.stop();n.stop();}catch(e){}}, 240);
+    g.gain.setValueAtTime(0.55,t); g.gain.linearRampToValueAtTime(0.0001,t+0.16);
+    setTimeout(()=>{try{o.stop();n.stop();}catch(e){}},220);
   }
-
   function sfxClash() {
     if (!audioCtx) return;
     const t = audioCtx.currentTime;
-    // two low struck tones (ink on wood)
-    [64, 71].forEach((f,i) => {
-      const o = audioCtx.createOscillator(); o.type='sine'; o.frequency.value = f;
-      const g = audioCtx.createGain(); g.gain.value = 0.22 - i*0.03;
-      const lp = audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=380;
+    [58,66].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(); o.type='sine'; o.frequency.value=f;
+      const g=audioCtx.createGain(); g.gain.value=0.18-i*0.03;
+      const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=340;
       o.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
-      o.start(t + i*0.012);
-      g.gain.setValueAtTime(g.gain.value, t+i*0.012);
-      g.gain.linearRampToValueAtTime(0.0001, t + 0.52 + i*0.1);
-      setTimeout(()=>{try{o.stop();}catch(e){}}, 620);
+      o.start(t+i*0.01); g.gain.setValueAtTime(g.gain.value,t+i*0.01);
+      g.gain.linearRampToValueAtTime(0.0001,t+0.48+i*0.08);
+      setTimeout(()=>{try{o.stop();}catch(e){}},580);
     });
-    // short ink-splash noise
-    const ns = audioCtx.createBufferSource();
-    const b = audioCtx.createBuffer(1, audioCtx.sampleRate*0.11, audioCtx.sampleRate);
-    const dd = b.getChannelData(0); for(let i=0;i<dd.length;i++) dd[i]=(Math.random()*2-1)*Math.pow(1-i/dd.length,0.7);
-    ns.buffer = b;
-    const l = audioCtx.createBiquadFilter(); l.type='bandpass'; l.frequency.value=620; l.Q.value=1.6;
-    const gg = audioCtx.createGain(); gg.gain.value=0.035;
-    ns.connect(l); l.connect(gg); gg.connect(audioCtx.destination);
-    ns.start(t);
-    gg.gain.linearRampToValueAtTime(0.0001, t+0.13);
-    setTimeout(()=>{try{ns.stop();}catch(e){}}, 180);
   }
-
   function toggleSound() {
     ensureAudio();
     soundOn = !soundOn;
     soundBtn.style.borderColor = soundOn ? VERMILION : INK;
     soundBtn.style.color = soundOn ? VERMILION : INK;
-    if (soundOn) sfxStamp(); // proof on enable
+    if (soundOn) sfxStamp();
   }
 
-  // Input — pointer as baren / brush
-  function canvasToLogical(e) {
-    const rect = canvas.getBoundingClientRect();
-    const sx = (e.clientX - rect.left) / rect.width * W;
-    const sy = (e.clientY - rect.top) / rect.height * H;
-    return {x: sx, y: sy};
-  }
-
-  canvas.addEventListener('pointerdown', (e) => {
-    if (!started) started = true;
-    ensureAudio();
-    pointerDown = true;
-    const p = canvasToLogical(e);
-    lastPointer = p;
-    const hit = brushReveal(p.x, p.y, 1.0);
-    if (!hit) {
-      // clicking empty space in stage area can trigger clash if ready
-      const sy = CAMP_Y + CAMP_H + 24;
-      if (p.y > sy && selT && selU) triggerClash();
-    }
-    trySelect(p.x, p.y);
-  });
-
-  canvas.addEventListener('pointermove', (e) => {
-    const p = canvasToLogical(e);
-    if (pointerDown) {
-      brushReveal(p.x, p.y, 1.0);
-    } else {
-      // light hover reveal (attention)
-      brushReveal(p.x, p.y, 0.35);
-    }
-    lastPointer = p;
-  });
-
-  window.addEventListener('pointerup', (e) => {
-    pointerDown = false;
-    const p = canvasToLogical(e);
-    trySelect(p.x, p.y);
-  });
-
-  // Keyboard: space = clash, R = reset stage, numbers for quick (dev feel but gentle)
-  window.addEventListener('keydown', (e) => {
-    if (e.key === ' ' || e.key === 'Spacebar') {
-      e.preventDefault();
-      if (!started) started = true;
+  // Pointer for 3D orbit on the embedded canvases
+  function attachOrbit(c, which) {
+    const cam = (which==='left'?camLeft:camRight);
+    c.addEventListener('pointerdown', (e) => {
+      if (!started) { started=true; startPrompt.style.display='none'; }
       ensureAudio();
-      if (selT && selU) triggerClash();
-      else {
-        // if no pair yet, quick-reveal a balanced pair for immediate eval
-        if (!selT) selT = 't1';
-        if (!selU) selU = 'u1';
-        reveals.t1 = Math.max(reveals.t1, 0.95);
-        reveals.u1 = Math.max(reveals.u1, 0.95);
-      }
-    }
-    if (e.key.toLowerCase() === 'r') {
-      resetStage();
-    }
-    if (e.key === 's' || e.key === 'S') {
-      toggleSound();
-    }
-    // gentle number access for 1-5 per clan (no tutorial needed, discoverable)
+      drag.active = true; drag.which = which;
+      drag.sx = e.clientX; drag.sy = e.clientY;
+      drag.y0 = cam.yaw; drag.p0 = cam.pitch;
+      c.setPointerCapture(e.pointerId);
+    });
+    c.addEventListener('pointermove', (e) => {
+      if (!drag.active || drag.which !== which) return;
+      const dx = (e.clientX - drag.sx) * 0.0075;
+      const dy = (e.clientY - drag.sy) * 0.0075;
+      cam.yaw = drag.y0 - dx;
+      cam.pitch = Math.max(-1.2, Math.min(1.2, drag.p0 + dy));
+      render3D();
+    });
+    window.addEventListener('pointerup', (e) => {
+      if (drag.active) { drag.active=false; drag.which=null; }
+    });
+    c.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      cam.dist = Math.max(1.1, Math.min(6.5, cam.dist + (e.deltaY>0 ? 0.18 : -0.18)));
+      render3D();
+    }, { passive: false });
+    // touch friendly tap to focus
+    c.addEventListener('click', () => { ensureAudio(); started=true; startPrompt.style.display='none'; });
+  }
+  attachOrbit(leftGLC, 'left');
+  attachOrbit(rightGLC, 'right');
+
+  // Keyboard
+  window.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); ensureAudio(); if (!started) started=true; startPrompt.style.display='none'; if (loadedModels.left && loadedModels.right) triggerInstant(); }
+    if (e.key.toLowerCase() === 'r') { resetStage(); render3D(); }
+    if (e.key.toLowerCase() === 'v') { cycleView(); }
+    if (e.key === 's' || e.key === 'S') { toggleSound(); }
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= 5) {
-      const kT = 't' + n;
-      const kU = 'u' + n;
-      reveals[kT] = Math.max(reveals[kT]||0, 0.7);
-      reveals[kU] = Math.max(reveals[kU]||0, 0.7);
-      selT = kT;
-      selU = kU;
+      ensureAudio(); started = true; startPrompt.style.display = 'none';
+      const kt = 't'+n, ku = 'u'+n;
+      setModel('left', kt); setModel('right', ku);
     }
   });
 
   // Buttons
   soundBtn.addEventListener('click', toggleSound);
-  resetBtn.addEventListener('click', () => { resetStage(); });
+  resetBtn.addEventListener('click', () => { resetStage(); render3D(); });
+  instantBtn.addEventListener('click', () => { ensureAudio(); started=true; startPrompt.style.display='none'; triggerInstant(); });
+  viewBtn.addEventListener('click', cycleView);
 
-  // First gesture unlocks audio context (house rule)
-  function firstGesture() {
-    ensureAudio();
-    if (!started) started = true;
-    startPrompt.style.display = 'none';
-  }
+  // First gesture
+  function firstGesture() { ensureAudio(); if (!started) started = true; startPrompt.style.display = 'none'; }
   canvas.addEventListener('pointerdown', firstGesture, {once:true});
+  leftGLC.addEventListener('pointerdown', firstGesture, {once:true});
+  rightGLC.addEventListener('pointerdown', firstGesture, {once:true});
   window.addEventListener('keydown', firstGesture, {once:true});
 
   // Main loop
   function frame(now) {
     if (!lastT) lastT = now;
-    const dt = Math.min(0.05, (now - lastT) / 1000);
+    const dt = Math.min(0.05, (now-lastT)/1000);
     lastT = now;
-
     update(dt);
     draw();
+    // re-render 3D each frame for any anim (clash nudge etc)
+    if (clashT > 0.01) {
+      const t = clashT * 0.6;
+      camLeft.yaw += Math.sin(time*18)*0.001 * (clashT);
+      camRight.yaw -= Math.sin(time*19+1)*0.001 * (clashT);
+    }
+    render3D();
 
-    // expose for verification (real state, not chrome)
-    window.__KAWANAKAJIMA_STATE = {
-      reveals: {...reveals},
-      selT, selU,
+    // verification surface (real 3D state)
+    window.__KAWANAKAJIMA_3D_STATE = {
+      modelsLoaded: Object.keys(modelCache),
+      left: loadedModels.left ? loadedModels.left.key : null,
+      right: loadedModels.right ? loadedModels.right.key : null,
       clashT,
-      lastClashPair,
-      assetsLoaded,
-      pulled: Object.keys(reveals).filter(k => (reveals[k]||0) > 0.6).length,
-      verifAutoFired
+      lastClash,
+      viewPreset,
+      assets: 20
     };
-
     requestAnimationFrame(frame);
   }
 
-  // Boot
-  function boot() {
-    // ensure some initial reveal on exemplars already set
+  async function boot() {
     draw();
+    // Seed two real models immediately so first screen shows actual 3D assets (no explanation needed)
+    try {
+      await setModel('left', 't1');
+      await setModel('right', 'u1');
+      // mark roster selection
+      const rT = document.getElementById('rosterT'); if (rT && rT.children[0]) rT.children[0].classList.add('sel');
+      const rU = document.getElementById('rosterU'); if (rU && rU.children[0]) rU.children[0].classList.add('sel');
+    } catch (e) { console.warn('seed model load', e); }
+    render3D();
     requestAnimationFrame(frame);
-
-    // helpful console note (not visible to players)
-    console.log('%c[Kawanakajima] 20 generated file assets loaded as source of truth. Reveal = brush the print. Space or stage click = the instant.', 'color:#6f5b44');
+    // auto clash once for verif capture after short settle
+    setTimeout(() => {
+      if (!clashT && loadedModels.left && loadedModels.right && time < 3) {
+        clashT = 0.82; lastClash = {l:'t1',r:'u1'};
+        render3D();
+      }
+    }, 1350);
+    console.log('%c[Kawanakajima] 20 file-backed GLB samurai models. Drag to orbit. 1-5 quick pairs. Space = instant.', 'color:#6f5b44');
   }
+  setTimeout(boot, 60);
 
-  // Start even if images are still decoding (they will appear live)
-  setTimeout(boot, 40);
+  setTimeout(() => { if (startPrompt.style.display !== 'none') startPrompt.style.display = 'none'; }, 2400);
 
-  // Safety: hide prompt after assets or timeout
-  setTimeout(() => { if (startPrompt.style.display !== 'none') startPrompt.style.display = 'none'; }, 2200);
+  // expose for harness
+  window.__KAWANAKAJIMA_LOAD_MODEL = setModel;
 })();
 </script>
 </body>
