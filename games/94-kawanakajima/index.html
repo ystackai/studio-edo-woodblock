@@ -7,9 +7,10 @@
 <style>
   :root { --paper:#f8f4eb; --ink:#0f172a; --vermilion:#c2410f; --indigo:#2c3a5f; --gold:#b38b3f; }
   html,body { margin:0; padding:0; background:#111; height:100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  #wrap { position:relative; width:1020px; max-width:100vw; box-shadow:0 10px 40px rgba(0,0,0,0.6); background:#222; border:1px solid #333; overflow:hidden; }
+  body { display:flex; align-items:center; justify-content:center; min-height:100dvh; padding:8px; box-sizing:border-box; overflow:auto; }
+  #wrap { position:relative; width:1020px; height:680px; max-width:none; box-shadow:0 10px 40px rgba(0,0,0,0.6); background:#222; border:1px solid #333; overflow:hidden; zoom:var(--stage-scale,1); }
   canvas { display:block; image-rendering:crisp-edges; touch-action:none; }
+  #game { width:1020px; height:680px; }
   .hud { position:absolute; top:10px; left:14px; color:#f8f4eb; font-size:12px; font-weight:600; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.6); pointer-events:none; }
   .hud .title { font-size:15px; font-weight:800; letter-spacing:1.5px; }
   .ctrl { position:absolute; top:10px; right:12px; display:flex; gap:8px; z-index:20; }
@@ -69,6 +70,15 @@
   canvas.height = 680 * DPR;
   ctx.scale(DPR, DPR);
   const W = 1020, H = 680;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const wrap = document.getElementById('wrap');
+  function fitStageToViewport() {
+    const scale = Math.min(1, (window.innerWidth - 16) / W, (window.innerHeight - 16) / H);
+    wrap.style.setProperty('--stage-scale', String(Math.max(0.42, scale)));
+  }
+  fitStageToViewport();
+  window.addEventListener('resize', fitStageToViewport);
 
   const soundBtn = document.getElementById('soundBtn');
   const resetBtn = document.getElementById('resetBtn');
@@ -115,8 +125,8 @@
   const glPrograms = new WeakMap();
   let modelCache = {}; // key -> {pos, norm, col, idx, min, max}
   let loadedModels = { left: null, right: null };
-  let camLeft = { yaw: 0.6, pitch: 0.15, dist: 2.6 };
-  let camRight = { yaw: -0.6, pitch: 0.15, dist: 2.6 };
+  let camLeft = { yaw: 0.6, pitch: 0.08, dist: 3.0, baseDist: 3.0, target: [0, 0.5, 0] };
+  let camRight = { yaw: -0.6, pitch: 0.08, dist: 3.0, baseDist: 3.0, target: [0, 0.5, 0] };
   let drag = { active:false, which:null, sx:0, sy:0, y0:0, p0:0 };
   let viewPreset = 0; // 0 front-ish, 1 three-quarter, 2 profile
   let clashT = 0;
@@ -135,11 +145,11 @@
   // position the two 3D views inside the paper frame area
   leftGLC.style.position = 'absolute';
   leftGLC.style.left = '42px';
-  leftGLC.style.top = '92px';
+  leftGLC.style.top = '154px';
   leftGLC.style.zIndex = '8';
   rightGLC.style.position = 'absolute';
   rightGLC.style.right = '42px';
-  rightGLC.style.top = '92px';
+  rightGLC.style.top = '154px';
   rightGLC.style.zIndex = '8';
   document.getElementById('wrap').appendChild(leftGLC);
   document.getElementById('wrap').appendChild(rightGLC);
@@ -282,8 +292,12 @@
   function dot3(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
 
   function makeMVPMatrices(cam, aspect) {
-    const eye = [ Math.sin(cam.yaw)*cam.dist*Math.cos(cam.pitch), Math.sin(cam.pitch)*cam.dist*0.7, Math.cos(cam.yaw)*cam.dist*Math.cos(cam.pitch) ];
-    const center = [0, 0.48, 0];
+    const center = cam.target || [0, 0.5, 0];
+    const eye = [
+      center[0] + Math.sin(cam.yaw)*cam.dist*Math.cos(cam.pitch),
+      center[1] + Math.sin(cam.pitch)*cam.dist*0.55,
+      center[2] + Math.cos(cam.yaw)*cam.dist*Math.cos(cam.pitch)
+    ];
     const up = [0,1,0];
     const view = mat4LookAt(eye, center, up);
     const proj = mat4Perspective(0.9, aspect, 0.1, 20);
@@ -315,7 +329,13 @@
     // auto frame
     const cam = (which==='left'? camLeft : camRight);
     const span = Math.max(data.max[0]-data.min[0], data.max[1]-data.min[1], data.max[2]-data.min[2]);
-    cam.dist = Math.max(2.25, span * 1.6);
+    cam.target = [
+      (data.min[0] + data.max[0]) / 2,
+      (data.min[1] + data.max[1]) / 2,
+      (data.min[2] + data.max[2]) / 2
+    ];
+    cam.baseDist = Math.max(3.0, span * 2.0);
+    cam.dist = cam.baseDist;
     render3D();
     return key;
   }
@@ -363,8 +383,8 @@
     viewPreset = p % 3;
     const offs = [[0.6,0.15,1.0], [1.05,0.35,0.95], [1.57,0.0,1.05]];
     const o = offs[viewPreset];
-    camLeft.yaw = o[0]; camLeft.pitch = o[1]; camLeft.dist = 2.6 * o[2];
-    camRight.yaw = -o[0]; camRight.pitch = o[1]; camRight.dist = 2.6 * o[2];
+    camLeft.yaw = o[0]; camLeft.pitch = o[1]; camLeft.dist = (camLeft.baseDist || 3.0) * o[2];
+    camRight.yaw = -o[0]; camRight.pitch = o[1]; camRight.dist = (camRight.baseDist || 3.0) * o[2];
     render3D();
   }
 

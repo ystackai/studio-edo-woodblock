@@ -67,7 +67,7 @@ async function main() {
       headless: true,
       args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
     });
-    const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
+    const page = await browser.newPage({ viewport: { width: 900, height: 640 } });
     const browserProblems = [];
 
     page.on('console', msg => {
@@ -106,6 +106,15 @@ async function main() {
 
     await page.waitForTimeout(300);
     const result = await page.evaluate(() => {
+      const wrapRect = document.getElementById('wrap').getBoundingClientRect();
+      const viewportFit = {
+        width: wrapRect.width,
+        height: wrapRect.height,
+        top: wrapRect.top,
+        left: wrapRect.left,
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight
+      };
       const canvases = [...document.querySelectorAll('.view3d')];
       const samples = canvases.map(canvas => {
         const tmp = document.createElement('canvas');
@@ -118,30 +127,46 @@ async function main() {
         let variedPixels = 0;
         let minLum = 255;
         let maxLum = 0;
+        let minX = tmp.width;
+        let minY = tmp.height;
+        let maxX = -1;
+        let maxY = -1;
         for (let i = 0; i < data.length; i += 16) {
           const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
           const lum = (r + g + b) / 3;
-          if (a > 0 && (r > 30 || g > 30 || b > 30)) visiblePixels += 1;
+          const sampleIndex = i / 4;
+          const x = sampleIndex % tmp.width;
+          const y = Math.floor(sampleIndex / tmp.width);
+          if (a > 0 && (r > 30 || g > 30 || b > 30)) {
+            visiblePixels += 1;
+            minX = Math.min(minX, x); minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+          }
           if (a > 0) {
             minLum = Math.min(minLum, lum);
             maxLum = Math.max(maxLum, lum);
             if (Math.abs(r - g) + Math.abs(g - b) + Math.abs(r - b) > 8) variedPixels += 1;
           }
         }
-        return { width: canvas.width, height: canvas.height, visiblePixels, variedPixels, luminanceRange: maxLum - minLum };
+        return { width: canvas.width, height: canvas.height, visiblePixels, variedPixels, luminanceRange: maxLum - minLum, bounds: { minX, minY, maxX, maxY } };
       });
-      return { state: window.__KAWANAKAJIMA_3D_STATE, canvasCount: canvases.length, samples };
+      return { state: window.__KAWANAKAJIMA_3D_STATE, viewportFit, canvasCount: canvases.length, samples };
     });
 
     if (browserProblems.length) {
       fail('browser console/load problems: ' + browserProblems.join(' | '));
     }
-    if (result.canvasCount !== 2) fail(`expected 2 WebGL review canvases, got ${result.canvasCount}`);
+    if (result.viewportFit.width > result.viewportFit.innerWidth || result.viewportFit.height > result.viewportFit.innerHeight || result.viewportFit.top < -1 || result.viewportFit.left < -1) {
+    fail(`stage does not fit viewport: ${JSON.stringify(result.viewportFit)}`);
+  }
+  if (result.canvasCount !== 2) fail(`expected 2 WebGL review canvases, got ${result.canvasCount}`);
     if (result.state.assets !== 20) fail(`expected 20 asset state, got ${result.state.assets}`);
     for (const [index, sample] of result.samples.entries()) {
       if (sample.visiblePixels < 500) fail(`3D canvas ${index} appears blank: ${JSON.stringify(sample)}`);
       if (sample.variedPixels < 80) fail(`3D canvas ${index} lacks visible colored model variation: ${JSON.stringify(sample)}`);
       if (sample.luminanceRange < 20) fail(`3D canvas ${index} lacks luminance range: ${JSON.stringify(sample)}`);
+    if (sample.bounds.minY < 16 || sample.bounds.maxY > sample.height - 16) fail(`3D canvas ${index} model is vertically cropped: ${JSON.stringify(sample)}`);
+    if (sample.bounds.minX < 6 || sample.bounds.maxX > sample.width - 6) fail(`3D canvas ${index} model is horizontally cropped: ${JSON.stringify(sample)}`);
     }
 
     console.log('PASS: Kawanakajima 3D GLB preview loads seeded models, swaps roster models, and renders nonblank canvases');
