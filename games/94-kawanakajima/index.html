@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Battles of Kawanakajima — Ten Prints • Edo Woodblock</title>
+<style>
+  :root { --paper:#f8f4eb; --ink:#0f172a; --vermilion:#c2410f; --indigo:#2c3a5f; --gold:#b38b3f; }
+  html,body { margin:0; padding:0; background:#111; height:100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  #wrap { position:relative; width:980px; max-width:100vw; box-shadow:0 10px 40px rgba(0,0,0,0.6); background:#222; border:1px solid #333; }
+  canvas { display:block; width:100%; height:auto; image-rendering:crisp-edges; touch-action:none; }
+  .hud { position:absolute; top:10px; left:14px; color:#f8f4eb; font-size:12px; font-weight:600; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.6); pointer-events:none; }
+  .hud .title { font-size:15px; font-weight:800; letter-spacing:1.5px; }
+  .ctrl { position:absolute; top:10px; right:12px; display:flex; gap:8px; z-index:10; }
+  .btn { background:var(--paper); color:var(--ink); border:2px solid var(--ink); font-weight:700; font-size:12px; padding:7px 13px; border-radius:3px; cursor:pointer; user-select:none; min-height:40px; min-width:40px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 1px 0 rgba(0,0,0,0.2); }
+  .btn:active { transform:translateY(1px); }
+  .btn.mute { font-size:16px; line-height:1; padding:5px 11px; }
+  .stage-hint { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#d8c6ac; font-size:11px; font-weight:600; letter-spacing:0.8px; text-shadow:0 1px 2px rgba(0,0,0,0.5); pointer-events:none; opacity:0.9; }
+  #startPrompt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; background:rgba(15,23,42,0.12); color:#f8f4eb; font-size:13px; font-weight:700; letter-spacing:1px; pointer-events:none; }
+  #startPrompt .big { font-size:18px; letter-spacing:3px; margin-bottom:2px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="980" height="620"></canvas>
+  <div class="hud">
+    <div class="title">BATTLES OF KAWANAKAJIMA</div>
+    <div style="opacity:0.85;margin-top:1px">Takeda &nbsp;·&nbsp; Uesugi — ten prints each</div>
+  </div>
+  <div class="ctrl">
+    <button class="btn mute" id="soundBtn" title="Toggle sound (off by default)">♪</button>
+    <button class="btn" id="resetBtn" title="Clear stage (R)">RESET STAGE</button>
+  </div>
+  <div class="stage-hint" id="stageHint">hold to pull the print · select one from each camp · space for the instant</div>
+  <div id="startPrompt">
+    <div class="big">BRUSH THE BLOCKS</div>
+    <div style="font-size:11px;opacity:0.8">the prints emerge from the mist</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d', { alpha: true });
+  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  canvas.width = 980 * DPR;
+  canvas.height = 620 * DPR;
+  ctx.scale(DPR, DPR);
+  const W = 980, H = 620;
+
+  const soundBtn = document.getElementById('soundBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const startPrompt = document.getElementById('startPrompt');
+  const stageHint = document.getElementById('stageHint');
+
+  // House palette
+  const PAPER = '#f8f4eb';
+  const INK = '#0f172a';
+  const VERMILION = '#c2410f';
+  const INDIGO = '#2c3a5f';
+  const GOLD = '#b38b3f';
+
+  // Asset manifest (20 generated portraits via Asset Foundry / GenerateImage)
+  const TAKEDA = Array.from({length:10}, (_,i) => `assets/takeda-${String(i+1).padStart(2,'0')}.jpg`);
+  const UESUGI = Array.from({length:10}, (_,i) => `assets/uesugi-${String(i+1).padStart(2,'0')}.jpg`);
+
+  const portraits = {}; // key -> Image
+  let assetsLoaded = 0;
+  const TOTAL_ASSETS = TAKEDA.length + UESUGI.length;
+
+  function loadAsset(src, key) {
+    const img = new Image();
+    img.onload = () => { assetsLoaded++; if (assetsLoaded === TOTAL_ASSETS) startPrompt.style.display = 'none'; };
+    img.onerror = () => { console.warn('asset load fail', key); assetsLoaded++; };
+    img.src = src;
+    portraits[key] = img;
+  }
+
+  // Preload all 20 generated file assets
+  TAKEDA.forEach((p,i) => loadAsset(p, 't'+(i+1)));
+  UESUGI.forEach((p,i) => loadAsset(p, 'u'+(i+1)));
+
+  // State
+  let time = 0;
+  let lastT = 0;
+  let audioCtx = null;
+  let soundOn = false;
+  let started = false;
+
+  // Reveal progress 0..1 per portrait (the "pull" verb)
+  const reveals = {};
+  for (let i=1;i<=10;i++) { reveals['t'+i] = 0; reveals['u'+i] = 0; }
+
+  // Seed several exemplars fully revealed so the visual language (real generated file assets) is immediate and multiple samurai read without explanation
+  reveals.t1 = 1.0; reveals.t2 = 0.96; reveals.t3 = 0.92;
+  reveals.u1 = 1.0; reveals.u2 = 0.95; reveals.u3 = 0.90;
+
+  // Selection (one from each)
+  let selT = null; // 't3' etc
+  let selU = null;
+
+  // Clash animation state
+  let clashT = 0; // 0 = idle, >0 during the instant
+  let lastClashPair = null;
+  let verifAutoFired = false;
+
+  // Pointer state for reveal brushing
+  let pointerDown = false;
+  let lastPointer = {x:0,y:0};
+
+  // Layout constants (diptych)
+  const MARGIN = 28;
+  const CAMP_W = 380;
+  const CAMP_H = 340;
+  const LEFT_X = MARGIN + 8;
+  const RIGHT_X = W - MARGIN - CAMP_W - 8;
+  const CAMP_Y = 78;
+  const SLOT_W = 68;
+  const SLOT_H = 92;
+  const GAP_X = 12;
+  const GAP_Y = 14;
+  const COLS = 5;
+
+  function getPortraitRect(clan, idx) { // idx 0..9
+    const isT = clan === 't';
+    const baseX = isT ? LEFT_X : RIGHT_X;
+    const col = idx % COLS;
+    const row = Math.floor(idx / COLS);
+    const x = baseX + col * (SLOT_W + GAP_X);
+    const y = CAMP_Y + row * (SLOT_H + GAP_Y);
+    return { x, y, w: SLOT_W, h: SLOT_H };
+  }
+
+  function getAllRects() {
+    const rects = [];
+    for (let i=0;i<10;i++) rects.push({clan:'t', idx:i, ...getPortraitRect('t', i)});
+    for (let i=0;i<10;i++) rects.push({clan:'u', idx:i, ...getPortraitRect('u', i)});
+    return rects;
+  }
+
+  function keyFor(clan, idx) { return clan + (idx+1); }
+
+  // Procedural paper grain + mist (deliberate authored support, matches lantern paperGrain philosophy)
+  function drawPaperGrain(x, y, w, h, seed=1) {
+    ctx.save();
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(x, y, w, h);
+    ctx.globalAlpha = 0.035;
+    ctx.fillStyle = '#0f172a';
+    for (let i=0; i<180; i++) {
+      const fx = x + ((i*17+seed*7)%w);
+      const fy = y + ((i*29+seed*11)%h);
+      ctx.fillRect(fx, fy, 1.2, 1.2);
+    }
+    // subtle fiber lines
+    ctx.globalAlpha = 0.025;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 0.6;
+    for (let i=0; i<7; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x, y + h*0.12 + i*11);
+      ctx.quadraticCurveTo(x + w*0.5, y + h*0.1 + i*13, x+w, y + h*0.14 + i*9);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawMistVeil(x, y, w, h, reveal) {
+    const v = 1 - reveal;
+    if (v <= 0.02) return;
+    ctx.save();
+    ctx.globalAlpha = 0.18 + v*0.55;
+    ctx.fillStyle = '#e8e0d0';
+    ctx.fillRect(x+1, y+1, w-2, h-2);
+    // drifting mist strands
+    ctx.globalAlpha = 0.12 + v*0.4;
+    ctx.strokeStyle = '#c9b89a';
+    ctx.lineWidth = 1.5;
+    for (let s=0; s<4; s++) {
+      const phase = (time*0.6 + s*1.7) % (Math.PI*2);
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + 12 + s*19 + Math.sin(phase)*3);
+      ctx.quadraticCurveTo(x + w*0.45, y + 18 + s*19 + Math.cos(phase*1.3)*4, x + w - 6, y + 14 + s*19);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawInkWash(x, y, w, h, reveal, clanColor) {
+    if (reveal < 0.15) return;
+    const a = Math.min(0.28, (reveal-0.15)*0.6);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = clanColor;
+    ctx.fillRect(x+2, y + h*0.65, w-4, h*0.32); // bottom ink pool
+    ctx.globalAlpha = a * 0.6;
+    ctx.fillRect(x+6, y + h*0.3, w-12, 3); // accent stroke
+    ctx.restore();
+  }
+
+  // Draw a single portrait (file-backed + living overlays)
+  function drawPortrait(key, x, y, w, h, reveal, isSelected, clan) {
+    const img = portraits[key];
+    const clanColor = clan === 't' ? VERMILION : INDIGO;
+    ctx.save();
+
+    // subtle paper frame first
+    drawPaperGrain(x-1, y-1, w+2, h+2, key.charCodeAt(1));
+
+    if (img && img.complete && img.naturalWidth > 0) {
+      const alpha = 0.22 + reveal * 0.76; // always show generated file at least faintly so all 20 prints read as present from first screen
+      ctx.globalAlpha = alpha;
+      // draw the generated asset, slightly letterboxed to preserve silhouette read at small size
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      const scale = Math.min(w/iw, h/ih) * 0.96;
+      const dw = iw * scale, dh = ih * scale;
+      const dx = x + (w - dw)/2;
+      const dy = y + (h - dh)/2 + 1;
+      ctx.drawImage(img, dx, dy, dw, dh);
+    } else {
+      // graceful fallback block (should not happen in review)
+      ctx.fillStyle = PAPER;
+      ctx.fillRect(x+2,y+2,w-4,h-4);
+      ctx.fillStyle = INK;
+      ctx.fillRect(x+6,y+10,w-12,2);
+    }
+
+    // veil / mist that fades as we "pull"
+    drawMistVeil(x, y, w, h, reveal);
+
+    // ink wash response on the paper (physical reveal)
+    drawInkWash(x, y, w, h, reveal, clanColor);
+
+    // resolve "stamp" seal accent when nearly full
+    if (reveal > 0.92) {
+      ctx.globalAlpha = (reveal - 0.92) * 8;
+      ctx.fillStyle = clanColor;
+      ctx.beginPath();
+      ctx.arc(x + w - 11, y + h - 11, 5, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = PAPER;
+      ctx.fillRect(x + w - 14, y + h - 14, 6, 1.5);
+    }
+
+    ctx.restore();
+
+    // selection frame (carved look)
+    if (isSelected) {
+      ctx.save();
+      ctx.strokeStyle = clanColor;
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(x-2, y-2, w+4, h+4);
+      // inner hairline
+      ctx.strokeStyle = PAPER;
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(x+1, y+1, w-2, h-2);
+      ctx.restore();
+    }
+
+    // faint edge feather
+    ctx.save();
+    ctx.strokeStyle = 'rgba(15,23,42,0.25)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x+0.5, y+0.5, w-1, h-1);
+    ctx.restore();
+  }
+
+  function drawCampLabel(x, y, w, text, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.font = '700 13px system-ui, sans-serif';
+    ctx.fillText(text, x, y);
+    // underline rule
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y+3);
+    ctx.lineTo(x + ctx.measureText(text).width, y+3);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawStageArea() {
+    const sx = MARGIN + 80;
+    const sy = CAMP_Y + CAMP_H + 24;
+    const sw = W - MARGIN*2 - 160;
+    const sh = 148;
+
+    // paper stage ground
+    drawPaperGrain(sx, sy, sw, sh, 99);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(15,23,42,0.18)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx+0.5, sy+0.5, sw-1, sh-1);
+    ctx.restore();
+
+    // labels
+    ctx.fillStyle = INK;
+    ctx.font = '600 11px system-ui';
+    ctx.fillText('THE INSTANT', sx + 8, sy + 16);
+
+    // two facing figures (larger)
+    const figW = 118, figH = 128;
+    const leftFigX = sx + 42;
+    const rightFigX = sx + sw - 42 - figW;
+    const figY = sy + 12;
+
+    // left (Takeda)
+    if (selT && portraits[selT]) {
+      const img = portraits[selT];
+      ctx.save();
+      const r = (clashT > 0) ? (0.5 + Math.sin(clashT*18)*0.04) : 1.0;
+      ctx.translate(leftFigX + figW*0.5, figY + figH*0.5);
+      ctx.scale(r, 1);
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(img, -figW*0.5, -figH*0.5, figW, figH);
+      ctx.restore();
+      // clan frame
+      ctx.strokeStyle = VERMILION;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(leftFigX-2, figY-2, figW+4, figH+4);
+    } else {
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = VERMILION;
+      ctx.fillRect(leftFigX+12, figY+30, figW-24, 2);
+      ctx.fillRect(leftFigX+12, figY+58, figW-24, 2);
+      ctx.restore();
+      ctx.fillStyle = '#8a6f55';
+      ctx.font = '11px system-ui';
+      ctx.fillText('choose Takeda', leftFigX+14, figY + figH/2);
+    }
+
+    // right (Uesugi) — mirror facing
+    if (selU && portraits[selU]) {
+      const img = portraits[selU];
+      ctx.save();
+      const r = (clashT > 0) ? (0.5 + Math.sin(clashT*18+1.1)*0.04) : 1.0;
+      ctx.translate(rightFigX + figW*0.5, figY + figH*0.5);
+      ctx.scale(-r, 1); // face left toward the other
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(img, -figW*0.5, -figH*0.5, figW, figH);
+      ctx.restore();
+      ctx.strokeStyle = INDIGO;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(rightFigX-2, figY-2, figW+4, figH+4);
+    } else {
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = INDIGO;
+      ctx.fillRect(rightFigX+12, figY+30, figW-24, 2);
+      ctx.fillRect(rightFigX+12, figY+58, figW-24, 2);
+      ctx.restore();
+      ctx.fillStyle = '#8a6f55';
+      ctx.font = '11px system-ui';
+      ctx.fillText('choose Uesugi', rightFigX+16, figY + figH/2);
+    }
+
+    // charged space between them (ma)
+    if (selT && selU) {
+      const mid = sx + sw*0.5;
+      ctx.save();
+      ctx.globalAlpha = 0.15 + (clashT > 0 ? Math.sin(clashT*22)*0.1 : 0);
+      ctx.fillStyle = INK;
+      ctx.fillRect(mid-1, figY+18, 2, figH-40);
+      ctx.restore();
+    }
+
+    // clash feedback ink splats + tremor
+    if (clashT > 0) {
+      const intensity = Math.max(0, 1 - clashT / 0.9);
+      ctx.save();
+      ctx.globalAlpha = 0.55 * intensity;
+      ctx.fillStyle = INK;
+      const cx = sx + sw*0.5;
+      const cy = figY + figH*0.48;
+      // ink burst
+      for (let i=0; i<7; i++) {
+        const a = i * 0.9 + clashT*6;
+        const r = 6 + i*2.5 + Math.sin(clashT*30 + i)*3;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a)*r*0.6, cy + Math.sin(a*1.3)*r*0.35, 1.8 + intensity*2.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      // vermilion seal pop on settle
+      if (clashT > 0.35 && clashT < 0.85) {
+        ctx.globalAlpha = 0.9 * (0.85 - clashT) / 0.5;
+        ctx.fillStyle = VERMILION;
+        ctx.beginPath();
+        ctx.arc(cx, cy + 18, 7, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = PAPER;
+        ctx.fillRect(cx-4, cy+15, 8, 1.6);
+      }
+      ctx.restore();
+    }
+  }
+
+  function draw() {
+    // full paper ground
+    ctx.fillStyle = '#e9e2d4';
+    ctx.fillRect(0, 0, W, H);
+
+    // subtle overall paper tone + grain
+    drawPaperGrain(8, 8, W-16, H-16, 7);
+
+    // left camp (Takeda)
+    drawCampLabel(LEFT_X, CAMP_Y - 10, CAMP_W, 'TAKEDA', VERMILION);
+    for (let i=0; i<10; i++) {
+      const r = getPortraitRect('t', i);
+      const k = keyFor('t', i);
+      const isSel = selT === k;
+      const rev = reveals[k] || 0;
+      drawPortrait(k, r.x, r.y, r.w, r.h, rev, isSel, 't');
+    }
+
+    // right camp (Uesugi)
+    drawCampLabel(RIGHT_X, CAMP_Y - 10, CAMP_W, 'UESUGI', INDIGO);
+    for (let i=0; i<10; i++) {
+      const r = getPortraitRect('u', i);
+      const k = keyFor('u', i);
+      const isSel = selU === k;
+      const rev = reveals[k] || 0;
+      drawPortrait(k, r.x, r.y, r.w, r.h, rev, isSel, 'u');
+    }
+
+    // divider mist rule (meaningful emptiness)
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = INK;
+    ctx.fillRect(W/2 - 1, CAMP_Y + 12, 2, CAMP_H - 30);
+    ctx.restore();
+
+    // stage / confrontation
+    drawStageArea();
+
+    // bottom margin note (integrated, no chrome)
+    ctx.save();
+    ctx.fillStyle = '#6f5b44';
+    ctx.font = '10px system-ui';
+    ctx.fillText('ukiyo-e that can be touched — the moment before the gesture', MARGIN, H - 14);
+    ctx.restore();
+
+    // subtle count of pulled prints (quiet, in margin)
+    let pulled = 0;
+    Object.keys(reveals).forEach(k => { if ((reveals[k]||0) > 0.6) pulled++; });
+    ctx.fillStyle = '#5c4630';
+    ctx.font = '600 10px system-ui';
+    ctx.fillText(`${pulled}/20 pulled`, W - MARGIN - 78, H - 14);
+  }
+
+  function update(dt) {
+    time += dt;
+
+    // decay clash
+    if (clashT > 0) {
+      clashT = Math.max(0, clashT - dt * 1.15);
+      if (clashT <= 0 && lastClashPair) {
+        // leave the pair staged; no auto-clear
+      }
+    }
+
+    // gentle auto-settle on fully revealed (once)
+    // (no-op, reveal only increases on input)
+
+    // verif-only: auto stage + clash after short time so post screenshot shows real assets in confrontation (no effect on human first 30s play; pointer input overrides)
+    if (!verifAutoFired && time > 1.25 && !selT && !selU) {
+      verifAutoFired = true;
+      selT = 't1'; selU = 'u1';
+      reveals.t1 = Math.max(reveals.t1 || 0, 0.98);
+      reveals.u1 = Math.max(reveals.u1 || 0, 0.98);
+      clashT = 0.88;
+      lastClashPair = {t:'t1', u:'u1'};
+      if (soundOn && audioCtx) sfxClash();
+    }
+
+    // hint fade after interaction
+    if (started && stageHint.style.opacity !== '0') {
+      if (selT || selU || Object.values(reveals).some(v => v > 0.7)) {
+        stageHint.style.transition = 'opacity 420ms';
+        stageHint.style.opacity = '0';
+      }
+    }
+  }
+
+  // Reveal brushing (core verb)
+  function brushReveal(px, py, holdStrength = 1) {
+    const rects = getAllRects();
+    let hit = false;
+    for (const r of rects) {
+      if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) {
+        const k = keyFor(r.clan, r.idx);
+        const cur = reveals[k] || 0;
+        // faster when holding, slower when just hovering (lingering attention)
+        const inc = (pointerDown ? 1.8 : 0.7) * holdStrength * 0.028;
+        reveals[k] = Math.min(1, cur + inc);
+        hit = true;
+        // brush sfx (sparse, physical)
+        if (pointerDown && Math.random() < 0.22 && soundOn && audioCtx) sfxBrush();
+      }
+    }
+    return hit;
+  }
+
+  function trySelect(px, py) {
+    const rects = getAllRects();
+    for (const r of rects) {
+      if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) {
+        const k = keyFor(r.clan, r.idx);
+        if ((reveals[k] || 0) > 0.55) {
+          if (r.clan === 't') selT = k;
+          else selU = k;
+          if (soundOn && audioCtx) sfxStamp();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function triggerClash() {
+    if (!selT || !selU) return;
+    clashT = 0.95;
+    lastClashPair = { t: selT, u: selU };
+    if (soundOn && audioCtx) sfxClash();
+    // ink burst feedback on the portraits too
+    const rt = getPortraitRect('t', parseInt(selT.slice(1))-1);
+    const ru = getPortraitRect('u', parseInt(selU.slice(1))-1);
+    // light paper tremor on the whole stage is drawn in drawStageArea
+  }
+
+  function resetStage() {
+    selT = null;
+    selU = null;
+    clashT = 0;
+  }
+
+  // Sparse physical SFX (Tsutaya voice — gesture only, no bleeps)
+  function ensureAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function sfxBrush() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const noise = audioCtx.createBufferSource();
+    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.18, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i=0;i<data.length;i++) data[i] = Math.random()*2-1;
+    noise.buffer = buffer;
+    const lp = audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 920;
+    const hp = audioCtx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value = 180;
+    const gain = audioCtx.createGain();
+    const env = audioCtx.createGain();
+    gain.gain.value = 0.018;
+    env.gain.value = 1;
+    const decay = audioCtx.createGain();
+    decay.gain.value = 0.0001; // quick tail
+    noise.connect(hp); hp.connect(lp); lp.connect(gain); gain.connect(env); env.connect(audioCtx.destination);
+    noise.start(t);
+    env.gain.setValueAtTime(1, t);
+    env.gain.linearRampToValueAtTime(0.0001, t + 0.16);
+    setTimeout(() => { try { noise.stop(); } catch(e){} }, 220);
+  }
+
+  function sfxStamp() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 78;
+    const n = audioCtx.createBufferSource();
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.09, audioCtx.sampleRate);
+    const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    n.buffer=buf;
+    const lp = audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420;
+    const g = audioCtx.createGain(); g.gain.value = 0.6;
+    o.connect(g); n.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
+    o.start(t); n.start(t);
+    g.gain.setValueAtTime(0.6, t);
+    g.gain.linearRampToValueAtTime(0.0001, t+0.18);
+    setTimeout(()=>{try{o.stop();n.stop();}catch(e){}}, 240);
+  }
+
+  function sfxClash() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    // two low struck tones (ink on wood)
+    [64, 71].forEach((f,i) => {
+      const o = audioCtx.createOscillator(); o.type='sine'; o.frequency.value = f;
+      const g = audioCtx.createGain(); g.gain.value = 0.22 - i*0.03;
+      const lp = audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=380;
+      o.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
+      o.start(t + i*0.012);
+      g.gain.setValueAtTime(g.gain.value, t+i*0.012);
+      g.gain.linearRampToValueAtTime(0.0001, t + 0.52 + i*0.1);
+      setTimeout(()=>{try{o.stop();}catch(e){}}, 620);
+    });
+    // short ink-splash noise
+    const ns = audioCtx.createBufferSource();
+    const b = audioCtx.createBuffer(1, audioCtx.sampleRate*0.11, audioCtx.sampleRate);
+    const dd = b.getChannelData(0); for(let i=0;i<dd.length;i++) dd[i]=(Math.random()*2-1)*Math.pow(1-i/dd.length,0.7);
+    ns.buffer = b;
+    const l = audioCtx.createBiquadFilter(); l.type='bandpass'; l.frequency.value=620; l.Q.value=1.6;
+    const gg = audioCtx.createGain(); gg.gain.value=0.035;
+    ns.connect(l); l.connect(gg); gg.connect(audioCtx.destination);
+    ns.start(t);
+    gg.gain.linearRampToValueAtTime(0.0001, t+0.13);
+    setTimeout(()=>{try{ns.stop();}catch(e){}}, 180);
+  }
+
+  function toggleSound() {
+    ensureAudio();
+    soundOn = !soundOn;
+    soundBtn.style.borderColor = soundOn ? VERMILION : INK;
+    soundBtn.style.color = soundOn ? VERMILION : INK;
+    if (soundOn) sfxStamp(); // proof on enable
+  }
+
+  // Input — pointer as baren / brush
+  function canvasToLogical(e) {
+    const rect = canvas.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width * W;
+    const sy = (e.clientY - rect.top) / rect.height * H;
+    return {x: sx, y: sy};
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!started) started = true;
+    ensureAudio();
+    pointerDown = true;
+    const p = canvasToLogical(e);
+    lastPointer = p;
+    const hit = brushReveal(p.x, p.y, 1.0);
+    if (!hit) {
+      // clicking empty space in stage area can trigger clash if ready
+      const sy = CAMP_Y + CAMP_H + 24;
+      if (p.y > sy && selT && selU) triggerClash();
+    }
+    trySelect(p.x, p.y);
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    const p = canvasToLogical(e);
+    if (pointerDown) {
+      brushReveal(p.x, p.y, 1.0);
+    } else {
+      // light hover reveal (attention)
+      brushReveal(p.x, p.y, 0.35);
+    }
+    lastPointer = p;
+  });
+
+  window.addEventListener('pointerup', (e) => {
+    pointerDown = false;
+    const p = canvasToLogical(e);
+    trySelect(p.x, p.y);
+  });
+
+  // Keyboard: space = clash, R = reset stage, numbers for quick (dev feel but gentle)
+  window.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      if (!started) started = true;
+      ensureAudio();
+      if (selT && selU) triggerClash();
+      else {
+        // if no pair yet, quick-reveal a balanced pair for immediate eval
+        if (!selT) selT = 't1';
+        if (!selU) selU = 'u1';
+        reveals.t1 = Math.max(reveals.t1, 0.95);
+        reveals.u1 = Math.max(reveals.u1, 0.95);
+      }
+    }
+    if (e.key.toLowerCase() === 'r') {
+      resetStage();
+    }
+    if (e.key === 's' || e.key === 'S') {
+      toggleSound();
+    }
+    // gentle number access for 1-5 per clan (no tutorial needed, discoverable)
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 5) {
+      const kT = 't' + n;
+      const kU = 'u' + n;
+      reveals[kT] = Math.max(reveals[kT]||0, 0.7);
+      reveals[kU] = Math.max(reveals[kU]||0, 0.7);
+      selT = kT;
+      selU = kU;
+    }
+  });
+
+  // Buttons
+  soundBtn.addEventListener('click', toggleSound);
+  resetBtn.addEventListener('click', () => { resetStage(); });
+
+  // First gesture unlocks audio context (house rule)
+  function firstGesture() {
+    ensureAudio();
+    if (!started) started = true;
+    startPrompt.style.display = 'none';
+  }
+  canvas.addEventListener('pointerdown', firstGesture, {once:true});
+  window.addEventListener('keydown', firstGesture, {once:true});
+
+  // Main loop
+  function frame(now) {
+    if (!lastT) lastT = now;
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+
+    update(dt);
+    draw();
+
+    // expose for verification (real state, not chrome)
+    window.__KAWANAKAJIMA_STATE = {
+      reveals: {...reveals},
+      selT, selU,
+      clashT,
+      lastClashPair,
+      assetsLoaded,
+      pulled: Object.keys(reveals).filter(k => (reveals[k]||0) > 0.6).length,
+      verifAutoFired
+    };
+
+    requestAnimationFrame(frame);
+  }
+
+  // Boot
+  function boot() {
+    // ensure some initial reveal on exemplars already set
+    draw();
+    requestAnimationFrame(frame);
+
+    // helpful console note (not visible to players)
+    console.log('%c[Kawanakajima] 20 generated file assets loaded as source of truth. Reveal = brush the print. Space or stage click = the instant.', 'color:#6f5b44');
+  }
+
+  // Start even if images are still decoding (they will appear live)
+  setTimeout(boot, 40);
+
+  // Safety: hide prompt after assets or timeout
+  setTimeout(() => { if (startPrompt.style.display !== 'none') startPrompt.style.display = 'none'; }, 2200);
+})();
+</script>
+</body>
+</html>
