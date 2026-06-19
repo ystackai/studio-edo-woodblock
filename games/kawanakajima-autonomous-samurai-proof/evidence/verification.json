@@ -1,0 +1,23 @@
+{
+  "url": "http://127.0.0.1:18935/games/kawanakajima-autonomous-samurai-proof/",
+  "verifiedAt": "2026-06-19T22:53:52.970Z",
+  "actorCount": 20,
+  "finalState": {
+    "count": 20,
+    "charging": false
+  },
+  "visualGate": "patched close shoulder camera; first screenshot shows readable armor, banners, swords, and body silhouettes instead of distant dark blocks",
+  "consoleErrors": [],
+  "pageErrors": [],
+  "screenshots": [
+    "screenshots/initial-formation.png",
+    "screenshots/after-charge.png",
+    "screenshots/reformed.png"
+  ],
+  "passed": {
+    "actorsLoaded": true,
+    "chargeMutated": true,
+    "noPageErrors": true,
+    "readableCloseFraming": true
+  }
+}

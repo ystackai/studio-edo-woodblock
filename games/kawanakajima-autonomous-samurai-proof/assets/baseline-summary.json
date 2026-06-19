@@ -1,0 +1,18 @@
+{
+  "asset_name": "kawanakajima-samurai-baseline",
+  "recipe": "samurai_character",
+  "outputs": {
+    "source_blend": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character_source.blend",
+    "glb": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character.glb",
+    "poster": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character_hero.png",
+    "contact_sheet": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character_contact_sheet.png",
+    "turntable": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character_turntable.gif"
+  },
+  "stats": {
+    "inspection_views": 6,
+    "turntable_frames": 8
+  },
+  "notes": [
+    "Completed via Foundry + manual post for evidence (renders finished)."
+  ]
+}
