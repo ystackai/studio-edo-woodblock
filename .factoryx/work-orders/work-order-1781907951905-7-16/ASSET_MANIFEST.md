@@ -3,10 +3,10 @@
 Work Order: work-order-1781907951905-7-16
 
 ## Baseline (live Asset Foundry)
-- Job ID: `asset-1781907989449-2310d4ab`
+- Job ID: `asset-1781910294741-3c2a83a8`
 - Recipe: `samurai_character`
 - API: http://127.0.0.1:18113
-- Prompt: exact `/goal` text from work order (most believable game-ready samurai, kabuto/mempo/lamellar/katana/sashimono/sandals, avoid blocky/grey/paddle/oversized)
+- Prompt: `/goal`-style repair prompt after user visual rejection (believable game-ready samurai, kabuto/dark mempo/curved lamellar/katana/sashimono/sandals, explicitly avoid Minecraft/block-art silhouettes)
 - Outputs captured:
   - `samurai_character.glb` (1.2 MB)
   - `samurai_character_source.blend` (4.5 MB)
@@ -14,20 +14,20 @@ Work Order: work-order-1781907951905-7-16
   - `samurai_character_contact_sheet.png`
   - `samurai_character_turntable.gif`
   - `summary.json`
-- Provenance: generated fresh on this run, no prior branch assets used.
+- Provenance: regenerated fresh via Asset Foundry API from the patched v3 recipe, then used to replace the visually rejected blockier baseline.
 
 ## Team Variants (20 actors, materialized from baseline)
 - 10 Takeda (oxblood dominant lacquer + banner)
 - 10 Uesugi (indigo dominant)
-- Method: loaded baseline source .blend in Blender, applied team color shifts to lacquer/cloth/banner materials + slight unique rotations per figure, exported fresh GLBs.
+- Method: loaded v3 baseline source .blend in Blender, applied team color shifts to lacquer/cloth/banner materials + slight unique rotations per figure, exported fresh GLBs.
 - Files: `assets/actor-takeda-00.glb` … `actor-takeda-09.glb`, `actor-uesugi-00.glb` … `actor-uesugi-09.glb`
 - All GLBs ~1.2 MB each, self-contained, no external texture deps.
 
 ## Integration
 - All 20 loaded by relative path in `games/kawanakajima-autonomous-samurai-proof/index.html`
 - Three.js r128 + GLTFLoader (local copies for standalone)
-- Scale 1.08 chosen after visual review so figures read as armored humans (not blobs) at the repaired close camera distance.
-- No hand-authored placeholder models; all from Foundry baseline + Foundry-derived variants.
+- Scale 1.08 chosen after visual review so figures read as armored humans at the repaired close camera distance.
+- No hand-authored placeholder models; all from v3 Foundry baseline + Foundry-derived variants.
 
 ## Verification evidence
 - See `evidence/verification.json`

@@ -6,13 +6,13 @@ The live playable artifact for this Work Order is:
 
 Open `games/kawanakajima-autonomous-samurai-proof/index.html` (served over HTTP during review).
 
-- 20 samurai (10 Takeda oxblood / 10 Uesugi indigo) loaded from fresh Foundry GLBs.
+- 20 samurai (10 Takeda oxblood / 10 Uesugi indigo) loaded from v3 Foundry GLBs.
 - Camera starts close to the Takeda line so armor, banners, swords, and silhouettes are immediately readable.
 - Drag to orbit, wheel to zoom.
 - Buttons / keys: C=charge, R=reform, I=inspect random, camera reset.
 - State mutates visibly on charge (positions shift toward center line).
-- All assets from live http://127.0.0.1:18113 samurai_character job + variants.
+- All character assets from live http://127.0.0.1:18113 samurai_character job `asset-1781910294741-3c2a83a8` + v3 variants.
 
 No homepage mutation; preview root is the game itself.
 
-Note: this branch salvages the failed autonomous run by repairing the camera/lighting proof and refreshing screenshots locally.
+Note: this branch salvages the failed autonomous run by repairing the camera/lighting proof, replacing the visually rejected blockier samurai assets with v3 Foundry outputs, and refreshing screenshots locally.

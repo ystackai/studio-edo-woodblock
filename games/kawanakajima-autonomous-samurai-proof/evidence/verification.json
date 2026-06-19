@@ -1,12 +1,13 @@
 {
   "url": "http://127.0.0.1:18935/games/kawanakajima-autonomous-samurai-proof/",
-  "verifiedAt": "2026-06-19T22:53:52.970Z",
+  "verifiedAt": "2026-06-19T23:18:22.589Z",
+  "assetFoundryJob": "asset-1781910294741-3c2a83a8",
   "actorCount": 20,
   "finalState": {
     "count": 20,
     "charging": false
   },
-  "visualGate": "patched close shoulder camera; first screenshot shows readable armor, banners, swords, and body silhouettes instead of distant dark blocks",
+  "visualGate": "v3 Foundry assets; bright close shoulder camera shows readable stylized samurai with helmets, dark mempo masks, curved/tapered lamellar armor, banners, swords, and team colors without foreground occlusion blocking the formation",
   "consoleErrors": [],
   "pageErrors": [],
   "screenshots": [
@@ -18,6 +19,7 @@
     "actorsLoaded": true,
     "chargeMutated": true,
     "noPageErrors": true,
+    "noConsoleErrors": true,
     "readableCloseFraming": true
   }
 }

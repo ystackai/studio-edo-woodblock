@@ -56,10 +56,11 @@
     const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false, preserveDrawingBuffer:true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.shadowMap.enabled = false;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x17140f, 0.006);
+    scene.fog = new THREE.FogExp2(0x211d15, 0.0055);
 
     const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 400);
     // Initial cinematic low/shoulder framing (rule-of-thirds bias toward left group)
@@ -67,17 +68,20 @@
     camera.lookAt(-1.5, 1.6, 0);
 
     // Lights — cool near-white key + subtle rim (color from materials)
-    const key = new THREE.DirectionalLight(0xe2e8ee, 1.35);
+    const key = new THREE.DirectionalLight(0xe2e8ee, 1.75);
     key.position.set(9, 22, -7);
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0xaec3d8, 0.8);
+    const rim = new THREE.DirectionalLight(0xaec3d8, 1.0);
     rim.position.set(-18, 9, 16);
     scene.add(rim);
-    scene.add(new THREE.AmbientLight(0x393225, 0.85));
+    const warmFill = new THREE.DirectionalLight(0xffe4b8, 0.55);
+    warmFill.position.set(-8, 5, -5);
+    scene.add(warmFill);
+    scene.add(new THREE.AmbientLight(0x51483a, 1.2));
 
     // Japanese countryside ground (layered paper/earth)
     const groundGeo = new THREE.PlaneGeometry(92, 72, 1, 1);
-    const groundMat = new THREE.MeshLambertMaterial({ color:0x3d382d, flatShading:false });
+    const groundMat = new THREE.MeshLambertMaterial({ color:0x5b5342, flatShading:false });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI * 0.5;
     ground.position.y = -0.02;
@@ -87,7 +91,7 @@
     for (let k=0; k<5; k++) {
       const h = new THREE.Mesh(
         new THREE.PlaneGeometry(70 + k*6, 18),
-        new THREE.MeshLambertMaterial({ color: 0x343026, transparent:true, opacity:0.5 })
+        new THREE.MeshLambertMaterial({ color: 0x4b4436, transparent:true, opacity:0.45 })
       );
       h.rotation.x = -Math.PI*0.5;
       h.position.set( (k%2?-1:1)* (3+k*1.5), 0.01 + k*0.01, -11 -k*7 );

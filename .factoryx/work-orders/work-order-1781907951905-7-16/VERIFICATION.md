@@ -22,13 +22,14 @@
 - Full JSON also under work-order context.
 
 ### Visual gate
-First screenshot shows distinct armored figures with banners, readable at framing distance (not Minecraft blocks, not tiny dark blobs). The original autonomous screenshot was too wide/dark; this branch repairs camera distance, ground value, neutral light intensity, and GLB scale, then refreshes the screenshots.
+First screenshot shows distinct stylized armored figures with banners, swords, helmets, and team colors at readable framing distance. The original autonomous screenshot was too wide/dark, and the first replacement asset set still read too blocky in crowd view; this branch repairs camera distance, ground value, neutral light intensity, GLB scale, and then replaces the source samurai with the v3 Asset Foundry recipe.
 
 ## Foundry
 - /healthz and /api/recipes verified at start.
-- Fresh job `asset-1781907989449-2310d4ab` for baseline (recorded).
-- 5 additional full Foundry jobs were launched by the agent but were unnecessary and later stopped after the Work Order failed; the completed baseline job is the source of record.
-- All GLBs + source .blend + contact/turntable from this run's output dir.
+- Original baseline job `asset-1781907989449-2310d4ab` was recorded but visually rejected after review.
+- Replacement baseline job `asset-1781910294741-3c2a83a8` completed through the live Asset Foundry API in 343.9s.
+- v3 outputs include GLB, source blend, six stable camera renders, eight turntable frames, contact sheet, and GIF.
+- 20 actor GLBs were regenerated from the v3 source blend with team material variations.
 
 ## Unity
 See `UNITY_BLOCKER.md`. No Unity Editor, Hub, or MCP detected. Scaffold + blocker emitted; no claim that Unity ran.

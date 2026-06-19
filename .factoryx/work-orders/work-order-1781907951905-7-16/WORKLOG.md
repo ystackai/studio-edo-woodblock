@@ -6,7 +6,8 @@
 
 **Started:** 2026-06-19 ~22:25 UTC
 
-**Foundry baseline job:** asset-1781907989449-2310d4ab
+**Original Foundry baseline job:** asset-1781907989449-2310d4ab
+**Replacement Foundry baseline job:** asset-1781910294741-3c2a83a8
 
 ## 2026-06-19 Timeline
 
@@ -39,4 +40,6 @@
 - Operator repair on 2026-06-19 patched the default camera/lighting/scale and regenerated screenshots locally; repaired first screenshot now frames readable samurai in countryside (armor, banners, swords, body silhouettes visible).
 - Unity unavailable → blocker + scaffold only.
 - Worker failed before PR creation because runtime GitHub auth was unavailable; this branch is a local salvage branch for review.
+- User visual review rejected the earlier crowd assets as Minecraft/block-art. Operator patched Asset Foundry's samurai recipe to use thinner curved/tapered armor plates and a darker mempo mask, pushed that recipe fix to Asset Foundry main, then regenerated baseline job `asset-1781910294741-3c2a83a8` through the live API.
+- Replaced the deliverable baseline, stable camera renders, turntable, source blend, and all 20 actor GLBs with v3 Foundry outputs; the result is still stylized/funny, but the characters read more clearly as armored samurai in the game camera.
 - Local game: games/kawanakajima-autonomous-samurai-proof/

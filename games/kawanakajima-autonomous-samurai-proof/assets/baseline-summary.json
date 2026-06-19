@@ -1,18 +1,23 @@
 {
-  "asset_name": "kawanakajima-samurai-baseline",
+  "asset_name": "kawanakajima-samurai-character-proof-v3",
   "recipe": "samurai_character",
+  "job_id": "asset-1781910294741-3c2a83a8",
   "outputs": {
-    "source_blend": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character_source.blend",
-    "glb": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character.glb",
-    "poster": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character_hero.png",
-    "contact_sheet": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character_contact_sheet.png",
-    "turntable": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781907989449-2310d4ab/samurai_character_turntable.gif"
+    "source_blend": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781910294741-3c2a83a8/samurai_character_source.blend",
+    "glb": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781910294741-3c2a83a8/samurai_character.glb",
+    "poster": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781910294741-3c2a83a8/samurai_character_hero.png",
+    "contact_sheet": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781910294741-3c2a83a8/samurai_character_contact_sheet.png",
+    "turntable": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781910294741-3c2a83a8/samurai_character_turntable.gif"
   },
   "stats": {
     "inspection_views": 6,
+    "mesh_count": 203,
+    "object_count": 273,
     "turntable_frames": 8
   },
   "notes": [
-    "Completed via Foundry + manual post for evidence (renders finished)."
+    "Completed via Asset Foundry API after user rejected the previous blockier crowd assets.",
+    "Recipe v3 uses thinner curved/tapered armor plates and a darker mempo mask to reduce Minecraft/block-art readability.",
+    "20 team variants were materialized from this source blend in Blender."
   ]
 }
