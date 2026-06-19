@@ -1,0 +1,18 @@
+{
+  "blend": "games/kawanakajima-samurai-world/assets/generated/samurai/uesugi_samurai_source.blend",
+  "prefix": "uesugi",
+  "renders": {
+    "hero": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_hero.png",
+    "front": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_front.png",
+    "left": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_left.png",
+    "rear": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_rear.png",
+    "top": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_top.png",
+    "three_quarter": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_three_quarter.png"
+  },
+  "turn_frames": [
+    "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_turn00.png",
+    "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_turn01.png",
+    "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_turn02.png",
+    "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/uesugi/uesugi_turn03.png"
+  ]
+}

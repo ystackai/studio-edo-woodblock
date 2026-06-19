@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kawanakajima — 1561</title>
+  <style>
+    :root { --ink:#111; --paper:#e8e0d0; --oxblood:#5c1a14; --indigo:#0a1f3c; --mist:#6b7a8f; }
+    html,body { margin:0; height:100%; background:#1a1814; color:#e8e0d0; font-family: ui-monospace, 'IBM Plex Mono', Menlo, monospace; overflow:hidden; }
+    #c { display:block; width:100vw; height:100vh; }
+    .ui { position:absolute; top:12px; left:12px; z-index:10; pointer-events:none; }
+    .ui .panel { background:rgba(26,24,20,0.82); border:1px solid #3a3630; padding:8px 12px; margin-bottom:6px; max-width:320px; pointer-events:auto; }
+    .ui h1 { margin:0 0 4px; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#a89a7f; }
+    .ui .status { font-size:11px; line-height:1.35; color:#c8b89f; }
+    .ui .army { font-size:11px; margin:4px 0; }
+    .ui .takeda { color:#c06a5a; }
+    .ui .uesugi { color:#5a7aa8; }
+    .ui .action { pointer-events:auto; margin-top:8px; padding:6px 14px; background:#2a2722; border:1px solid #554f44; color:#e8e0d0; font-family:inherit; font-size:11px; cursor:pointer; }
+    .ui .action:hover { background:#3a3630; }
+    .ui .hint { font-size:9px; opacity:0.6; margin-top:4px; }
+    #overlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); z-index:20; pointer-events:none; }
+    #overlay .card { background:#1a1814; border:1px solid #554f44; padding:14px 18px; max-width:420px; pointer-events:auto; }
+    #overlay .close { float:right; background:none; border:0; color:#a89a7f; cursor:pointer; }
+    .hidden { display:none !important; }
+    .log { font-size:10px; max-height:58px; overflow:auto; opacity:0.85; border-top:1px solid #3a3630; margin-top:4px; padding-top:4px; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="ui">
+  <div class="panel">
+    <h1>Kawanakajima • 9th day of the 9th month, 1561</h1>
+    <div class="status">Two armies meet in the fog between the rivers.<br>Clear separation. One decisive gesture.</div>
+    <div class="army"><span class="takeda">● TAKEDA (oxblood)</span> <span id="t-count">10</span> • <span class="uesugi">● UESUGI (indigo)</span> <span id="u-count">10</span></div>
+    <div class="status" id="state">The field waits. The mist holds its breath.</div>
+    <div class="log" id="log"></div>
+  </div>
+  <button class="action" id="charge">Sound the charge (C)</button>
+  <button class="action" id="reform">Reform lines (R)</button>
+  <div class="hint">Drag to orbit • Wheel to zoom • Click a warrior to inspect</div>
+</div>
+<div id="overlay"><div class="card" id="inspect-card"></div></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.134.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.134.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'https://unpkg.com/three@0.134.0/examples/jsm/loaders/GLTFLoader.js';
+
+// Edo-restrained palette
+const COLORS = {
+  bg: 0x1a1814,
+  paper: 0xe8e0d0,
+  oxblood: 0x5c1a14,
+  indigo: 0x0a1f3c,
+  mist: 0x6b7a8f,
+  ink: 0x22221e,
+  grass: 0x2f3a2a,
+  path: 0x3a3228,
+  pine: 0x1f2a1f,
+  water: 0x0f1f2a
+};
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = false;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x1a1814, 25, 72);
+scene.background = new THREE.Color(COLORS.bg);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.4, 120);
+let cameraYaw = -0.98;
+let cameraPitch = 0.42;
+let cameraDist = 13.4;
+const camTarget = new THREE.Vector3(0, 1.08, 0);
+
+function updateCamera() {
+  const x = Math.sin(cameraYaw) * Math.cos(cameraPitch) * cameraDist;
+  const z = Math.cos(cameraYaw) * Math.cos(cameraPitch) * cameraDist;
+  const y = Math.sin(cameraPitch) * cameraDist * 0.56 + 1.35;
+  camera.position.set(x, y, z);
+  camera.lookAt(camTarget);
+}
+updateCamera();
+
+const hemi = new THREE.HemisphereLight(0xb2aa94, 0x0a0a08, 0.62);
+scene.add(hemi);
+
+const key = new THREE.DirectionalLight(0xdce4ee, 0.95);
+key.position.set(12, 22, -9);
+scene.add(key);
+
+const rim = new THREE.DirectionalLight(0x8fa8c8, 0.52);
+rim.position.set(-18, 9, 14);
+scene.add(rim);
+
+// ===== Japanese countryside battlefield =====
+function makeGround() {
+  const g = new THREE.PlaneGeometry(58, 42, 48, 36);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    let h = Math.sin(x * 0.07) * 0.6 + Math.sin(y * 0.09 + 1) * 0.5;
+    // low hills left and right
+    h += Math.max(0, Math.sin((x + 9) * 0.11) * 1.4);
+    h += Math.max(0, Math.sin((x - 11) * 0.1) * 1.3);
+    // gentle path depression
+    const pd = Math.max(0, 1.0 - Math.abs(y) / 3.5) * 0.35;
+    pos.setZ(i, h - pd);
+  }
+  g.computeVertexNormals();
+  const mat = new THREE.MeshLambertMaterial({ color: 0x2a2722 });
+  const m = new THREE.Mesh(g, mat);
+  m.rotation.x = -Math.PI * 0.5;
+  m.position.y = -0.02;
+  scene.add(m);
+  return m;
+}
+makeGround();
+
+// Stream / river (dark restrained)
+const riverShape = new THREE.Shape();
+riverShape.moveTo(-29, -3.5);
+riverShape.quadraticCurveTo(-6, -2.2, 11, -4.8);
+riverShape.lineTo(29, -5.5);
+riverShape.lineTo(29, -1.8);
+riverShape.quadraticCurveTo(-2, -0.9, -29, -1.2);
+riverShape.lineTo(-29, -3.5);
+const riverGeo = new THREE.ShapeGeometry(riverShape);
+const river = new THREE.Mesh(riverGeo, new THREE.MeshLambertMaterial({ color: COLORS.water, transparent: true, opacity: 0.82 }));
+river.rotation.x = -Math.PI * 0.5;
+river.position.y = 0.03;
+scene.add(river);
+
+// Path (restrained earth)
+const pathGeo = new THREE.PlaneGeometry(52, 2.8, 1, 1);
+const path = new THREE.Mesh(pathGeo, new THREE.MeshLambertMaterial({ color: COLORS.path }));
+path.rotation.x = -Math.PI * 0.5;
+path.position.set(0, 0.04, -0.6);
+scene.add(path);
+
+// Grass tufts (many small for field texture)
+function addGrass(count) {
+  const g = new THREE.BufferGeometry();
+  const verts = [], cols = [];
+  for (let i = 0; i < count; i++) {
+    const x = (Math.random() - 0.5) * 46;
+    const z = (Math.random() - 0.5) * 32;
+    if (Math.abs(z + 0.6) < 2.2 && Math.abs(x) < 18) continue; // keep off path
+    const h = 0.22 + Math.random() * 0.18;
+    verts.push(x, 0, z, x, h, z);
+    const c = 0.18 + Math.random() * 0.06;
+    cols.push(c, 0.22, 0.15, c, 0.22, 0.15);
+  }
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const m = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.7 }));
+  scene.add(m);
+}
+addGrass(520);
+
+// Pines (low poly, Edo restrained)
+function makePine(x, z, s = 1) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.09 * s, 0.12 * s, 1.1 * s, 5),
+    new THREE.MeshLambertMaterial({ color: 0x2a241f })
+  );
+  trunk.position.y = 0.55 * s;
+  g.add(trunk);
+  for (let i = 0; i < 3; i++) {
+    const r = (0.85 - i * 0.18) * s;
+    const h = 0.9 * s;
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(r, h, 5),
+      new THREE.MeshLambertMaterial({ color: COLORS.pine })
+    );
+    cone.position.y = 0.9 * s + i * 0.65 * s;
+    g.add(cone);
+  }
+  g.position.set(x, 0.02, z);
+  scene.add(g);
+  return g;
+}
+for (let i = -3; i <= 3; i++) {
+  if (Math.random() > 0.3) makePine(-21 + i * 2.8, -13 + (i % 2) * 1.5, 0.9 + Math.random() * 0.2);
+  if (Math.random() > 0.35) makePine( 19 + i * -2.6, 11 + (i % 3) * -1.2, 0.85 + Math.random() * 0.25);
+}
+makePine(-14, 9, 1.05); makePine(13, -8.5, 0.95);
+
+// Mist layers (atmosphere)
+function addMist() {
+  const m1 = new THREE.Mesh(
+    new THREE.PlaneGeometry(70, 28),
+    new THREE.MeshLambertMaterial({ color: 0x6b7a8f, transparent: true, opacity: 0.12, depthWrite: false })
+  );
+  m1.rotation.x = -0.6;
+  m1.position.set(0, 3.5, -16);
+  scene.add(m1);
+  const m2 = m1.clone();
+  m2.position.set(2, 4.2, 14);
+  m2.rotation.y = 0.6;
+  scene.add(m2);
+}
+addMist();
+
+// Armies state
+const army = { takeda: [], uesugi: [] };
+let state = { phase: 'waiting', takedaMorale: 92, uesugiMorale: 88, fallenT: 0, fallenU: 0 };
+
+const loader = new GLTFLoader();
+const ACTOR_GLB = {
+  takeda: Array.from({ length: 10 }, (_, i) => `assets/generated/samurai/actors/takeda-${String(i + 1).padStart(2, '0')}.glb`),
+  uesugi: Array.from({ length: 10 }, (_, i) => `assets/generated/samurai/actors/uesugi-${String(i + 1).padStart(2, '0')}.glb`)
+};
+
+let loadedActors = { takeda: [], uesugi: [] };
+let raycaster = new THREE.Raycaster();
+let mouse = new THREE.Vector2();
+let selected = null;
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent = msg;
+}
+
+function updateHUD() {
+  document.getElementById('t-count').textContent = (10 - state.fallenT);
+  document.getElementById('u-count').textContent = (10 - state.fallenU);
+  const s = document.getElementById('state');
+  if (state.phase === 'clash') s.textContent = `The lines meet. Takeda ${state.takedaMorale}% • Uesugi ${state.uesugiMorale}%`;
+  else if (state.phase === 'takeda-win') s.textContent = 'Takeda holds the field. Uesugi withdraws into the mist.';
+  else if (state.phase === 'uesugi-win') s.textContent = 'Uesugi line stands. The Takeda crest lowers.';
+  else s.textContent = 'The field waits. The mist holds its breath.';
+}
+
+function makeBannerTexture(side, idx) {
+  const bannerCanvas = document.createElement('canvas');
+  bannerCanvas.width = 96;
+  bannerCanvas.height = 128;
+  const ctx = bannerCanvas.getContext('2d');
+  const base = side === 'takeda' ? '#5c1a14' : '#0a1f3c';
+  const trim = side === 'takeda' ? '#d4ae55' : '#c9d4e5';
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, bannerCanvas.width, bannerCanvas.height);
+  ctx.strokeStyle = trim;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(8, 8, 80, 112);
+  ctx.beginPath();
+  ctx.arc(48, 49, 19, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(48, 49, 7, 0, Math.PI * 2);
+  ctx.fillStyle = trim;
+  ctx.fill();
+  ctx.font = 'bold 18px serif';
+  ctx.fillText(String(idx + 1).padStart(2, '0'), 33, 97);
+  const texture = new THREE.CanvasTexture(bannerCanvas);
+  texture.anisotropy = 4;
+  return texture;
+}
+
+function addBattlefieldReadability(model, key, idx) {
+  const sideColor = key === 'takeda' ? COLORS.oxblood : COLORS.indigo;
+  const trim = key === 'takeda' ? 0xd4ae55 : 0xc9d4e5;
+  const rig = new THREE.Group();
+  rig.name = `${key}-${idx + 1}-readability-rig`;
+
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.018, 0.022, 1.55, 8),
+    new THREE.MeshLambertMaterial({ color: 0x6a4a22 })
+  );
+  pole.position.set(0.34, 1.72, 0.28);
+  pole.rotation.z = -0.04;
+  rig.add(pole);
+
+  const banner = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.38, 0.56),
+    new THREE.MeshBasicMaterial({ map: makeBannerTexture(key, idx), side: THREE.DoubleSide })
+  );
+  banner.position.set(0.48, 2.13, 0.30);
+  banner.rotation.y = key === 'takeda' ? -0.16 : 0.16;
+  rig.add(banner);
+
+  if (idx % 3 !== 1) {
+    const spear = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.012, 0.016, 2.45, 8),
+      new THREE.MeshLambertMaterial({ color: 0x6d4a25 })
+    );
+    spear.position.set(idx % 2 ? -0.48 : 0.54, 1.28, -0.08);
+    spear.rotation.z = idx % 2 ? -0.28 : 0.24;
+    rig.add(spear);
+
+    const head = new THREE.Mesh(
+      new THREE.ConeGeometry(0.045, 0.16, 4),
+      new THREE.MeshLambertMaterial({ color: trim })
+    );
+    head.position.set(spear.position.x + (idx % 2 ? -0.34 : 0.30), 2.43, -0.08);
+    head.rotation.z = spear.rotation.z;
+    rig.add(head);
+  }
+
+  const sash = new THREE.Mesh(
+    new THREE.TorusGeometry(0.36, 0.012, 8, 48),
+    new THREE.MeshLambertMaterial({ color: sideColor })
+  );
+  sash.position.set(0, 1.28, -0.02);
+  sash.rotation.x = Math.PI * 0.5;
+  sash.scale.z = 0.55;
+  rig.add(sash);
+  model.add(rig);
+}
+
+function createFallback(key) {
+  const fallback = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.20, 0.16, 1.2, 8),
+    new THREE.MeshLambertMaterial({ color: key === 'takeda' ? COLORS.oxblood : COLORS.indigo })
+  );
+  body.position.y = 0.75;
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 16, 10),
+    new THREE.MeshLambertMaterial({ color: 0x5a3526 })
+  );
+  head.position.y = 1.48;
+  fallback.add(body, head);
+  return fallback;
+}
+
+function placeArmy(baseX, baseZ, spreadX, spreadZ, yawBase, key) {
+  const positions = [];
+  for (let i = 0; i < 10; i++) {
+    const row = Math.floor(i / 5);
+    const col = i % 5;
+    const x = baseX + (col - 2) * spreadX + (Math.random() - 0.5) * 0.6;
+    const z = baseZ + row * spreadZ + (Math.random() - 0.5) * 0.4;
+    positions.push({ x, z });
+  }
+  positions.forEach((p, idx) => {
+    let model;
+    const actor = loadedActors[key][idx] || loadedActors[key][0];
+    if (actor) {
+      model = actor.scene.clone(true);
+      model.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+    } else {
+      model = createFallback(key);
+    }
+    addBattlefieldReadability(model, key, idx);
+    model.position.set(p.x, 0, p.z);
+    model.rotation.y = yawBase + (Math.random() - 0.5) * 0.35;
+    const scale = 1.18 + (idx % 4) * 0.045;
+    model.scale.setScalar(scale);
+    model.userData = { side: key, idx, alive: true, baseY: 0, homeX: p.x, homeZ: p.z, homeScale: scale };
+    scene.add(model);
+    army[key].push(model);
+  });
+}
+
+function loadGlb(url) {
+  return new Promise(resolve => {
+    loader.load(url, gltf => resolve(gltf), undefined, err => {
+      console.warn(`Could not load ${url}`, err);
+      resolve(null);
+    });
+  });
+}
+
+async function loadArmies() {
+  const [takeda, uesugi] = await Promise.all([
+    Promise.all(ACTOR_GLB.takeda.map(loadGlb)),
+    Promise.all(ACTOR_GLB.uesugi.map(loadGlb))
+  ]);
+  loadedActors.takeda = takeda;
+  loadedActors.uesugi = uesugi;
+  placeArmy(-5.2, -1.45, 1.04, 1.05, 0.68, 'takeda');
+  placeArmy(5.2, 1.55, 1.04, 1.05, -2.48, 'uesugi');
+  updateHUD();
+  log('Armies formed. Each line uses ten generated actor GLBs.');
+  cameraYaw = -1.0; cameraPitch = 0.42; cameraDist = 13.2;
+  camTarget.set(-0.7, 1.08, -0.35);
+  updateCamera();
+}
+
+function setSelected(obj) {
+  if (selected && selected !== obj) {
+    selected.traverse(o => { if (o.isMesh && o.userData._origEmissive) o.material.emissive = o.userData._origEmissive; });
+  }
+  selected = obj;
+  const card = document.getElementById('inspect-card');
+  const ov = document.getElementById('overlay');
+  if (!obj || !obj.userData) { ov.style.display = 'none'; return; }
+  const u = obj.userData;
+  const name = (u.side === 'takeda' ? 'Takeda ' : 'Uesugi ') + (u.idx < 3 ? 'hatamoto' : u.idx < 7 ? 'ashigaru' : 'yari');
+  card.innerHTML = `<button class="close" onclick="document.getElementById('overlay').style.display='none'">×</button>
+    <strong>${name}</strong><br>
+    <span style="opacity:0.75;font-size:11px;">${u.side.toUpperCase()} • position (${u.homeX.toFixed(1)}, ${u.homeZ.toFixed(1)})</span>
+    <div style="margin-top:6px;font-size:11px;color:#a89a7f;">A ${u.side === 'takeda' ? 'red-crested' : 'blue-laced'} warrior of the field. The mist takes the edges first.</div>`;
+  ov.style.display = 'flex';
+}
+
+function onClick(ev) {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(scene.children, true);
+  for (const h of hits) {
+    let o = h.object;
+    while (o && !o.userData.side) o = o.parent;
+    if (o && o.userData && o.userData.alive) {
+      setSelected(o);
+      return;
+    }
+  }
+  document.getElementById('overlay').style.display = 'none';
+}
+
+function doCharge() {
+  if (state.phase === 'takeda-win' || state.phase === 'uesugi-win') return;
+  state.phase = 'clash';
+  log('Charge! The lines close.');
+  const attacker = Math.random() > 0.48 ? 'takeda' : 'uesugi';
+  const defender = attacker === 'takeda' ? 'uesugi' : 'takeda';
+  const attList = army[attacker].filter(m => m.userData.alive);
+  const defList = army[defender].filter(m => m.userData.alive);
+  attList.slice(0, 5).forEach((m, i) => {
+    const dir = (attacker === 'takeda') ? 1 : -1;
+    m.userData.targetZ = m.position.z + dir * (2.8 + i * 0.1);
+    m.userData.charge = 0.9 + Math.random() * 0.2;
+  });
+  // some defender reaction
+  defList.slice(0, 3).forEach(m => {
+    m.userData.targetZ = m.position.z + (attacker === 'takeda' ? -0.6 : 0.6);
+  });
+  // apply immediate losses
+  const loss = 1 + Math.floor(Math.random() * 2);
+  for (let k = 0; k < loss; k++) {
+    if (defList[k]) {
+      defList[k].userData.alive = false;
+      defList[k].userData.fall = 0.6;
+      if (defender === 'takeda') state.fallenT++; else state.fallenU++;
+    }
+  }
+  state[attacker + 'Morale'] = Math.max(48, state[attacker + 'Morale'] - 6);
+  state[defender + 'Morale'] = Math.max(38, state[defender + 'Morale'] - 14);
+  updateHUD();
+  // check end
+  if (10 - state.fallenT <= 2) { state.phase = 'uesugi-win'; log('Uesugi breaks the Takeda center.'); }
+  if (10 - state.fallenU <= 2) { state.phase = 'takeda-win'; log('Takeda stands. The field is theirs.'); }
+}
+
+function doReform() {
+  state.phase = 'waiting';
+  state.fallenT = 0; state.fallenU = 0;
+  state.takedaMorale = 88; state.uesugiMorale = 85;
+  [...army.takeda, ...army.uesugi].forEach(m => {
+    if (!m.userData) return;
+    m.userData.alive = true;
+    delete m.userData.fall;
+    delete m.userData.targetZ;
+    m.position.x = m.userData.homeX;
+    m.position.z = m.userData.homeZ;
+    m.position.y = 0;
+    m.rotation.y = (m.userData.side === 'takeda' ? 0.6 : -2.55) + (Math.random() - 0.5) * 0.3;
+    m.scale.setScalar(m.userData.homeScale || 1.2);
+    m.traverse(o => { if (o.isMesh) o.visible = true; });
+  });
+  updateHUD();
+  log('Lines reform in the drifting mist.');
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = Date.now() * 0.001;
+  // simple idle sway on living
+  [...army.takeda, ...army.uesugi].forEach((m, i) => {
+    if (!m.userData) return;
+    if (m.userData.alive) {
+      if (m.userData.targetZ !== undefined) {
+        const dz = m.userData.targetZ - m.position.z;
+        m.position.z += Math.sign(dz) * Math.min(Math.abs(dz), 0.038);
+        if (Math.abs(dz) < 0.06) delete m.userData.targetZ;
+      } else {
+        m.position.y = Math.sin(t * 1.6 + i) * 0.008;
+      }
+    } else if (m.userData.fall !== undefined) {
+      m.userData.fall -= 0.016;
+      m.position.y = Math.max(-0.6, m.userData.fall * -1.1);
+      m.rotation.x = (1.0 - Math.max(0, m.userData.fall)) * -0.7;
+      if (m.userData.fall <= 0) m.traverse(o => { if (o.isMesh) o.visible = false; });
+    }
+  });
+  // subtle mist drift
+  scene.children.forEach(c => {
+    if (c.material && c.material.color && c.material.color.getHex() === COLORS.mist) {
+      c.position.x = Math.sin(t * 0.07) * 0.8;
+    }
+  });
+  renderer.render(scene, camera);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+window.addEventListener('resize', onResize);
+
+let dragging = false, lastX = 0, lastY = 0;
+canvas.addEventListener('mousedown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+window.addEventListener('mouseup', () => dragging = false);
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  cameraYaw -= dx * 0.0045;
+  cameraPitch = Math.max(0.15, Math.min(1.35, cameraPitch - dy * 0.0035));
+  lastX = e.clientX; lastY = e.clientY;
+  updateCamera();
+});
+canvas.addEventListener('wheel', e => {
+  cameraDist = Math.max(6.2, Math.min(36, cameraDist + Math.sign(e.deltaY) * 1.2));
+  updateCamera();
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('click', onClick);
+
+document.getElementById('charge').addEventListener('click', doCharge);
+document.getElementById('reform').addEventListener('click', doReform);
+window.addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'c') doCharge();
+  if (e.key.toLowerCase() === 'r') doReform();
+});
+
+// expose for verification
+window.__KAWANAKAJIMA_3D_STATE = () => ({ ...state, armies: { takeda: army.takeda.length, uesugi: army.uesugi.length } });
+
+loadArmies();
+animate();
+updateHUD();
+log('Three.js loaded. Orbit the field.');
+// initial framing nudge
+setTimeout(() => { cameraYaw = -1.0; cameraPitch = 0.42; cameraDist = 13.2; camTarget.set(-0.7, 1.08, -0.35); updateCamera(); }, 420);
+</script>
+</body>
+</html>

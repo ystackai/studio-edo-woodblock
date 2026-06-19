@@ -1,0 +1,47 @@
+{
+  "url": "http://127.0.0.1:18924/games/kawanakajima-samurai-world/",
+  "state1": {
+    "phase": "waiting",
+    "takedaMorale": 92,
+    "uesugiMorale": 88,
+    "fallenT": 0,
+    "fallenU": 0,
+    "armies": {
+      "takeda": 10,
+      "uesugi": 10
+    }
+  },
+  "state2": {
+    "phase": "clash",
+    "takedaMorale": 78,
+    "uesugiMorale": 82,
+    "fallenT": 1,
+    "fallenU": 0,
+    "armies": {
+      "takeda": 10,
+      "uesugi": 10
+    }
+  },
+  "events": [
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x13c004d6000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x13c004d6000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x13c004d6000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x13c004d6000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+    }
+  ],
+  "screenshots": [
+    ".factoryx/work-orders/work-order-1781905143539-7-12/screenshots/repair-initial.png",
+    ".factoryx/work-orders/work-order-1781905143539-7-12/screenshots/repair-post-charge.png"
+  ]
+}

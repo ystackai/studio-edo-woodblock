@@ -1,0 +1,35 @@
+{
+  "asset_name": "samurai_character_v3",
+  "notes": [
+    "Generated through Asset Foundry using a /goal-style prompt.",
+    "Stylized samurai model includes kabuto, mempo, shikoro, do cuirass, sode shoulder plates, kusazuri skirt plates, kote forearm guards, greaves, waraji sandals, katana blade, saya, lacing, rivets, and studio lighting.",
+    "Contact sheet uses repeatable hero/front/left/rear/top/three-quarter cameras for self-verification."
+  ],
+  "outputs": {
+    "blender_script": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781906889338-2ba7800f/samurai_character_blender.py",
+    "blender_stderr": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781906889338-2ba7800f/blender_stderr.log",
+    "blender_stdout": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781906889338-2ba7800f/blender_stdout.log",
+    "contact_sheet": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781906889338-2ba7800f/samurai_character_contact_sheet.png",
+    "glb": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781906889338-2ba7800f/samurai_character.glb",
+    "poster": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781906889338-2ba7800f/samurai_character_hero.png",
+    "source_blend": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781906889338-2ba7800f/samurai_character_source.blend",
+    "turntable": "/cache/factory-edo-woodblock/asset-foundry/outputs/asset-1781906889338-2ba7800f/samurai_character_turntable.gif"
+  },
+  "recipe": "samurai_character",
+  "stats": {
+    "inspection_views": [
+      "hero",
+      "front",
+      "left",
+      "rear",
+      "top",
+      "three_quarter"
+    ],
+    "material_count": 15,
+    "mesh_count": 200,
+    "object_count": 270,
+    "prompt_format": "/goal",
+    "stable_camera_views": 6,
+    "turntable_frames": 8
+  }
+}

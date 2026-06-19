@@ -1,0 +1,18 @@
+{
+  "blend": "games/kawanakajima-samurai-world/assets/generated/samurai/takeda_samurai_source.blend",
+  "prefix": "takeda",
+  "renders": {
+    "hero": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_hero.png",
+    "front": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_front.png",
+    "left": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_left.png",
+    "rear": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_rear.png",
+    "top": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_top.png",
+    "three_quarter": "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_three_quarter.png"
+  },
+  "turn_frames": [
+    "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_turn00.png",
+    "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_turn01.png",
+    "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_turn02.png",
+    "/workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/games/kawanakajima-samurai-world/assets/generated/samurai/takeda/takeda_turn03.png"
+  ]
+}
