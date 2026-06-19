@@ -189,9 +189,9 @@ function buildSamuraiMesh(variant) {
   const verts = [], norms = [], colors = [], indices = [];
 
   const isTakeda = variant.clan === 't';
+  const id = variant.id || 1;
+  const lean = ((id % 3) - 1) * 0.03; // subtle character lean variants
   const hue = isTakeda ? 0.02 : 0.62; // red vs indigo bias
-  const sat = 0.65;
-  const vbase = 0.45;
 
   function col(v) { // vary slightly
     const r = Math.min(1, Math.max(0, hue > 0.5 ? (0.15 + v*0.2) : (0.55 + v*0.35)));
@@ -202,79 +202,131 @@ function buildSamuraiMesh(variant) {
 
   const mainCol = col(0.7);
   const darkCol = col(0.2);
+  const accentCol = col(0.4);
   const crestCol = isTakeda ? [0.75,0.22,0.08] : [0.18,0.25,0.55];
-  const metalCol = [0.6,0.55,0.45];
+  const metalCol = [0.58,0.54,0.46];
+  const leatherCol = [0.28,0.22,0.18];
 
-  // TORSO armor (slightly tapered)
-  addBox(verts, norms, colors, indices, 0, 0, 0.35, 0, 0.38, 0.55, 0.22, ...mainCol);
+  // --- layered TORSO (core + chest plate + tassets for non-box read)
+  addBox(verts, norms, colors, indices, 0, 0, 0.32, 0, 0.36, 0.48, 0.20, ...mainCol); // core
+  addBox(verts, norms, colors, indices, 0, 0, 0.38, 0, 0.34, 0.08, 0.22, ...darkCol); // chest plate
+  // tassets / faulds (layered skirt plates)
+  addBox(verts, norms, colors, indices, 0, -0.01, 0.12, 0, 0.38, 0.18, 0.12, ...darkCol);
+  addBox(verts, norms, colors, indices, -0.16, 0.12, 0, 0.12, 0.16, 0.08, ...leatherCol);
+  addBox(verts, norms, colors, indices,  0.16, 0.12, 0, 0.12, 0.16, 0.08, ...leatherCol);
 
-  // HEAD
-  addBox(verts, norms, colors, indices, 0, 0, 0.85, 0, 0.22, 0.22, 0.22, ...mainCol);
+  // NECK
+  addBox(verts, norms, colors, indices, 0, 0, 0.62, 0, 0.14, 0.10, 0.14, ...darkCol);
 
-  // HELMET base + variant crest
-  addBox(verts, norms, colors, indices, 0, 0, 0.97, 0, 0.28, 0.12, 0.26, ...darkCol, 0, 0.1, 0); // slight tilt
+  // HEAD + helmet details (more than capsule)
+  addBox(verts, norms, colors, indices, 0, 0, 0.82, 0, 0.20, 0.20, 0.19, ...mainCol);
+  // helmet bowl + brim/rim
+  addBox(verts, norms, colors, indices, 0, 0, 0.96, 0, 0.26, 0.10, 0.25, ...darkCol);
+  // shikoro neck guard plates (layered for silhouette)
+  addBox(verts, norms, colors, indices, -0.13, 0.78, 0, 0.07, 0.06, 0.22, ...darkCol, 0, 0.25, 0);
+  addBox(verts, norms, colors, indices,  0.13, 0.78, 0, 0.07, 0.06, 0.22, ...darkCol, 0,-0.25, 0);
+  addBox(verts, norms, colors, indices, 0, 0.74, 0.04, 0.22, 0.05, 0.05, ...leatherCol);
 
-  // Crest geometry (differentiated)
+  // Crest geometry (differentiated, mounted higher with base)
   const crestType = variant.crest;
+  addBox(verts, norms, colors, indices, 0, 1.02, 0, 0.08, 0.04, 0.18, ...darkCol); // crest mount
   if (crestType === 'horn' || crestType === 'antler') {
-    // two swept horns
-    addWedge(verts, norms, colors, indices, -0.18, 1.12, 0, 0.06, 0.32, 0.04, ...crestCol, 0.3);
-    addWedge(verts, norms, colors, indices,  0.18, 1.12, 0, 0.06, 0.32, 0.04, ...crestCol, -0.3);
+    addWedge(verts, norms, colors, indices, -0.16, 1.18, 0, 0.05, 0.28, 0.035, ...crestCol, 0.35);
+    addWedge(verts, norms, colors, indices,  0.16, 1.18, 0, 0.05, 0.28, 0.035, ...crestCol, -0.35);
+    addWedge(verts, norms, colors, indices, -0.09, 1.08, 0, 0.04, 0.18, 0.03, ...crestCol, 0.2);
+    addWedge(verts, norms, colors, indices,  0.09, 1.08, 0, 0.04, 0.18, 0.03, ...crestCol, -0.2);
   } else if (crestType === 'fan' || crestType === 'plume') {
-    // wide fan plate
-    addWedge(verts, norms, colors, indices, 0, 1.05, 0, 0.32, 0.28, 0.03, ...crestCol, 0);
+    addWedge(verts, norms, colors, indices, 0, 1.12, 0, 0.30, 0.24, 0.025, ...crestCol, 0);
+    addBox(verts, norms, colors, indices, 0, 1.02, 0, 0.08, 0.06, 0.22, ...crestCol, 0,0.1,0);
   } else if (crestType === 'sun' || crestType === 'crescent') {
-    // radial spikes or arc
     for (let k=-2; k<=2; k++) {
-      addWedge(verts, norms, colors, indices, k*0.07, 1.08, 0, 0.04, 0.18, 0.02, ...crestCol, k*0.2);
+      addWedge(verts, norms, colors, indices, k*0.065, 1.14, 0, 0.035, 0.16, 0.018, ...crestCol, k*0.18);
     }
+    addBox(verts, norms, colors, indices, 0, 1.05, 0, 0.10, 0.04, 0.14, ...crestCol);
   } else {
-    // default spike
-    addWedge(verts, norms, colors, indices, 0, 1.15, 0, 0.05, 0.38, 0.03, ...crestCol);
+    addWedge(verts, norms, colors, indices, 0, 1.22, 0, 0.045, 0.34, 0.028, ...crestCol);
   }
 
-  // SHOULDERS / pauldrons
-  addBox(verts, norms, colors, indices, 0, -0.32, 0.58, 0, 0.18, 0.16, 0.32, ...darkCol);
-  addBox(verts, norms, colors, indices, 0,  0.32, 0.58, 0, 0.18, 0.16, 0.32, ...darkCol);
+  // SHOULDERS / sode (larger pauldrons for silhouette)
+  addBox(verts, norms, colors, indices, -0.30, 0.55, 0, 0.14, 0.14, 0.28, ...darkCol, 0, 0.15, 0);
+  addBox(verts, norms, colors, indices,  0.30, 0.55, 0, 0.14, 0.14, 0.28, ...darkCol, 0,-0.15, 0);
+  // small sode accent plates
+  addBox(verts, norms, colors, indices, -0.38, 0.50, 0, 0.08, 0.08, 0.18, ...leatherCol, 0, 0.3, 0);
+  addBox(verts, norms, colors, indices,  0.38, 0.50, 0, 0.08, 0.08, 0.18, ...leatherCol, 0,-0.3, 0);
 
-  // ARMS (simple)
-  addBox(verts, norms, colors, indices, 0, -0.42, 0.22, 0, 0.11, 0.48, 0.11, ...mainCol, 0.2);
-  addBox(verts, norms, colors, indices, 0,  0.42, 0.22, 0, 0.11, 0.48, 0.11, ...mainCol, -0.2);
+  // ARMS segmented (upper + lower + kote/hand) for non-capsule
+  // left upper
+  addBox(verts, norms, colors, indices, -0.01, 0.42, 0.26, 0.12, 0.32, 0.12, ...mainCol, 0.18 + lean);
+  // left lower + hand
+  addBox(verts, norms, colors, indices, -0.03, 0.18, 0.29, 0.10, 0.26, 0.10, ...darkCol, 0.12 + lean);
+  addBox(verts, norms, colors, indices, -0.04, 0.02, 0.31, 0.09, 0.12, 0.09, ...leatherCol, 0.08 + lean);
+  // right upper
+  addBox(verts, norms, colors, indices,  0.01, 0.42, 0.26, 0.12, 0.32, 0.12, ...mainCol, -0.18 - lean);
+  // right lower + hand
+  addBox(verts, norms, colors, indices,  0.03, 0.18, 0.29, 0.10, 0.26, 0.10, ...darkCol, -0.12 - lean);
+  addBox(verts, norms, colors, indices,  0.04, 0.02, 0.31, 0.09, 0.12, 0.09, ...leatherCol, -0.08 - lean);
 
-  // LEGS
-  addBox(verts, norms, colors, indices, 0, -0.14, -0.05, 0, 0.12, 0.42, 0.14, ...darkCol);
-  addBox(verts, norms, colors, indices, 0,  0.14, -0.05, 0, 0.12, 0.42, 0.14, ...darkCol);
+  // LEGS segmented (thigh + shin + foot) 
+  // left thigh
+  addBox(verts, norms, colors, indices, -0.13, 0.08, 0, 0.13, 0.28, 0.13, ...darkCol);
+  // left shin + foot
+  addBox(verts, norms, colors, indices, -0.14, -0.22, 0, 0.11, 0.28, 0.11, ...mainCol);
+  addBox(verts, norms, colors, indices, -0.15, -0.42, 0.02, 0.12, 0.08, 0.18, ...darkCol, 0.1, 0, 0);
+  // right thigh
+  addBox(verts, norms, colors, indices,  0.13, 0.08, 0, 0.13, 0.28, 0.13, ...darkCol);
+  // right shin + foot
+  addBox(verts, norms, colors, indices,  0.14, -0.22, 0, 0.11, 0.28, 0.11, ...mainCol);
+  addBox(verts, norms, colors, indices,  0.15, -0.42, 0.02, 0.12, 0.08, 0.18, ...darkCol, -0.1, 0, 0);
 
-  // WEAPON (variant)
+  // BELT / cords detail (small accent to break silhouette)
+  addBox(verts, norms, colors, indices, 0, 0.22, 0, 0.40, 0.06, 0.16, ...leatherCol);
+
+  // WEAPON (variant) - more distinct shapes
   const w = variant.weapon;
   if (w === 'yari' || w === 'spear') {
-    // long shaft + blade tip
-    addBox(verts, norms, colors, indices, 0, -0.55, 0.05, -0.02, 0.03, 0.82, 0.03, ...metalCol, 0.6);
-    addWedge(verts, norms, colors, indices, -0.55, 0.52, -0.02, 0.04, 0.18, 0.02, ...[0.7,0.65,0.55], -0.4);
+    // shaft
+    addBox(verts, norms, colors, indices, 0, -0.56, 0.02, -0.03, 0.025, 0.78, 0.025, ...metalCol, 0.55);
+    // crossbar
+    addBox(verts, norms, colors, indices, 0, -0.56, 0.38, -0.03, 0.14, 0.022, 0.022, ...metalCol, 0.55);
+    // blade
+    addWedge(verts, norms, colors, indices, -0.56, 0.78, -0.03, 0.035, 0.16, 0.018, ...[0.68,0.64,0.52], -0.35);
   } else if (w === 'tachi' || w === 'sword') {
-    // curved-ish side sword (use rotated box + tip)
-    addBox(verts, norms, colors, indices, 0, -0.48, 0.02, 0.18, 0.03, 0.42, 0.04, ...metalCol, 0, 1.2, 0);
-    addWedge(verts, norms, colors, indices, -0.48, 0.28, 0.18, 0.03, 0.12, 0.02, ...[0.65,0.6,0.5], 1.1);
+    // blade (longer, thinner)
+    addBox(verts, norms, colors, indices, 0, -0.49, 0.04, 0.20, 0.022, 0.46, 0.032, ...metalCol, 0, 1.15, 0);
+    // guard
+    addBox(verts, norms, colors, indices, 0, -0.49, 0.28, 0.20, 0.09, 0.022, 0.05, ...metalCol, 0, 1.15, 0);
+    // hilt
+    addBox(verts, norms, colors, indices, 0, -0.49, -0.02, 0.18, 0.028, 0.12, 0.028, ...[0.35,0.30,0.26], 0, 1.15, 0);
+    addWedge(verts, norms, colors, indices, -0.49, 0.52, 0.20, 0.028, 0.10, 0.016, ...[0.62,0.58,0.48], 1.05);
   } else if (w === 'kanabo' || w === 'club') {
-    addCylinder(verts, norms, colors, indices, -0.52, 0.08, 0.12, 0.05, 0.55, ...[0.4,0.38,0.35], 6, 0.3);
+    addCylinder(verts, norms, colors, indices, -0.53, 0.06, 0.14, 0.048, 0.50, ...[0.38,0.35,0.32], 7, 0.28);
+    // spikes on club
+    for (let s=0; s<5; s++) {
+      const sy = 0.06 + (s-2)*0.10;
+      addWedge(verts, norms, colors, indices, -0.53, sy, 0.14, 0.022, 0.06, 0.022, ...darkCol, 0.28 + s*0.1);
+    }
   } else {
-    // banner or naginata default
-    addBox(verts, norms, colors, indices, 0, -0.58, 0.38, -0.04, 0.02, 0.65, 0.02, ...metalCol);
-    addBox(verts, norms, colors, indices, 0, -0.58, 0.72, -0.04, 0.12, 0.18, 0.01, ...crestCol, 0,0,0.6);
+    // naginata / banner
+    addBox(verts, norms, colors, indices, 0, -0.59, 0.36, -0.05, 0.018, 0.62, 0.018, ...metalCol);
+    addBox(verts, norms, colors, indices, 0, -0.59, 0.70, -0.05, 0.11, 0.16, 0.01, ...crestCol, 0,0,0.55);
+    addWedge(verts, norms, colors, indices, -0.59, 0.82, -0.05, 0.03, 0.08, 0.012, ...metalCol, 0.4);
   }
 
-  // small mon / clan mark on chest (flat quad)
+  // small mon / clan mark on chest (flat quad) + cord knot accents
   const monR = isTakeda ? 0.82 : 0.25;
   const monG = isTakeda ? 0.18 : 0.32;
   const monB = isTakeda ? 0.08 : 0.48;
   const mstart = verts.length/3;
-  const my = 0.42, mz = 0.12;
-  const ms = 0.06;
+  const my = 0.40, mz = 0.13;
+  const ms = 0.055;
   push3(verts, -ms, my, mz); push3(norms, 0,0,1); pushColor(colors, monR,monG,monB);
   push3(verts,  ms, my, mz); push3(norms, 0,0,1); pushColor(colors, monR,monG,monB);
-  push3(verts,  ms, my+ms*1.6, mz); push3(norms, 0,0,1); pushColor(colors, monR,monG,monB);
-  push3(verts, -ms, my+ms*1.6, mz); push3(norms, 0,0,1); pushColor(colors, monR,monG,monB);
+  push3(verts,  ms, my+ms*1.55, mz); push3(norms, 0,0,1); pushColor(colors, monR,monG,monB);
+  push3(verts, -ms, my+ms*1.55, mz); push3(norms, 0,0,1); pushColor(colors, monR,monG,monB);
   indices.push(mstart, mstart+1, mstart+2, mstart, mstart+2, mstart+3);
+  // cord knots
+  addBox(verts, norms, colors, indices, -0.12, 0.24, 0.13, 0.04, 0.03, 0.03, ...[0.5,0.42,0.35]);
+  addBox(verts, norms, colors, indices,  0.12, 0.24, 0.13, 0.04, 0.03, 0.03, ...[0.5,0.42,0.35]);
 
   // compute bounds for accessor
   let min = [Infinity,Infinity,Infinity], max = [-Infinity,-Infinity,-Infinity];
@@ -391,6 +443,50 @@ function variantFor(clan, id) {
   return { clan, id, crest, weapon };
 }
 
+function buildPropMesh(kind) {
+  const verts = [], norms = [], colors = [], indices = [];
+  const wood = [0.45,0.36,0.26];
+  const stone = [0.48,0.46,0.42];
+  const paper = [0.92,0.88,0.78];
+  const metal = [0.55,0.52,0.48];
+  if (kind === 'lantern') {
+    // base stone
+    addBox(verts, norms, colors, indices, 0, -0.35, 0, 0.18, 0.10, 0.18, ...stone);
+    // post
+    addBox(verts, norms, colors, indices, 0, 0.05, 0, 0.06, 0.70, 0.06, ...wood);
+    // lantern box (paper sides)
+    addBox(verts, norms, colors, indices, 0, 0.52, 0, 0.22, 0.22, 0.22, ...paper);
+    // roof cap
+    addBox(verts, norms, colors, indices, 0, 0.68, 0, 0.26, 0.06, 0.26, ...[0.22,0.18,0.14]);
+    // flame core (small)
+    addBox(verts, norms, colors, indices, 0, 0.48, 0, 0.06, 0.08, 0.06, ...[0.85,0.55,0.15]);
+  } else if (kind === 'stone') {
+    addBox(verts, norms, colors, indices, 0, -0.05, 0, 0.42, 0.18, 0.36, ...stone);
+    addBox(verts, norms, colors, indices, 0.08, 0.08, 0, 0.22, 0.12, 0.18, ...[0.52,0.50,0.46]);
+  } else if (kind === 'banner') {
+    // pole
+    addBox(verts, norms, colors, indices, 0, 0.10, 0, 0.05, 0.85, 0.05, ...wood);
+    // banner cloth
+    addBox(verts, norms, colors, indices, 0.22, 0.35, 0, 0.02, 0.42, 0.28, ...[0.82,0.18,0.12]);
+    // cross bar
+    addBox(verts, norms, colors, indices, 0, 0.58, 0, 0.28, 0.03, 0.03, ...wood);
+  } else {
+    // weapon-stand / rack
+    addBox(verts, norms, colors, indices, 0, -0.25, 0, 0.12, 0.12, 0.32, ...wood);
+    addBox(verts, norms, colors, indices, 0, 0.22, 0, 0.08, 0.82, 0.06, ...wood);
+    // pegs
+    addBox(verts, norms, colors, indices, 0.12, 0.35, 0, 0.18, 0.03, 0.03, ...wood);
+    addBox(verts, norms, colors, indices, 0.12, 0.12, 0, 0.18, 0.03, 0.03, ...wood);
+  }
+  // bounds
+  let min = [Infinity,Infinity,Infinity], max = [-Infinity,-Infinity,-Infinity];
+  for (let i=0; i<verts.length; i+=3) {
+    min[0] = Math.min(min[0], verts[i]); min[1] = Math.min(min[1], verts[i+1]); min[2] = Math.min(min[2], verts[i+2]);
+    max[0] = Math.max(max[0], verts[i]); max[1] = Math.max(max[1], verts[i+1]); max[2] = Math.max(max[2], verts[i+2]);
+  }
+  return { verts, norms, colors, indices, min, max, triCount: indices.length / 3 };
+}
+
 function generateAll() {
   const manifest = [];
   for (let i=1; i<=TAKEDA; i++) {
@@ -399,7 +495,7 @@ function generateAll() {
     const glb = buildGLB(mesh);
     const name = `takeda-${String(i).padStart(2,'0')}.glb`;
     fs.writeFileSync(path.join(OUT_DIR, name), glb);
-    manifest.push({ name, clan:'Takeda', id:i, bytes: glb.length, tris: mesh.triCount, crest: v.crest, weapon: v.weapon });
+    manifest.push({ name, clan:'Takeda', id:i, bytes: glb.length, tris: mesh.triCount, crest: v.crest, weapon: v.weapon, kind:'character' });
     console.log('WROTE', name, glb.length, 'bytes', mesh.triCount, 'tris');
   }
   for (let i=1; i<=UESUGI; i++) {
@@ -408,12 +504,22 @@ function generateAll() {
     const glb = buildGLB(mesh);
     const name = `uesugi-${String(i).padStart(2,'0')}.glb`;
     fs.writeFileSync(path.join(OUT_DIR, name), glb);
-    manifest.push({ name, clan:'Uesugi', id:i, bytes: glb.length, tris: mesh.triCount, crest: v.crest, weapon: v.weapon });
+    manifest.push({ name, clan:'Uesugi', id:i, bytes: glb.length, tris: mesh.triCount, crest: v.crest, weapon: v.weapon, kind:'character' });
+    console.log('WROTE', name, glb.length, 'bytes', mesh.triCount, 'tris');
+  }
+  // Additional props for architecture / set dressing / courtyard (addressing mix requirement)
+  const props = ['lantern','stone','banner','rack'];
+  for (const p of props) {
+    const mesh = buildPropMesh(p);
+    const glb = buildGLB(mesh);
+    const name = `prop-${p}.glb`;
+    fs.writeFileSync(path.join(OUT_DIR, name), glb);
+    manifest.push({ name, kind:'prop', bytes: glb.length, tris: mesh.triCount });
     console.log('WROTE', name, glb.length, 'bytes', mesh.triCount, 'tris');
   }
   return manifest;
 }
 
 const man = generateAll();
-console.log('\n=== Generated', man.length, 'samurai GLB models ===');
+console.log('\n=== Generated', man.length, 'samurai GLB models + props ===');
 console.log(JSON.stringify(man, null, 2));

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Battles of Kawanakajima — 3D Prints • Edo Woodblock</title>
+<title>Kawanakajima Courtyard — The Instant • Edo Woodblock</title>
 <style>
   :root { --paper:#f8f4eb; --ink:#0f172a; --vermilion:#c2410f; --indigo:#2c3a5f; --gold:#b38b3f; }
   html,body { margin:0; padding:0; background:#111; height:100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -45,10 +45,10 @@
     <button class="btn" id="instantBtn" title="Stage the instant (Space)">THE INSTANT</button>
     <button class="btn" id="viewBtn" title="Cycle preset views (V)">VIEW</button>
   </div>
-  <div class="stage-hint" id="stageHint">drag the blocks to turn them · pick from each camp · space for the instant</div>
+  <div class="stage-hint" id="stageHint">drag to turn the prints · pick one from each side · space to stage the courtyard clash</div>
   <div id="startPrompt">
-    <div class="big">THE BLOCKS STAND IN LIGHT</div>
-    <div style="font-size:11px;opacity:0.8">twenty file-backed 3D prints — orbit to inspect</div>
+    <div class="big">TWO PRINTS IN THE COURTYARD</div>
+    <div style="font-size:11px;opacity:0.8">choose champions · drag to orbit · space to clash</div>
   </div>
 
   <!-- left (Takeda) roster -->
@@ -354,6 +354,7 @@
 
   function render3D() {
     const aspect = glW / glH;
+    const clashPush = (clashT > 0) ? (clashT * 0.18) : 0;
     [ ['left', glLeft, camLeft], ['right', glRight, camRight] ].forEach(([side, gl, cam]) => {
       if (!gl) return;
       gl.viewport(0,0,glW,glH);
@@ -362,7 +363,13 @@
       gl.enable(gl.DEPTH_TEST);
       gl.disable(gl.CULL_FACE);
       const prog = getProgram(gl);
+      // temp forward nudge during clash for encounter feel (models step in)
+      const saveTarget = cam.target ? cam.target.slice() : null;
+      if (clashPush > 0 && cam.target) {
+        cam.target = [cam.target[0], cam.target[1], cam.target[2] - clashPush * (side==='left' ? 0.6 : -0.6)];
+      }
       const m = makeMVPMatrices(cam, aspect);
+      if (saveTarget) cam.target = saveTarget;
       gl.useProgram(prog);
       gl.uniformMatrix4fv(prog.uMVP, false, m.mvp);
       gl.uniformMatrix4fv(prog.uMV, false, m.mv);
@@ -469,7 +476,7 @@
     ctx.fillRect(W/2-1, 86, 2, glH-6);
     ctx.restore();
 
-    // stage band at bottom (the charged space between prints)
+    // stage band at bottom (the charged space between prints) — courtyard floor suggestion
     const sy = 78 + glH + 22;
     const sh = 148;
     drawPaperGrain(38, sy, W-76, sh, 47);
@@ -477,11 +484,22 @@
     ctx.strokeStyle = 'rgba(15,23,42,0.16)';
     ctx.lineWidth = 1;
     ctx.strokeRect(38.5, sy+0.5, W-77, sh-1);
+    // tatami / stone courtyard lines (set dressing, ink on paper)
+    ctx.strokeStyle = 'rgba(15,23,42,0.09)';
+    ctx.lineWidth = 0.7;
+    for (let i=0; i<5; i++) {
+      const ly = sy + 18 + i*24;
+      ctx.beginPath(); ctx.moveTo(48, ly); ctx.lineTo(W-48, ly); ctx.stroke();
+    }
+    // simple ink lantern silhouettes (dressing, left + right of clash zone)
+    ctx.fillStyle = 'rgba(15,23,42,0.25)';
+    ctx.fillRect(68, sy+32, 7, 18); ctx.fillRect(65, sy+28, 13, 5); // left lantern
+    ctx.fillRect(W-75, sy+32, 7, 18); ctx.fillRect(W-78, sy+28, 13, 5); // right
     ctx.restore();
 
     ctx.fillStyle = INK;
     ctx.font = '600 11px system-ui';
-    ctx.fillText('THE INSTANT', 52, sy + 16);
+    ctx.fillText('COURTYARD CLASH', 52, sy + 16);
 
     // small 3D state badges in stage
     const figY = sy + 22;
@@ -521,12 +539,21 @@
       ctx.restore();
     }
 
+    // post-clash encounter note (clear without extra instruction)
+    if (lastClash && clashT < 0.15) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(15,23,42,0.65)';
+      ctx.font = '600 9px system-ui';
+      ctx.fillText('the prints remember the clash', W/2 - 68, sy + 108);
+      ctx.restore();
+    }
+
     // bottom margin
     ctx.save();
     ctx.fillStyle = '#6f5b44';
     ctx.font = '10px system-ui';
-    ctx.fillText('ukiyo-e that can be touched — carved blocks turned in the light', 38, H - 14);
-    ctx.fillText('20 file-backed GLB models', W - 180, H - 14);
+    ctx.fillText('ukiyo-e that can be touched — two carved samurai, one courtyard, the instant before blades cross', 38, H - 14);
+    ctx.fillText('20 GLB + 4 props', W - 140, H - 14);
     ctx.restore();
   }
 
@@ -554,8 +581,9 @@
     clashT = 0.9;
     lastClash = { l: loadedModels.left.key, r: loadedModels.right.key };
     if (soundOn && audioCtx) sfxClash();
-    // camera push for "instant"
-    camLeft.yaw -= 0.12; camRight.yaw += 0.12;
+    // camera push + forward for courtyard clash encounter
+    camLeft.yaw -= 0.10; camLeft.pitch += 0.03; camLeft.dist = Math.max(1.8, (camLeft.baseDist||3)*0.92);
+    camRight.yaw += 0.10; camRight.pitch += 0.03; camRight.dist = Math.max(1.8, (camRight.baseDist||3)*0.92);
     render3D();
   }
 

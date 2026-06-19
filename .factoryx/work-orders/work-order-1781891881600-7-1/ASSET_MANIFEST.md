@@ -1,0 +1,65 @@
+# ASSET_MANIFEST — Discord Deliverable Kickoff: Pictures of the Floating World (work-order-1781891881600-7-1)
+
+**Date:** 2026-06-19  
+**Status:** 20 improved file-backed 3D samurai GLB character variants + 4 prop GLBs for architecture/props/set dressing. All committed and loaded from relative paths. Blender/Unity/Foundry MCP pipeline unavailable — recorded as blocker.
+
+**Source of truth:** This file (in FACTORYX_WORK_ORDER_CONTEXT_DIR). In-code or PR text alone do not satisfy.
+
+## Asset Pipeline Inspection
+- Inspected repo root, games/**/assets, drops/**/assets, .factoryx, .codex, /cache, env, scripts for Asset Foundry, Blender MCP, Unity MCP, or reusable finished 3D assets from prior drops.
+- No foundry/Blender/Unity tools or MCP servers exposed in runtime (no `blender`, no `bpy`, no matching services in env or mounted paths).
+- Reused/improved the existing committed deterministic generator (`scripts/generate-kawanakajima-glbs.js`) as the local "asset foundry" for this browser-game context.
+- Per playtest feedback (see FEEDBACK.md): prior GLBs read primitive; generator revised for layered armor, segmented limbs, detailed helmets/crests/weapons before re-export.
+- Props generated as additional assets matching "mix of ... architecture, props, weapons/armor pickups, and atmosphere/set dressing".
+- Legacy JPG thumbs preserved only for roster ID (not central 3D deliverable).
+
+## Core 3D Assets (20 character GLBs + 4 props)
+All files real committed binaries under `games/94-kawanakajima/assets/models/`. Loaded via fetch + in-page GLB parser + WebGL. Each has POSITION/NORMAL/COLOR_0 + indices.
+
+### Takeda (10 variants)
+- takeda-01.glb — ~11kB — ~430 tris — crest: horn — weapon: kanabo
+- takeda-02.glb — ~12kB — ~422 tris — crest: antler — weapon: naginata
+- takeda-03.glb — ~12kB — ~430 tris — crest: sun — weapon: spear
+- takeda-04.glb — ~11kB — ~422 tris — crest: fan — weapon: yari
+- takeda-05.glb — ~11kB — ~422 tris — crest: spike — weapon: tachi
+- takeda-06..10.glb — same pattern (deterministic from id)
+
+### Uesugi (10 variants)
+- uesugi-01.glb — ~11kB — ~422 tris — crest: plume — weapon: naginata
+- ... (crescent/spear, fan/yari, cross/tachi, spike/kanabo etc.)
+
+### Additional props (courtyard / set dressing)
+- prop-lantern.glb — stone base + wood post + paper box + flame (36 tris)
+- prop-stone.glb — low stone for ground dressing (24 tris)
+- prop-banner.glb — pole + cloth banner (36 tris)
+- prop-rack.glb — weapon stand / rack (48 tris)
+
+**Generation:** `scripts/generate-kawanakajima-glbs.js` (pure JS, committed, deterministic, no external deps). Richer geometry than prior pass to address "box/capsule" feedback while staying low-poly stylized "carved block" per house style.
+
+## Integration points (games/94-kawanakajima/index.html)
+- Relative: `assets/models/*.glb`
+- Seeded on boot: takeda-01 + uesugi-01 into live WebGL viewports.
+- Roster clicks load the real GLB (not thumb).
+- Drag orbit, V cycles presets (front/3/4/profile), Space or button triggers clash encounter.
+- Props generated for set dressing / future use; current courtyard suggestion uses ink silhouettes + floor lines matching generated prop intent + house palette.
+- State exposed: `window.__KAWANAKAJIMA_3D_STATE` (modelsLoaded, clashT, lastClash, etc).
+- Self-contained, offline after load, no external net.
+
+## Provenance / scale / use
+- Scale: figures ~1.6 units tall; props sized to sit beside/around in the 3D frame.
+- Use: central heroes/enemies (samurai variants), atmosphere/set dressing (lanterns, stones, banners, racks).
+- House: ink-primary vertex colors, limited vermilion/indigo, silhouette emphasis via crests/weapons/layering, paper mist frames around.
+- Browser verification: exercised by chromium harness (GLB fetch/parse/WebGL draw + pixel checks + no console errors).
+
+## Blockers / notes
+- **Missing pipeline:** No Blender, Asset Foundry, Unity MCP, or 3D sculpting tool available. Cannot produce "real Blender source" or "19 additional assets" via requested path. This is recorded (not silent placeholder).
+- Current assets satisfy "file-backed" + ASSET_MANIFEST + screenshots + manifest provenance. Generator script serves as source/scripts.
+- If future runtime exposes foundry, the manifest + generator make replacement of specific pieces straightforward.
+- 20 character + 4 prop = 24 file-backed assets total for the stylized samurai courtyard slice.
+
+## Verification evidence
+- See VERIFICATION.md + screenshots/ in this dir (fresh chromium ready + post-clash).
+- All 24 GLBs present with glTF magic.
+- Non-blank renders of real geometry in live preview.
+
+Work Order: work-order-1781891881600-7-1

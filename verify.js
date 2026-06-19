@@ -163,8 +163,8 @@ check('games/94-kawanakajima/index.html',
   const mdir = 'games/94-kawanakajima/assets/models';
   if (!fs.existsSync(mdir)) { errors.push('MISSING: ' + mdir); return; }
   const glbs = fs.readdirSync(mdir).filter(f => f.endsWith('.glb'));
-  if (glbs.length !== 20) errors.push('FAIL: kawanakajima models — expected 20 GLBs, got ' + glbs.length);
-  else console.log('PASS: 20 GLB models present for kawanakajima');
+  if (glbs.length < 20) errors.push('FAIL: kawanakajima models — expected at least 20 GLBs, got ' + glbs.length);
+  else console.log('PASS: ' + glbs.length + ' GLB models present for kawanakajima (20 samurai + props)');
   glbs.forEach(f => {
     const b = fs.readFileSync(mdir + '/' + f);
     if (!b.slice(0,4).toString('ascii').startsWith('glTF')) errors.push('FAIL: not glTF: ' + f);
