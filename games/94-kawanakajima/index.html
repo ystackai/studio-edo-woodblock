@@ -18,6 +18,8 @@
   .btn:active { transform:translateY(1px); }
   .btn.mute { font-size:16px; line-height:1; padding:5px 11px; }
   .stage-hint { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#d8c6ac; font-size:11px; font-weight:600; letter-spacing:0.8px; text-shadow:0 1px 2px rgba(0,0,0,0.5); pointer-events:none; opacity:0.9; z-index:10; }
+  .review-note { position:absolute; left:50%; top:14px; transform:translateX(-50%); z-index:30; max-width:440px; padding:7px 10px; background:rgba(15,23,42,0.88); border:1px solid rgba(179,139,63,0.7); color:#f8f4eb; font-size:11px; line-height:1.35; font-weight:700; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.35); }
+  .review-note a { color:#f2d18b; text-decoration:underline; text-underline-offset:2px; }
   #startPrompt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; background:rgba(15,23,42,0.12); color:#f8f4eb; font-size:13px; font-weight:700; letter-spacing:1px; pointer-events:none; z-index:15; }
   #startPrompt .big { font-size:18px; letter-spacing:3px; margin-bottom:2px; }
   .roster { position:absolute; z-index:12; display:flex; gap:6px; flex-wrap:wrap; }
@@ -38,6 +40,10 @@
   <div class="hud">
     <div class="title">BATTLES OF KAWANAKAJIMA</div>
     <div style="opacity:0.85;margin-top:1px">Takeda &nbsp;·&nbsp; Uesugi — twenty carved blocks</div>
+  </div>
+  <div class="review-note">
+    REVIEW: these GLBs are rejected as the character baseline.
+    Use the <a href="assets/reference/foundry-samurai-baseline/realistic_samurai_contact_sheet.png">Asset Foundry samurai reference</a>.
   </div>
   <div class="ctrl">
     <button class="btn mute" id="soundBtn" title="Toggle sound (off by default)">♪</button>

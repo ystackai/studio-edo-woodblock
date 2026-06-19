@@ -1,0 +1,35 @@
+{
+  "asset_name": "proof-realistic-samurai",
+  "notes": [
+    "Generated through Asset Foundry HTTP API using a prompt in /goal format.",
+    "Samurai model includes kabuto, mempo, shikoro, do cuirass, sode shoulder plates, kusazuri skirt plates, kote forearm guards, greaves, waraji sandals, katana blade, saya, lacing, rivets, and physically coherent studio lighting.",
+    "Contact sheet uses repeatable hero/front/left/rear/top/three-quarter cameras for self-verification."
+  ],
+  "outputs": {
+    "blender_script": "/proof/outputs/asset-1781842494700-82b4a4e8/realistic_samurai_blender.py",
+    "blender_stderr": "/proof/outputs/asset-1781842494700-82b4a4e8/blender_stderr.log",
+    "blender_stdout": "/proof/outputs/asset-1781842494700-82b4a4e8/blender_stdout.log",
+    "contact_sheet": "/proof/outputs/asset-1781842494700-82b4a4e8/realistic_samurai_contact_sheet.png",
+    "glb": "/proof/outputs/asset-1781842494700-82b4a4e8/realistic_samurai.glb",
+    "poster": "/proof/outputs/asset-1781842494700-82b4a4e8/realistic_samurai_hero.png",
+    "source_blend": "/proof/outputs/asset-1781842494700-82b4a4e8/realistic_samurai_source.blend",
+    "turntable": "/proof/outputs/asset-1781842494700-82b4a4e8/realistic_samurai_turntable.gif"
+  },
+  "recipe": "realistic_samurai",
+  "stats": {
+    "inspection_views": [
+      "hero",
+      "front",
+      "left",
+      "rear",
+      "top",
+      "three_quarter"
+    ],
+    "material_count": 14,
+    "mesh_count": 195,
+    "object_count": 262,
+    "prompt_format": "/goal",
+    "stable_camera_views": 6,
+    "turntable_frames": 16
+  }
+}
