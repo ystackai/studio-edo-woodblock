@@ -8,10 +8,10 @@
 
 ## What Exists
 
-- **Samurai asset:** live Asset Foundry + iterated Blender v4 (v3 base + shikoro neck guard, lamellar hints, finger separation, split-toe/geta strap for profile; provenance preserved). Base job asset-1781913507610-bf69e595, v4 20260620.
-  - Primary runtime asset: `assets/samurai_character.glb` (2.74 MB).
-  - Source/evidence retained under `assets/generated/foundry/samurai/improved-20260620-v4/`.
-  - Contact sheet and hero render (v4) embedded in the in-game inspection panel.
+- **Samurai asset:** live Asset Foundry provenance + Blender v5 repair pass after the v4 block/slab visual failure. Base job asset-1781913507610-bf69e595, v5 20260620.
+  - Primary runtime asset: `assets/samurai_character.glb` (1.23 MB).
+  - Source/evidence retained under `assets/generated/foundry/samurai/improved-20260620-v5/`.
+  - Contact sheet and hero render (v5) embedded in the in-game inspection panel.
 - **20-warrior game proof:** browser/Three.js scene with 10 Takeda and 10 Uesugi samurai in a Japanese countryside battle tableau.
   - Uses the Foundry GLB as the visible character base.
   - Variants come from pose transforms, scale, formation, faction standards, and small additive props.
@@ -31,12 +31,8 @@
 
 - **Unity playable build:** not created. A Unity source handoff now exists, but the worker has Unity CLI/MCP binaries only; no Unity Editor install and no Unity-side MCP listener.
 - **Unity blocker:** `/cache` only has about 4.5 GB free on the runtime host; the install helper requires at least 18 GB before attempting a Unity Editor install.
-- **Autonomous completion:** proven on retry. Preflights (Foundry+unity), node verify.js (including harness regex fix), capture evidence, and docs updated autonomously for work-order-1781920715097-7-1. Canonical PR only.
+- **Autonomous completion:** not proven end-to-end. The retry loop produced useful artifacts, but this v5 repair required manual intervention after the v4 visuals still looked blocky/unusable.
 
 ## Current Review Verdict
 
-Autonomous retry (work-order-1781920715097-7-1) complete. All hard reqs met for browser proof: Foundry /healthz verified first, detailed v4 asset (lamellar plates, shikoro, fingers, tabi/geta; 221 meshes), 20 actors + countryside + faction formations, 6 repeatable cams (large nonblank 1280x800 evidence), file-backed audio+controls, inspect/contact panel. node verify.js PASS. Self-verifying cameras + render rig used.
-
-Unity: preflight run, no Editor/listener; handoff+UNITY_BLOCKER preserved; no playable build claimed.
-
-PR body includes Work Order context. Report PR exactly: https://github.com/ystackai/studio-edo-woodblock/pull/161 . Only this canonical branch/PR used.
+This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, and Unity source handoff. v5 supersedes the bad v4 visual pass with a cleaner stylized samurai asset and refreshed Blender evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Unity playable build not claimed: no Editor/listener available (see UNITY_BLOCKER.md). PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (only canonical used).

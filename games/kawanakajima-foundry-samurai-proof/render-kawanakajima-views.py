@@ -10,7 +10,9 @@ from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[2]
 GAME_DIR = ROOT / "games" / "kawanakajima-foundry-samurai-proof"
-SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v4.blend"
+SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v5.blend"
+if not SOURCE_BLEND.exists():
+    SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v4.blend"
 if not SOURCE_BLEND.exists():
     SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v3.blend"
 if not SOURCE_BLEND.exists():
@@ -146,13 +148,10 @@ def build_scene():
         inst.matrix_world = placement
         bpy.context.collection.objects.link(inst)
         actor_targets.setdefault(side, Vector((x, y, 0.95)))
-        bpy.ops.mesh.primitive_cube_add(size=1, location=(x, y - 0.23, 1.28))
-        banner = bpy.context.object
-        banner.name = f"{side}_{idx:02d}_faction_color_check"
-        banner.dimensions = (0.04, 0.44, 0.34)
-        banner.rotation_euler[2] = zrot
-        banner.data.materials.append(team_mat)
-        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.035, depth=0.018, location=(x, y - 0.33, 1.64), rotation=(math.radians(90), 0, zrot))
+        mon = bpy.context.object
+        mon.name = f"{side}_{idx:02d}_faction_mon"
+        mon.data.materials.append(team_mat)
 
     bpy.ops.object.light_add(type="SUN", location=(-3.5, -4.0, 6.0))
     sun = bpy.context.object
@@ -189,9 +188,11 @@ def build_scene():
     scene.eevee.use_gtao = True
     scene.eevee.gtao_distance = 3
     scene.eevee.gtao_factor = 1.4
-    scene.render.resolution_x = 1280
-    scene.render.resolution_y = 800
+    scene.render.resolution_x = 960
+    scene.render.resolution_y = 600
     scene.render.film_transparent = False
+    scene.eevee.taa_render_samples = 16
+    scene.eevee.taa_samples = 16
     scene.view_settings.view_transform = "Filmic"
     scene.view_settings.look = "Medium High Contrast"
     scene.view_settings.exposure = 0.38
@@ -203,11 +204,11 @@ def build_scene():
 
     views = {
         "overview": ((4.6, -7.1, 3.4), (0.0, 0.0, 0.85), 45),
-        "redClose": ((-4.75, -3.65, 2.05), (-2.18, -2.0, 0.98), 54),
-        "blueClose": ((4.75, -3.15, 2.05), (2.18, -1.95, 0.98), 54),
+        "redClose": ((-5.0, -4.9, 2.85), (-2.18, -2.0, 1.32), 38),
+        "blueClose": ((5.0, -4.7, 2.85), (2.18, -1.95, 1.32), 38),
         "sideProfile": ((6.4, -0.25, 1.65), (0.15, 0.25, 0.9), 55),
         "topFormation": ((0.0, -0.1, 9.0), (0.0, -0.05, 0.0), 35),
-        "assetInspect": ((-4.15, -3.35, 1.85), (-2.2, -2.0, 1.05), 62),
+        "assetInspect": ((-5.15, -5.0, 2.95), (-2.2, -2.0, 1.35), 38),
     }
 
     aliases = {
