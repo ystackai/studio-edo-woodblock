@@ -120,11 +120,11 @@ Cut one living print: a single wave-form horizon in ink on paper grain, complete
 
 ### Known (non-blocker)
 - gh cli auth not available in this worker shell (no interactive login or visible GH_TOKEN for gh). `git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665243422-followup` succeeded (credential helper handles https).
-- Latest verification commit f27d559 pushed to canonical branch 2026-06-20. PR #156 (if open on this head) will auto include the new commit. To refresh PR description, paste/update from this PR_BODY.md (contains full original prompt).
-- Direct --dump-dom + chromium evidence added showing mist title/canvas vs home markers; no code change to print itself.
+- Latest verification + push: 271215d on canonical branch (2026-06-20 session). Includes fresh chromium re-verif on f1f40fe (direct entrypoint, 950k/956k screenshots, DOM clean of home, CI redirect sim). PR #156 head auto-advanced by push. To refresh PR description with latest evidence, paste/update from this PR_BODY.md (contains full original prompt).
+- Direct --dump-dom + chromium evidence (re-run this session) showing mist title/canvas + no home markers (demos/crew etc); confirmed again that entrypoint serves only the living print.
 
 ---
 
-**Ready for review.** The home-page bug is fixed at the source (direct entrypoint + .factoryx/preview-entrypoint + fresh DOM+chromium proof that the served artifact is the mist print alone, never the factory home). The living print is direct, self-contained, house-style compliant, asset-contract compliant (real jpgs + manifest), fully verified in real browser (chromium + playwright lib checks), and attached to the same deliverable as a reviewable follow-up. Branch pushed; PR #156 should be updated with this body if description is stale.
+**Ready for review.** The home-page bug is fixed at the source (direct entrypoint + .factoryx/preview-entrypoint + repeated fresh DOM+chromium proof on 271215d that the served artifact is the mist print alone, never the factory home). The living print is direct, self-contained, house-style compliant, asset-contract compliant (real jpgs + manifest under games/.../assets), fully verified in real browser (chromium headless + --dump-dom + CI preview redirect sim), and attached to the same deliverable as a reviewable follow-up. Branch pushed to canonical ref (latest 271215d); PR #156 head updated automatically; refresh body from this file if stale.
 
 (End of PR body — the original full user prompt from the work order launch is reproduced in the "Full Payload JSON" + "Original parent goal/context" sections above for traceability.)
