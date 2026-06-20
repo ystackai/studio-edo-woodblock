@@ -17,3 +17,14 @@
 Browser proof: **reviewable**
 Unity build: **blocked** (no Editor/listener, insufficient disk)
 PR: created with full work order context
+
+## 2026-06-20 — PR Created
+
+- Polished index.html: improved terrain (river, stones, grass, ground fog), added 18 pine trees, 30 stones, 25 path rocks, 6 war banners, mist particles, dust motes, grass wind sway, banner cloth wind, improved loading screen with progress bar and Japanese title
+- Updated ASSET_MANIFEST.md with full provenance, sizes, integration points
+- Created VERIFICATION.md, PREVIEW.md, WORKLOG.md for work order context
+- `node verify.js` passes all structure/asset/size checks
+- Committed and pushed to branch
+- **PR #165 created:** https://github.com/ystackai/studio-edo-woodblock/pull/165
+- Unity playable build: blocked (no Editor, no token for MCP endpoint)
+- Browser proof: reviewable and functional
