@@ -2,9 +2,11 @@
 
 **Title:** Guarded Samurai Unity playable-build retry
 
-**Started:** 2026-06-20 (current session)
+**Started:** 2026-06-20 (current session, preflight re-run at ~07:50)
 
 ## Steps Executed
+
+- Re-executed Unity preflight + MCP status + build attempt; df=1.1G; confirmed blocker; docs refreshed with exact outputs for this WO execution.
 
 1. Inspected workspace, git HEAD (84a120b on codex/samurai-unity-guarded-retry), fetched, merged origin/main (95ada6e "Merge Kawanakajima battlefield pack v3") to bring in v3 assets, handoff, and browser proof. No force-push.
 2. Read FEEDBACK.md (empty), PREVIEW/VERIFICATION/WORKLOG placeholders, prior related work order notes.

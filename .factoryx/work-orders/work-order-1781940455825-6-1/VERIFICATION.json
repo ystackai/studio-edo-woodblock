@@ -1,12 +1,12 @@
 {
   "workOrderId": "work-order-1781940455825-6-1",
-  "verifiedAt": "2026-06-20T07:30:00.000Z",
+  "verifiedAt": "2026-06-20T07:52:00.000Z",
   "unityPreflight": {
     "cliVersion": "0.1.0-beta.7",
     "editorsList": "VersionArchDefaultPlatforms",
     "authStatus": "You are not signed in. Run `auth login` to sign in.",
     "licenseOutput": "",
-    "cacheFreeGB": "1.3",
+    "cacheFreeGB": "1.1",
     "mcpStatus": "ERROR: Unity is not running and MCP server is not reachable",
     "buildAttemptError": "Error: Editor 2022.3.0f1 (x86_64) is not installed. Re-run with --allow-install to install it automatically.",
     "projectVersionPinned": "2022.3.0f1",
@@ -20,7 +20,7 @@
   "actorCountFromManifest": 20,
   "takedaCount": 10,
   "uesugiCount": 10,
-  "notes": "Guarded retry executed. Honest blocker reported. No playable Unity completion claimed. See UNITY_BLOCKER.md and VERIFICATION.md.",
+  "notes": "Guarded retry re-executed fresh preflight ~07:50. Honest blocker reported (1.1G free, no Editor, no listener). No playable Unity completion claimed. See UNITY_BLOCKER.md and VERIFICATION.md.",
   "passedUnityGate": false,
   "escalation": "Requires worker with real Unity Editor install (18GB+), license auth, and running MCP listener in Editor."
 }

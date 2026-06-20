@@ -6,13 +6,13 @@
 
 ## Unity Preflight (mandatory before any Unity claim)
 
-All commands executed on 2026-06-20:
+All commands re-executed fresh ~07:50 on 2026-06-20 in this session:
 
 - `unity --version`: `0.1.0-beta.7`
 - `unity editors -i`: `VersionArchDefaultPlatforms` (no installed Editors listed)
 - `unity auth status`: "You are not signed in. Run `auth login` to sign in."
 - `unity license`: (empty)
-- `df -h /cache`: 1.3G available (97% used; < 18 GB required)
+- `df -h /cache`: 1.1G available (97% used; < 18 GB required)
 - `unity-mcp-cli status unity/kawanakajima-samurai`:
   - "WARN: Unity is not running with this project"
   - "ERROR: Not available (connection refused)" on http://localhost:23914

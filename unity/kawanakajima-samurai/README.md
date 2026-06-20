@@ -66,12 +66,12 @@ Expected build outputs:
 
 **This is a source handoff only. No playable Unity build was or can be produced in the current runtime.**
 
-Exact preflight (2026-06-20):
+Exact preflight (re-exec 2026-06-20 ~07:50, 1.1G):
 - `unity --version`: 0.1.0-beta.7 (thin CLI wrapper)
 - `unity editors -i`: VersionArchDefaultPlatforms (no Editor installed)
 - `unity auth status`: You are not signed in.
 - `unity license`: (empty)
-- `df -h /cache`: 1.3 GB free (insufficient; ~18 GB required)
+- `df -h /cache`: 1.1 GB free (insufficient; ~18 GB required)
 - `unity-mcp-cli status unity/kawanakajima-samurai`:
   - WARN: Unity is not running with this project
   - ERROR: Not available (connection refused) @ http://localhost:23914

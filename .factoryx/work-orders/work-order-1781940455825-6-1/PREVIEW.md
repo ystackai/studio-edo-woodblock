@@ -4,7 +4,7 @@
 
 ## Current Preview Entrypoint
 
-Because Unity Editor / listener / space / license are unavailable:
+Because Unity Editor / listener / space (1.1G free) / license are unavailable:
 
 - **No Unity build artifact** exists.
 - Preview for the **browser/Three.js proof** (using the exact same v3 Foundry assets):  

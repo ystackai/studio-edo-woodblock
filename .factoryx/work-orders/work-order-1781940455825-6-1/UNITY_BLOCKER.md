@@ -4,10 +4,10 @@
 
 This work order explicitly requires producing a real Unity build **only if** Unity Editor + license + MCP listener can be proven available. The retry purpose: prove the system reports the blocker honestly instead of treating source handoff or browser proof as a "Unity playable build".
 
-## Preflight Results (exact, this run 2026-06-20)
+## Preflight Results (exact, this run 2026-06-20 ~07:50 UTC; re-executed in session)
 
 ```
-date: Sat Jun 20 07:29:02 UTC 2026
+date: Sat Jun 20 07:50:18 UTC 2026 (fresh preflight this session)
 
 which unity: /root/.unity/bin/unity
 
@@ -25,14 +25,14 @@ unity license:
 
 df -h /cache:
 Filesystem      Size  Used  Avail Use% Mounted on
-/dev/sda1        38G   35G   1.3G  97% /cache
+/dev/sda1        38G   35G   1.1G  97% /cache
 ```
 
 ## unity-mcp-cli status (for project)
 
 ```
 Unity-MCP Status
-  Project: .../unity/kawanakajima-samurai
+  Project: /workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/unity/kawanakajima-samurai
 ──────────────────────────────────────────────────
 
 Unity Editor Process
@@ -50,7 +50,7 @@ ERROR: Unity is not running and MCP server is not reachable
 ## Build Attempt (exact)
 
 ```
-$ /root/.unity/bin/unity build unity/kawanakajima-samurai --target WebGL --execute-method KawanakajimaUnityBuild.BuildWebGL --log-file /tmp/... --no-tail
+$ /root/.unity/bin/unity build unity/kawanakajima-samurai --target WebGL --execute-method KawanakajimaUnityBuild.BuildWebGL --log-file /tmp/wo-build.log --no-tail
 Error: Editor 2022.3.0f1 (x86_64) is not installed. Re-run with --allow-install to install it automatically.
 ```
 
@@ -58,7 +58,7 @@ Project declares `2022.3.0f1` in ProjectVersion.txt. No Editor binary exists on 
 
 ## Disk / Install Gate
 
-- 1.3 GB free on /cache (and overlay root). Unity Editor install requires ~18 GB per prior documented threshold.
+- 1.1 GB free on /cache (and overlay root). Unity Editor install requires ~18 GB per prior documented threshold.
 - `--allow-install` would be attempted only if space/auth present; neither is.
 
 ## MCP / Listener Gate
@@ -94,11 +94,11 @@ Project declares `2022.3.0f1` in ProjectVersion.txt. No Editor binary exists on 
 
 ## Actions Taken
 
-- Ran full preflight (`unity editors -i`, `auth status`, `license`, `unity-mcp-cli status <proj>`, attempted build).
-- Recorded exact stdout in this file and VERIFICATION.md.
-- Preserved the source handoff + browser proof.
-- Will open PR on `codex/samurai-unity-guarded-retry` documenting the honest blocker (no playable Unity claim).
-- Updated work order context files under `.factoryx/work-orders/work-order-1781940455825-6-1/`.
+- Re-ran full preflight in this session (`unity editors -i`, `auth status`, `license`, `unity-mcp-cli status <proj>`, build attempt) capturing 1.1G free + exact "Editor 2022.3.0f1 not installed".
+- Updated blocker docs + VERIFICATION with fresh command output (no Unity Editor/listener present).
+- Preserved the source handoff + browser proof. No Builds/ or playable claim made.
+- Confirmed via git that PR #163 on codex/samurai-unity-guarded-retry carries the honest blocker verdict.
+- Updated work order context files under `.factoryx/work-orders/work-order-1781940455825-6-1/`. Verified verify.js PASS on browser proof, asset foundry healthy.
 
 See also:
 - `unity/kawanakajima-samurai/README.md`

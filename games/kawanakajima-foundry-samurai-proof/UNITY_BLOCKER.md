@@ -25,7 +25,7 @@ Exact commands run before any claim:
 - `unity editors -i` → VersionArchDefaultPlatforms (no Editors)
 - `unity auth status` → "You are not signed in..."
 - `unity license` → (empty)
-- `df -h /cache` → 1.3G free (97%)
+- `df -h /cache` → 1.1G free (97%)
 - `unity-mcp-cli status unity/kawanakajima-samurai` → Editor not running + listener connection refused on localhost:23914
 - Build attempt → "Error: Editor 2022.3.0f1 (x86_64) is not installed."
 
