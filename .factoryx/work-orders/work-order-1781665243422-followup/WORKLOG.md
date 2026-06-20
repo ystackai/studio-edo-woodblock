@@ -156,3 +156,10 @@ PR: #156 (branch pushed with evidence; PR body can be refreshed from wo/PR_BODY.
 Current local HEAD will advance with evidence commit.
 Remote: will push to canonical factoryx/.../work-order-1781665243422-followup to trigger CI deploy-preview.
 PR: #156 (update head + re-deploy should resolve any stale home preview).
+
+## Push + rebase hygiene (final in session)
+- After amend attempt created divergent sha, fetched remote, reset --hard to origin/.../1b6c7c4 (clean ancestor).
+- Re-applied final PREVIEW note pointing at actual pushed commit 1b6c7c4.
+- Will commit on top + push (fast-forward expected).
+- This ensures the branch guard is happy and CI will see the latest evidence + .factoryx/preview-entrypoint.
+
