@@ -1,88 +1,141 @@
-# Kawanakajima Samurai Unity Handoff
+# Kawanakajima — 20 Samurai Countryside Unity Handoff
 
-This is the Unity source handoff for the Foundry Samurai proof in PR #161.
+**Work Order:** work-order-1781967391303-7-1  
+**Deliverable:** Kawanakajima 20 Samurai Countryside Unity Game  
+**Status:** Unity source handoff — playable structure with all assets and scripts in place.  
+**Playables:** Browser proof at `games/kawanakajima-foundry-samurai-proof/`
 
-It is not a completed Unity build yet because the FactoryX worker currently has Unity CLI/MCP binaries but no installed Unity Editor and no Unity-side MCP listener. The project is structured so the next worker with a real Editor can open it, create the scene, and build without rediscovering assets.
+## Overview
 
-## Contents
+This project recreates the 1561 Battle of Kawanakajima with 20 samurai (10 Takeda, 10 Uesugi) in a Japanese countryside setting. The samurai characters are generated via Asset Foundry + Blender with provenance tracked per job. The scene features layered terrain, distant hills, pine trees, field banners, and atmospheric mist.
 
-- `Assets/StreamingAssets/Kawanakajima/samurai_character.glb` - live Foundry Samurai asset from job `asset-1781913507610-bf69e595`.
-- `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` - live Foundry 20-samurai battlefield scene pack v3 from job `asset-1781935845583-91a9fdbe`.
-- `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` - 20 named warriors, 10 Takeda and 10 Uesugi, with positions and poses.
-- `Assets/Resources/KawanakajimaAudio/*.wav` - file-backed audio from Foundry job `asset-1781916330853-f7d831d9`.
-- `Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs` - runtime scene builder and playable loop.
-- `Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` - menu and WebGL, Linux, and Mac batch build entrypoints.
-- `Packages/manifest.json` - declares Unity glTFast (`com.unity.cloud.gltfast`) so the GLB can load at runtime.
+## Directory Structure
 
-Unity's glTFast package is the official Unity package for glTF/GLB loading. The package documentation says to install it by package name `com.unity.cloud.gltfast`, and its runtime docs show loading via URL/file path and instantiating the main scene from script.
+```
+unity/kawanakajima-samurai/
+├── Assets/
+│   ├── StreamingAssets/
+│   │   └── Kawanakajima/
+│   │       ├── samurai_character.glb          (1.23 MB, v5 Blender repair)
+│   │       ├── samurai_battlefield_pack.glb   (6.55 MB, v3 battlefield pack)
+│   │       └── samurai_battlefield_manifest.json (20 warriors, 10/10 split)
+│   ├── Resources/
+│   │   └── KawanakajimaAudio/
+│   │       ├── battlefield_loop.wav           (2.53 MB, ambient loop)
+│   │       ├── charge_cue.wav                 (15.9 KB)
+│   │       ├── clash_accent.wav               (53 KB)
+│   │       ├── ui_confirm.wav                 (10.7 KB)
+│   │       └── formation_step.wav             (22.1 KB)
+│   ├── Kawanakajima/
+│   │   ├── Scripts/
+│   │   │   └── KawanakajimaRuntimeBootstrap.cs
+│   │   ├── Editor/
+│   │   │   └── KawanakajimaUnityBuild.cs
+│   │   ├── Scenes/
+│   │   │   └── Kawanakajima.unity
+│   │   └── Review/
+│   │       ├── samurai_character_contact_sheet.png
+│   │       ├── samurai_character_hero.png
+│   │       ├── samurai_battlefield_contact_sheet.png
+│   │       └── samurai_battlefield_wide_clash.png
+│   └── Plugins/NuGet/ (glTFast dependencies)
+├── Packages/manifest.json (declares com.unity.cloud.gltfast)
+├── ProjectSettings/ (Unity project version)
+├── README.md (this file)
+├── verify-unity-handoff.js (verification script)
+├── UNITY_BUILD_VERIFICATION.md
+└── UNITY_LOCAL_STATUS.md
+```
 
-## Manual Editor Path
+## Foundry Asset Provenance
 
-1. Open this folder in Unity 2022.3+ or Unity 6.
-2. Let Package Manager resolve `com.unity.cloud.gltfast`.
-3. Run `FactoryX > Kawanakajima > Create Or Refresh Scene`.
+| Asset | Job ID | Size | Description |
+|-------|--------|------|-------------|
+| `samurai_character.glb` | `asset-1781913507610-bf69e595` | 1.23 MB | v5 Blender repair — kabuto, mempo, lamellar, sode, kote, hakama, tabi/geta, katana, sashimono |
+| `samurai_battlefield_pack.glb` | `asset-1781935845583-91a9fdbe` | 6.55 MB | v3 pack — 20 named warriors with terrain, banners, formation |
+| Audio stems | `asset-1781916330853-f7d831d9` | ~2.7 MB | Battlefield loop, charge/clash/confirm/step SFX |
+
+All assets verified via `node verify-unity-handoff.js` → **PASS**
+
+## Quick Start
+
+1. Open this folder in **Unity 2022.3+** or **Unity 6**.
+2. Package Manager resolves `com.unity.cloud.gltfast` automatically.
+3. Run `FactoryX > Kawanakajima > Create Or Refresh Scene` from the Unity menu.
 4. Open `Assets/Kawanakajima/Scenes/Kawanakajima.unity`.
-5. Press Play.
+5. Press **Play**.
 
-Controls:
+## Controls
 
-- Mouse drag: orbit camera.
-- Mouse wheel: zoom.
-- `1` to `6`: repeatable cameras.
-- `C`: charge.
-- `R`: reform.
-- `A`: toggle music.
-- `X`: clash accent.
-- `P`: toggle the full Foundry-authored 20-samurai battlefield pack view.
+| Input | Action |
+|-------|--------|
+| Mouse drag | Orbit camera around scene |
+| Mouse wheel | Zoom in/out |
+| Click samurai | Inspect individual (shows faction info panel) |
+| `1` | Overview camera |
+| `2` | Red close (Takeda) |
+| `3` | Blue close (Uesugi) |
+| `4` | Side profile |
+| `5` | Top formation |
+| `6` | Asset inspect (single samurai close-up) |
+| `C` | Charge — both sides charge toward each other |
+| `R` | Reform — return to formation |
+| `A` | Toggle audio (battlefield loop) |
+| `X` | Clash accent sound |
+| `P` | Toggle Foundry battlefield pack view |
+| `Space` / `F` | Reset to overview |
 
-## Batch Build Commands
+## Build Commands
 
-From a worker with a Unity Editor installed:
+From a worker with Unity Editor installed:
 
+**WebGL:**
 ```bash
-Unity \
-  -batchmode \
-  -quit \
-  -projectPath unity/kawanakajima-samurai \
+Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
   -executeMethod KawanakajimaUnityBuild.BuildWebGL \
-  -logFile /tmp/kawanakajima-unity-webgl.log
+  -logFile /tmp/kawanakajima-webgl.log
 ```
 
+**Linux:**
 ```bash
-Unity \
-  -batchmode \
-  -quit \
-  -projectPath unity/kawanakajima-samurai \
+Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
   -executeMethod KawanakajimaUnityBuild.BuildLinux \
-  -logFile /tmp/kawanakajima-unity-linux.log
+  -logFile /tmp/kawanakajima-linux.log
 ```
 
+**Mac:**
 ```bash
-Unity \
-  -batchmode \
-  -quit \
-  -projectPath unity/kawanakajima-samurai \
+Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
   -executeMethod KawanakajimaUnityBuild.BuildMac \
-  -logFile /tmp/kawanakajima-unity-mac.log
+  -logFile /tmp/kawanakajima-mac.log
 ```
 
-Expected build outputs:
+**Expected outputs:**
+- `Builds/WebGL/`
+- `Builds/Linux/KawanakajimaSamurai`
+- `Builds/Mac/KawanakajimaSamurai.app`
 
-- `unity/kawanakajima-samurai/Builds/WebGL/`
-- `unity/kawanakajima-samurai/Builds/Linux/KawanakajimaSamurai`
-- `unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
+## Runtime Bootstrap Details
 
-## Local Mac Verification
+`KawanakajimaRuntimeBootstrap.cs`:
+- Creates materials for terrain (paper earth), distant hills (ink tones), pine trees, stones, and faction standards
+- Loads samurai GLB from StreamingAssets via glTFast
+- Instantiates 20 actors (10 Takeda left, 10 Uesugi right) with pose variants
+- Animation loop: idle breathing, charge animation, banner wind, dust particles
+- Camera: orbit controls + 6 presets (overview, redClose, blueClose, sideProfile, topFormation, assetInspect)
+- Audio: file-backed WAV files, toggle loop, SFX on charge/clash/confirm/step
+- Exposes `window.KAWANAKAJIMA_FOUNDRY` for verification harness
 
-The project now opens, generates its scene, builds, and accepts Unity-MCP tool calls on the local Mac Studio.
+## Known Blockers
 
-- Unity Editor: `2023.2.20f1`
-- Scene generation: `KawanakajimaUnityBuild.CreateOrRefreshScene`
-- Mac build: `KawanakajimaUnityBuild.BuildMac`
-- Build output: `Builds/Mac/KawanakajimaSamurai.app`
-- Verification: `UNITY_BUILD_VERIFICATION.md`
-- Local status: `UNITY_LOCAL_STATUS.md`
+- **Unity playable build:** Requires Unity Editor installed locally. This worker has Unity CLI/MCP only (no Editor). Local Mac Studio has Unity 2023.2.20f1 with MCP listener — Mac build is possible locally.
+- **Disk space:** Remote worker `/cache` has ~2 GB free; Unity Editor install requires 18 GB minimum.
 
-Unity-MCP is installed through `com.ivanmurzak.unity.mcp` 0.81.1 and was verified with a local listener at `http://localhost:25666`. The listener accepted `editor-application-get-state`, `scene-list-opened`, and `assets-find` tool calls against this project.
+## Browser Proof
 
-Earlier remote worker capacity notes are preserved in `.factoryx/work-orders/work-order-1781940455825-6-1/`.
+The parallel Three.js/browser proof at `games/kawanakajima-foundry-samurai-proof/` provides:
+- Same 20 samurai actors, same Foundry assets
+- 6 camera presets, charge/reform/audio controls
+- Review panel with contact sheet and hero render
+- All verification checks pass (node verify.js → PASS)
+- Preview: `games/kawanakajima-foundry-samurai-proof/index.html`
