@@ -170,19 +170,19 @@
 
   function scheduleStutter(now) {
     if (!audioCtx || !stutterGain || isMuted) return;
-    // wider hesitant gaps when world trembles; tighter + more regular when still (music redesign)
-    const gapBase = 0.82;
-    const gap = gapBase - (lastStill * 0.58);
+    // wider hesitant gaps when world trembles; tighter when still (tuned for new physical stems)
+    const gapBase = 0.91;
+    const gap = gapBase - (lastStill * 0.64);
     if (now < nextDropAt) return;
 
     const src = audioCtx.createBufferSource();
     if (dropBuf) {
       src.buffer = dropBuf;
-      // slight pitch and time variation for organic "stutter" not machine
-      src.playbackRate.value = 0.93 + Math.random() * 0.16;
+      // organic pitch/time variation for living stutter
+      src.playbackRate.value = 0.91 + Math.random() * 0.19;
     } else {
       // graceful fallback (should not normally hit once assets in tree)
-      const dur = 0.16 + Math.random() * 0.05;
+      const dur = 0.17 + Math.random() * 0.05;
       const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
       const data = buf.getChannelData(0);
       for (let i = 0; i < data.length; i++) {
@@ -194,17 +194,17 @@
 
     const lp = audioCtx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = 620 + lastStill * 520;
+    lp.frequency.value = 580 + lastStill * 580;
 
     const g = audioCtx.createGain();
-    g.gain.value = 0.22 + lastStill * 0.18;
+    g.gain.value = 0.24 + lastStill * 0.16;
 
     src.connect(lp);
     lp.connect(g);
     g.connect(stutterGain);
 
     src.start(now);
-    nextDropAt = now + gap + (Math.random() - 0.5) * 0.04;
+    nextDropAt = now + gap + (Math.random() - 0.5) * 0.035;
   }
 
   function updateBreathTone(now, still) {
@@ -228,13 +228,13 @@
       breathSrc._lp = lp; breathSrc._g = g;
     }
     if (breathSrc && breathSrc._g) {
-      const tgt = wantBreath ? (0.09 + still * 0.52) : 0.0001;
+      const tgt = wantBreath ? (0.085 + still * 0.55) : 0.0001;
       breathSrc._g.gain.cancelScheduledValues(now);
-      breathSrc._g.gain.linearRampToValueAtTime(tgt, now + 0.14);
+      breathSrc._g.gain.linearRampToValueAtTime(tgt, now + 0.16);
       if (breathSrc._lp) {
-        const ft = 680 + still * 1250;
+        const ft = 640 + still * 1180;
         breathSrc._lp.frequency.cancelScheduledValues(now);
-        breathSrc._lp.frequency.linearRampToValueAtTime(ft, now + 0.22);
+        breathSrc._lp.frequency.linearRampToValueAtTime(ft, now + 0.26);
       }
     }
     // light friction layer on active rub (baren tactile)

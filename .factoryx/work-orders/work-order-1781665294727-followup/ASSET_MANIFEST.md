@@ -6,7 +6,7 @@ This is the durable copy per FactoryX instructions: "create FACTORYX_WORK_ORDER_
 **Deliverable:** rekick-edo-inkblade-road-opening-slice-with-generated-assets-7236f90a
 **Parent:** work-order-edo-inkblade-road-opens-assets-20260522
 **Feedback addressed:** "music and art are terrible please improve" (deliverable-decision-1781629581487-2)
-**Date of this material asset pass:** 2026-06-20
+**Date of this material asset pass:** 2026-06-20 (iteration with stronger ink gen + richer music recipe)
 
 ## Asset Contract Compliance
 - Real file-backed generated/authored assets live under `drops/indigo-stutter/assets/` (not in-code procedural, not manifest-alone).
@@ -15,28 +15,28 @@ This is the durable copy per FactoryX instructions: "create FACTORYX_WORK_ORDER_
 
 ## Files (current after this pass)
 
-- `drops/indigo-stutter/assets/base-motif.jpg` (300129 bytes)
-  - Source: GenerateImage tool (built-in) with house-style prompt for bold Edo ukiyo-e: "heavy deep black-indigo ink solidly filling silhouettes, high contrast, decisive boat/wave/pines, generous ma, pure graphic carved print". 1280x720.
+- `drops/indigo-stutter/assets/base-motif.jpg` (333309 bytes)
+  - Source: GenerateImage tool (built-in) with house-style prompt tuned for ink authority: "VERY HEAVY SOLID DEEP INDIGO INK filling large silhouettes solidly, high ink density, bold decisive...". 1280x720. (This iteration improved from weaker gen pass.)
   - Integration: Loaded as Image in index.html; drawn as base with curJ-driven registration micro-jitter; provides the "woodblock soul".
-  - Verification: Chromium loads/decodes, visible in ready.png (strong central ink ~39.6% dark in crop), post shows overlay behavior.
+  - Verification: Chromium loads/decodes, visible in fresh ready.png (center ~35% dark).
 
-- `drops/indigo-stutter/assets/reveal-detail.jpg` (174207 bytes)
+- `drops/indigo-stutter/assets/reveal-detail.jpg` (145336 bytes)
   - Source: GenerateImage tool (companion pass) for emergent reward details: birds, wakes, foliage, vermilion seal. Light graphic marks for alpha overlay.
   - Integration: Drawn at alpha ~ reveal*0.94 when attention sustained; "completes" the print under player gesture.
   - Verification: Exercised in ?verify=1 harness (forced reveal 0.71); visible detail + seal in post-interact.png.
 
-- `drops/indigo-stutter/assets/stutter-drop.wav` (42380 bytes, 0.48s)
-  - Source: Local numpy synthesis (gen_music.py in this WO dir). Wooden thump + wet friction tail + wobble. Hesitant/sparse.
+- `drops/indigo-stutter/assets/stutter-drop.wav` (45908 bytes, 0.52s)
+  - Source: Local numpy synthesis (gen_music.py in this WO dir, updated recipe). Richer wooden 3-partial body + wet friction tail + organic wobble/drift. Hesitant/sparse.
   - Integration: XHR+decode on first gesture; scheduled with detune + reactive lp/gain by stillness.
   - Verification: File present, decode path exercised in normal play (not forced in vtime verif); reactive gaps tighten on still.
 
-- `drops/indigo-stutter/assets/resolve-breath.wav` (277874 bytes, 3.15s)
-  - Source: Local numpy (gen_music.py). Low pad + breath air + cycle mod. Loopable with clean tails.
+- `drops/indigo-stutter/assets/resolve-breath.wav` (289340 bytes, 3.28s)
+  - Source: Local numpy (gen_music.py updated). Warmer low pad + breath air + cycle + waver mod. Loopable with clean tails.
   - Integration: Looped BufferSource; gain+filter ramp with lastStill; starts only on sufficient attention.
   - Verification: Present for audio path; browser decode on gesture.
 
-- `drops/indigo-stutter/assets/friction-rub.wav` (19448 bytes, 0.22s)
-  - Source: Local numpy (gen_music.py). Tactile scrape + tick for baren press.
+- `drops/indigo-stutter/assets/friction-rub.wav` (22976 bytes, 0.26s)
+  - Source: Local numpy (gen_music.py updated). Tactile scrape + tick + body for baren press.
   - Integration: Occasional BufferSource while pressing+still.
   - Verification: Present.
 
@@ -58,7 +58,7 @@ See drops/indigo-stutter/index.html:
 - Tooling: xvfb-run + /usr/bin/chromium --headless --virtual-time-budget + direct file:// URL to drops/indigo-stutter/index.html and ?verify=1 variant.
 - Captures (this pass will be in screenshots/): ready.png (pre-gesture, idle stutter + base asset visible with strong ink), post-interact.png (forced resolved state: low curJ, high reveal from asset, caption, FOLLOWUP-LIVE-OK marker, seal).
 - Checks: exit 0; no pageerror/uncaught/console.error from game (only container dbus noise after filter); no net::ERR (self-contained); assets exercised (jpg draw + state diff); __INDIGO_STUTTER_STATE shows resolved values; 9/9 game feel checklist.
-- Payload ~0.85 MB total for direct slice; no external deps.
+- Payload ~0.87 MB total for direct slice; no external deps. (fresh art 333k+145k + stems 46k+289k+23k)
 
 ## Evidence Location
 - Files: drops/indigo-stutter/assets/* (jpg/wav + manifest)

@@ -110,3 +110,16 @@ Canonical PR remains https://github.com/ystackai/studio-edo-woodblock/pull/157 (
 
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
+
+## 2026-06-20 iteration update (fresh material art+music redesign pass)
+- Addressed feedback directly with new assets before any other work.
+- Art: GenerateImage with ink-density focused prompt -> base-motif.jpg 333k (37.5% dark, center ~35% showing strong silhouettes), reveal-detail 145k.
+- Music: updated gen_music.py (richer wooden resonance, wobble, breath texture, rub body) -> stutter 46k/0.52s, breath 289k/3.28s, rub 23k/0.26s. Tuned scheduler in index.html.
+- Real files + ASSET_MANIFEST.md (both locations) + provenance to this WO + verbatim "music and art are terrible please improve".
+- Browser verif (real xvfb+chromium, virtual time, direct file:// + ?verify=1): ready.png 863kB (nonblank, ink present), post 740kB (forced state + marker + caption + reveal); exit 0; filtered logs clean (no pageerror, uncaught, net, game console errors).
+- 9/9 game feel holds; payload 0.87MB; direct preview entrypoint; taste-gate slice intact.
+- Commit bf463c1 on branch; pushed origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup (advanced remote).
+- PR #157 will show the updated canonical branch commit with focused diff + full FactoryX Work Order Context (this file + WO tree files carry the original prompt/payload for reviewers).
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157

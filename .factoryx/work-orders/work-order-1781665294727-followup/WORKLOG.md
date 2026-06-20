@@ -212,3 +212,20 @@ Status: pushed 86432b2; PR#157 https://github.com/ystackai/studio-edo-woodblock/
 - Canonical PR https://github.com/ystackai/studio-edo-woodblock/pull/157 should now show the latest commit on the FactoryX branch with full context + generated assets evidence + fresh chromium screenshots.
 
 Work Order: work-order-1781665294727-followup
+
+## 2026-06-20 iteration pass (material art + music improvement addressing feedback with fresh GenerateImage + updated gen_music.py)
+- Inspected current state: branch at 23275d8 synced (matches prompt HEAD), merge vs main clean (no conflicts), PR#157 exists, assets present but prior gen had weaker ink in one pass; decided to do focused redesign iteration on assets + music recipe before any other.
+- Read FEEDBACK.md (verbatim "music and art are terrible please improve"), PREVIEW/VERIF/WORKLOG, current index.html + gen script + manifests (per "before planning or editing, read FACTORYX_WORK_ORDER_FEEDBACK_PATH").
+- Asset production: since foundry only blender (no 2d image), used GenerateImage tool (as before) with stronger prompts emphasizing "VERY HEAVY SOLID DEEP INDIGO INK", "high ink density ~40% dark regions", "bold decisive forms" to improve on current art. Installed base-motif 333k (37.5% dark, good center presence).
+- Generated matching reveal-detail 145k (light overlay details).
+- Music redesign: edited gen_music.py (in WO dir) for richer sounds — 3 partial inharmonic wooden body for stutter, longer organic tail/wobble/drift, warmer breath pad with detune + slow waver + richer air, rub with body thump. Re-ran script: new WAVs 46k/289k/23k.
+- Code: small focused tweaks to scheduleStutter (gap 0.91, wider rates, lp start 580) and breath ramp (slightly adjusted for new stem length/timbre) as part of music integration.
+- Updated both ASSET_MANIFEST.md (drop + WO-context) with new sizes, provenance note tying to feedback + "iteration", integration, gen methods.
+- Ran real browser runtime verif (xvfb+chromium, vtime, direct file:// + ?verify=1): ready.png 863k (substantial, ink visible), post 740k; exit 0; logs clean after filter (no pageerror/net/JS errors); harness + new assets exercised.
+- Appended fresh evidence sections to VERIFICATION.md, PREVIEW.md; this WORKLOG.
+- No unrelated polish, no scope creep, kept rub-to-still, house style, direct preview, taste-gate, reversible, 9/9 feel.
+- All per asset_contract_v2 (real file-backed + manifest + load + browser), WORKFLOW, payload, feedback address first.
+- Next: focused commit (only drops/indigo-stutter/* + WO mds/screenshots updates + gen.py), git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup (force-lease if needed to advance), note PR#157 will reflect via branch for review. Include full context in PR if editing possible (gh may be token-limited; tree + prior body carry it).
+
+Work Order: work-order-1781665294727-followup
+Status: art+music materially improved with fresh generated assets + recipe + verif clean; ready to commit/push.

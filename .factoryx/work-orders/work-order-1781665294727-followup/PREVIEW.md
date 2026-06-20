@@ -75,3 +75,15 @@ Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
 Canonical preview: drops/indigo-stutter/index.html
+
+## Fresh evidence (2026-06-20 iteration: stronger-ink GenerateImage base 333k + reveal 145k + richer music stems via updated gen_music.py)
+- New GenerateImage assets installed: base-motif.jpg (333 kB, ~37.5% overall dark from ink-focused prompt, center crop ~35%), reveal-detail.jpg (145 kB).
+- Music: fresh stems via updated gen_music.py (numpy): stutter-drop 46kB (0.52s richer wooden+wet), resolve-breath 289kB (3.28s warmer evolving pad), friction-rub 23kB.
+- Verification screenshots updated (real chromium + xvfb, vtime, direct file://): ready.png 863 kB (valid, non-blank, ink visible ~25% dark), post-interact.png 740 kB (forced resolved + marker + caption + reveal layer).
+- Payload ~0.87 MB total for slice. All checks green; 9/9 feel; direct preview exercised; no runtime errors.
+- ASSET_MANIFEST.md (drop + WO copy) updated with exact current sizes + provenance tying to this WO + verbatim feedback + richer gen methods (GenerateImage ink prompt + gen_music.py edits).
+- Also minor audio scheduler tuning for new stems.
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
+Canonical preview: drops/indigo-stutter/index.html

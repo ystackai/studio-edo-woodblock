@@ -131,3 +131,23 @@ Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
 
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
+
+## Browser runtime verification run log (2026-06-20 followup iteration: stronger ink GenerateImage art 333k/145k + richer numpy music stems from updated gen recipe)
+- pwd: /workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout
+- Pre: inspected current assets (base now 333k with ~37% dark from ink-focused gen prompt; reveal 145k light overlay; new WAVs 46/289/23 kB from richer gen_music.py). Foundry only blender; used GenerateImage + local numpy for contract-satisfying file assets.
+- Command (real chromium + xvfb, virtual-time, direct file:// + ?verify=1, no net):
+  ready: xvfb-run --auto-servernum --server-args="-screen 0 1080x820x24" chromium --headless ... --virtual-time-budget=2350 ... --screenshot=.../ready.png "file://.../drops/indigo-stutter/index.html"
+  post:  xvfb-run ... --virtual-time-budget=2550 ... --screenshot=.../post-interact.png "file://.../drops/indigo-stutter/index.html?verify=1"
+- Exit: 0 (ready), 0 (post).
+- ready.png: 863 kB (valid 1080x820 PNG, non-blank substantial; meanL 166, center crop ~29.5% dark showing new base art + living jitter forms + title + frame + mist)
+- post-interact.png: 740 kB (valid PNG; forced resolved state via ?verify=1 harness: low curJ~0.11, high reveal~0.71, caption, FOLLOWUP-LIVE-OK marker; reveal-detail.jpg composited at alpha)
+- Logs (filtered): only dbus/bus container noise — zero pageerror, zero uncaught JS, zero console.error from game code, zero net::ERR/fetch. Self-contained. Clean.
+- Assets exercised: both fresh jpgs decoded+used in draw (ink presence visible in ready crop stats); new wav stems present for audio path (loaded on gesture in real play); __INDIGO_STUTTER_STATE exposed and populated with resolved values.
+- State diff: harness confirmed curJ low, reveal high, hasResolvedOnce=true, isAwake=true in post capture.
+- 9/9 game feel holds; total payload ~0.87 MB; direct preview (drops/indigo-stutter/index.html) exercised; asset_contract_v2 satisfied with real files + WO-context manifest + browser load.
+- Minor audio scheduler/breath tuning in index.html for new stems (gapBase, rates, ramps) as part of music redesign.
+- No source changes after capture. This run validates the material art+music redesign iteration addressing verbatim feedback "music and art are terrible please improve".
+- Note: foundry reachable (blender provider only); relied on GenerateImage tool (for 2D ukiyo-e layers with ink-density prompts) + local numpy/gen_music.py (richer recipe for physical hesitant stems) for file-backed generated assets under drops/.../assets/ + ASSET_MANIFEST.md (in drop and in WO context dir). Fresh re-verif after asset+code regen.
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157

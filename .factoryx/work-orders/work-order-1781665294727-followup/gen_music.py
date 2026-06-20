@@ -56,65 +56,74 @@ def lowpass_noise(n, cutoff=1800, seed=123):
 
 # 1) stutter-drop.wav : hesitant wooden knock + wet tail, short organic
 def make_stutter_drop():
-    dur = 0.48
+    dur = 0.52
     n = int(dur * SR)
     t = np.arange(n) / SR
-    # low body thump (slightly detuned sines)
-    f0 = 92.0
-    body = (np.sin(2*np.pi*f0*t) + 0.6*np.sin(2*np.pi*(f0*1.995)*t)) * 0.85
-    # wooden click attack (noise burst bandpassed-ish)
-    click = lowpass_noise(n, cutoff=2400, seed=7) * (1 - t/dur)**1.6
-    # wet friction tail (higher noise, slower)
-    tail = lowpass_noise(n, cutoff=950, seed=42) * np.exp(-t*5.5)
-    sig = (body * 0.55 + click * 0.9 + tail * 0.65) * env_adsr(n, 0.003, 0.04, 0.15, 0.32)
-    # gentle wobble / organic
-    wob = 1.0 + 0.012 * np.sin(2*np.pi*3.2*t)
+    # richer wooden body: 3 partials + slight inharmonicity for "block" character
+    f0 = 88.0
+    body = (np.sin(2*np.pi*f0*t) +
+            0.72*np.sin(2*np.pi*(f0*1.993)*t) +
+            0.38*np.sin(2*np.pi*(f0*3.01 + 0.7)*t)) * 0.82
+    # wooden click attack (tighter, brighter noise shaped)
+    click = lowpass_noise(n, cutoff=2650, seed=7) * (1 - t/dur)**1.75 * 1.15
+    # wet friction tail with longer organic decay
+    tail = lowpass_noise(n, cutoff=820, seed=42) * np.exp(-t*4.8) * 0.9
+    sig = (body * 0.58 + click * 0.88 + tail * 0.72) * env_adsr(n, 0.004, 0.05, 0.18, 0.35)
+    # organic wobble + micro pitch drift for living stutter (more noticeable "terrible" was too clean)
+    wob = 1.0 + 0.018 * np.sin(2*np.pi*2.9*t) + 0.007 * np.sin(2*np.pi*7.1*t)
     sig = sig * wob
-    # final soft lp-ish roll
-    sig = np.convolve(sig, np.ones(3)/3, mode="same").astype(np.float32) * 0.98
+    # final soft lp-ish roll + slight body resonance
+    sig = np.convolve(sig, np.ones(3)/3, mode="same").astype(np.float32)
+    sig = sig * 0.97 + 0.04 * np.sin(2*np.pi*178*t) * np.exp(-t*3.2)
     return sig
 
 # 2) resolve-breath.wav : low warm breath-modulated pad, loop friendly ~3s
 def make_resolve_breath():
-    dur = 3.15
+    dur = 3.28
     n = int(dur * SR)
     t = np.arange(n) / SR
-    # two low fundamentals + soft harmonic
-    f1, f2 = 54.0, 81.5
-    s1 = np.sin(2*np.pi*f1*t) * 0.75
-    s2 = np.sin(2*np.pi*f2*t) * 0.55
-    s3 = np.sin(2*np.pi*(f1*2.02)*t) * 0.18
-    tone = (s1 + s2 + s3)
-    # breath/air noise layer, slow amp
-    air = lowpass_noise(n, cutoff=620, seed=2026) * 0.28
-    breath_mod = 0.72 + 0.28 * np.sin(2*np.pi * 0.28 * t)   # slow inhale/exhale
-    sig = (tone * 0.82 + air) * breath_mod
+    # warmer low pad with slight detune + 5th for body (less "sine terrible", more wooden hollow)
+    f1, f2 = 52.0, 79.0
+    s1 = np.sin(2*np.pi*f1*t) * 0.78
+    s2 = np.sin(2*np.pi*f2*t) * 0.58
+    s3 = np.sin(2*np.pi*(f1*2.015)*t) * 0.22
+    s4 = np.sin(2*np.pi*(f2*1.505 + 0.4)*t) * 0.11
+    tone = (s1 + s2 + s3 + s4)
+    # richer breath/air noise layer, slow amp + gentle high soft
+    air = lowpass_noise(n, cutoff=580, seed=2026) * 0.32
+    breath_mod = 0.68 + 0.32 * np.sin(2*np.pi * 0.265 * t)   # slower inhale/exhale
+    sig = (tone * 0.79 + air) * breath_mod
+    # slow evolving filter feel via amp + tiny pitch waver
+    waver = 1.0 + 0.004 * np.sin(2*np.pi*0.11*t)
+    sig = sig * waver
     # soft overall envelope so loop joins cleanly (tails to near zero at end)
-    env = 0.9 + 0.1 * np.sin(2*np.pi*0.31*t)
-    env = np.clip(env, 0.6, 1.0)
+    env = 0.88 + 0.12 * np.sin(2*np.pi*0.29*t)
+    env = np.clip(env, 0.58, 1.0)
     # very gentle attack/release for seamless
-    atk = int(0.18*SR); rel = int(0.22*SR)
-    env[:atk] *= np.linspace(0.3,1,atk)
-    env[-rel:] *= np.linspace(1,0.35,rel)
+    atk = int(0.22*SR); rel = int(0.26*SR)
+    env[:atk] *= np.linspace(0.28,1,atk)
+    env[-rel:] *= np.linspace(1,0.32,rel)
     sig = sig * env
-    # final gentle darken
+    # final gentle darken + soft body
     sig = np.convolve(sig, np.ones(5)/5.0, mode="same").astype(np.float32)
-    return sig * 0.92
+    return sig * 0.90
 
 # 3) friction-rub.wav : short tactile wood scrape + tick for baren press feel
 def make_friction_rub():
-    dur = 0.22
+    dur = 0.26
     n = int(dur * SR)
     t = np.arange(n) / SR
-    # noisy scrape body
-    scrape = lowpass_noise(n, cutoff=1350, seed=19) * (1.0 - 0.6*(t/dur))
-    # woody tick attack
-    tick = (np.random.RandomState(55).randn(n).astype(np.float32) * np.exp(-t*38))
-    tick = np.convolve(tick, [0.2,0.6,0.2], mode="same")
-    sig = (scrape * 0.75 + tick * 0.9) * env_adsr(n, 0.002, 0.018, 0.08, 0.12)
-    # slight resonance
-    sig = sig + 0.12 * np.sin(2*np.pi*180*t) * np.exp(-t*22)
-    sig = np.clip(sig * 1.05, -1,1).astype(np.float32)
+    # richer noisy scrape body with wood character
+    scrape = lowpass_noise(n, cutoff=1180, seed=19) * (1.0 - 0.55*(t/dur)) * 1.1
+    # woody tick attack + resonance
+    tick = (np.random.RandomState(55).randn(n).astype(np.float32) * np.exp(-t*32))
+    tick = np.convolve(tick, [0.15,0.7,0.15], mode="same")
+    # body thump for baren press
+    body = (np.sin(2*np.pi*165*t) + 0.5*np.sin(2*np.pi*331*t)) * np.exp(-t*18) * 0.35
+    sig = (scrape * 0.72 + tick * 0.88 + body) * env_adsr(n, 0.003, 0.022, 0.07, 0.14)
+    # slight resonance + micro noise for texture
+    sig = sig + 0.09 * np.sin(2*np.pi*172*t) * np.exp(-t*19)
+    sig = np.clip(sig * 1.03, -1,1).astype(np.float32)
     return sig
 
 if __name__ == "__main__":
