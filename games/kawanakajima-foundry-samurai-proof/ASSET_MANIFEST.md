@@ -70,8 +70,8 @@ BLOCKER: No file-backed audio stems or loops available in the worker runtime or 
 ## Self-Verification Loop
 1. Established repeatable cameras: overview, redClose (Takeda focal), blueClose (Uesugi focal), sideProfile, topFormation, assetInspect (close three-quarter on unmodified actor + contact panel).
 2. After lighting/ground tweaks + camera merge forward + each structural pass: re-ran capture-views.sh + node verify.js.
-3. Least realistic issue identified via vision + pixel analysis on 1280x800 shots: stylized low-poly forms read somewhat cubic/cylindrical at distance (source GLB property); wide captures in headless often early-frame (21k dark). Close cams (red/blue/inspect) preserved at 59k-123k showing large readable focal samurai.
-4. Improvements: boosted rim/ambient/ground for base nonblank visibility + early renderer.render; kept Foundry GLB 100% unmodified; inspection mode for side-by-side.
+3. Least realistic issue identified via vision + pixel analysis on 1280x800 shots: stylized low-poly forms read somewhat cubic/cylindrical at distance (source GLB property). Earlier wide captures hit the loading state; the capture gate now waits for all 20 actors plus two rendered frames before marking a camera ready.
+4. Improvements: boosted rim/ambient/ground for base nonblank visibility + early renderer.render; repaired URL-camera capture readiness; kept Foundry GLB 100% unmodified; inspection mode for side-by-side.
 5. Best version preserved. Deliverable not called "final prod art" — explicit browser review proof. Do not accept if review cameras show unreadable dots; current evidence uses large close views of the live asset.
 
 ## Evidence
@@ -81,7 +81,7 @@ BLOCKER: No file-backed audio stems or loops available in the worker runtime or 
 - Contact sheet + hero committed and referenced in-game.
 - Vision gate query saved in work order context (see WORKLOG).
 - ASSET_MANIFEST + this file in `.factoryx/work-orders/work-order-1781913967751-7-1/`.
-- Good review shots (large focal): redClose.png (100k), blueClose.png (59k), assetInspect.png (123k) showing samurai large enough for silhouette/material judgment.
+- Good review shots: overview.png (132k), sideProfile.png (240k), topFormation.png (99k), redClose.png (353k), blueClose.png (243k), assetInspect.png (405k). All six repeatable cameras show real scene content, and the close/inspect views keep samurai large enough for silhouette/material judgment.
 
 ## Integration Points
 - `index.html` loads `assets/samurai_character.glb` relative.

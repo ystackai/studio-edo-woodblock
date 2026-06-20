@@ -173,6 +173,7 @@
     let loaded = 0;
     let chargePhase = 0;
     let originalState = [];
+    let urlCamApplied = false;
 
     // Camera orbit state (cinematic)
     let isDragging = false;
@@ -413,6 +414,7 @@
         getCanvas: () => canvas,
         getActors: () => actors
       };
+      applyUrlCamIfReady();
     }
 
     function onResize() {
@@ -575,28 +577,44 @@
       }, 140);
     }
 
-    // URL-driven camera for verification repeatability (?cam=overview|redClose|blueClose|sideProfile|topFormation|assetInspect)
-    function applyUrlCam() {
+    function requestedUrlCam() {
       try {
         const p = new URLSearchParams(location.search);
         const c = p.get('cam') || p.get('preset');
-        if (c && camPresets[c]) {
-          // delay to after first load + actors
-          setTimeout(() => {
-            applyPreset(c);
-            // mark for external capture
-            document.title = 'CAPTURE_READY:' + c;
-            console.log('CAPTURE_READY:' + c);
-          }, 920);
-        }
+        return c && camPresets[c] ? c : null;
       } catch (e) {}
+      return null;
+    }
+
+    function markCaptureReady(name) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          renderer.render(scene, camera);
+          window.__KAWANAKAJIMA_CAPTURE_READY = {
+            camera: name,
+            actorCount: actors.length,
+            readyAt: Date.now()
+          };
+          document.body.dataset.captureReady = name;
+          document.title = 'CAPTURE_READY:' + name;
+          console.log('CAPTURE_READY:' + name);
+        });
+      });
+    }
+
+    // URL-driven camera for verification repeatability (?cam=overview|redClose|blueClose|sideProfile|topFormation|assetInspect)
+    function applyUrlCamIfReady() {
+      const c = requestedUrlCam();
+      if (!c || urlCamApplied || actors.length !== ACTOR_COUNT) return;
+      urlCamApplied = true;
+      applyPreset(c);
+      markCaptureReady(c);
     }
 
     window.addEventListener('load', () => {
       // small delay so first frame paints ground + loading state before heavy GLB
       setTimeout(() => {
         start();
-        setTimeout(applyUrlCam, 180);
       }, 40);
     });
 

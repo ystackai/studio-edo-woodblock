@@ -19,6 +19,7 @@ All committed to `games/kawanakajima-foundry-samurai-proof/assets/generated/foun
 - Screenshots captured under this dir: `.factoryx/work-orders/work-order-1781913967751-7-1/screenshots/`
 - Browser runtime exercised via local server + chromium.
 - In-game contact sheet comparison implemented.
+- URL-camera capture readiness repaired after review: all six current screenshots are readable, non-loading captures ranging from 99k to 405k with mean brightness above 99.
 
 ## Remaining Blockers
 - Audio: file-backed audio not available (documented).

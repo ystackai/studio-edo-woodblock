@@ -17,41 +17,43 @@ function shot() {
   local url="http://127.0.0.1:$PORT/index.html?cam=$name"
   local out="$SHOTDIR/${name}.png"
   local tmpout="/tmp/cap_${name}.png"
-  local had_good=false
-  local good_sz=0
-  if [ -f "$out" ]; then
-    local cursz=$(stat -c%s "$out" 2>/dev/null || echo 0)
-    if [ "$cursz" -gt 30000 ]; then
-      had_good=true
-      good_sz=$cursz
-      cp "$out" "/tmp/good_${name}.png" 2>/dev/null || true
-    fi
-  fi
   echo "CAPTURE $name -> $out"
-  chromium --headless=new --disable-gpu --no-sandbox --disable-setuid-sandbox \
-    --disable-dev-shm-usage --window-size=1280,800 \
-    --virtual-time-budget=12000 --run-all-compositor-stages-before-draw \
-    --screenshot="$tmpout" \
-    "$url" 2>/dev/null || true
-  sleep 0.7
-  if [ -f "$tmpout" ]; then
-    local new_sz=$(stat -c%s "$tmpout" 2>/dev/null || echo 0)
-    if [ "$new_sz" -gt 30000 ]; then
+  rm -f "$tmpout"
+  for attempt in 1 2 3; do
+    chromium --headless=new --disable-gpu --no-sandbox --disable-setuid-sandbox \
+      --disable-dev-shm-usage --window-size=1280,800 \
+      --virtual-time-budget=$((18000 + attempt * 6000)) --run-all-compositor-stages-before-draw \
+      --screenshot="$tmpout" \
+      "$url" 2>/dev/null || true
+    sleep 0.8
+    if [ -f "$tmpout" ] && python3 - "$tmpout" "$name" <<'PY'
+import sys
+from pathlib import Path
+from PIL import Image, ImageStat
+
+path = Path(sys.argv[1])
+name = sys.argv[2]
+if path.stat().st_size < 30000:
+    print(f"  invalid {name}: tiny screenshot {path.stat().st_size} bytes")
+    raise SystemExit(1)
+im = Image.open(path).convert("RGB")
+mean = sum(ImageStat.Stat(im).mean) / 3
+if mean < 20:
+    print(f"  invalid {name}: dark/loading screenshot mean={mean:.2f}")
+    raise SystemExit(1)
+print(f"  valid {name}: {path.stat().st_size} bytes mean={mean:.2f}")
+PY
+    then
       mv "$tmpout" "$out"
-      cp "$out" "$GAME_DIR/screenshots/${name}.png" 2>/dev/null || true
-      echo "  accepted new larger $new_sz"
-    elif $had_good; then
-      echo "  keeping previous good $good_sz (new was $new_sz)"
-      cp "/tmp/good_${name}.png" "$out" 2>/dev/null || true
-      cp "$out" "$GAME_DIR/screenshots/${name}.png" 2>/dev/null || true
-    else
-      mv "$tmpout" "$out" 2>/dev/null || true
-      cp "$out" "$GAME_DIR/screenshots/${name}.png" 2>/dev/null || true
+      cp "$out" "$GAME_DIR/screenshots/${name}.png"
+      ls -l "$out"
+      return 0
     fi
-    ls -l "$out"
-  else
-    echo "  WARN: no screenshot for $name"
-  fi
+    echo "  retrying $name ($attempt/3)"
+    rm -f "$tmpout"
+  done
+  echo "ERROR: failed to capture readable $name screenshot" >&2
+  return 1
 }
 
 # Give the GLB time to load on first hit
@@ -69,4 +71,3 @@ kill $SRV 2>/dev/null || true
 sleep 0.3
 echo "Screenshots in $SHOTDIR :"
 ls -l "$SHOTDIR"/*.png 2>/dev/null | cat
-
