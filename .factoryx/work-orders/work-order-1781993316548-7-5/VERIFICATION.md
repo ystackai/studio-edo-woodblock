@@ -21,7 +21,7 @@
 
 - Initialize with protocolVersion `2024-11-05` → **200 OK**, returned `Mcp-Session-Id`
 - `tools/list` → 38 tools listed (assets-find, scene-list-opened, script-execute, etc.)
-- `tools/call` with `{"name":"scene-list-opened","arguments":{}` → **PASS**
+- `tools/call` with `{"name":"scene-list-opened","arguments":{}}` → **PASS**
   - Scene: `Kawanakajima`
   - IsLoaded: true, IsDirty: false, IsValidScene: true
   - RootCount: 73
