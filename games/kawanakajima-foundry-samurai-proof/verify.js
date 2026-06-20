@@ -37,6 +37,8 @@ mustExist(path.join(ROOT, 'assets/generated/foundry/audio/asset-1781916330853-f7
 mustExist(path.join(ROOT, 'DELIVERABLE_STATUS.md'), 'reviewable deliverable status');
 mustExist(path.join(ROOT, 'UNITY_BLOCKER.md'), 'Unity blocker note');
 mustExist(path.join(ROOT, '../../.factoryx/preview-entrypoint'), 'FactoryX preview entrypoint');
+mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), 'Unity handoff README');
+mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/verify-unity-handoff.js'), 'Unity handoff verifier');
 
 checkContent(path.join(ROOT, 'index.html'), [
   { name: 'canvas element', test: c => /<canvas id="c"/.test(c) },
@@ -62,6 +64,11 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
 
 checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
   { name: 'preview opens Samurai proof', test: c => c.trim() === 'games/kawanakajima-foundry-samurai-proof/index.html' },
+]);
+
+checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), [
+  { name: 'Unity handoff references Foundry Samurai', test: c => /asset-1781913507610-bf69e595/.test(c) },
+  { name: 'Unity handoff documents blocker', test: c => /no installed Unity Editor|Unity-side MCP listener|18 GB/.test(c) },
 ]);
 
 // Asset sizes roughly
@@ -92,7 +99,8 @@ if (errors.length) {
     glbSize: glb.size,
     audioFoundryJob: 'asset-1781916330853-f7d831d9',
     audioLoopSize: loop.size,
-    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio',
+    unityHandoff: true,
+    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff',
     passed: true
   }, null, 2));
   console.log('Wrote VERIFICATION.json');

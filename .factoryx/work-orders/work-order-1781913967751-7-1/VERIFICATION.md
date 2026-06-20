@@ -15,6 +15,8 @@
 - Contact sheet + hero PNGs load in review panel.
 - File-backed audio paths load from `assets/audio/`; harness exposes `audioPaths` and `hasFileBackedAudio`.
 - All required assets under the tree with provenance in manifest.
+- Unity source handoff structure present under `unity/kawanakajima-samurai/`.
+- Unity handoff verifier checks glTFast dependency, copied GLB/WAV assets, runtime bootstrap, readiness marker, and WebGL/Linux build hooks.
 
 ## Screenshots (repeatable views)
 Captured after construction + any fixes:
@@ -27,4 +29,4 @@ Captured after construction + any fixes:
 - Vision (gateway qwen3-vl) on good close/inspect shots vs contact: "blocky cubes, flat paddle feet, and the helmet's disk face" — same as source Foundry model. Large framing achieved; no geo replacement. Recorded in ASSET_MANIFEST as characteristic of asset-1781913507610-bf69e595.
 
 ## Final status
-See PR body for summary + links. Any remaining visual blocker recorded in ASSET_MANIFEST. Browser proof ready for review; preview at games/kawanakajima-foundry-samurai-proof/ .
+See PR body for summary + links. Any remaining visual blocker recorded in ASSET_MANIFEST. Browser proof ready for review; preview at games/kawanakajima-foundry-samurai-proof/ . Unity source handoff exists, but Unity Editor build verification remains blocked by missing Editor/listener.

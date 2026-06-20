@@ -20,14 +20,19 @@
   - Playable mirrored files are under `assets/audio/`.
   - AUDIO toggles `battlefield_loop.wav`; CHARGE/REFORM/CLASH play file-backed cues.
   - Raw Foundry outputs and provenance are preserved under `assets/generated/foundry/audio/asset-1781916330853-f7d831d9/`.
+- **Unity handoff project:** `unity/kawanakajima-samurai/`.
+  - Copies the Foundry GLB into Unity `StreamingAssets`.
+  - Copies the Foundry WAVs into Unity `Resources`.
+  - Includes a runtime bootstrap that builds the countryside tableau, loads the GLB with Unity glTFast, creates 20 actors, and wires camera/audio/charge/reform controls.
+  - Includes Editor build hooks for WebGL and Linux.
 - **Verification evidence:** `VERIFICATION.json`, `verify.js`, `ASSET_MANIFEST.md`, six committed review screenshots under `screenshots/`, and hosted preview runtime checks.
 
 ## What Is Not Done
 
-- **Unity playable world:** not created. The worker has Unity CLI/MCP binaries, but no Unity Editor install and no Unity-side MCP listener.
+- **Unity playable build:** not created. A Unity source handoff now exists, but the worker has Unity CLI/MCP binaries only; no Unity Editor install and no Unity-side MCP listener.
 - **Unity blocker:** `/cache` only has about 4.5 GB free on the runtime host; the install helper requires at least 18 GB before attempting a Unity Editor install.
 - **Autonomous completion:** not proven. Human intervention was required to correct stale audio status, capture readiness, and review evidence.
 
 ## Current Review Verdict
 
-This is a coherent browser-reviewable proof with file-backed assets, file-backed audio, and repeatable camera evidence. It is not yet the requested final Unity game. The next required infrastructure step is a worker with a Unity Editor installed and a running Unity MCP listener, then a new autonomous work order should port/import this proof into Unity and produce a playable Unity build.
+This is a coherent browser-reviewable proof with file-backed assets, file-backed audio, repeatable camera evidence, and a concrete Unity source handoff. It is not yet the requested final Unity game because no Unity Editor/listener is available for build verification. The next required infrastructure step is a worker with a Unity Editor installed and a running Unity MCP listener, then a new autonomous work order should build and inspect the Unity project.

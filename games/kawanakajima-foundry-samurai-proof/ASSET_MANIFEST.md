@@ -73,7 +73,7 @@ Limit: the current Foundry audio recipe is generic and filenames are cozy-bunny 
 6. assetInspect — close on unmodified Foundry hero for material/silhouette gate.
 
 ## Blockers
-- **Unity:** Unity CLI exists, but no Unity Editor/project listener is installed and `/cache` only has 4.5G free. No Unity project or build was created or claimed. This PR remains the browser/Three.js review proof plus Unity handoff. See `UNITY_BLOCKER.md`.
+- **Unity:** Unity CLI exists, but no Unity Editor/project listener is installed and `/cache` only has 4.5G free. A Unity source handoff now exists under `unity/kawanakajima-samurai/`, but no Unity Editor build was created or claimed. This PR remains the browser/Three.js review proof plus Unity source handoff. See `UNITY_BLOCKER.md`.
 - No per-actor unique Blender variants beyond pose/scale (single source GLB used for fidelity; variants are runtime transforms only — acceptable per "use the Foundry GLB as the base visual asset").
 - Visual gate (via WORKER_RUNTIME_VISION_REVIEW_MODEL + gateway): close-up review renders read as having blocky/cylindrical limbs, flat paddle feet, and stylized helmet forms (same as source contact sheet). This is a characteristic of the delivered Foundry asset rather than placeholder geometry. Large framing + contact comparison panel provided so human reviewer can judge directly. No hand-made geo substituted.
 
@@ -99,5 +99,10 @@ Limit: the current Foundry audio recipe is generic and filenames are cozy-bunny 
 - Review panel embeds the exact contact/hero PNGs.
 - Exposed `window.KAWANAKAJIMA_FOUNDRY` for harness (actorCount, doCharge, applyCam, getCanvas, audioPaths, hasFileBackedAudio).
 - Preview path: `games/kawanakajima-foundry-samurai-proof/`
+- Unity source handoff: `unity/kawanakajima-samurai/`
+  - GLB copied to `Assets/StreamingAssets/Kawanakajima/samurai_character.glb`.
+  - WAVs copied to `Assets/Resources/KawanakajimaAudio/`.
+  - `KawanakajimaRuntimeBootstrap.cs` loads the GLB through Unity glTFast and creates the 20-actor countryside scene at runtime.
+  - `KawanakajimaUnityBuild.cs` provides `BuildWebGL` and `BuildLinux` batch entrypoints for a worker with Unity Editor installed.
 
 Do not call deliverable acceptable while characters read blocky from review cameras. Current passes use the detailed 268-mesh Foundry source with readable close framing. Vision confirmed source fidelity but flagged stylized readability as the visible issue (recorded, not hidden).
