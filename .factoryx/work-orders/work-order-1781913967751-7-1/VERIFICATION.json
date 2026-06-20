@@ -1,0 +1,8 @@
+{
+  "verifiedAt": "2026-06-20T00:12:06.014Z",
+  "assetFoundryJob": "asset-1781913507610-bf69e595",
+  "actorCount": 20,
+  "glbSize": 1237516,
+  "checks": "structure, paths, sizes, exposure, no fake audio",
+  "passed": true
+}

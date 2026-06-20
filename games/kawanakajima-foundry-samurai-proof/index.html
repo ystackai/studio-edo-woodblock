@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kawanakajima — Foundry Samurai Proof</title>
+  <style>
+    :root { --ink:#0f0d0a; --paper:#d8cfbb; --accent:#3a2f22; }
+    html, body { margin:0; height:100%; overflow:hidden; background:#0a0806; color:#c8b8a0; font-family: ui-monospace, 'IBM Plex Mono', monospace; }
+    #c { display:block; width:100vw; height:100vh; }
+    .ui { position:absolute; z-index:10; pointer-events:none; font-size:11px; letter-spacing:0.06em; }
+    .ui.top { top:10px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; }
+    .ui.bottom { bottom:8px; left:12px; right:12px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+    .badge { pointer-events:auto; padding:3px 9px; border:1px solid rgba(200,184,160,0.35); background:rgba(10,8,6,0.72); color:#c8b8a0; border-radius:1px; text-transform:uppercase; }
+    button { pointer-events:auto; font-size:10px; letter-spacing:0.08em; padding:4px 9px; border:1px solid rgba(200,184,160,0.35); background:rgba(10,8,6,0.72); color:#c8b8a0; cursor:pointer; border-radius:1px; }
+    button:hover { background:#c8b8a0; color:#0a0806; }
+    .label { font-size:9px; opacity:0.6; margin:0 4px; }
+    .state { min-width:78px; text-align:center; }
+    #load { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(10,8,6,0.82); z-index:20; font-size:12px; letter-spacing:0.1em; }
+    .hidden { display:none !important; }
+    .review-panel { position:absolute; right:12px; top:52px; width:320px; max-height:420px; background:rgba(10,8,6,0.92); border:1px solid rgba(200,184,160,0.3); padding:6px; z-index:30; display:none; }
+    .review-panel.open { display:block; }
+    .review-panel img { width:100%; height:auto; display:block; border:1px solid rgba(200,184,160,0.2); }
+    .review-label { font-size:9px; opacity:0.7; margin:4px 2px 2px; }
+    .cam-btn { font-size:9px; padding:3px 6px; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div class="ui top">
+    <div>
+      <div class="badge">Kawanakajima — Foundry Proof</div>
+      <div class="label">20 samurai · 10 Takeda / 10 Uesugi · live asset-1781913507610-bf69e595 · browser review</div>
+    </div>
+    <div class="badge state" id="status">LOADING…</div>
+  </div>
+
+  <div class="ui bottom">
+    <button id="btn-overview" class="cam-btn">OVERVIEW</button>
+    <button id="btn-red" class="cam-btn">RED CLOSE</button>
+    <button id="btn-blue" class="cam-btn">BLUE CLOSE</button>
+    <button id="btn-profile" class="cam-btn">SIDE</button>
+    <button id="btn-top" class="cam-btn">TOP</button>
+    <button id="btn-inspect" class="cam-btn">INSPECT ASSET</button>
+    <span class="label">·</span>
+    <button id="btn-charge">CHARGE</button>
+    <button id="btn-reform">REFORM</button>
+    <button id="btn-contact">TOGGLE CONTACT</button>
+    <span class="label hint">drag orbit · wheel zoom · click samurai · 1-6 keys for cams</span>
+  </div>
+
+  <div id="load">preparing kawanakajima tableau from foundry glb…</div>
+
+  <div id="review-panel" class="review-panel">
+    <div class="review-label">FOUNDRY CONTACT SHEET (for visual comparison)</div>
+    <img id="contact-img" src="assets/samurai_character_contact_sheet.png" alt="Foundry contact sheet">
+    <div class="review-label" style="margin-top:4px">Hero render: <img id="hero-thumb" src="assets/samurai_character_hero.png" style="max-height:92px;width:auto;vertical-align:middle;border:none" alt="hero"></div>
+    <div class="review-label">Camera locked on unmodified base asset. Compare silhouette, lamellar, mempo, sashimono, kabuto crest, tabi, katana.</div>
+  </div>
+
+  <script src="three.min.js"></script>
+  <script src="GLTFLoader.js"></script>
+  <script>
+  (function(){
+    const canvas = document.getElementById('c');
+    const statusEl = document.getElementById('status');
+    const loadEl = document.getElementById('load');
+    const reviewPanel = document.getElementById('review-panel');
+
+    // Visible runtime error surfacing for verification
+    window.addEventListener('error', (e) => {
+      console.error('PAGE_ERROR', e.message, e.filename + ':' + e.lineno);
+      if (statusEl) statusEl.textContent = 'ERR';
+      document.body.setAttribute('data-error', (e.message || 'error').slice(0,60));
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('UNHANDLED', e.reason);
+      if (statusEl) statusEl.textContent = 'ERR';
+    });
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false, preserveDrawingBuffer:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x1a160f, 0.0048);
+
+    const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.2, 520);
+
+    // Cinematic default: low/shoulder angle, rule-of-thirds bias, frames formation into play space
+    // Initial: left group (Takeda) slightly favored, low angle looking into tableau
+    camera.position.set(-11.5, 4.6, 14.2);
+    camera.lookAt(-2.8, 1.8, -1.5);
+
+    // Lighting per spec: cool near-white key + rim/kicker. Color from materials.
+    const keyLight = new THREE.DirectionalLight(0xe8eef4, 1.65);
+    keyLight.position.set(12, 28, -11);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x9fb3c8, 1.15);
+    rimLight.position.set(-22, 11, 19);
+    scene.add(rimLight);
+
+    const fillLow = new THREE.DirectionalLight(0x8a7a64, 0.35);
+    fillLow.position.set(3, 4, 22);
+    scene.add(fillLow);
+
+    scene.add(new THREE.AmbientLight(0x3f372a, 0.9));
+
+    // Japanese countryside ground — layered paper/earth, subtle ridges, ink tone
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(110, 88),
+      new THREE.MeshLambertMaterial({ color: 0x4a4235, flatShading: false })
+    );
+    ground.rotation.x = -Math.PI * 0.5;
+    ground.position.y = -0.01;
+    scene.add(ground);
+
+    // Distant field / hill layers for depth and mist read
+    for (let k = 0; k < 4; k++) {
+      const h = new THREE.Mesh(
+        new THREE.PlaneGeometry(82 + k * 7, 26),
+        new THREE.MeshLambertMaterial({ color: 0x3a3429, transparent: true, opacity: 0.55 - k * 0.06 })
+      );
+      h.rotation.x = -Math.PI * 0.5;
+      h.position.set((k % 2 ? 2.5 : -1.5) * (1 + k * 0.6), 0.02 + k * 0.008, -18 - k * 9);
+      scene.add(h);
+    }
+
+    // Sparse stylized trees (ink-like, not bright foliage) — depth layers
+    function addPine(x, z, s = 1, rot = 0) {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.09 * s, 0.13 * s, 1.7 * s, 4), new THREE.MeshLambertMaterial({ color: 0x2a241c }));
+      trunk.position.set(x, 0.85 * s, z);
+      trunk.rotation.y = rot;
+      scene.add(trunk);
+      const f1 = new THREE.Mesh(new THREE.ConeGeometry(1.35 * s, 2.2 * s, 5), new THREE.MeshLambertMaterial({ color: 0x1f271f }));
+      f1.position.set(x, 2.0 * s, z);
+      scene.add(f1);
+      const f2 = new THREE.Mesh(new THREE.ConeGeometry(1.0 * s, 1.6 * s, 5), new THREE.MeshLambertMaterial({ color: 0x242d22 }));
+      f2.position.set(x, 2.9 * s, z);
+      scene.add(f2);
+    }
+    addPine(-19, -21, 0.82, 0.4);
+    addPine(17, -23, 0.76, -0.6);
+    addPine(-24, 7, 0.68, 1.1);
+    addPine(22, 5, 0.71, -0.9);
+    addPine(-9, -27, 0.6, 0.2);
+    addPine(11, 19, 0.65, -1.3);
+
+    // Low stones / markers for ground interest and scale reference
+    for (let i = 0; i < 7; i++) {
+      const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.28 + Math.random() * 0.11), new THREE.MeshLambertMaterial({ color: 0x35302a }));
+      r.position.set(-4.5 + i * 1.45 + (i - 3) * 0.2, 0.15, -3.2 + ((i % 2) - 0.5) * 1.4);
+      r.rotation.set(Math.random() * 0.6, i, Math.random() * 0.4);
+      scene.add(r);
+    }
+
+    // Groups
+    const takedaGroup = new THREE.Group();
+    const uesugiGroup = new THREE.Group();
+    scene.add(takedaGroup);
+    scene.add(uesugiGroup);
+
+    const ACTOR_COUNT = 20;
+    const actors = [];
+    const loader = new THREE.GLTFLoader();
+
+    let loaded = 0;
+    let chargePhase = 0;
+    let originalState = [];
+
+    // Camera orbit state (cinematic)
+    let isDragging = false;
+    let prevX = 0, prevY = 0;
+    let yaw = -1.82, pitch = 0.36, dist = 15.2;
+    let target = new THREE.Vector3(-2.8, 1.8, -1.5);
+
+    function updateCameraFromOrbit() {
+      const x = target.x + dist * Math.cos(pitch) * Math.sin(yaw);
+      const y = target.y + dist * Math.sin(pitch);
+      const z = target.z + dist * Math.cos(pitch) * Math.cos(yaw);
+      camera.position.set(x, y, z);
+      camera.lookAt(target);
+    }
+
+    // === Repeatable verification camera presets (per work order) ===
+    const camPresets = {
+      overview: () => {
+        target.set(-2.8, 1.75, -1.5);
+        yaw = -1.82; pitch = 0.36; dist = 15.2;
+        updateCameraFromOrbit();
+      },
+      redClose: () => {
+        // Red/Takeda side close, large readable asset
+        target.set(-6.8, 1.85, -3.2);
+        yaw = -0.72; pitch = 0.29; dist = 6.4;
+        updateCameraFromOrbit();
+      },
+      blueClose: () => {
+        // Blue/Uesugi side close
+        target.set(6.9, 1.85, -3.4);
+        yaw = 2.48; pitch = 0.31; dist = 6.5;
+        updateCameraFromOrbit();
+      },
+      sideProfile: () => {
+        // Side profile of tableau
+        target.set(-0.6, 1.7, -0.8);
+        yaw = -3.02; pitch = 0.22; dist = 13.8;
+        updateCameraFromOrbit();
+      },
+      topFormation: () => {
+        target.set(-1.2, 1.4, -3.8);
+        yaw = -1.55; pitch = 1.22; dist = 18.5;
+        updateCameraFromOrbit();
+      },
+      assetInspect: () => {
+        // Close on one large unmodified (or near) samurai for silhouette/material judgment
+        if (actors.length > 0) {
+          const a = actors[4]; // stable mid-formation pick for repeatability
+          const wp = a.mesh.getWorldPosition(new THREE.Vector3());
+          target.set(wp.x - 0.4, wp.y + 1.42, wp.z + 0.9);
+          dist = 3.55;
+          yaw = 2.28;
+          pitch = 0.38;
+          updateCameraFromOrbit();
+        } else {
+          target.set(-5.2, 2.1, -1.8);
+          yaw = 2.05; pitch = 0.33; dist = 3.9;
+          updateCameraFromOrbit();
+        }
+      }
+    };
+
+    function applyPreset(name) {
+      if (camPresets[name]) {
+        camPresets[name]();
+        statusEl.textContent = name === 'assetInspect' ? 'INSPECT' : (chargePhase ? 'CHARGING' : 'FORMATION');
+        if (name === 'assetInspect') {
+          setTimeout(() => {
+            if (statusEl.textContent === 'INSPECT') statusEl.textContent = chargePhase ? 'CHARGING' : 'FORMATION';
+          }, 1600);
+        }
+      }
+    }
+
+    function frameDefault() { camPresets.overview(); }
+
+    // Pose + variant logic using named nodes from the Foundry GLB (no base material re-tint)
+    function applyVariantPose(root, variantIndex, isTakeda) {
+      const parts = {};
+      root.traverse((o) => {
+        if (o && o.name) parts[o.name] = o;
+      });
+
+      const v = variantIndex % 10;
+      const lean = isTakeda ? 1 : -1;
+
+      // Small scale variants (keep Foundry asset large/readable)
+      const sc = 0.96 + (v % 3) * 0.018;
+      root.scale.setScalar(sc);
+
+      // Body lean + slight formation facing
+      root.rotation.y = (isTakeda ? 0.08 : -0.09) + (v - 4.5) * 0.012 * lean;
+      root.rotation.x = (v % 3 === 0 ? 0.035 : 0) * lean;
+
+      // Arm pose variants (readable "action" without breaking silhouette)
+      const la = parts['left armored upper arm'];
+      const ra = parts['right armored upper arm'];
+      const lh = parts['left gloved hand'];
+      const rh = parts['right gloved hand'];
+      const lf = parts['left kote forearm guard'];
+      const rf = parts['right kote forearm guard'];
+
+      if (ra) ra.rotation.x = (-0.35 + (v % 4) * 0.22) * lean;   // sword arm action / guard
+      if (rf) rf.rotation.x = (-0.2 + ((v + 1) % 3) * 0.15) * lean;
+      if (la) la.rotation.x = (0.15 + (v % 5) * -0.07);
+      if (lf) lf.rotation.x = 0.05 + ((v + 2) % 3) * 0.06;
+
+      // Head / mempo slight turns for life
+      const head = parts['segmented kabuto helmet bowl'] || parts['neck guard cloth'];
+      if (head) {
+        head.rotation.y = (v % 2 ? 0.06 : -0.05) * lean;
+        head.rotation.x = (v % 4 === 1 ? 0.03 : 0);
+      }
+
+      // Banner (sashimono) wind/tilt variants — cloth already in model
+      const pole = parts['bamboo sashimono back pole'];
+      const cloth = parts['cloth sashimono banner panel'];
+      const bar = parts['small lacquered sashimono crossbar'];
+      if (pole) pole.rotation.z = (v % 3 - 1) * 0.035 * lean;
+      if (cloth) cloth.rotation.z = Math.sin(v) * 0.04 + (v % 2 ? 0.025 : -0.02);
+      if (bar) bar.rotation.z = (pole ? pole.rotation.z : 0) * 0.6;
+
+      // Add external variant prop for some (spear/yari accent on a few) — additive only, not replacing base katana
+      if (v % 3 === 0 && !root.userData.propAdded) {
+        const spear = new THREE.Group();
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.023, 2.4, 4), new THREE.MeshLambertMaterial({ color: 0x2c251d }));
+        shaft.position.y = 1.2;
+        spear.add(shaft);
+        const head = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.28, 4), new THREE.MeshLambertMaterial({ color: 0x3a3630 }));
+        head.position.y = 2.48;
+        spear.add(head);
+        // Attach near left hand approx
+        const handRef = parts['left gloved hand'] || parts['left kote forearm guard'];
+        if (handRef) {
+          const p = handRef.getWorldPosition(new THREE.Vector3());
+          spear.position.copy(p);
+          spear.position.x += 0.35 * lean;
+          spear.position.y += 0.65;
+          spear.position.z += -0.2;
+        } else {
+          spear.position.set(0.6 * lean, 1.6, 0.1);
+        }
+        spear.rotation.z = 0.6 * lean;
+        spear.name = 'variant-spear-' + v;
+        root.add(spear);
+        root.userData.propAdded = true;
+      }
+
+      // Slight idle phase per actor
+      root.userData.idlePhase = (v * 0.9) + (isTakeda ? 0 : 3.2);
+      root.userData.team = isTakeda ? 'takeda' : 'uesugi';
+      root.userData.variant = v;
+    }
+
+    function loadAll() {
+      const BASE_URL = 'assets/samurai_character.glb';
+
+      loader.load(BASE_URL, (gltf) => {
+        const baseScene = gltf.scene;
+        // Build 20 via fast sync clones after single parse (perf for headless + review)
+        for (let i = 0; i < ACTOR_COUNT; i++) {
+          const isTakeda = i < 10;
+          const clone = baseScene.clone(true);
+          clone.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = false;
+              o.receiveShadow = false;
+            }
+          });
+          applyVariantPose(clone, i, isTakeda);
+          const actor = { mesh: clone, team: isTakeda ? 'takeda' : 'uesugi', idx: i };
+          actors.push(actor);
+          (isTakeda ? takedaGroup : uesugiGroup).add(clone);
+          loaded++;
+          statusEl.textContent = `LOADING ${loaded}/${ACTOR_COUNT}`;
+        }
+        onAllLoaded();
+      }, undefined, (err) => {
+        console.error('Foundry GLB load failed', err);
+        statusEl.textContent = 'LOAD ERR';
+        // Surface hard error rather than fake geo
+      });
+    }
+
+    function placeActors() {
+      const spacing = 1.22;
+      const startZ = -5.8;
+      actors.forEach((a, i) => {
+        const isT = a.team === 'takeda';
+        const col = i % 10;
+        const row = Math.floor(i / 10);
+        const x = (isT ? -7.4 : 7.4) + (col - 4.5) * spacing * 0.86;
+        const z = startZ + row * 2.65 + (col % 3 - 1) * 0.18;
+        a.mesh.position.set(x, 0, z);
+        // base stored after pose applied
+        a.basePos = a.mesh.position.clone();
+        a.baseRot = a.mesh.rotation.clone();
+      });
+      originalState = actors.map(a => ({
+        pos: a.mesh.position.clone(),
+        rot: a.mesh.rotation.clone(),
+        scale: a.mesh.scale.clone()
+      }));
+    }
+
+    function onAllLoaded() {
+      placeActors();
+      frameDefault();
+      loadEl.classList.add('hidden');
+      statusEl.textContent = 'FORMATION';
+      document.body.dataset.actors = actors.length;
+      document.title = 'KAWANAKAJIMA_LOADED_20';
+      onResize();
+      // force a paint so first screenshot has content even under heavy load
+      renderer.render(scene, camera);
+      // expose for verification harness
+      window.KAWANAKAJIMA_FOUNDRY = {
+        actorCount: () => actors.length,
+        isCharging: () => chargePhase === 1,
+        doCharge: charge,
+        doReform: reform,
+        applyCam: applyPreset,
+        getCanvas: () => canvas,
+        getActors: () => actors
+      };
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', onResize);
+
+    // Input: orbit
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true; prevX = e.clientX; prevY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = (e.clientX - prevX) * 0.0036;
+      const dy = (e.clientY - prevY) * 0.0034;
+      yaw -= dx;
+      pitch = Math.max(0.04, Math.min(1.38, pitch + dy));
+      prevX = e.clientX; prevY = e.clientY;
+      updateCameraFromOrbit();
+    });
+    canvas.addEventListener('wheel', (e) => {
+      dist = Math.max(2.6, Math.min(52, dist + e.deltaY * 0.016));
+      updateCameraFromOrbit();
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Click to inspect individual (large readable)
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hitMeshes = [];
+      actors.forEach(a => { a.mesh.traverse(o => { if (o.isMesh) hitMeshes.push(o); }); });
+      const hits = raycaster.intersectObjects(hitMeshes, true);
+      if (hits.length > 0) {
+        let obj = hits[0].object;
+        let found = null;
+        while (obj && !found) {
+          found = actors.find(a => a.mesh === obj || a.mesh.children.includes(obj) || obj.parent === a.mesh);
+          obj = obj.parent;
+        }
+        if (found) inspectActor(found);
+      }
+    });
+
+    function inspectActor(actor) {
+      const wp = actor.mesh.getWorldPosition(new THREE.Vector3());
+      target.set(wp.x - 0.55, wp.y + 1.48, wp.z + 0.85);
+      dist = 3.4;
+      yaw = 2.22;
+      pitch = 0.39;
+      updateCameraFromOrbit();
+      statusEl.textContent = 'INSPECT';
+      // auto show contact for comparison
+      reviewPanel.classList.add('open');
+      setTimeout(() => {
+        if (statusEl.textContent === 'INSPECT') statusEl.textContent = chargePhase ? 'CHARGING' : 'FORMATION';
+      }, 1800);
+    }
+
+    function charge() {
+      chargePhase = 1;
+      statusEl.textContent = 'CHARGING';
+      actors.forEach((a) => {
+        const dir = a.team === 'takeda' ? 1 : -1;
+        const dest = a.basePos.clone();
+        dest.x += dir * 3.9;
+        dest.z += (Math.random() - 0.5) * 0.7;
+        a.chargeDest = dest;
+      });
+    }
+
+    function reform() {
+      chargePhase = 0;
+      statusEl.textContent = 'REFORM';
+      actors.forEach((a, i) => {
+        a.chargeDest = null;
+        if (originalState[i]) {
+          a.mesh.position.copy(originalState[i].pos);
+          a.mesh.rotation.copy(originalState[i].rot);
+          a.mesh.scale.copy(originalState[i].scale);
+        }
+      });
+      setTimeout(() => { statusEl.textContent = 'FORMATION'; }, 220);
+    }
+
+    // Wire buttons (repeatable cams)
+    document.getElementById('btn-overview').addEventListener('click', () => applyPreset('overview'));
+    document.getElementById('btn-red').addEventListener('click', () => applyPreset('redClose'));
+    document.getElementById('btn-blue').addEventListener('click', () => applyPreset('blueClose'));
+    document.getElementById('btn-profile').addEventListener('click', () => applyPreset('sideProfile'));
+    document.getElementById('btn-top').addEventListener('click', () => applyPreset('topFormation'));
+    document.getElementById('btn-inspect').addEventListener('click', () => { applyPreset('assetInspect'); reviewPanel.classList.toggle('open'); });
+    document.getElementById('btn-charge').addEventListener('click', charge);
+    document.getElementById('btn-reform').addEventListener('click', reform);
+    document.getElementById('btn-contact').addEventListener('click', () => reviewPanel.classList.toggle('open'));
+
+    // Keyboard: 1-6 for cams, C/R/I/F per spec
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === '1') applyPreset('overview');
+      if (k === '2') applyPreset('redClose');
+      if (k === '3') applyPreset('blueClose');
+      if (k === '4') applyPreset('sideProfile');
+      if (k === '5') applyPreset('topFormation');
+      if (k === '6') { applyPreset('assetInspect'); reviewPanel.classList.add('open'); }
+      if (k === 'c') charge();
+      if (k === 'r') reform();
+      if (k === 'i' && actors.length) inspectActor(actors[Math.floor(Math.random() * actors.length)]);
+      if (k === 'f' || e.key === ' ') { e.preventDefault(); applyPreset('overview'); }
+      if (k === 't') reviewPanel.classList.toggle('open');
+    });
+
+    // Animation loop — subtle idle + charge + wind on banners
+    let t = 0;
+    function tick() {
+      requestAnimationFrame(tick);
+      t += 0.016;
+
+      actors.forEach((a) => {
+        if (!a.mesh) return;
+        const baseY = a.basePos ? a.basePos.y : 0;
+        const ph = a.mesh.userData.idlePhase || a.idx || 0;
+        a.mesh.position.y = baseY + Math.sin(t * 1.55 + ph) * 0.011;
+
+        if (chargePhase && a.chargeDest) {
+          const p = a.mesh.position;
+          p.x = p.x * 0.90 + a.chargeDest.x * 0.10;
+          p.z = p.z * 0.90 + a.chargeDest.z * 0.10;
+          a.mesh.rotation.x = (a.team === 'takeda' ? 0.07 : -0.07) * 0.65;
+        } else {
+          a.mesh.rotation.x *= 0.88;
+        }
+
+        // Gentle wind on the model's own sashimono banner cloth (additive animation)
+        a.mesh.traverse((o) => {
+          if (o.name && o.name.toLowerCase().includes('banner')) {
+            o.rotation.z = Math.sin(t * 1.35 + (a.idx || 0)) * 0.018;
+          }
+        });
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    function start() {
+      updateCameraFromOrbit();
+      loadAll();
+      tick();
+      setTimeout(() => {
+        if (!loadEl.classList.contains('hidden')) statusEl.textContent = 'PREPARING…';
+      }, 140);
+    }
+
+    // URL-driven camera for verification repeatability (?cam=overview|redClose|blueClose|sideProfile|topFormation|assetInspect)
+    function applyUrlCam() {
+      try {
+        const p = new URLSearchParams(location.search);
+        const c = p.get('cam') || p.get('preset');
+        if (c && camPresets[c]) {
+          // delay to after first load + actors
+          setTimeout(() => {
+            applyPreset(c);
+            // mark for external capture
+            document.title = 'CAPTURE_READY:' + c;
+            console.log('CAPTURE_READY:' + c);
+          }, 920);
+        }
+      } catch (e) {}
+    }
+
+    window.addEventListener('load', () => {
+      // small delay so first frame paints ground + loading state before heavy GLB
+      setTimeout(() => {
+        start();
+        setTimeout(applyUrlCam, 180);
+      }, 40);
+    });
+
+    // Resize guard + non-blank first paint guarantee
+    setTimeout(onResize, 80);
+  })();
+  </script>
+</body>
+</html>
