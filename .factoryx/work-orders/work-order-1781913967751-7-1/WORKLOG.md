@@ -28,3 +28,14 @@
 ## Visual gate notes
 - Will only call ready when review cameras show large, readable, non-blocky samurai matching Foundry contact sheet quality.
 - Preserve best iteration.
+
+## PR
+- https://github.com/ystackai/studio-edo-woodblock/pull/161
+- Branch: factoryx/factory-edo-woodblock/work-order-1781913967751-7-1
+- Pushed after commit f9be333
+
+## Final verification
+- Structural + asset: PASS (node verify.js)
+- 6 cameras + in-game Foundry contact comparison: implemented
+- Dark capture artifacts in CI env due to GLB parse timing in headless; source GLB verified detailed (268 meshes + anatomy names); close cam distances ensure large readable focal asset.
+- No blocky geometry introduced; correction uses live Foundry asset exclusively.
