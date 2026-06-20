@@ -1,6 +1,6 @@
 # FactoryX Work Order PR — Rekick follow-up
 
-**2026-06-20 v3 update:** Materially improved art (fresh GenerateImage v3 ukiyo-e layers 186k/312k) + music (re-synth WAVs + tuned code); removed bugs; fresh verif clean; committed c7f1a24 pushed to branch. PR#157. See WORKLOG.md for full trace + evidence.
+**2026-06-20 v3 update:** Materially improved art (fresh GenerateImage v3 ukiyo-e layers 186k/312k) + music (re-synth WAVs + tuned code); removed bugs; fresh verif clean; committed 7985b8a pushed to branch. PR#157. See WORKLOG.md for full trace + evidence.
 
 This PR is the reviewable code follow-up for:
 

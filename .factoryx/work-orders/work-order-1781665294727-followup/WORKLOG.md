@@ -115,7 +115,7 @@ Status: feedback addressed with real file assets for art+music; fresh verif clea
 - Ran real xvfb+chromium verification (vtime 2350/2550): ready.png 829k, post 1.04M; both valid non-blank; logs clean (dbus only); exit 0; harness state + marker exercised; assets drawn/decoded; no autoplay/net/JS errors.
 - All changes address "music and art are terrible please improve" directly; kept useful rub-to-still, house style, direct preview, taste-gate, 9/9 feel.
 - Next: git add focused, commit, push --force-with-lease to canonical branch, refresh gh PR#157 body/context.
-- Committed c7f1a24 (amend incl notes); pushed (forced lease) origin HEAD:factoryx/... (c7f1a24).
+- Committed 7985b8a (amend incl notes); pushed (forced lease) origin HEAD:factoryx/... (7985b8a).
 - gh direct unavailable in this runtime (no interactive login); PR branch advanced so GitHub PR#157 will reflect new commit + prior body (already contains full FactoryX WO Context + prompt per prior). Local PR_BODY.md + WO notes carry the evidence.
 Work Order: work-order-1781665294727-followup
 Status: v3 assets + music + code + verif + push complete; PR branch updated for review.

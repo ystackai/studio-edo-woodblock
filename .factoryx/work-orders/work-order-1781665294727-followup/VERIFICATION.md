@@ -74,5 +74,5 @@
 - No source changes after capture. This run validates the material art+music redesign per operator feedback.
 
 Work Order: work-order-1781665294727-followup
-Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (branch c7f1a24)
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (branch 7985b8a)
 Target impl WO: work-order-1781665294727-followup
