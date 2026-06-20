@@ -10,10 +10,14 @@ SHOTDIR="$ROOT_DIR/.factoryx/work-orders/work-order-1781913967751-7-1/screenshot
 GAME_DIR="$ROOT_DIR/games/kawanakajima-foundry-samurai-proof"
 mkdir -p "$SHOTDIR" "$GAME_DIR/screenshots"
 
-RENDER_PY="/tmp/render_kawanakajima_views.py"
+RENDER_PY="$GAME_DIR/render-kawanakajima-views.py"
+LEGACY_RENDER_PY="/tmp/render_kawanakajima_views.py"
 if [ -f "$RENDER_PY" ]; then
+  echo "=== Using repo-owned Blender repeatable inspection cameras ==="
+  /usr/bin/blender --background --python "$RENDER_PY" 2>&1 | tail -18
+elif [ -f "$LEGACY_RENDER_PY" ]; then
   echo "=== Using Blender for repeatable inspection cameras (WebGL may be blocked) ==="
-  /usr/bin/blender --background --python "$RENDER_PY" 2>&1 | tail -8 || true
+  /usr/bin/blender --background --python "$LEGACY_RENDER_PY" 2>&1 | tail -8 || true
 else
   echo "No blender render script; attempting chromium only."
 fi
