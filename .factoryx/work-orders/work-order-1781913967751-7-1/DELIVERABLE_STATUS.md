@@ -1,6 +1,6 @@
 # DELIVERABLE_STATUS - Kawanakajima Foundry Samurai Proof
 
-**Updated:** 2026-06-20
+**Updated:** 2026-06-20 (v3 polish)
 **Work Order:** work-order-1781913967751-7-1
 **PR:** https://github.com/ystackai/studio-edo-woodblock/pull/161
 **Public preview:** https://www.ystackai.com/factoryx/previews/edo-woodblock/work-order-1781913967751-7-1/games/kawanakajima-foundry-samurai-proof/

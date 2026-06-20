@@ -30,3 +30,11 @@ Captured after construction + any fixes:
 
 ## Final status
 See PR body for summary + links. Any remaining visual blocker recorded in ASSET_MANIFEST. Browser proof ready for review; preview at games/kawanakajima-foundry-samurai-proof/ . Unity source handoff exists, but Unity Editor build verification remains blocked by missing Editor/listener.
+
+## v3 + lighting verification pass (2026-06-20)
+- node verify.js: PASS (GLB 2.20MB, contact 813KB, file audio, 20 actors)
+- 6 repeatable cameras re-rendered post v3 + light boost: all nonblank, large (>1MB), mean brightness 59-113 (blueClose now 76, previously ~13-20). Focal assets large for silhouette judgment.
+- Visual gate: prior vision flagged blocky + dark; after iteration added geo details + lighting, screenshots show improved readability in all views including assetInspect and formation closes. Source remains stylized (as Foundry delivered) but no longer dark or unreadable.
+- Browser runtime: still requires interaction for full, but canvas nonblank, no errors, window.KAWANAKAJIMA_FOUNDRY present, audio file backed.
+- Unity preflight reconfirmed blocked (no editors).
+- Evidence refreshed in screenshots/ and copied to game/screenshots/.
