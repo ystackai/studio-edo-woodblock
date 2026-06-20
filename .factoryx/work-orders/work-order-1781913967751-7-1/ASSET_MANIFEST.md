@@ -20,10 +20,10 @@ All committed to `games/kawanakajima-foundry-samurai-proof/assets/generated/foun
 - Browser runtime exercised via local server + chromium.
 - In-game contact sheet comparison implemented.
 - URL-camera capture readiness repaired after review: all six current screenshots are readable, non-loading captures ranging from 99k to 405k with mean brightness above 99.
+- File-backed audio integrated from Foundry job `asset-1781916330853-f7d831d9`; raw job files are preserved under `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/audio/asset-1781916330853-f7d831d9/` and playable WAV mirrors are under `games/kawanakajima-foundry-samurai-proof/assets/audio/`.
 
 ## Remaining Blockers
-- Audio: file-backed audio not available (documented).
-- Unity: see UNITY_BLOCKER.md (also mirrored).
+- Unity: see UNITY_BLOCKER.md (also mirrored). Unity CLI exists, but no Editor/listener is installed and `/cache` has only 4.5G free.
 - No further generated variants from Blender in this pass (single high-fidelity source preserved).
 - Visual: vision gate on close shots notes the Foundry source asset renders with stylized (cylinder-limb, flat foot) forms that can read blocky; faithfully reproduced at large scale in review cameras + contact comparison; recorded, not substituted. See game ASSET_MANIFEST + WORKLOG for full vision response.
 

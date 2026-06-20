@@ -44,7 +44,18 @@ All preserved under `games/kawanakajima-foundry-samurai-proof/assets/generated/f
 - All per Edo house style: ink restraint, silhouette priority, ma via fog/distance.
 
 ## Audio
-BLOCKER: No file-backed audio stems or loops available in the worker runtime or this Foundry job. No exposed audio generation pipeline (no samples, no synthesis service reachable, no prior audio drops reused for this scene). Scene is intentionally silent rather than oscillator beeps. Future stems can drop into `assets/audio/` and be wired to gesture (charge/clash/idle wind).
+Foundry audio job `asset-1781916330853-f7d831d9` is preserved under
+`games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/audio/asset-1781916330853-f7d831d9/`
+and mirrored into playable filenames under `assets/audio/`.
+
+- `assets/audio/battlefield_loop.wav` (5.2 MB, 30.968s) — mirrored from `music_v2/cozy_bunny_tracker_loop_v2.wav`; looped by the AUDIO button/key.
+- `assets/audio/charge_cue.wav` (124 KB) — mirrored from `sfx_v2/pickup_chime_bright.wav`; played when CHARGE is triggered while audio is enabled.
+- `assets/audio/clash_accent.wav` (72 KB) — mirrored from `sfx_v2/soft_impact_puff.wav`; played by CLASH button/key and after charge.
+- `assets/audio/ui_confirm.wav` (83 KB) — mirrored from `sfx_v2/ui_confirm_glass.wav`; confirms audio enable.
+- `assets/audio/formation_step.wav` (59 KB) — mirrored from `sfx_v2/bunny_hop_plush.wav`; played on REFORM while audio is enabled.
+- Raw source/evidence retained: `cozy_bunny_loop_v2.mod`, `cozy_bunny_tracker_loop_v2.arrangement.json`, `music_v2_waveform.png`, `sfx_v2_waveforms.png`, `summary.json`, `status.json`, and `spec.json`.
+
+Limit: the current Foundry audio recipe is generic and filenames are cozy-bunny themed; the playable mirrors document their battlefield use without hiding the source provenance.
 
 ## Inspection / Review Mode
 - 6 repeatable cameras (OVERVIEW, RED CLOSE, BLUE CLOSE, SIDE PROFILE, TOP FORMATION, INSPECT ASSET).
@@ -62,8 +73,7 @@ BLOCKER: No file-backed audio stems or loops available in the worker runtime or 
 6. assetInspect — close on unmodified Foundry hero for material/silhouette gate.
 
 ## Blockers
-- **Unity:** Not installed in this worker container. No Unity project or build was created or claimed. This PR is the browser/Three.js review proof. See `UNITY_BLOCKER.md`.
-- Audio (documented above).
+- **Unity:** Unity CLI exists, but no Unity Editor/project listener is installed and `/cache` only has 4.5G free. No Unity project or build was created or claimed. This PR remains the browser/Three.js review proof plus Unity handoff. See `UNITY_BLOCKER.md`.
 - No per-actor unique Blender variants beyond pose/scale (single source GLB used for fidelity; variants are runtime transforms only — acceptable per "use the Foundry GLB as the base visual asset").
 - Visual gate (via WORKER_RUNTIME_VISION_REVIEW_MODEL + gateway): close-up review renders read as having blocky/cylindrical limbs, flat paddle feet, and stylized helmet forms (same as source contact sheet). This is a characteristic of the delivered Foundry asset rather than placeholder geometry. Large framing + contact comparison panel provided so human reviewer can judge directly. No hand-made geo substituted.
 
@@ -81,12 +91,13 @@ BLOCKER: No file-backed audio stems or loops available in the worker runtime or 
 - Contact sheet + hero committed and referenced in-game.
 - Vision gate query saved in work order context (see WORKLOG).
 - ASSET_MANIFEST + this file in `.factoryx/work-orders/work-order-1781913967751-7-1/`.
-- Good review shots: overview.png (132k), sideProfile.png (240k), topFormation.png (99k), redClose.png (353k), blueClose.png (243k), assetInspect.png (405k). All six repeatable cameras show real scene content, and the close/inspect views keep samurai large enough for silhouette/material judgment.
+- Good review shots: overview.png (139k), sideProfile.png (240k), topFormation.png (101k), redClose.png (353k), blueClose.png (246k), assetInspect.png (406k). All six repeatable cameras show real scene content, and the close/inspect views keep samurai large enough for silhouette/material judgment.
 
 ## Integration Points
 - `index.html` loads `assets/samurai_character.glb` relative.
+- `index.html` loads file-backed WAVs from `assets/audio/`, exposes `audioPaths` and `hasFileBackedAudio` on `window.KAWANAKAJIMA_FOUNDRY`, and wires AUDIO/CLASH controls plus charge/reform cues.
 - Review panel embeds the exact contact/hero PNGs.
-- Exposed `window.KAWANAKAJIMA_FOUNDRY` for harness (actorCount, doCharge, applyCam, getCanvas).
+- Exposed `window.KAWANAKAJIMA_FOUNDRY` for harness (actorCount, doCharge, applyCam, getCanvas, audioPaths, hasFileBackedAudio).
 - Preview path: `games/kawanakajima-foundry-samurai-proof/`
 
 Do not call deliverable acceptable while characters read blocky from review cameras. Current passes use the detailed 268-mesh Foundry source with readable close framing. Vision confirmed source fidelity but flagged stylized readability as the visible issue (recorded, not hidden).

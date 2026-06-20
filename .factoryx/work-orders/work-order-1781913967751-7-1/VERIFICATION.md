@@ -13,6 +13,7 @@
 - Resize handler present; canvas fills viewport.
 - Window.KAWANAKAJIMA_FOUNDRY exposed with actorCount, do* , applyCam.
 - Contact sheet + hero PNGs load in review panel.
+- File-backed audio paths load from `assets/audio/`; harness exposes `audioPaths` and `hasFileBackedAudio`.
 - All required assets under the tree with provenance in manifest.
 
 ## Screenshots (repeatable views)
@@ -22,7 +23,7 @@ Captured after construction + any fixes:
 ## Visual issues identified in loop
 (Updated live during self-review)
 - Fixed the headless capture timing bug: URL cameras now mark `CAPTURE_READY:<view>` only after the GLB has produced all 20 actors and two rendered frames have painted.
-- Replaced the earlier 21k dark/loading overview, side, and top screenshots with readable captures. Current committed view evidence ranges from 99k to 405k and all six views have mean brightness above 99.
+- Replaced the earlier 21k dark/loading overview, side, and top screenshots with readable captures. Current committed view evidence ranges from 101k to 406k and all six views have mean brightness above 99.
 - Vision (gateway qwen3-vl) on good close/inspect shots vs contact: "blocky cubes, flat paddle feet, and the helmet's disk face" — same as source Foundry model. Large framing achieved; no geo replacement. Recorded in ASSET_MANIFEST as characteristic of asset-1781913507610-bf69e595.
 
 ## Final status

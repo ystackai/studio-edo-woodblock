@@ -46,8 +46,10 @@
     <span class="label">·</span>
     <button id="btn-charge">CHARGE</button>
     <button id="btn-reform">REFORM</button>
+    <button id="btn-audio">AUDIO</button>
+    <button id="btn-clash">CLASH</button>
     <button id="btn-contact">TOGGLE CONTACT</button>
-    <span class="label hint">drag orbit · wheel zoom · click samurai · 1-6 keys for cams</span>
+    <span class="label hint">drag orbit · wheel zoom · click samurai · 1-6 keys for cams · A audio</span>
   </div>
 
   <div id="load">preparing kawanakajima tableau from foundry glb…</div>
@@ -67,6 +69,14 @@
     const statusEl = document.getElementById('status');
     const loadEl = document.getElementById('load');
     const reviewPanel = document.getElementById('review-panel');
+    const AUDIO_PATHS = {
+      loop: 'assets/audio/battlefield_loop.wav',
+      charge: 'assets/audio/charge_cue.wav',
+      clash: 'assets/audio/clash_accent.wav',
+      confirm: 'assets/audio/ui_confirm.wav',
+      step: 'assets/audio/formation_step.wav'
+    };
+    const audio = { ready: false, enabled: false, loop: null, sfx: {} };
 
     // Visible runtime error surfacing for verification
     window.addEventListener('error', (e) => {
@@ -156,6 +166,33 @@
       r.rotation.set(Math.random() * 0.6, i, Math.random() * 0.4);
       scene.add(r);
     }
+
+    function addWarBanner(name, x, z, clothColor, monColor) {
+      const group = new THREE.Group();
+      group.name = name;
+      const poleMat = new THREE.MeshLambertMaterial({ color: 0x2b2118 });
+      const clothMat = new THREE.MeshLambertMaterial({ color: clothColor });
+      const monMat = new THREE.MeshLambertMaterial({ color: monColor });
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 3.2, 6), poleMat);
+      pole.position.set(0, 1.6, 0);
+      group.add(pole);
+      const cross = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.15, 6), poleMat);
+      cross.rotation.z = Math.PI * 0.5;
+      cross.position.set(0.34, 2.85, 0);
+      group.add(cross);
+      const cloth = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.25, 0.035), clothMat);
+      cloth.position.set(0.52, 2.16, 0);
+      group.add(cloth);
+      const mon = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.04, 32), monMat);
+      mon.rotation.x = Math.PI * 0.5;
+      mon.position.set(0.52, 2.24, -0.035);
+      group.add(mon);
+      group.position.set(x, 0, z);
+      group.rotation.y = x < 0 ? -0.18 : 0.18;
+      scene.add(group);
+    }
+    addWarBanner('takeda field standard', -9.4, -7.1, 0x7d1f18, 0xd6be78);
+    addWarBanner('uesugi field standard', 9.4, -4.3, 0x1e365c, 0xd8d0bd);
 
     // Early paint of base scene (ground, trees, fog) so first viewport is non-blank even before GLB decodes in capture envs
     renderer.render(scene, camera);
@@ -263,6 +300,48 @@
     }
 
     function frameDefault() { camPresets.overview(); }
+
+    function initAudio() {
+      if (audio.ready) return;
+      audio.loop = new Audio(AUDIO_PATHS.loop);
+      audio.loop.loop = true;
+      audio.loop.preload = 'auto';
+      audio.loop.volume = 0.38;
+      for (const [key, path] of Object.entries(AUDIO_PATHS)) {
+        if (key === 'loop') continue;
+        const item = new Audio(path);
+        item.preload = 'auto';
+        item.volume = key === 'clash' ? 0.7 : 0.55;
+        audio.sfx[key] = item;
+      }
+      audio.ready = true;
+    }
+
+    function playSfx(name) {
+      initAudio();
+      const src = audio.sfx[name];
+      if (!src) return;
+      const item = src.cloneNode(true);
+      item.volume = src.volume;
+      item.play().catch(() => {});
+    }
+
+    function toggleAudio() {
+      initAudio();
+      audio.enabled = !audio.enabled;
+      if (audio.enabled) {
+        audio.loop.play().then(() => {
+          statusEl.textContent = 'AUDIO ON';
+          playSfx('confirm');
+        }).catch(() => {
+          audio.enabled = false;
+          statusEl.textContent = 'AUDIO BLOCKED';
+        });
+      } else {
+        audio.loop.pause();
+        statusEl.textContent = 'AUDIO OFF';
+      }
+    }
 
     // Pose + variant logic using named nodes from the Foundry GLB (no base material re-tint)
     function applyVariantPose(root, variantIndex, isTakeda) {
@@ -412,7 +491,10 @@
         doReform: reform,
         applyCam: applyPreset,
         getCanvas: () => canvas,
-        getActors: () => actors
+        getActors: () => actors,
+        audioPaths: AUDIO_PATHS,
+        hasFileBackedAudio: true,
+        isAudioEnabled: () => audio.enabled
       };
       applyUrlCamIfReady();
     }
@@ -493,6 +575,10 @@
         dest.z += (Math.random() - 0.5) * 0.7;
         a.chargeDest = dest;
       });
+      if (audio.enabled) {
+        playSfx('charge');
+        setTimeout(() => playSfx('clash'), 720);
+      }
     }
 
     function reform() {
@@ -506,6 +592,7 @@
           a.mesh.scale.copy(originalState[i].scale);
         }
       });
+      if (audio.enabled) playSfx('step');
       setTimeout(() => { statusEl.textContent = 'FORMATION'; }, 220);
     }
 
@@ -518,6 +605,8 @@
     document.getElementById('btn-inspect').addEventListener('click', () => { applyPreset('assetInspect'); reviewPanel.classList.toggle('open'); });
     document.getElementById('btn-charge').addEventListener('click', charge);
     document.getElementById('btn-reform').addEventListener('click', reform);
+    document.getElementById('btn-audio').addEventListener('click', toggleAudio);
+    document.getElementById('btn-clash').addEventListener('click', () => playSfx('clash'));
     document.getElementById('btn-contact').addEventListener('click', () => reviewPanel.classList.toggle('open'));
 
     // Keyboard: 1-6 for cams, C/R/I/F per spec
@@ -531,6 +620,8 @@
       if (k === '6') { applyPreset('assetInspect'); reviewPanel.classList.add('open'); }
       if (k === 'c') charge();
       if (k === 'r') reform();
+      if (k === 'a') toggleAudio();
+      if (k === 'x') playSfx('clash');
       if (k === 'i' && actors.length) inspectActor(actors[Math.floor(Math.random() * actors.length)]);
       if (k === 'f' || e.key === ' ') { e.preventDefault(); applyPreset('overview'); }
       if (k === 't') reviewPanel.classList.toggle('open');

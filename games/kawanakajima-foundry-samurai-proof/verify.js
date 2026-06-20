@@ -28,6 +28,12 @@ mustExist(path.join(ROOT, 'GLTFLoader.js'), 'GLTFLoader');
 mustExist(path.join(ROOT, 'assets/samurai_character.glb'), 'Foundry GLB');
 mustExist(path.join(ROOT, 'assets/samurai_character_contact_sheet.png'), 'contact sheet');
 mustExist(path.join(ROOT, 'assets/samurai_character_hero.png'), 'hero png');
+mustExist(path.join(ROOT, 'assets/audio/battlefield_loop.wav'), 'file-backed battlefield loop');
+mustExist(path.join(ROOT, 'assets/audio/charge_cue.wav'), 'file-backed charge cue');
+mustExist(path.join(ROOT, 'assets/audio/clash_accent.wav'), 'file-backed clash accent');
+mustExist(path.join(ROOT, 'assets/audio/ui_confirm.wav'), 'file-backed UI confirm');
+mustExist(path.join(ROOT, 'assets/audio/formation_step.wav'), 'file-backed formation step');
+mustExist(path.join(ROOT, 'assets/generated/foundry/audio/asset-1781916330853-f7d831d9/summary.json'), 'Foundry audio summary');
 
 checkContent(path.join(ROOT, 'index.html'), [
   { name: 'canvas element', test: c => /<canvas id="c"/.test(c) },
@@ -37,6 +43,8 @@ checkContent(path.join(ROOT, 'index.html'), [
   { name: 'repeatable cams', test: c => /overview|redClose|blueClose|sideProfile|topFormation|assetInspect/.test(c) },
   { name: 'contact panel', test: c => /contact-img|review-panel|TOGGLE CONTACT/.test(c) },
   { name: 'charge reform', test: c => /function charge|btn-charge/.test(c) },
+  { name: 'file-backed audio paths', test: c => /battlefield_loop\.wav|charge_cue\.wav|clash_accent\.wav/.test(c) },
+  { name: 'audio controls', test: c => /btn-audio|toggleAudio|hasFileBackedAudio/.test(c) },
   { name: 'window expose', test: c => /KAWANAKAJIMA_FOUNDRY/.test(c) },
   { name: 'no oscillator claim', test: c => !/oscillator|playTone|WebAudio.*beep/i.test(c) || /BLOCKER|silent/.test(c) },
 ]);
@@ -48,8 +56,12 @@ if (glb.size < 800000) errors.push('GLB too small for detailed Foundry asset');
 const contact = fs.statSync(path.join(ROOT, 'assets/samurai_character_contact_sheet.png'));
 if (contact.size < 300000) errors.push('contact sheet missing or truncated');
 
+const loop = fs.statSync(path.join(ROOT, 'assets/audio/battlefield_loop.wav'));
+if (loop.size < 1000000) errors.push('battlefield loop too small for the Foundry WAV preview');
+
 console.log('GLB size:', (glb.size/1024/1024).toFixed(2), 'MB');
 console.log('Contact size:', (contact.size/1024).toFixed(0), 'KB');
+console.log('Audio loop size:', (loop.size/1024/1024).toFixed(2), 'MB');
 
 if (errors.length) {
   console.error('VERIFICATION FAILS:');
@@ -63,7 +75,9 @@ if (errors.length) {
     assetFoundryJob: 'asset-1781913507610-bf69e595',
     actorCount: 20,
     glbSize: glb.size,
-    checks: 'structure, paths, sizes, exposure, no fake audio',
+    audioFoundryJob: 'asset-1781916330853-f7d831d9',
+    audioLoopSize: loop.size,
+    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio',
     passed: true
   }, null, 2));
   console.log('Wrote VERIFICATION.json');
