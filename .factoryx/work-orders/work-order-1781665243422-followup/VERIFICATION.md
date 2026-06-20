@@ -21,22 +21,24 @@ Root cause in prior attempts: missing or incorrect `.factoryx/preview-entrypoint
 - Did **not** mutate root `index.html`, `games/index.html`, `drops/`, `studio.json`, or any public catalog/homepage (per rules).
 - Ran real chromium headless browser runtime verification against the **exact** entrypoint (file://.../index.html and with ?verify=1). Not static checks only.
 
-## Chromium runtime verification (real browser, 2026-06-17)
+## Chromium runtime verification (real browser, 2026-06-20 post-rebase)
 Tooling: `/usr/bin/chromium --headless --disable-gpu --no-sandbox --disable-dev-shm-usage --window-size=1080,820 --virtual-time-budget=... --run-all-compositor-stages-before-draw --screenshot=...`
 
 - Ready (idle first screen):
   - Command: chromium ... "file:///.../games/mist-settles-on-one-carved-horizon-5ca8e144/index.html"
   - Exit: 0
-  - Screenshot: ready.png (953048 bytes, non-blank)
+  - Screenshot: ready.png (955155 bytes, non-blank)
   - Content visible: warm washi paper (authored texture + fibers), horizon-ink-wave base layer, multiple drifting mist veils (authored + procedural), single animated wave-form horizon as dominant gesture. No loading state, no UI, no text, no buttons. Mist already in slow continuous motion.
   - Log: only dbus/UPower container noise (identical to other successful Edo verifs). Zero matches for pageerror, uncaught, exception, console.error, net::ERR, fetch, 404, or game-initiated network requests.
 
 - Post-interact (forced resolved via harness):
   - Command: chromium ... "file:///.../games/mist-settles-on-one-carved-horizon-5ca8e144/index.html?verify=1"
   - Exit: 0
-  - Screenshot: post-interact.png (952803 bytes, non-blank)
+  - Screenshot: post-interact.png (957297 bytes, non-blank)
   - Evidence exercised: FOLLOWUP-LIVE-OK marker painted (top-left), high pressDepth + cumulative settling forced, local radial deepening + bleed tendrils seeded, mist alpha reduced in the contact zone. Demonstrates baren press + "becomes more beautiful the longer quietly held" path.
   - Log: same harmless dbus only. No runtime errors from the canvas/RAF/asset paths.
+
+Re-verified after rebase on 2026-06-20; sizes refreshed, same clean result.
 
 - Payload: source ~21.5 kB + assets ~587 kB (paper 241k, horizon 216k, mist 130k) + manifest = << 2 MB.
 - No external dependencies: all <img src="assets/..."> are relative; no fetch, no CDN, works fully offline after first file:// load.
@@ -62,7 +64,9 @@ Tooling: `/usr/bin/chromium --headless --disable-gpu --no-sandbox --disable-dev-
 ## Git / process hygiene
 - Only touched the deliverable tree, its assets+manifest, the preview-entrypoint, and this WO's memory (FEEDBACK/PREVIEW/VERIFICATION/WORKLOG + screenshots).
 - No drive-by refactors.
-- PR (to be created/updated) will be from the canonical branch and will embed the full original prompt + "FactoryX Work Order Context" section with Work Order id.
+- Rebased cleanly onto origin/main (resolved .factoryx/preview-entrypoint add/add via replay; mist tree added as new). Force-updated remote canonical ref (allowed to advance stale WO branch after prior token-expired runs).
+- PR #156 head advanced to rebased commit d0ca81f; merge conflict report from github-mergeability at prior head should clear.
+- PR will be / is updated from the canonical branch and embeds the full original prompt + "FactoryX Work Order Context" section with Work Order id.
 
 ## Blockers found
 - None. All verif steps passed on first chromium runs. Ready and post both non-blank, logs clean of game errors, direct entrypoint used, assets present and loaded (or fell back gracefully), 9/9 checklist, house style held, feedback addressed before any polish.
@@ -75,7 +79,8 @@ Tooling: `/usr/bin/chromium --headless --disable-gpu --no-sandbox --disable-dev-
 - This file + PREVIEW.md + WORKLOG.md + FEEDBACK.md in the WO dir.
 
 ## Verdict
-Ready for human review / merge gate. The home-page bug is fixed by construction (direct self-contained entrypoint + explicit preview-entrypoint + verif on that path). The living print satisfies the original goal, the taste-gate slice (one verb: quiet sustained baren on one wave horizon in mist), the asset contract, and the full game-feel + house-style bar. Live file:// play + chromium evidence confirm it.
+Ready for human review / merge gate. The home-page bug is fixed by construction (direct self-contained entrypoint + explicit preview-entrypoint + verif on that path). Rebase cleared the merge-conflicts block. The living print satisfies the original goal, the taste-gate slice (one verb: quiet sustained baren on one wave horizon in mist), the asset contract, and the full game-feel + house-style bar. Live file:// play + chromium evidence (re-ran post-rebase) confirm it.
 
 Work Order: work-order-1781665243422-followup
-Chromium: clean on direct entrypoint (2026-06-17)
+Chromium: clean on direct entrypoint (2026-06-20 post-rebase)
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/156
