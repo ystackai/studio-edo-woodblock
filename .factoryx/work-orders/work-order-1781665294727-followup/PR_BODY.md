@@ -84,4 +84,16 @@ Decision: deliverable-decision-1781629581487-2 (rework)
 ```
 
 ## Commits in this branch for the follow-up
-(Will be updated on push; focused diff only.)
+(Updated on push; focused diff only for evidence/hygiene.)
+
+Latest push:
+- 1a9ed4f docs(factoryx): fresh browser verif + merge clean notes for rework followup (658k/866k PNGs; backups cleaned; 0 conflicts vs main; PR#157 context)
+- Prior head: 66fd8ab (art+music material + verif)
+
+Canonical PR remains https://github.com/ystackai/studio-edo-woodblock/pull/157 (body carries full prompt + FactoryX Work Order Context from initial; new commits on branch advance the reviewable diff).
+
+## Post-push status
+- Branch pushed to factoryx/factory-edo-woodblock/work-order-1781665294727-followup
+- Merge conflict addressed via branch position + clean merge-tree (addresses the changes_requested from github-mergeability at prior sha).
+- Fresh chromium evidence + cleanup in this commit.
+- All requirements met: generated file assets + manifest + provenance + browser verif + direct preview + full context in tree + PR.
