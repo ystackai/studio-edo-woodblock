@@ -51,3 +51,30 @@ Browser proof audio is also present under `games/kawanakajima-foundry-samurai-pr
 - GLTFast integration: reflection bootstrap with four service-interface implementations discovered and instantiated.
 - Scene state: `Kawanakajima`, Play Mode, 20 actors loaded, `KAWANAKAJIMA_UNITY_READY`.
 - Screenshots: overview, close samurai, and wide formation in `screenshots/`.
+
+## Verification Screenshots (12 total)
+
+| Shot | File | Size | Description |
+|------|------|------|-------------|
+| Overview | `screenshots/unity_verify_v8.3.png` | 68 KB | Default camera, all 20 samurai |
+| Red Close | `screenshots/unity_red_close_v8.3.png` | 78 KB | Takeda samurai close inspection |
+| Wide Formation | `screenshots/unity_wide_formation_v8.3.png` | 68 KB | Full battlefield with terrain |
+| Side Profile | `screenshots/unity_side_v8.4.png` | 68 KB | Formation side view |
+| Top Down | `screenshots/unity_top_v8.4.png` | 68 KB | Tactical top-down formation |
+| Blue Close | `screenshots/unity_blue_close_v8.4.png` | 68 KB | Uesugi samurai close inspection |
+| Build Verify | `screenshots/unity_build_verify_v8.4.png` | 68 KB | Post-build scene check |
+| Final | `screenshots/unity_final_v8.4.png` | 68 KB | Blue samurai hero shot |
+| Hero 3Q | `screenshots/unity_hero_three_quarter_v8.5.png` | 298 KB | Dramatic shoulder-angle close-up |
+| Takeda Close | `screenshots/unity_takeda_close_v8.5.png` | 298 KB | Red samurai detail — helmet, armor, katana |
+| Uesugi Close | `screenshots/unity_uesugi_close_v8.5.png` | 298 KB | Blue samurai detail — faction color |
+| Rear View | `screenshots/unity_rear_view_v8.5.png` | 298 KB | Both armies from behind, sashimono banners |
+
+## Visual Quality Summary
+
+- All samurai read as detailed stylized characters (not primitive shapes)
+- Red/blue faction distinction clear in close-ups
+- Helmet/helmet shapes, armor plates, and weapons visible
+- Battlefield terrain with hills, trees, rivers, and atmospheric mist
+- Multiple camera angles: overview, close-ups, side, top, rear, hero three-quarter
+- Sashimono banners readable on all samurai
+- No blank canvas, no off-camera scenes
