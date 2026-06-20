@@ -129,8 +129,8 @@ Changes remain in place on the branch. All verification artifacts, direct entryp
 - gh cli unavailable in this worker shell for PR body update (requires GH_TOKEN login); branch is ready. When valid credentials allow, `git push` (already in sync) + paste PR_BODY.md content into PR #156 will keep reviewers seeing the full original prompt + "FactoryX Work Order Context".
 - The operator feedback ("showing home page of factory") is fully addressed: preview mechanism + direct self-contained artifact + evidence all use the mist index.html exclusively. Opening the canonical preview path cannot surface the studio home.
 
-Current local HEAD: c9ddf7c (docs update + fresh verif evidence)
-Remote branch: matches.
-PR: #156 (update body with latest memory + this log when pushing).
+Current local HEAD: f283d49 (docs + fresh verif + PR notes)
+Remote branch: pushed and in sync (f27d559 then f283d49).
+PR: #156 (branch pushed with evidence; PR body can be refreshed from wo/PR_BODY.md containing full prompt + context).
 
 
