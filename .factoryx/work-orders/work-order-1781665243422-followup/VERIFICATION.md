@@ -27,18 +27,18 @@ Tooling: `/usr/bin/chromium --headless --disable-gpu --no-sandbox --disable-dev-
 - Ready (idle first screen):
   - Command: chromium ... "file:///.../games/mist-settles-on-one-carved-horizon-5ca8e144/index.html"
   - Exit: 0
-  - Screenshot: ready.png (955155 bytes, non-blank)
+  - Screenshot: ready.png (951760 bytes, non-blank)
   - Content visible: warm washi paper (authored texture + fibers), horizon-ink-wave base layer, multiple drifting mist veils (authored + procedural), single animated wave-form horizon as dominant gesture. No loading state, no UI, no text, no buttons. Mist already in slow continuous motion.
   - Log: only dbus/UPower container noise (identical to other successful Edo verifs). Zero matches for pageerror, uncaught, exception, console.error, net::ERR, fetch, 404, or game-initiated network requests.
 
 - Post-interact (forced resolved via harness):
   - Command: chromium ... "file:///.../games/mist-settles-on-one-carved-horizon-5ca8e144/index.html?verify=1"
   - Exit: 0
-  - Screenshot: post-interact.png (957297 bytes, non-blank)
+  - Screenshot: post-interact.png (956392 bytes, non-blank)
   - Evidence exercised: FOLLOWUP-LIVE-OK marker painted (top-left), high pressDepth + cumulative settling forced, local radial deepening + bleed tendrils seeded, mist alpha reduced in the contact zone. Demonstrates baren press + "becomes more beautiful the longer quietly held" path.
   - Log: same harmless dbus only. No runtime errors from the canvas/RAF/asset paths.
 
-Re-verified after rebase on 2026-06-20; sizes refreshed, same clean result.
+Re-verified after rebase on 2026-06-20; sizes refreshed, same clean result. Fresh run on current head additionally used --dump-dom + explicit grep for home markers (crew-strip etc) vs mist title/canvas; direct entrypoint serves only the print. Root contrast test confirms home is what would be seen if entrypoint were wrong.
 
 - Payload: source ~21.5 kB + assets ~587 kB (paper 241k, horizon 216k, mist 130k) + manifest = << 2 MB.
 - No external dependencies: all <img src="assets/..."> are relative; no fetch, no CDN, works fully offline after first file:// load.

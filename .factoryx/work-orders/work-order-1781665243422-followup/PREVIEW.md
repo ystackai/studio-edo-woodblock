@@ -24,10 +24,10 @@
 - ~25 kB source + ~587 kB assets = well under 2 MB. No external network. Works offline after first load. 60 fps on mid hardware (cheap canvas ops + image draws).
 
 ## Evidence captured during this implementation & verification
-- `screenshots/ready.png` (955 kB): idle first paint on direct entrypoint. Paper + horizon base + drifting mist layers + wave all visible and coherent. No chrome. Mist is in motion even before gesture. (re-captured 2026-06-20 post-rebase)
-- `screenshots/post-interact.png` (957 kB): `?verify=1` forced state (high pressDepth + cumulative settling + marker + bleeds). Demonstrates interaction exercised, local deepening + mist reaction, and the "more beautiful when held" cumulative path. (re-captured 2026-06-20)
+- `screenshots/ready.png` (952 kB): idle first paint on direct entrypoint. Paper + horizon base + drifting mist layers + wave all visible and coherent. No chrome. Mist is in motion even before gesture. (fresh chromium 2026-06-20)
+- `screenshots/post-interact.png` (956 kB): `?verify=1` forced state (high pressDepth + cumulative settling + marker + bleeds). Demonstrates interaction exercised, local deepening + mist reaction, and the "more beautiful when held" cumulative path. (fresh chromium 2026-06-20)
 - `screenshots/index.html`: small gallery + notes for reviewers.
-- Chromium logs (ready.log, post.log): only expected container dbus noise; zero pageerror, uncaught, JS exceptions, fetch failures, or game console errors.
+- Chromium logs (ready.log, post.log): only expected container dbus noise; zero pageerror, uncaught, JS exceptions, fetch failures, or game console errors. Confirmed via --dump-dom that direct load serves &lt;title&gt;Mist settles...&lt;/title&gt; + full-bleed canvas with zero factory home markers (no crew, demos, board etc).
 - Full game feel checklist passed (see VERIFICATION.md).
 
 ## Review notes
@@ -36,7 +36,7 @@
   - Writing `.factoryx/preview-entrypoint` to that exact file.
   - Using a single self-contained `index.html` with no redirect, no shell, no studio nav.
   - Running verification on the exact entrypoint (not root).
-- Rebased branch onto current main (d0ca81f) and force-updated canonical remote ref to clear the github-mergeability "merge conflicts" block reported at c6bf595. PR #156 head now at rebased commit.
+- Rebased branch onto current main (d0ca81f) and force-updated canonical remote ref to clear the github-mergeability "merge conflicts" block reported at c6bf595. PR #156 head now at rebased commit. Fresh chromium + DOM verification re-run 2026-06-20 on current head c9ddf7c confirms direct entrypoint serves only the mist print (no home chrome).
 - Prior useful wave/mist/baren work from history was kept in spirit and materially evolved (authored assets per contract v2, cumulative quiet beauty, frantic de-reward, resistance curve, hybrid texture, strict no-chrome).
 - The first 30 seconds are fully evaluable: open → see a complete floating-world print with moving mist → hold anywhere → feel the baren deepen the wave and clear mist → watch it settle further the longer held.
 - Payload self-contained; relative asset paths work for both file:// review and FactoryX preview tree deployment under `/factoryx/previews/...`.
@@ -44,5 +44,5 @@
 
 Work Order: work-order-1781665243422-followup
 Canonical preview: games/mist-settles-on-one-carved-horizon-5ca8e144/index.html
-Chromium verif: clean on direct entrypoint (re-ran 2026-06-20 after rebase to clear merge conflicts)
+Chromium verif: clean on direct entrypoint (fresh re-run 2026-06-20; --dump-dom + screenshots confirm no factory home, only the living print)
 PR: https://github.com/ystackai/studio-edo-woodblock/pull/156 (head advanced; BLOCKED->awaiting check refresh)

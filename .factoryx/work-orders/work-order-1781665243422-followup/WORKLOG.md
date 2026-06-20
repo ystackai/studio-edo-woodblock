@@ -115,3 +115,22 @@ Changes remain in place on the branch. All verification artifacts, direct entryp
 
 **Next for merge gate:** PR checks should go green (ci pending at capture time); once mergeState != BLOCKED, ready for review. The "showing home page" + "merge conflicts" are both resolved.
 
+## 2026-06-20 Additional verification pass (current session)
+- Confirmed on-disk state matches expected: .factoryx/preview-entrypoint = "games/mist-settles-on-one-carved-horizon-5ca8e144/index.html"
+- Asset files present with sizes, ASSET_MANIFEST.md present under assets/ with full provenance for the 3 jpgs.
+- Ran fresh chromium headless captures on exact direct file:// entrypoint (and ?verify=1):
+  - ready.png: 951760 bytes, exit 0, non-blank, first paint complete.
+  - post-interact.png: 956392 bytes, exit 0, non-blank, forced state + marker visible.
+  - Logs contain only container dbus noise; zero game errors, zero network, zero uncaught.
+- Used --dump-dom + grep to explicitly demonstrate: direct entrypoint contains "Mist settles on one carved horizon" title + <canvas id="c"> ; root index.html contains the factory home markers (title "ystackai — ...", demos-row etc). This proves the home-page bug would only occur if preview used wrong root instead of entrypoint.
+- Updated screenshots/index.html, PREVIEW.md, VERIFICATION.md, WORKLOG.md with fresh sizes + explicit "not home" evidence.
+- No code changes to the living print; no asset regen needed (already satisfied contract v2); focused only on verification refresh + feedback confirmation.
+- git status: on canonical WO branch, 4 commits ahead of main (normal), in sync with origin remote ref.
+- gh cli unavailable in this worker shell for PR body update (requires GH_TOKEN login); branch is ready. When valid credentials allow, `git push` (already in sync) + paste PR_BODY.md content into PR #156 will keep reviewers seeing the full original prompt + "FactoryX Work Order Context".
+- The operator feedback ("showing home page of factory") is fully addressed: preview mechanism + direct self-contained artifact + evidence all use the mist index.html exclusively. Opening the canonical preview path cannot surface the studio home.
+
+Current local HEAD: c9ddf7c (docs update + fresh verif evidence)
+Remote branch: matches.
+PR: #156 (update body with latest memory + this log when pushing).
+
+
