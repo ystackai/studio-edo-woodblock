@@ -153,9 +153,9 @@ PR: #156 (branch pushed with evidence; PR body can be refreshed from wo/PR_BODY.
 - This pass ensures that even after prior deploy hiccups, a new push of this WO branch will re-run the preview deploy job with correct entrypoint, directly addressing the operator feedback before any other changes.
 - No changes to the print implementation, assets, or unrelated files. Focused on verification + making the preview root reliable for the review URL.
 
-Current local HEAD advanced to 2cd2fc5 with fresh evidence commit.
-Remote: pushed successfully (f1f40fe..2cd2fc5) to canonical factoryx/.../work-order-1781665243422-followup — this will trigger CI deploy-preview with current .factoryx/preview-entrypoint.
-PR: #156 (update head to 2cd2fc5 + re-deploy should resolve any stale home preview; paste/update body from PR_BODY.md containing the full original prompt).
+Current local HEAD advanced to ad03dca (final notes).
+Remote: pushed successfully (271215d..ad03dca) to canonical factoryx/.../work-order-1781665243422-followup — this will trigger CI deploy-preview with current .factoryx/preview-entrypoint.
+PR: #156 (head at ad03dca; paste/update body from PR_BODY.md containing the full original prompt + FactoryX Work Order Context).
 
 ## Push + rebase hygiene (final in session)
 - After amend attempt created divergent sha, fetched remote, reset --hard to origin/.../1b6c7c4 (clean ancestor).
