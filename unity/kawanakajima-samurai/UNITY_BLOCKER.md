@@ -30,15 +30,27 @@ Token not found in cache.
 No valid Unity Editor license found. Please activate your license.
 ```
 
+## Local Operator Follow-Up (2026-06-20T09:43:35Z)
+
+The extracted local Unity 2023.2.20f1 Editor still launches (`-version` returns `2023.2.20f1`). The extracted payload includes `MacStandaloneSupport`, but not the WebGL playback engine, so `BuildMac()` was added as the locally available standalone build route.
+
+A local batch `CreateOrRefreshScene` attempt still failed before project import/build because Unity licensing is not active:
+
+```text
+No ULF license found.
+Token not found in cache.
+No valid Unity Editor license found. Please activate your license.
+```
+
 See `.factoryx/work-orders/work-order-1781940455825-6-1/LOCAL_UNITY_ATTEMPT.md`.
 
 ## Build Hook Present
 
 `Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` provides:
 - Menu: FactoryX > Kawanakajima > Create Or Refresh Scene
-- Batch: BuildWebGL() and BuildLinux()
+- Batch: BuildWebGL(), BuildLinux(), and BuildMac()
 
-When a real Editor runs this project, those produce the expected `Builds/WebGL/` or platform output + index.html.
+When a real Editor runs this project, those produce the expected `Builds/WebGL/` or platform output.
 
 ## Do Not Claim
 

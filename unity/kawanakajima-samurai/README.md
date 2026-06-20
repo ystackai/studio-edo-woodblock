@@ -11,7 +11,7 @@ It is not a completed Unity build yet because the FactoryX worker currently has 
 - `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` - 20 named warriors, 10 Takeda and 10 Uesugi, with positions and poses.
 - `Assets/Resources/KawanakajimaAudio/*.wav` - file-backed audio from Foundry job `asset-1781916330853-f7d831d9`.
 - `Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs` - runtime scene builder and playable loop.
-- `Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` - menu and batch build entrypoints.
+- `Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` - menu and WebGL, Linux, and Mac batch build entrypoints.
 - `Packages/manifest.json` - declares Unity glTFast (`com.unity.cloud.gltfast`) so the GLB can load at runtime.
 
 Unity's glTFast package is the official Unity package for glTF/GLB loading. The package documentation says to install it by package name `com.unity.cloud.gltfast`, and its runtime docs show loading via URL/file path and instantiating the main scene from script.
@@ -57,10 +57,20 @@ Unity \
   -logFile /tmp/kawanakajima-unity-linux.log
 ```
 
+```bash
+Unity \
+  -batchmode \
+  -quit \
+  -projectPath unity/kawanakajima-samurai \
+  -executeMethod KawanakajimaUnityBuild.BuildMac \
+  -logFile /tmp/kawanakajima-unity-mac.log
+```
+
 Expected build outputs:
 
 - `unity/kawanakajima-samurai/Builds/WebGL/`
 - `unity/kawanakajima-samurai/Builds/Linux/KawanakajimaSamurai`
+- `unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
 
 ## Current Blocker (updated for guarded retry work-order-1781940455825-6-1)
 
@@ -86,6 +96,11 @@ Additional operator-side local verification on 2026-06-20T08:22:39Z:
 - A Unity 2023.2.20f1 package was expanded without sudo and the Editor binary launched in batchmode (`-version` returned `2023.2.20f1`).
 - `verify-unity-handoff.js` passed.
 - The WebGL build attempt failed before import/build because no Unity license/token/ULF was active.
+
+Additional operator-side local verification on 2026-06-20T09:43:35Z:
+- The same extracted Unity 2023.2.20f1 Editor binary still launches in batchmode.
+- The extracted Editor payload includes MacStandaloneSupport, so `BuildMac()` was added as the locally available standalone build route.
+- `CreateOrRefreshScene` still failed before import/build because no Unity license/token/ULF was active.
 
 See `.factoryx/work-orders/work-order-1781940455825-6-1/LOCAL_UNITY_ATTEMPT.md`.
 

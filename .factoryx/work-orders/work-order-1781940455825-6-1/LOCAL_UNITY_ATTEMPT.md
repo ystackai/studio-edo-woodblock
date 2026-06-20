@@ -113,3 +113,47 @@ This local attempt improves the evidence:
 
 No `Builds/WebGL/index.html` exists and no Unity playable build is claimed.
 
+## Follow-Up Attempt (2026-06-20T09:43:35Z)
+
+The extracted Unity 2023.2.20f1 Editor binary still launches:
+
+```bash
+"/Users/marcus/codex-work/unity-2023.2.20f1-expanded/Unity.pkg.tmp/Payload/Unity/Unity.app/Contents/MacOS/Unity" -version
+```
+
+Output:
+
+```text
+2023.2.20f1
+```
+
+The extracted payload includes `MacStandaloneSupport`, but not WebGL support. The PR branch now includes `KawanakajimaUnityBuild.BuildMac()` so the locally available standalone module has a direct batch build route.
+
+Command attempted:
+
+```bash
+"/Users/marcus/codex-work/unity-2023.2.20f1-expanded/Unity.pkg.tmp/Payload/Unity/Unity.app/Contents/MacOS/Unity" \
+  -batchmode \
+  -nographics \
+  -quit \
+  -projectPath /Users/marcus/codex-work/studio-edo-woodblock-samurai-pr163/unity/kawanakajima-samurai \
+  -executeMethod KawanakajimaUnityBuild.CreateOrRefreshScene \
+  -logFile /Users/marcus/codex-work/studio-edo-woodblock-samurai-pr163/unity/kawanakajima-samurai/unity-import.log
+```
+
+Result: failed before import/build because Unity licensing is not active.
+
+Relevant log excerpt:
+
+```text
+Unity Editor version:    2023.2.20f1 (0e25a174756c)
+Batch mode:              YES
+Architecture:            arm64
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Error: Code 500 while updating license in client (status: Unable to update licenses. Errors: No ULF license found.,Token not found in cache)
+[Licensing::Module] Error: License is not active (com.unity.editor.headless). HasEntitlements will fail.
+Pro License: NO
+No valid Unity Editor license found. Please activate your license.
+```
+
+No `Builds/Mac/KawanakajimaSamurai.app` exists and no Unity playable build is claimed.
