@@ -57,3 +57,16 @@
 - See UNITY_BLOCKER.md and VERIFICATION.md in this directory for the authoritative blocker record.
 - Canonical branch: codex/samurai-unity-guarded-retry
 - Target deliverable gate: unity-build-evidence
+
+
+## Execution Polish (this session)
+
+- Re-ran preflights, MCP status, build attempt (exact outputs in blocker).
+- Refreshed .factoryx/.../VERIFICATION* , UNITY_BLOCKER.md, WORKLOG, PREVIEW, mirrors.
+- Committed + pushed `b389963` to codex/samurai-unity-guarded-retry (updates PR #163).
+- All changes preserve honest blocker: no Unity playable build claimed or synthesized.
+- verify.js re-ran: PASS; foundry /healthz: ok (blender provider); 20 samurai (10/10) assets from v3 pack confirmed present.
+- FEEDBACK.md reviewed: no blocking playtest input.
+- PR body already contains FactoryX Work Order Context + full goal quote.
+
+**Verdict:** Blocker/escalation reported correctly per guarded retry goal. Changes left in place. See https://github.com/ystackai/studio-edo-woodblock/pull/163
