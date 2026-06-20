@@ -51,9 +51,7 @@
     - `tools/call` with `scene-list-opened` → Scene `Kawanakajima` loaded, 1 root, IsDirty=false, IsValidScene=true
 - Browser polish committed (v8.14):
     - Vignette with 8s breathing animation for atmospheric depth
-    - Camera orbit state (yaw/pitch/dist) synced after smooth transition
+    - Camera orbit state (target/yaw/pitch/dist) synced after smooth transition
     - Fog opacity and ground fog scale breathe subtly each frame
-    - Charge action triggers warm screen flash that fades
-    - Clicking a samurai pulses it in faction color (red/blue) for 500ms
 - Both verifiers remain green; zero scratch files
 - Pushed to origin/factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8

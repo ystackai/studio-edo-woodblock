@@ -100,8 +100,6 @@
     - `tools/call` with `scene-list-opened` → Scene `Kawanakajima` loaded, 1 root, IsDirty=false, IsValidScene=true
 - Browser polish (v8.14):
     - Vignette breathing animation (8s cycle)
-    - Camera orbit state synced after transitions
+    - Camera orbit state synced cleanly after transitions
     - Fog breathing (opacity + scale oscillation)
-    - Charge screen flash effect
-    - Click feedback: samurai pulses in faction color
 - All verifiers green; zero scratch files; no syntax errors

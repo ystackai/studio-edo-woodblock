@@ -60,8 +60,7 @@
 ## v9.1 Update (2026-06-20 22:40 UTC)
 
 - **Browser runtime timeout fix:** Reduced GLB timeout from 15s to 5s for faster fallback when assets are unavailable on `file://`.
-- **Skip GLB button:** Added `SKIP GLB` UI button for instant scene load without waiting for GLB.
-- **markCaptureReady guard:** Added null check for renderer/scene/camera to prevent errors when called before scene setup.
+- **Capture marker:** Timeout fallback now marks capture readiness after the fallback render path runs.
 - **Load screen hard hide:** Added `loadEl.style.display = 'none'` alongside CSS class toggle for more reliable hiding.
 - **Unity MCP scene view:** `screenshot-scene-view` returns 1280×800 scene content screenshot (64 KB, verified non-blank via pixel variance).
 - **Browser verification:** JS syntax check passes; all asset checks pass; scene renders within 5 seconds regardless of GLB availability.
@@ -69,13 +68,13 @@
 
 ## v9.1 Final (2026-06-20 22:45 UTC)
 
-- **Browser proof:** Loads within 5 seconds regardless of GLB availability. SKIP GLB button for instant load. JS syntax check passes. Canvas renders non-blank content.
+- **Browser proof:** Loads quickly when GLB assets are available and uses the timeout fallback instead of hanging when unavailable. JS syntax check passes. Canvas renders non-blank content.
 - **Unity MCP:** Reachable at `http://172.21.0.1:25666`. Scene view screenshot available (1280×800, non-blank). Game view needs Play Mode to show cameras.
 - **PR #167:** Updated with v9.1 changes. Still requires approving review from write-access reviewer.
 - **Deliverable status:** Complete. Source files committed and pushed. Unity Mac build verified. Browser proof passes all checks.
 
 ### Files Changed in v9.1
-- `games/kawanakajima-foundry-samurai-proof/index.html` — timeout, skip button, markCaptureReady guard
+- `games/kawanakajima-foundry-samurai-proof/index.html` — timeout fallback, capture marker, load screen hard hide
 - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_scene_view_final.png` — final scene view screenshot
 - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_scene_view_v9.png` — scene view
 - `games/kawanakajima-foundry-samurai-proof/ASSET_MANIFEST.md` — v9 screenshot table updated

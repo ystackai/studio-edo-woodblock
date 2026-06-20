@@ -309,9 +309,8 @@ All screenshots pass visual quality gate — samurai are large enough to judge s
 - **Fix applied to `games/kawanakajima-foundry-samurai-proof/index.html`:**
   1. **Error fallback:** The `loadAll()` function's GLB error callback calls `setTimeout(onAllLoaded, 100)` — the scene renders even with a GLB failure, preventing the loading screen from blocking the preview.
   2. **Timeout fallback:** A 5-second timeout fires `onAllLoaded()` if the GLB never completes (e.g. CORS on `file://`).
-  3. **Skip button:** Added a `SKIP GLB` button that immediately calls `onAllLoaded()` and `markCaptureReady('skip')`.
-  4. **markCaptureReady guard:** Added null check for renderer/scene/camera to prevent errors if called before scene setup.
-  5. **Load screen hard hide:** Added `loadEl.style.display = 'none'` in addition to CSS class toggle.
+  3. **Capture marker:** The timeout path marks capture readiness after the fallback render path runs.
+  4. **Load screen hard hide:** Added `loadEl.style.display = 'none'` in addition to CSS class toggle.
 
 ### Verification Results
 - **JS syntax check:** ALL SCRIPTS SYNTAX OK (all inline scripts parse via `new Function(script)`)
@@ -350,8 +349,7 @@ All screenshots pass visual quality gate — samurai are large enough to judge s
 
 ### Browser Runtime
 - **GLB timeout:** Reduced to 5 seconds; scene renders even when GLB unavailable
-- **SKIP GLB button:** Added for instant load without waiting
-- **markCaptureReady:** Null-safe; prevents errors if called before scene setup
+- **Capture marker:** Timeout fallback marks capture readiness after the fallback render path runs
 - **Load screen:** Hard-hid with display:none alongside CSS class toggle
 - **JS syntax:** All inline scripts parse cleanly via `new Function()`
 - **verify.js:** All structure, asset, size checks PASS
@@ -383,4 +381,3 @@ All screenshots pass visual quality gate — samurai are large enough to judge s
 
 ### Summary
 The browser proof now loads correctly within 5 seconds regardless of GLB availability. The Unity MCP is reachable and functional. All visual assets (samurai GLB, battlefield pack GLB, audio WAVs) are intact and verified. The only remaining blocker is the PR merge, which requires a human reviewer with write access.
-
