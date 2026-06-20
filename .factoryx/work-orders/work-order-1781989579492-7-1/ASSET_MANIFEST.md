@@ -92,6 +92,6 @@ All screenshots reviewed at v8.8. Samurais read as low-poly stylized figures wit
 ## Known Limitations
 
 - Unity build requires Mac Studio Unity Editor (not available on worker); Mac build completed in v8.4
-- Unity MCP tools listed but not callable from worker
+- Unity MCP is reachable from the worker through `http://host.docker.internal:27481/mcp`; tool invocation requires standard MCP `tools/call`
 - Asset fidelity is stylized/low-poly, not photorealistic
 - Single GLB cloned 20×; variants via pose/scale/stance transforms and additive props

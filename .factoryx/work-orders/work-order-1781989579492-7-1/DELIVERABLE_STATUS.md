@@ -3,8 +3,8 @@
 **Work Order:** work-order-1781989579492-7-1
 **Deliverable:** `kawanakajima-samurai-game-world`
 **Branch:** `factoryx/factory-edo-woodblock/work-order-1781989579492-7-1`
-**PR:** Pending (GitHub 503 blocking push)
-**Last Update:** 2026-06-20 21:15 UTC
+**PR:** https://github.com/ystackai/studio-edo-woodblock/pull/168
+**Last Update:** 2026-06-20 21:30 UTC
 **Completion Mode:** polish_until_deadline
 
 ## Status Summary
@@ -15,8 +15,8 @@
 | Unity source handoff | ✅ COMPLETE — project, scene, bootstrap, build hooks, assets all committed |
 | Mac build (Unity) | ✅ VERIFIED (v8.4) — `KawanakajimaSamurai.app` (112 MB), exit code 0 |
 | Asset Foundry | ✅ HEALTHY — 200 OK, Blender MCP configured |
-| Unity MCP | ⚠️ PARTIAL — listener responds but tools not callable via RPC |
-| GitHub push | ⚠️ BLOCKED — 503 errors from GitHub |
+| Unity MCP | ✅ VERIFIED — listener reachable from worker; `tools/call` returns loaded `Kawanakajima` scene |
+| GitHub push | ✅ COMPLETE — branch pushed; PR #168 open |
 | Visual review | ✅ PASSED — samurai silhouettes readable, proper scale, no toy geometry |
 | Strategy document | ✅ COMPLETE — GOAL_EXECUTION_STRATEGY.md |
 
@@ -32,10 +32,9 @@
 
 ## Remaining Work
 
-- Unity MCP tool calls need fixing or local verification
-- GitHub push blocked until 503 resolves
+- Required GitHub review approval before PR #168 can merge
 - Visual polish pass (improve lighting, atmosphere, samurai detail if needed)
-- Mac build via MCP if Unity tools become callable
+- Optional Mac build refresh via MCP/batchmode after review
 
 ## Success Criteria
 

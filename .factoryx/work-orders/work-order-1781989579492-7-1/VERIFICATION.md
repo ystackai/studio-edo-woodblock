@@ -9,9 +9,10 @@
 |-------|--------|---------|
 | Asset Foundry health | ✅ PASS | `http://factoryx-edo-woodblock-asset-foundry:18113/healthz` → 200 OK |
 | Blender MCP | ✅ AVAILABLE | `/usr/bin/blender` configured |
-| Unity MCP listener | ⚠️ PARTIAL | `host.docker.internal:27481` responds with gamedev-mcp-server 8.0.0.0, but listed tools return 405 |
-| Mac Studio Unity bridge | ⚠️ UNREACHABLE | `172.21.0.1:25666` — connection refused/timed out from worker |
-| GitHub connectivity | ⚠️ TRANSIENT | 503 errors on push attempts |
+| Unity MCP listener | ✅ PASS | `host.docker.internal:27481/mcp` initializes as gamedev-mcp-server 8.0.0.0 |
+| Unity MCP tools | ✅ PASS | `tools/list` returns 38 tools; `tools/call` successfully invokes `scene-list-opened` |
+| Mac-local Unity route | ✅ PASS | Worker container reaches the Unity MCP through Docker's `host.docker.internal` gateway |
+| GitHub connectivity | ✅ PASS | Worker commit pushed after retry; this correction is committed on top |
 
 ## Browser Proof Verification
 
@@ -43,7 +44,7 @@
 | Streaming assets | ✅ samurai_character.glb (1.23 MB), samurai_battlefield_pack.glb (6.55 MB) |
 | Audio assets | ✅ 5 WAV files in StreamingAssets/Resources |
 | Mac build (v8.4) | ✅ `Builds/Mac/KawanakajimaSamurai.app` (112 MB, exit 0) |
-| Play Mode 20 samurai | ⚠️ Needs local Unity Editor verification (MCP tools not callable) |
+| Unity scene via MCP | ✅ `scene-list-opened` returned `Kawanakajima`, `RootCount=73`, `IsLoaded=true`, `IsDirty=false` |
 
 ## Visual Review
 
@@ -68,12 +69,12 @@
 - [x] No toy/capsule anatomy, disk faces, paddle feet, untextured primitives, or Minecraft silhouettes
 - [x] Proper scale — samurai read as distinct figures, not tiny blocks/dots
 
-## Known Blockers
+## Integration Notes
 
-1. **Unity MCP tools not callable:** The gamedev-mcp-server at `host.docker.internal:27481` lists 38 tools via `tools/list` but all return 405 "Method not available" when called. This prevents automated Unity Editor inspection and build from the worker.
-2. **Mac Studio Unity bridge unreachable:** The Unity MCP listener at `172.21.0.1:25666` (Mac Studio) is not reachable from the worker container.
-3. **GitHub 503:** Push attempts return 503 from GitHub — temporary outage.
-4. **No local Unity Editor:** The Hetzner worker has Unity CLI 0.1.0-beta.7 only, no installed Editor.
+1. **Correct MCP call shape:** The initial worker run called Unity tool names directly as JSON-RPC methods, which produced method errors. The verified protocol is `tools/call` with the Unity tool name in `params.name`.
+2. **Active route:** The current Mac-local Unity route is `http://host.docker.internal:27481/mcp`; the old `172.21.0.1:25666` bridge is historical and not used by this deployment.
+3. **Merge gate:** PR #168 is open and mergeable with green checks, but GitHub branch protection requires one approving review before merge.
+4. **No Unity Editor in worker image:** Unity Editor work is performed on the Mac-local listener, while the worker container handles repository, Asset Foundry, and browser verification.
 
 ## Evidence Files
 

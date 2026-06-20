@@ -44,9 +44,10 @@ The preview opens a Three.js WebGL scene with 20 samurai (10 Takeda/red, 10 Uesu
 ## Unity MCP
 
 - Listener: `http://host.docker.internal:27481/mcp` (gamedev-mcp-server 8.0.0.0)
-- Mac Studio bridge: `http://172.21.0.1:25666` (unreachable from worker)
-- MCP tools listed but not callable via RPC (405 errors) — likely proxy configuration issue
-- Unity Editor Play Mode verification requires local Mac Studio access
+- Worker-to-Mac route: verified from the running worker container via Docker's `host.docker.internal` gateway
+- Tool protocol: standard MCP JSON-RPC calls use method `tools/call` with params like `{"name":"scene-list-opened","arguments":{}}`
+- Verified scene call: `scene-list-opened` returned loaded scene `Kawanakajima`, `IsLoaded=true`, `IsDirty=false`, `RootCount=73`, path `Assets/Kawanakajima/Scenes/Kawanakajima.unity`
+- Legacy `172.21.0.1:25666` route is not the active route for this Mac-local integration
 
 ## Screenshot Gallery
 
