@@ -11,11 +11,13 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
 
     [Header("Foundry asset paths")]
     public string samuraiGlbStreamingAssetsPath = "Kawanakajima/samurai_character.glb";
+    public string battlefieldPackGlbStreamingAssetsPath = "Kawanakajima/samurai_battlefield_pack.glb";
 
     private readonly List<Actor> actors = new List<Actor>();
     private readonly Vector3 cameraDefaultTarget = new Vector3(0f, 1.7f, -2.2f);
 
     private Camera mainCamera;
+    private GameObject foundryBattlefieldPackRoot;
     private AudioSource musicSource;
     private AudioSource sfxSource;
     private AudioClip chargeCue;
@@ -39,6 +41,8 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private bool charging;
     private bool musicEnabled;
     private bool assetsReady;
+    private bool foundryBattlefieldPackReady;
+    private bool showingFoundryBattlefieldPack;
     private string status = "LOADING FOUNDRY SAMURAI";
     private Vector2 previousMouse;
 
@@ -59,10 +63,11 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         CreateCameraAndAudio();
         BuildCountryside();
         await LoadSamuraiFormation();
+        await LoadFoundryBattlefieldPack();
         ApplyCameraPreset("overview");
         assetsReady = actors.Count == ActorCount;
         status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : "UNITY HANDOFF LOAD FAILED";
-        Debug.Log(status + " actors=" + actors.Count + " audio=" + (musicSource.clip != null));
+        Debug.Log(status + " actors=" + actors.Count + " pack=" + foundryBattlefieldPackReady + " audio=" + (musicSource.clip != null));
     }
 
     private void Update()
@@ -75,7 +80,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private void OnGUI()
     {
         const int pad = 14;
-        GUI.Box(new Rect(pad, pad, 390, 118), string.Empty);
+        GUI.Box(new Rect(pad, pad, 490, 118), string.Empty);
         GUI.Label(new Rect(pad + 12, pad + 8, 360, 24), "KAWANAKAJIMA - UNITY HANDOFF");
         GUI.Label(new Rect(pad + 12, pad + 30, 360, 22), "20 samurai: 10 Takeda / 10 Uesugi");
         GUI.Label(new Rect(pad + 12, pad + 52, 360, 22), status);
@@ -92,6 +97,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         if (GUI.Button(new Rect(pad + 92, y, 86, 30), "REFORM")) Reform();
         if (GUI.Button(new Rect(pad + 184, y, 86, 30), musicEnabled ? "AUDIO ON" : "AUDIO")) ToggleMusic();
         if (GUI.Button(new Rect(pad + 276, y, 86, 30), "CLASH")) PlaySfx(clashAccent);
+        if (GUI.Button(new Rect(pad + 368, y, 96, 30), showingFoundryBattlefieldPack ? "PACK ON" : "PACK")) ToggleFoundryBattlefieldPack();
     }
 
     private void CreateMaterials()
@@ -257,6 +263,33 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         }
     }
 
+    private async Task LoadFoundryBattlefieldPack()
+    {
+        var url = StreamingAssetUrl(battlefieldPackGlbStreamingAssetsPath);
+        var gltf = new GltfImport();
+        var loaded = await gltf.Load(url);
+        if (!loaded)
+        {
+            Debug.LogWarning("Optional 20-samurai Foundry battlefield pack was not loaded from " + url);
+            return;
+        }
+
+        foundryBattlefieldPackRoot = new GameObject("Foundry_20_Samurai_Battlefield_Pack");
+        var instantiated = await gltf.InstantiateMainSceneAsync(foundryBattlefieldPackRoot.transform);
+        if (!instantiated)
+        {
+            Debug.LogWarning("Optional 20-samurai Foundry battlefield pack failed to instantiate");
+            UnityEngine.Object.Destroy(foundryBattlefieldPackRoot);
+            foundryBattlefieldPackRoot = null;
+            return;
+        }
+
+        foundryBattlefieldPackRoot.transform.position = new Vector3(0f, 0.02f, -1.2f);
+        foundryBattlefieldPackRoot.transform.localScale = Vector3.one * 1.15f;
+        foundryBattlefieldPackRoot.SetActive(false);
+        foundryBattlefieldPackReady = true;
+    }
+
     private static string StreamingAssetUrl(string relativePath)
     {
         string path = Path.Combine(Application.streamingAssetsPath, relativePath);
@@ -350,6 +383,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.R)) Reform();
         if (Input.GetKeyDown(KeyCode.A)) ToggleMusic();
         if (Input.GetKeyDown(KeyCode.X)) PlaySfx(clashAccent);
+        if (Input.GetKeyDown(KeyCode.P)) ToggleFoundryBattlefieldPack();
 
         if (Input.GetMouseButtonDown(0)) previousMouse = Input.mousePosition;
         if (Input.GetMouseButton(0))
@@ -434,6 +468,24 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         musicEnabled = !musicEnabled;
         if (musicEnabled) musicSource.Play();
         else musicSource.Stop();
+        PlaySfx(uiConfirm);
+    }
+
+    private void ToggleFoundryBattlefieldPack()
+    {
+        if (!foundryBattlefieldPackReady || foundryBattlefieldPackRoot == null)
+        {
+            status = "FOUNDRY PACK MISSING";
+            return;
+        }
+
+        showingFoundryBattlefieldPack = !showingFoundryBattlefieldPack;
+        foundryBattlefieldPackRoot.SetActive(showingFoundryBattlefieldPack);
+        foreach (var actor in actors)
+        {
+            if (actor.Root != null) actor.Root.SetActive(!showingFoundryBattlefieldPack);
+        }
+        status = showingFoundryBattlefieldPack ? "FOUNDRY 20-SAMURAI PACK VIEW" : "KAWANAKAJIMA_UNITY_READY";
         PlaySfx(uiConfirm);
     }
 

@@ -7,6 +7,8 @@ It is not a completed Unity build yet because the FactoryX worker currently has 
 ## Contents
 
 - `Assets/StreamingAssets/Kawanakajima/samurai_character.glb` - live Foundry Samurai asset from job `asset-1781913507610-bf69e595`.
+- `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` - live Foundry 20-samurai battlefield scene pack from job `asset-1781933644954-6853e6a2`.
+- `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` - 20 named warriors, 10 Takeda and 10 Uesugi, with positions and poses.
 - `Assets/Resources/KawanakajimaAudio/*.wav` - file-backed audio from Foundry job `asset-1781916330853-f7d831d9`.
 - `Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs` - runtime scene builder and playable loop.
 - `Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` - menu and batch build entrypoints.
@@ -31,6 +33,7 @@ Controls:
 - `R`: reform.
 - `A`: toggle music.
 - `X`: clash accent.
+- `P`: toggle the full Foundry-authored 20-samurai battlefield pack view.
 
 ## Batch Build Commands
 
@@ -61,4 +64,4 @@ Expected build outputs:
 
 ## Current Blocker
 
-The live FactoryX host has about 4.4 GB free on `/cache`; the Unity Editor install helper requires at least 18 GB before attempting installation. Until that runtime has more disk or a separate Unity-capable worker is assigned, this project cannot be built or verified with Unity Editor/MCP inside FactoryX.
+The live FactoryX host has about 2.1 GB free on `/cache`; the Unity Editor install helper requires at least 18 GB before attempting installation. Until that runtime has more disk or a separate Unity-capable worker is assigned, this project cannot be built or verified with Unity Editor/MCP inside FactoryX.
