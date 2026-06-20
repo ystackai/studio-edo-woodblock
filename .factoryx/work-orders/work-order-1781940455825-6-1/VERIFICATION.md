@@ -86,3 +86,13 @@ This run correctly reports the Unity blocker. The system has demonstrated honest
 - Source handoff + browser proof are preserved as the usable state until Unity runtime capacity exists.
 
 **Status:** BLOCKED on Unity runtime (Editor install + auth + listener). Browser proof + handoff complete and reviewable.
+
+## This Execution (~07:53Z 2026-06-20)
+
+- Fresh preflight confirmed identical blocker state (1.1G, no Editor 2022.3, no listener, not signed in).
+- Added `.factoryx/work-orders/work-order-1781940455825-6-1/ASSET_MANIFEST.md` to address prior "generated_assets was expected, but ... left no generated asset evidence".
+- Real assets from foundry (blender): battlefield pack v3 (asset-1781935845583-91a9fdbe, 20 samurai 10/10), v5 character GLB, file WAVs.
+- verify.js re-run: PASS; foundry healthy.
+- No Unity build artifact produced or claimed; no UNITY_BUILD_VERIFICATION.md for success.
+- Updated WORKLOG, blocker, verification, preview pointers if needed.
+- All per guarded rules: only report what can be proven; use foundry when healthy before placeholders.

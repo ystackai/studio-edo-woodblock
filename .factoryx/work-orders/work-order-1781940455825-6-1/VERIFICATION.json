@@ -20,7 +20,9 @@
   "actorCountFromManifest": 20,
   "takedaCount": 10,
   "uesugiCount": 10,
-  "notes": "Guarded retry re-executed fresh preflight ~07:50. Honest blocker reported (1.1G free, no Editor, no listener). No playable Unity completion claimed. See UNITY_BLOCKER.md and VERIFICATION.md.",
+  "notes": "Guarded retry re-executed fresh preflight ~07:53-07:54. Honest blocker reported (1.1G free, no Editor, no listener). Created ASSET_MANIFEST.md in WO context documenting real foundry-generated bitmap/3D/audio assets (battlefield pack v3 + v5 samurai + audio) under games/.../assets/generated and unity mirrors. verify.js PASS. No playable Unity completion claimed. See UNITY_BLOCKER.md, VERIFICATION.md, ASSET_MANIFEST.md.",
   "passedUnityGate": false,
+  "assetManifestPresent": true,
+  "generatedAssetsEvidence": "foundry jobs asset-1781935845583-91a9fdbe (pack), asset-1781913507610-bf69e595+v5 (char), asset-1781916330853-f7d831d9 (audio); real .glb .png .wav files present and verified",
   "escalation": "Requires worker with real Unity Editor install (18GB+), license auth, and running MCP listener in Editor."
 }

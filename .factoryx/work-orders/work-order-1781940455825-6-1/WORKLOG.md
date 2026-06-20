@@ -70,3 +70,18 @@
 - PR body already contains FactoryX Work Order Context + full goal quote.
 
 **Verdict:** Blocker/escalation reported correctly per guarded retry goal. Changes left in place. See https://github.com/ystackai/studio-edo-woodblock/pull/163
+
+## Re-execution Pass (current agent, 2026-06-20 ~07:53Z)
+
+- Re-ran exact preflight (unity --version, editors -i, auth, license, df, unity-mcp-cli status, build attempt) → identical blocker output captured in UNITY_BLOCKER.md.
+- Asset foundry /healthz: healthy (blender configured). Confirmed real generated assets exist (not placeholders).
+- Created `ASSET_MANIFEST.md` in this WO dir to satisfy "generated_assets was expected" gap from prior runs: documents battlefield pack v3 (20 samurai 10T/10U), v5 char GLB, audio WAVs, jobs, integration points in games/ + unity/, sizes, browser verify PASS.
+- Re-ran `node verify.js` in proof dir: PASS, updated its VERIFICATION.json.
+- Reviewed FEEDBACK.md: empty (no unresolved playtest feedback).
+- Updated all WO docs (VERIFICATION*, UNITY_BLOCKER, PREVIEW, WORKLOG, new ASSET_MANIFEST, json) with fresh timestamps/outputs.
+- No code changes to games/unity (already reviewable); only doc updates in .factoryx/ for this WO execution.
+- Git state: branch at 9df93a5, up-to-date with origin/codex/samurai-unity-guarded-retry. No force push.
+- No Unity playable build, no Builds/, no false claim. Honest escalation preserved.
+- Deadline 08:15Z not yet passed; this keeps documenting per polish_until_deadline while blocked.
+
+**Current Status:** BLOCKED (Unity gates). Assets + browser proof + handoff + manifest ready. PR #163 carries full context.

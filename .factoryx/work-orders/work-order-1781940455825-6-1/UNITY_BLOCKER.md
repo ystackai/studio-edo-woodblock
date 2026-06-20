@@ -104,4 +104,20 @@ See also:
 - `unity/kawanakajima-samurai/README.md`
 - `games/kawanakajima-foundry-samurai-proof/UNITY_BLOCKER.md`
 - `.factoryx/work-orders/work-order-1781940455825-6-1/VERIFICATION.md`
+- `.factoryx/work-orders/work-order-1781940455825-6-1/ASSET_MANIFEST.md`
 - Previous related: work-order-1781913967751-7-1 and 1781920715097-7-1
+
+## Fresh Preflight + Asset Evidence Pass (agent execution 2026-06-20 ~07:53Z)
+
+Re-ran preflight commands exactly as required:
+- unity --version: 0.1.0-beta.7
+- unity editors -i: VersionArchDefaultPlatforms
+- unity auth status: You are not signed in. Run `auth login` to sign in.
+- unity license: (empty)
+- df -h /cache: 1.1G available (97% used)
+- unity-mcp-cli status ... : ERROR: Unity is not running and MCP server is not reachable (localhost:23914 connection refused)
+- Build attempt: Error: Editor 2022.3.0f1 (x86_64) is not installed. Re-run with --allow-install to install it automatically.
+
+Asset foundry confirmed healthy; generated assets (real .glb 1.23MB+6.55MB, .png contact sheets, .wav 2.53MB, .blend sources) documented in new `ASSET_MANIFEST.md` in this WO dir. These live under games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/ (and audio/samurai subdirs) + unity/kawanakajima-samurai mirrors. node verify.js: PASS (20 actors 10/10, file-backed audio, structure).
+
+**No change to verdict:** Unity playable build cannot be claimed. This run continues to report the blocker honestly and now explicitly documents generated asset artifacts for the "generated_assets" expectation.

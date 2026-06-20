@@ -30,5 +30,6 @@ See `.factoryx/work-orders/work-order-1781940455825-6-1/screenshots/` (if popula
 - **PR:** https://github.com/ystackai/studio-edo-woodblock/pull/163
 - Blocker details: `UNITY_BLOCKER.md` (this dir)
 - Verification: `VERIFICATION.md`
+- Asset provenance (addresses generated_assets expectation): `ASSET_MANIFEST.md` (this dir) documenting real Foundry .glb/.png/.wav assets + jobs + browser verify.
 - Unity handoff: `unity/kawanakajima-samurai/`
 - Browser proof + verify harness: `games/kawanakajima-foundry-samurai-proof/`

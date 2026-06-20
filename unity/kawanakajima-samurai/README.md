@@ -79,6 +79,6 @@ Exact preflight (re-exec 2026-06-20 ~07:50, 1.1G):
 
 Unity MCP not registered for this run. A Unity MCP server binary alone is not a listener — the Editor must be running the package and status must report reachable.
 
-See `.factoryx/work-orders/work-order-1781940455825-6-1/UNITY_BLOCKER.md` for the full guarded-retry record and escalation verdict.
+See `.factoryx/work-orders/work-order-1781940455825-6-1/UNITY_BLOCKER.md` (and new `ASSET_MANIFEST.md` there) for the full guarded-retry record, fresh preflight outputs (~07:53), and generated asset evidence.
 
 Until a worker with real Editor + license + listener + disk appears, treat this as a ready-to-open source project + the browser Three.js proof at `games/kawanakajima-foundry-samurai-proof/`. Do not claim a Unity deliverable.
