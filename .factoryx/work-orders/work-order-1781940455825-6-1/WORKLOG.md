@@ -88,8 +88,8 @@
 
 ## Push + Branch Update
 
-- git fetch + git push origin HEAD:codex/samurai-unity-guarded-retry succeeded.
-- Local 1f1cfde pushed, now remote at 1f1cfde on codex/samurai-unity-guarded-retry.
+- git fetch + git push origin HEAD:codex/samurai-unity-guarded-retry succeeded (final 0a739c1).
+- Local 0a739c1 is now at origin/codex/samurai-unity-guarded-retry.
 - Branch ahead of previous remote by the doc+manifest commit.
 - Existing PR https://github.com/ystackai/studio-edo-woodblock/pull/163 will reflect the new commit (PR body already contains the full Work Order Context + goal from prior).
 - No new PR created; canonical branch/PR updated per instructions.
