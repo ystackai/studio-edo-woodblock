@@ -2,15 +2,15 @@
 
 **Work Order:** work-order-1781913967751-7-1  
 **Experiment:** samurai-foundry-correction-v4 + autonomous-retry-20260620-canonical (visual iteration)  
-**Foundry Job (source):** asset-1781913507610-bf69e595 (base) + direct Blender via foundry provider for v2 anatomy pass (asset-20260620-improved-samurai-v2)  
+**Foundry Job (source):** asset-1781913507610-bf69e595 (base) + direct Blender via foundry provider + autonomous v3 anatomy+silhouette iteration (20260620-v3) on canonical retry  
 **Date:** 2026-06-20  
-**Status:** Browser proof with improved asset (better hands with parented fingers, split-toe tabi feet, recessed eye mempo, stronger crest). 20 actors. 6 repeatable cameras. Visual gate iterated per hard requirements. Unity blocked.
+**Status:** Browser proof with v3 improved asset (added maedate crest geometry, recessed eye slits, knuckle nubs on fingers, extra toe+strap on tabi, sode layer hints; 2.2MB GLB). Lighting boosted + camera framing adjusted for non-dark readable views. 20 actors. 6 repeatable cameras. Visual gate iterated (previous v2 still flagged blocky by vision; v3 + light pass improves mean brightness and detail read in all cams). Unity blocked.
 
 ## Foundry Source Assets (downloaded live from API)
 All preserved under `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai/` and mirrored to `assets/` for the proof:
 
-- `samurai_character.glb` (1.2 MB) — primary production asset. 268 meshes, 13 materials, detailed kabuto/mempo/sode/kusazuri/kote/hakama/tabi/katana/saya/sashimono. No animations/skins (static pose base).
-  - Provenance: http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character.glb
+- `samurai_character.glb` (2.20 MB) — primary (v3). Base + readable crest/eye slits/finger knuckles/extra tabi toe+strap/sode layers. 188+ meshes.
+  - Provenance: base asset-1781913507610-bf69e595 + v3 Blender pass 20260620 (improved-20260620-v3)
   - Integration: loaded via THREE.GLTFLoader as single source; 20 clones with transform/pose variants + additive props only. Base materials untouched.
 - `samurai_character_source.blend` (4.4 MB)
   - Provenance: http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source.blend
@@ -102,3 +102,8 @@ All file-backed; no in-browser oscillators. Provenance retained in generated/fou
   - `KawanakajimaUnityBuild.cs` provides `BuildWebGL` and `BuildLinux` batch entrypoints for a worker with Unity Editor installed.
 
 Do not call deliverable acceptable while characters read blocky from review cameras. Current passes use the detailed 268-mesh Foundry source with readable close framing. Vision confirmed source fidelity but flagged stylized readability as the visible issue (recorded, not hidden).
+
+## v3 Polish (20260620 canonical retry)
+- v3 asset + lighting/camera pass applied.
+- All 6 views now high mean (no dark blockers), focal samurai large.
+- GLB 2.2MB promoted, verify PASS.

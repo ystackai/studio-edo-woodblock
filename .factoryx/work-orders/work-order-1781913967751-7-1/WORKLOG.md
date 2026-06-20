@@ -53,3 +53,14 @@
 - Added path + trees; label "Kawanakajima 1561"; verify PASS; evidence ~1M PNGs.
 - Blender MCP attempted for asset (simpler result); kept high-fidelity source.
 - All hard gates addressed within env limits. Ready for PR update.
+
+## v3 iteration + lighting polish on canonical (retry work order 1781920715097)
+- Vision on prior flagged critical blocky cylinders, missing crest/hands/feet, dark lighting.
+- Used Blender (direct + via foundry provider path) to augment source: maedate crest, mempo slits, finger knuckles, tabi toes+strap, sode layer. No replacement of core Foundry geo.
+- Promoted 2.2MB GLB, v3 contact/hero.
+- Updated render source, boosted lights (sun 3.1, area 680, added blue fill), exposure 0.38, adjusted blue/inspect cams.
+- Re-ran renders: means now 59-113 (blueClose 76 from 20), all screenshots large and bright.
+- node verify PASS (updated sizes).
+- Updated manifests, docs, game lighting for runtime.
+- Self-verifying cameras re-captured. Least realistic (stylized low-poly from source) mitigated with added geo + light; no remaining dark or unreadable cam.
+- Stop: no runtime blocker; Unity still blocked per preflight (editors -i empty). Deliverable is browser proof + handoff + evidence.

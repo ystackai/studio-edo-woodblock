@@ -104,20 +104,25 @@
     camera.position.set(-11.5, 4.6, 14.2);
     camera.lookAt(-2.8, 1.8, -1.5);
 
-    // Lighting per spec: cool near-white key + rim/kicker. Color from materials.
-    const keyLight = new THREE.DirectionalLight(0xe8eef4, 1.65);
+    // Lighting per spec: cool near-white key + rim/kicker. Color from materials. Boosted for readability.
+    const keyLight = new THREE.DirectionalLight(0xe8eef4, 2.1);
     keyLight.position.set(12, 28, -11);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x9fb3c8, 1.35);
+    const rimLight = new THREE.DirectionalLight(0x9fb3c8, 1.6);
     rimLight.position.set(-22, 11, 19);
     scene.add(rimLight);
 
-    const fillLow = new THREE.DirectionalLight(0x8a7a64, 0.35);
+    const fillLow = new THREE.DirectionalLight(0x8a7a64, 0.55);
     fillLow.position.set(3, 4, 22);
     scene.add(fillLow);
 
-    scene.add(new THREE.AmbientLight(0x3f372a, 1.05));
+    // blue side fill to balance Uesugi line
+    const blueFill = new THREE.DirectionalLight(0xaab8c8, 0.7);
+    blueFill.position.set(18, 8, -4);
+    scene.add(blueFill);
+
+    scene.add(new THREE.AmbientLight(0x3f372a, 1.25));
 
     // Japanese countryside ground — layered paper/earth, subtle ridges, ink tone
     const ground = new THREE.Mesh(
@@ -257,15 +262,15 @@
         updateCameraFromOrbit();
       },
       blueClose: () => {
-        // Blue/Uesugi side close
+        // Blue/Uesugi side close (adjusted for better light/read after v3)
         const a = actors[12];
         if (a) {
           const wp = a.mesh.getWorldPosition(new THREE.Vector3());
-          target.set(wp.x - 0.25, wp.y + 1.55, wp.z + 0.25);
+          target.set(wp.x - 0.15, wp.y + 1.48, wp.z + 0.35);
         } else {
-          target.set(4.8, 1.85, -3.3);
+          target.set(4.2, 1.72, -2.6);
         }
-        yaw = -1.56; pitch = 0.28; dist = 4.9;
+        yaw = -1.62; pitch = 0.26; dist = 4.6;
         updateCameraFromOrbit();
       },
       sideProfile: () => {
@@ -280,18 +285,18 @@
         updateCameraFromOrbit();
       },
       assetInspect: () => {
-        // Close on one large unmodified (or near) samurai for silhouette/material judgment
+        // Close on one large unmodified (or near) samurai for silhouette/material judgment (v3 lit)
         if (actors.length > 0) {
-          const a = actors[8]; // stable edge pick; front three-quarter, not occluded by the row
+          const a = actors[8];
           const wp = a.mesh.getWorldPosition(new THREE.Vector3());
-          target.set(wp.x - 0.10, wp.y + 1.48, wp.z + 0.18);
-          dist = 4.35;
-          yaw = -0.72;
-          pitch = 0.31;
+          target.set(wp.x - 0.05, wp.y + 1.42, wp.z + 0.22);
+          dist = 4.1;
+          yaw = -0.68;
+          pitch = 0.29;
           updateCameraFromOrbit();
         } else {
-          target.set(-5.2, 2.1, -1.8);
-          yaw = -0.72; pitch = 0.31; dist = 4.35;
+          target.set(-4.6, 1.95, -1.5);
+          yaw = -0.68; pitch = 0.29; dist = 4.1;
           updateCameraFromOrbit();
         }
       }

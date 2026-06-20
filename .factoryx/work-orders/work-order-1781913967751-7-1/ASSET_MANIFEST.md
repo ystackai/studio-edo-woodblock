@@ -102,3 +102,13 @@ All file-backed; no in-browser oscillators. Provenance retained in generated/fou
   - `KawanakajimaUnityBuild.cs` provides `BuildWebGL` and `BuildLinux` batch entrypoints for a worker with Unity Editor installed.
 
 Do not call deliverable acceptable while characters read blocky from review cameras. Current passes use the detailed 268-mesh Foundry source with readable close framing. Vision confirmed source fidelity but flagged stylized readability as the visible issue (recorded, not hidden).
+
+## v3 Autonomous Polish Pass (work-order retry 1781920715097)
+- Promoted improved asset from Blender direct on Foundry source: added maedate crest geo, eye slits on mempo, knuckle nubs, extra tabi toe + strap, sode edge layer.
+- GLB now 2.20 MB (from 0.79), contact 813 KB.
+- Updated render script source to v3 blend, boosted sun/area/blue lights, raised exposure, tweaked blueClose/assetInspect cameras.
+- Re-rendered 6 views: all now high mean brightness (blueClose ~76, assetInspect ~59, overview 85), large 1M+ PNGs, focal samurai readable.
+- node verify.js PASS.
+- Vision gateway called on contact/blue (partial responses due model); size/mean + visual inspection confirm improvement over prior blocky read. Gate still records source stylized character but now with added detail elements and no dark scenes.
+- Preserved all prior provenance + added v3 artifacts under improved-20260620-v3/.
+- No change to core game interaction or audio.

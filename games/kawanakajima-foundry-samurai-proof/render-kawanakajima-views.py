@@ -10,7 +10,9 @@ from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[2]
 GAME_DIR = ROOT / "games" / "kawanakajima-foundry-samurai-proof"
-SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source.blend"
+SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v3.blend"
+if not SOURCE_BLEND.exists():
+    SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source.blend"
 SOURCE_HERO = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_hero.png"
 SOURCE_CONTACT = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_contact_sheet.png"
 SHOT_DIR = ROOT / ".factoryx" / "work-orders" / "work-order-1781913967751-7-1" / "screenshots"
@@ -137,18 +139,25 @@ def build_scene():
     bpy.ops.object.light_add(type="SUN", location=(-3.5, -4.0, 6.0))
     sun = bpy.context.object
     sun.name = "soft_morning_sun"
-    sun.data.energy = 2.2
-    sun.rotation_euler = (math.radians(45), 0, math.radians(-35))
+    sun.data.energy = 3.1
+    sun.rotation_euler = (math.radians(42), 0, math.radians(-32))
 
     bpy.ops.object.light_add(type="AREA", location=(1.5, -3.5, 3.2))
     area = bpy.context.object
     area.name = "cool_front_fill"
-    area.data.energy = 420
-    area.data.size = 4.0
+    area.data.energy = 680
+    area.data.size = 5.5
+
+    # extra blue-side kicker for readable formation on Uesugi line
+    bpy.ops.object.light_add(type="AREA", location=(4.5, 2.8, 4.8))
+    bk = bpy.context.object
+    bk.name = "blue_side_fill"
+    bk.data.energy = 310
+    bk.data.size = 3.8
 
     world = bpy.context.scene.world or bpy.data.worlds.new("kawanakajima_world")
     bpy.context.scene.world = world
-    world.color = (0.035, 0.038, 0.034)
+    world.color = (0.028, 0.03, 0.026)
 
     scene = bpy.context.scene
     scene.render.engine = "BLENDER_EEVEE"
@@ -160,7 +169,7 @@ def build_scene():
     scene.render.film_transparent = False
     scene.view_settings.view_transform = "Filmic"
     scene.view_settings.look = "Medium High Contrast"
-    scene.view_settings.exposure = 0.25
+    scene.view_settings.exposure = 0.38
     scene.view_settings.gamma = 1.0
 
     bpy.ops.object.camera_add()
@@ -170,10 +179,10 @@ def build_scene():
     views = {
         "overview": ((4.6, -7.1, 3.4), (0.0, 0.0, 0.85), 45),
         "redClose": ((-3.1, -3.9, 1.85), (-1.75, -1.15, 0.95), 68),
-        "blueClose": ((3.15, 3.65, 1.85), (1.75, 1.05, 0.95), 68),
+        "blueClose": ((2.6, 2.8, 1.72), (1.55, 0.85, 0.98), 62),
         "sideProfile": ((6.4, -0.25, 1.65), (0.15, 0.25, 0.9), 55),
         "topFormation": ((0.0, -0.1, 9.0), (0.0, -0.05, 0.0), 35),
-        "assetInspect": ((-3.2, -2.9, 1.75), (-1.9, -1.1, 1.05), 82),
+        "assetInspect": ((-2.85, -2.55, 1.68), (-1.65, -0.95, 1.08), 72),
     }
 
     aliases = {
