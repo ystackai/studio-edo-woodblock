@@ -12,6 +12,19 @@
     "projectVersionPinned": "2022.3.0f1",
     "listenerReachable": false
   },
+  "localMacUnityAttempt": {
+    "attemptedAt": "2026-06-20T08:22:39.000Z",
+    "unityHubInstalled": true,
+    "homebrewEditorInstallBlockedBySudo": true,
+    "editorPackageExpandedWithoutSudo": true,
+    "editorSmokeTestVersion": "2023.2.20f1",
+    "unityHandoffVerifier": "PASS",
+    "webglBuildAttempted": true,
+    "webglBuildProduced": false,
+    "buildAttemptError": "No valid Unity Editor license found. Please activate your license.",
+    "licenseActive": false,
+    "notes": "Local extracted Editor reached licensing. No ULF license found; token not found in cache; com.unity.editor.headless license inactive."
+  },
   "unityAvailable": false,
   "unityBuildProduced": false,
   "blockerDocumented": true,

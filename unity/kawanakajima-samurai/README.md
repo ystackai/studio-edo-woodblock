@@ -81,4 +81,12 @@ Unity MCP not registered for this run. A Unity MCP server binary alone is not a 
 
 See `.factoryx/work-orders/work-order-1781940455825-6-1/UNITY_BLOCKER.md` (and new `ASSET_MANIFEST.md` there) for the full guarded-retry record, fresh preflight outputs (~07:53), and generated asset evidence.
 
+Additional operator-side local verification on 2026-06-20T08:22:39Z:
+- Unity Hub installed locally.
+- A Unity 2023.2.20f1 package was expanded without sudo and the Editor binary launched in batchmode (`-version` returned `2023.2.20f1`).
+- `verify-unity-handoff.js` passed.
+- The WebGL build attempt failed before import/build because no Unity license/token/ULF was active.
+
+See `.factoryx/work-orders/work-order-1781940455825-6-1/LOCAL_UNITY_ATTEMPT.md`.
+
 Until a worker with real Editor + license + listener + disk appears, treat this as a ready-to-open source project + the browser Three.js proof at `games/kawanakajima-foundry-samurai-proof/`. Do not claim a Unity deliverable.

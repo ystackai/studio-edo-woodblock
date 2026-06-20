@@ -18,6 +18,20 @@ Summary:
 - Insufficient /cache space (1.3G)
 - Build CLI reports Editor missing
 
+## Local Operator Follow-Up (2026-06-20T08:22:39Z)
+
+Outside the remote worker, the Unity 2023.2.20f1 package was expanded into a user-owned path and the extracted Editor binary returned `2023.2.20f1` from `-version -batchmode -quit`. The handoff verifier passed.
+
+A local WebGL batch build still failed before import/build because Unity licensing is not active:
+
+```text
+No ULF license found.
+Token not found in cache.
+No valid Unity Editor license found. Please activate your license.
+```
+
+See `.factoryx/work-orders/work-order-1781940455825-6-1/LOCAL_UNITY_ATTEMPT.md`.
+
 ## Build Hook Present
 
 `Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` provides:

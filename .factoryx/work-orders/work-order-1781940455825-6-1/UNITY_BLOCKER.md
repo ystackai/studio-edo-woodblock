@@ -121,3 +121,21 @@ Re-ran preflight commands exactly as required:
 Asset foundry confirmed healthy; generated assets (real .glb 1.23MB+6.55MB, .png contact sheets, .wav 2.53MB, .blend sources) documented in new `ASSET_MANIFEST.md` in this WO dir. These live under games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/ (and audio/samurai subdirs) + unity/kawanakajima-samurai mirrors. node verify.js: PASS (20 actors 10/10, file-backed audio, structure).
 
 **No change to verdict:** Unity playable build cannot be claimed. This run continues to report the blocker honestly and now explicitly documents generated asset artifacts for the "generated_assets" expectation.
+
+## Local Mac Unity Attempt (agent execution 2026-06-20T08:22:39Z)
+
+An operator-side local attempt was made from a clean worktree on `codex/samurai-unity-guarded-retry` to separate the remote worker capacity problem from project/build viability.
+
+- `unity-hub` installed locally, but Homebrew's full Unity Editor install required `sudo` and could not proceed in this automation session.
+- The cached `Unity-2023.2.20f1.pkg` was expanded into a user-owned path with `pkgutil --expand-full`.
+- The extracted Editor binary launched in batchmode and returned `2023.2.20f1`.
+- `node unity/kawanakajima-samurai/verify-unity-handoff.js`: PASS.
+- A local WebGL build attempt reached Unity licensing and failed before import/build:
+  - `No ULF license found.`
+  - `Token not found in cache.`
+  - `License is not active (com.unity.editor.headless).`
+  - `No valid Unity Editor license found. Please activate your license.`
+
+See `LOCAL_UNITY_ATTEMPT.md` for exact commands and log excerpt.
+
+**No change to verdict:** a Unity playable build is still blocked, now specifically on local license activation after proving an Editor binary can launch.

@@ -22,6 +22,7 @@ Key excerpts and the entire user request for this task are preserved in git hist
 ## What This PR Contains
 
 - Fresh execution of Unity preflight + build attempt with **exact command output** recorded.
+- Operator-side local Unity attempt recorded in `LOCAL_UNITY_ATTEMPT.md`: Unity Hub installed, Unity 2023.2.20f1 package expanded without sudo, Editor binary launched in batchmode, handoff verifier passed, WebGL build attempt blocked by missing Unity license/token/ULF.
 - `UNITY_BLOCKER.md` (in work order dir + mirrored in unity/ and games/) documenting that no Unity Editor, no auth, no listener, insufficient disk.
 - No `Builds/` directory or index.html Unity artifact was produced or claimed.
 - No fake "playable Unity" verdict.
@@ -41,6 +42,8 @@ See `.factoryx/work-orders/work-order-1781940455825-6-1/UNITY_BLOCKER.md` for:
 - Disk numbers
 - Escalation requirements (18GB+, real Editor + listener + license)
 
+Additional local check: a no-sudo extracted Unity 2023.2.20f1 Editor could start in batchmode, but `BuildWebGL` failed before project import/build because no valid Unity license was active. See `.factoryx/work-orders/work-order-1781940455825-6-1/LOCAL_UNITY_ATTEMPT.md`.
+
 ## Review Guidance
 
 - Treat any claim of "Unity build done" as incorrect for this runtime.
@@ -59,5 +62,6 @@ Unity (future): `unity/kawanakajima-samurai/Builds/WebGL/index.html` (does not e
 - [x] Ran Unity MCP/editor preflight before any claim
 - [x] 20 samurai (10/10) assets from foundry used (in handoff + browser)
 - [x] Updated UNITY_BLOCKER.md + verification with exact outputs
+- [x] Probed a local Unity Editor path and documented the license blocker
 - [x] Did **not** claim playable Unity completion
 - [x] PR body contains Work Order context

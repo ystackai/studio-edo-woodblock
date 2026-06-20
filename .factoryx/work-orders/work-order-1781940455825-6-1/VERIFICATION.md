@@ -96,3 +96,16 @@ This run correctly reports the Unity blocker. The system has demonstrated honest
 - No Unity build artifact produced or claimed; no UNITY_BUILD_VERIFICATION.md for success.
 - Updated WORKLOG, blocker, verification, preview pointers if needed.
 - All per guarded rules: only report what can be proven; use foundry when healthy before placeholders.
+
+## Local Operator Attempt (~08:22Z 2026-06-20)
+
+- Installed Unity Hub locally, but the full Editor cask required `sudo` and could not be installed noninteractively.
+- Fetched and expanded the Unity 2023.2.20f1 package into a user-owned directory with `pkgutil --expand-full`.
+- Editor smoke test passed: `Unity -version -batchmode -quit` returned `2023.2.20f1`.
+- `node unity/kawanakajima-samurai/verify-unity-handoff.js`: PASS.
+- Local WebGL build attempt failed before import/build due Unity licensing:
+  - `No ULF license found.`
+  - `Token not found in cache.`
+  - `No valid Unity Editor license found. Please activate your license.`
+
+This proves more than the remote preflight did: the project handoff is structurally valid and a Unity Editor binary can launch locally. It still does **not** produce a Unity build artifact. See `LOCAL_UNITY_ATTEMPT.md`.
