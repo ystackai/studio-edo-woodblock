@@ -3,7 +3,7 @@
 **Work Order:** work-order-1781940455825-6-1  
 **Title:** Guarded Samurai Unity playable-build retry  
 **Date:** 2026-06-20  
-**Status:** Real generated bitmap/3D/audio assets present from Asset Foundry (blender provider). Documented here for the Unity deliverable context. Unity build itself blocked (see UNITY_BLOCKER.md); browser Three.js proof at `games/kawanakajima-foundry-samurai-proof/` uses the assets and verifies. No SVG/canvas primitives or oscillator audio substituted.
+**Status:** Real generated bitmap/3D/audio assets present from Asset Foundry (blender provider), mirrored into the Unity handoff, and built locally into a Mac Unity app on 2026-06-20. Browser Three.js proof at `games/kawanakajima-foundry-samurai-proof/` still uses the same assets and verifies. No SVG/canvas primitives or oscillator audio substituted.
 
 ## Asset Foundry Health at Execution
 - Endpoint: http://factoryx-edo-woodblock-asset-foundry:18113/healthz → {"ok":true, "providers":{"blender":{"configured":true, "purpose":"local mesh, texture, render, turntable, and GLB execution", "python":"/usr/bin/blender"}, ...}}
@@ -42,7 +42,8 @@ Primary generated artifact for the 20 warring samurai (10 Takeda red faction, 10
 - Unity source handoff (`unity/kawanakajima-samurai/`):
   - Same GLBs + manifest + WAVs under StreamingAssets/Resources.
   - `KawanakajimaRuntimeBootstrap.cs` loads via glTFast at runtime, builds 20-actor scene + optional pack view.
-  - Build hooks in Editor script for WebGL/Linux when Editor present.
+  - Build hooks in Editor script for WebGL, Linux, and Mac.
+  - Local Mac build produced `Builds/Mac/KawanakajimaSamurai.app`; see `UNITY_BUILD_VERIFICATION.md`.
 - Preview entry: `games/kawanakajima-foundry-samurai-proof/index.html` (per .factoryx/preview-entrypoint)
 - No root `assets/generated/` at top; assets live under `games/**/assets/generated/foundry/` and `unity/...` as appropriate for deliverable.
 
@@ -60,9 +61,10 @@ Primary generated artifact for the 20 warring samurai (10 Takeda red faction, 10
 - PROVENANCE respected: pivot/orientation/scale from pack; cool near-white key only; materials carry color.
 - v5 repair addressed prior blocky silhouette issues via Blender (kabuto/mempo/lamellar details); v4 superseded.
 
-## Blockers for This Work Order
-- **Unity playable build:** Cannot be produced. Preflight (fresh 2026-06-20): unity=0.1.0-beta.7 wrapper only; editors-i="VersionArchDefaultPlatforms"; not signed in; 1.1G /cache free (<<18GB); mcp-cli: connection refused localhost:23914; build errors "Editor 2022.3.0f1 (x86_64) is not installed". No Editor, no license, no listener. See UNITY_BLOCKER.md and VERIFICATION.md.
-- Asset generation itself is NOT blocked; foundry+blender used successfully. The deliverable_gate "unity-build-evidence" remains blocked.
+## Unity Build Integration
+- **Unity playable build:** Produced locally on the Mac Studio via `KawanakajimaUnityBuild.BuildMac`.
+- **Unity-MCP:** Installed and reachable locally through `com.ivanmurzak.unity.mcp` 0.81.1 and `http://localhost:25666`.
+- **Evidence:** `UNITY_BUILD_VERIFICATION.md`, `VERIFICATION.md`, and `VERIFICATION.json` record the build and listener proof.
 - No generated asset under top-level assets/generated/ (none in repo layout); instead under games/... and unity/... which satisfies "games/**/assets" or "drops/**/assets" per rules. ASSET_MANIFEST documents real files.
 
 ## Evidence Files Present (not just manifest)
@@ -70,4 +72,4 @@ Primary generated artifact for the 20 warring samurai (10 Takeda red faction, 10
 - 200 fetchable in browser runtime.
 - Integration verified by node verify + manual structure.
 
-This satisfies the generated_assets expectation for the Work Order context without claiming Unity completion. The assets are ready for a future worker that can run real Unity Editor + build.
+This satisfies the generated_assets expectation for the Work Order context and the local Unity build path.

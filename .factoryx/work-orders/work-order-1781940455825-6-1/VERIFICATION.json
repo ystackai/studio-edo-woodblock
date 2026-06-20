@@ -1,41 +1,41 @@
 {
   "workOrderId": "work-order-1781940455825-6-1",
-  "verifiedAt": "2026-06-20T07:52:00.000Z",
-  "unityPreflight": {
-    "cliVersion": "0.1.0-beta.7",
-    "editorsList": "VersionArchDefaultPlatforms",
-    "authStatus": "You are not signed in. Run `auth login` to sign in.",
-    "licenseOutput": "",
-    "cacheFreeGB": "1.1",
-    "mcpStatus": "ERROR: Unity is not running and MCP server is not reachable",
-    "buildAttemptError": "Error: Editor 2022.3.0f1 (x86_64) is not installed. Re-run with --allow-install to install it automatically.",
-    "projectVersionPinned": "2022.3.0f1",
-    "listenerReachable": false
+  "verifiedAt": "2026-06-20T12:45:31.000Z",
+  "unityAvailable": true,
+  "unityBuildProduced": true,
+  "passedUnityGate": true,
+  "localMacUnity": {
+    "machine": "Mac Studio Apple Silicon",
+    "memoryGB": 256,
+    "editorVersion": "2023.2.20f1",
+    "editorPath": "/Users/marcus/Applications/Unity/Hub/Editor/2023.2.20f1/Unity.app/Contents/MacOS/Unity",
+    "projectPath": "unity/kawanakajima-samurai",
+    "scenePath": "Assets/Kawanakajima/Scenes/Kawanakajima.unity",
+    "sceneGenerationMethod": "KawanakajimaUnityBuild.CreateOrRefreshScene",
+    "buildMethod": "KawanakajimaUnityBuild.BuildMac",
+    "buildExitCode": 0,
+    "buildResult": "succeeded",
+    "buildOutput": "unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app",
+    "bundleSizeMB": 120
   },
-  "localMacUnityAttempt": {
-    "attemptedAt": "2026-06-20T08:22:39.000Z",
-    "unityHubInstalled": true,
-    "homebrewEditorInstallBlockedBySudo": true,
-    "editorPackageExpandedWithoutSudo": true,
-    "editorSmokeTestVersion": "2023.2.20f1",
-    "unityHandoffVerifier": "PASS",
-    "webglBuildAttempted": true,
-    "webglBuildProduced": false,
-    "buildAttemptError": "No valid Unity Editor license found. Please activate your license.",
-    "licenseActive": false,
-    "notes": "Local extracted Editor reached licensing. No ULF license found; token not found in cache; com.unity.editor.headless license inactive."
+  "unityMcp": {
+    "package": "com.ivanmurzak.unity.mcp",
+    "packageVersion": "0.81.1",
+    "listenerUrl": "http://localhost:25666",
+    "waitForReady": "success",
+    "status": "success",
+    "verifiedTools": [
+      "editor-application-get-state",
+      "scene-list-opened",
+      "assets-find"
+    ]
   },
-  "unityAvailable": false,
-  "unityBuildProduced": false,
-  "blockerDocumented": true,
   "browserProofPresent": true,
   "unitySourceHandoffPresent": true,
+  "assetManifestPresent": true,
   "actorCountFromManifest": 20,
   "takedaCount": 10,
   "uesugiCount": 10,
-  "notes": "Guarded retry re-executed fresh preflight ~07:53-07:54. Honest blocker reported (1.1G free, no Editor, no listener). Created ASSET_MANIFEST.md in WO context documenting real foundry-generated bitmap/3D/audio assets (battlefield pack v3 + v5 samurai + audio) under games/.../assets/generated and unity mirrors. verify.js PASS. No playable Unity completion claimed. See UNITY_BLOCKER.md, VERIFICATION.md, ASSET_MANIFEST.md.",
-  "passedUnityGate": false,
-  "assetManifestPresent": true,
-  "generatedAssetsEvidence": "foundry jobs asset-1781935845583-91a9fdbe (pack), asset-1781913507610-bf69e595+v5 (char), asset-1781916330853-f7d831d9 (audio); real .glb .png .wav files present and verified",
-  "escalation": "Requires worker with real Unity Editor install (18GB+), license auth, and running MCP listener in Editor."
+  "generatedAssetsEvidence": "foundry jobs asset-1781935845583-91a9fdbe (pack), asset-1781913507610-bf69e595 plus v5 repair (character), asset-1781916330853-f7d831d9 (audio); real .glb .png .wav files present and verified",
+  "notes": "Local Mac Studio route produced the Unity Mac app and verified Unity-MCP listener/tool calls. Earlier remote worker capacity notes remain historical."
 }

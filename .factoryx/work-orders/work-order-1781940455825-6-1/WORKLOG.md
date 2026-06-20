@@ -84,7 +84,18 @@
 - No Unity playable build, no Builds/, no false claim. Honest escalation preserved.
 - Deadline 08:15Z not yet passed; this keeps documenting per polish_until_deadline while blocked.
 
-**Current Status:** BLOCKED (Unity gates). Assets + browser proof + handoff + manifest ready. PR #163 carries full context.
+**Current Status:** Local Mac Unity route is verified. Assets + browser proof + Unity source + Mac build evidence are ready. PR #163 carries full context.
+
+## Local Mac Unity Deployment (2026-06-20T12:45:31Z)
+
+- Created a user-owned Unity 2023.2.20f1 editor path under `/Users/marcus/Applications/Unity/Hub/Editor/2023.2.20f1/`.
+- Installed local `unity-mcp-cli` and `unity-mcp-server` npm tools under `/Users/marcus/codex-work/local-unity-tools`.
+- Added Unity-MCP package 0.81.1 to `unity/kawanakajima-samurai`.
+- Added built-in Audio and Physics modules required for the project and MCP package.
+- Unity batch scene generation completed: `KawanakajimaUnityBuild.CreateOrRefreshScene`, exit 0.
+- Unity Mac build completed: `KawanakajimaUnityBuild.BuildMac`, exit 0, local output `Builds/Mac/KawanakajimaSamurai.app`.
+- Unity-MCP listener verified at `http://localhost:25666`; tool calls succeeded for editor state, opened scenes, and scene asset lookup.
+- Added `UNITY_BUILD_VERIFICATION.md` in both the Unity project and work-order context.
 
 ## Push + Branch Update
 

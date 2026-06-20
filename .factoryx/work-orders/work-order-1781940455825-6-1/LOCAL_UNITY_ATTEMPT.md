@@ -156,4 +156,26 @@ Pro License: NO
 No valid Unity Editor license found. Please activate your license.
 ```
 
-No `Builds/Mac/KawanakajimaSamurai.app` exists and no Unity playable build is claimed.
+No `Builds/Mac/KawanakajimaSamurai.app` existed at that point and no Unity playable build was claimed.
+
+## Local Mac Deployment (2026-06-20T12:45:31Z)
+
+The local Mac Studio now has a working Unity route for this project.
+
+- Created user-owned Unity editor symlink:
+  `/Users/marcus/Applications/Unity/Hub/Editor/2023.2.20f1/Unity.app`
+- `Unity -version`: `2023.2.20f1`
+- Installed local Unity MCP tools under:
+  `/Users/marcus/codex-work/local-unity-tools`
+- Installed Unity-MCP package `com.ivanmurzak.unity.mcp` 0.81.1 into the project.
+- Added required built-in Unity modules for project/MCP compile: Audio and Physics.
+- Ran `KawanakajimaUnityBuild.CreateOrRefreshScene`: exit 0.
+- Ran `KawanakajimaUnityBuild.BuildMac`: exit 0.
+- Output exists locally:
+  `unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
+- Bundle size: 120 MB.
+- `unity-mcp-cli wait-for-ready`: success at `http://localhost:25666`.
+- Verified MCP tool calls:
+  `editor-application-get-state`, `scene-list-opened`, `assets-find`.
+
+See `UNITY_BUILD_VERIFICATION.md` for the durable gate evidence.

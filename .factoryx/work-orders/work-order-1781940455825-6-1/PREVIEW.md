@@ -1,35 +1,39 @@
-# PREVIEW — work-order-1781940455825-6-1
+# PREVIEW - work-order-1781940455825-6-1
 
-**Deliverable:** Kawanakajima Samurai Unity Playable Build (guarded)
+**Deliverable:** Kawanakajima Samurai Unity playable build
 
-## Current Preview Entrypoint
+## Unity Build
 
-Because Unity Editor / listener / space (1.1G free) / license are unavailable:
+Local Mac output:
 
-- **No Unity build artifact** exists.
-- Preview for the **browser/Three.js proof** (using the exact same v3 Foundry assets):  
-  `games/kawanakajima-foundry-samurai-proof/index.html`
+`unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
 
-Open that page → first viewport shows non-blank 3D Japanese countryside with 20 samurai (Takeda red + Uesugi blue-ish), camera frames the formation, drag/wheel controls, buttons for cameras + charge/reform + audio.
+This build was produced by Unity Editor 2023.2.20f1 with `KawanakajimaUnityBuild.BuildMac`. See `UNITY_BUILD_VERIFICATION.md`.
 
-## Unity Path (when unblocked)
+## Unity Source
 
-Once a worker can satisfy preflight:
-- `unity/kawanakajima-samurai/Builds/WebGL/index.html` (or equivalent platform build)
-- Plus `UNITY_BUILD_VERIFICATION.md` with Editor version, build log summary, and runtime evidence.
+Open:
 
-The `.factoryx/preview-entrypoint` currently points at the browser proof (preserved from pack integration).
+`unity/kawanakajima-samurai/`
 
-## Verification Screenshots
+Scene:
 
-See `.factoryx/work-orders/work-order-1781940455825-6-1/screenshots/` (if populated in this run) or sibling work-order screenshot dirs for contact/hero/formation/close views. All focal assets are the Foundry-authored GLBs; no replacement.
+`Assets/Kawanakajima/Scenes/Kawanakajima.unity`
 
-## Work Order Context Links
+## MCP Review
 
-- Full goal + payload in the canonical PR body.
-- **PR:** https://github.com/ystackai/studio-edo-woodblock/pull/163
-- Blocker details: `UNITY_BLOCKER.md` (this dir)
-- Verification: `VERIFICATION.md`
-- Asset provenance (addresses generated_assets expectation): `ASSET_MANIFEST.md` (this dir) documenting real Foundry .glb/.png/.wav assets + jobs + browser verify.
-- Unity handoff: `unity/kawanakajima-samurai/`
-- Browser proof + verify harness: `games/kawanakajima-foundry-samurai-proof/`
+Unity-MCP is running locally at:
+
+`http://localhost:25666`
+
+Verified tool calls:
+
+- `editor-application-get-state`
+- `scene-list-opened`
+- `assets-find`
+
+## Browser Companion Proof
+
+The existing browser/Three.js proof remains available at:
+
+`games/kawanakajima-foundry-samurai-proof/index.html`

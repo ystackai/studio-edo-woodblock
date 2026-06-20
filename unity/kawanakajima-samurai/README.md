@@ -72,36 +72,17 @@ Expected build outputs:
 - `unity/kawanakajima-samurai/Builds/Linux/KawanakajimaSamurai`
 - `unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
 
-## Current Blocker (updated for guarded retry work-order-1781940455825-6-1)
+## Local Mac Verification
 
-**This is a source handoff only. No playable Unity build was or can be produced in the current runtime.**
+The project now opens, generates its scene, builds, and accepts Unity-MCP tool calls on the local Mac Studio.
 
-Exact preflight (re-exec 2026-06-20 ~07:50, 1.1G):
-- `unity --version`: 0.1.0-beta.7 (thin CLI wrapper)
-- `unity editors -i`: VersionArchDefaultPlatforms (no Editor installed)
-- `unity auth status`: You are not signed in.
-- `unity license`: (empty)
-- `df -h /cache`: 1.1 GB free (insufficient; ~18 GB required)
-- `unity-mcp-cli status unity/kawanakajima-samurai`:
-  - WARN: Unity is not running with this project
-  - ERROR: Not available (connection refused) @ http://localhost:23914
-- Build attempt: `Error: Editor 2022.3.0f1 (x86_64) is not installed.`
+- Unity Editor: `2023.2.20f1`
+- Scene generation: `KawanakajimaUnityBuild.CreateOrRefreshScene`
+- Mac build: `KawanakajimaUnityBuild.BuildMac`
+- Build output: `Builds/Mac/KawanakajimaSamurai.app`
+- Verification: `UNITY_BUILD_VERIFICATION.md`
+- Local status: `UNITY_LOCAL_STATUS.md`
 
-Unity MCP not registered for this run. A Unity MCP server binary alone is not a listener — the Editor must be running the package and status must report reachable.
+Unity-MCP is installed through `com.ivanmurzak.unity.mcp` 0.81.1 and was verified with a local listener at `http://localhost:25666`. The listener accepted `editor-application-get-state`, `scene-list-opened`, and `assets-find` tool calls against this project.
 
-See `.factoryx/work-orders/work-order-1781940455825-6-1/UNITY_BLOCKER.md` (and new `ASSET_MANIFEST.md` there) for the full guarded-retry record, fresh preflight outputs (~07:53), and generated asset evidence.
-
-Additional operator-side local verification on 2026-06-20T08:22:39Z:
-- Unity Hub installed locally.
-- A Unity 2023.2.20f1 package was expanded without sudo and the Editor binary launched in batchmode (`-version` returned `2023.2.20f1`).
-- `verify-unity-handoff.js` passed.
-- The WebGL build attempt failed before import/build because no Unity license/token/ULF was active.
-
-Additional operator-side local verification on 2026-06-20T09:43:35Z:
-- The same extracted Unity 2023.2.20f1 Editor binary still launches in batchmode.
-- The extracted Editor payload includes MacStandaloneSupport, so `BuildMac()` was added as the locally available standalone build route.
-- `CreateOrRefreshScene` still failed before import/build because no Unity license/token/ULF was active.
-
-See `.factoryx/work-orders/work-order-1781940455825-6-1/LOCAL_UNITY_ATTEMPT.md`.
-
-Until a worker with real Editor + license + listener + disk appears, treat this as a ready-to-open source project + the browser Three.js proof at `games/kawanakajima-foundry-samurai-proof/`. Do not claim a Unity deliverable.
+Earlier remote worker capacity notes are preserved in `.factoryx/work-orders/work-order-1781940455825-6-1/`.
