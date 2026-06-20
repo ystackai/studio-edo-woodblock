@@ -1,10 +1,10 @@
 {
-  "verifiedAt": "2026-06-20T01:31:57.939Z",
+  "verifiedAt": "2026-06-20T02:08:52.641Z",
   "assetFoundryJob": "asset-1781913507610-bf69e595",
   "actorCount": 20,
   "glbSize": 1237516,
   "audioFoundryJob": "asset-1781916330853-f7d831d9",
-  "audioLoopSize": 5462752,
+  "audioLoopSize": 2651370,
   "unityHandoff": true,
   "checks": "structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff",
   "passed": true

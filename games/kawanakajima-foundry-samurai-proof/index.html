@@ -31,7 +31,7 @@
   <div class="ui top">
     <div>
       <div class="badge">Kawanakajima — Foundry Proof</div>
-      <div class="label">20 samurai · 10 Takeda / 10 Uesugi · live asset-1781913507610-bf69e595 · browser review</div>
+      <div class="label">Kawanakajima 1561 — 20 samurai · 10 Takeda vs 10 Uesugi · Foundry asset · browser proof</div>
     </div>
     <div class="badge state" id="status">LOADING…</div>
   </div>
@@ -128,6 +128,15 @@
     ground.position.y = -0.01;
     scene.add(ground);
 
+    // Simple central path / field division for countryside readability
+    const path = new THREE.Mesh(
+      new THREE.PlaneGeometry(4.8, 72),
+      new THREE.MeshLambertMaterial({ color: 0x3f362a })
+    );
+    path.rotation.x = -Math.PI * 0.5;
+    path.position.set(0, 0.0, -3.8);
+    scene.add(path);
+
     // Distant field / hill layers for depth and mist read
     for (let k = 0; k < 4; k++) {
       const h = new THREE.Mesh(
@@ -158,6 +167,8 @@
     addPine(22, 5, 0.71, -0.9);
     addPine(-9, -27, 0.6, 0.2);
     addPine(11, 19, 0.65, -1.3);
+    addPine(-27, -11, 0.55, 0.9);
+    addPine(26, -14, 0.58, -1.0);
 
     // Low stones / markers for ground interest and scale reference
     for (let i = 0; i < 7; i++) {

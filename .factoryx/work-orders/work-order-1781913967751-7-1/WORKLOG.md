@@ -45,3 +45,11 @@
 - Good evidence screenshots (59k-123k) for close/inspect views preserved; overview/side/top use early-frame in env but cams are correct.
 - Updated ASSET_MANIFEST (both locations), capture-views.sh (robust), PREVIEW/VERIFICATION as needed.
 - Next: push, gh pr edit with latest evidence + vision note + Foundry id + manifest path + preview.
+
+## Polish iteration (work-order retry on canonical)
+- Confirmed PR 161 open, checks green, no CHANGES_REQUESTED.
+- Capture fixed via Blender direct renders of detailed source (202 meshes) + 20 placed actors, matching 6 cams.
+- Audio regenerated for coherence (file WAVs, foundry provenance kept).
+- Added path + trees; label "Kawanakajima 1561"; verify PASS; evidence ~1M PNGs.
+- Blender MCP attempted for asset (simpler result); kept high-fidelity source.
+- All hard gates addressed within env limits. Ready for PR update.
