@@ -229,3 +229,9 @@ Work Order: work-order-1781665294727-followup
 
 Work Order: work-order-1781665294727-followup
 Status: art+music materially improved with fresh generated assets + recipe + verif clean; ready to commit/push.
+- Pushed: 23275d8..9271862 (amend incl PR_BODY update) to origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup (success; remote advanced with force-lease). PR#157 reflects the new commit on canonical FactoryX branch.
+- gh pr ops unavailable (no GH_TOKEN for automation); branch push + tree evidence + prior body (containing full prompt) is the delivery per instructions.
+- All changes address the operator feedback with real file-backed generated assets (GenerateImage + gen), manifest, browser evidence. No unrelated edits. Ready for review.
+
+Work Order: work-order-1781665294727-followup
+Status: feedback addressed with generated assets iteration + verification + push to PR branch.
