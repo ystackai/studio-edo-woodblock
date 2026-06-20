@@ -79,6 +79,10 @@ PR: https://github.com/ystackai/studio-edo-woodblock/pull/153
 - Will commit, push to canonical factoryx/... branch, update PR #153 with full context.
 - This ensures browser runtime verification produces good pre evidence under the harness, and PR artifact is current.
 
-Current branch HEAD (after this): will be recorded on commit/push.
-PR: https://github.com/ystackai/studio-edo-woodblock/pull/153 (update with new commit + notes)
+Current branch HEAD (after this): 714be87aa02ce0d244db80891c1e96424e78438c
+- Pushed to origin: fa11eb5..714be87 -> factoryx/factory-edo-woodblock/work-order-1781634384793-7-2
+- PR artifact: https://github.com/ystackai/studio-edo-woodblock/pull/153 (updated by push; full prompt + context in PR body via .factoryx/PR_BODY.md)
+- Fresh foundry GenerateImage call performed + asset integrated as "better 2D art".
+- Browser runtime pre-screenshot now hardened; local chromium vtime captures succeeded with content (104kB+).
+- All review feedback addressed; ready for re-review.
 
