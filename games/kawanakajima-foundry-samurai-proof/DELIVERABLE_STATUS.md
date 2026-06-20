@@ -3,6 +3,7 @@
 **Updated:** 2026-06-20
 **Work Order:** work-order-1781913967751-7-1
 **PR:** https://github.com/ystackai/studio-edo-woodblock/pull/161
+**Public preview:** https://www.ystackai.com/factoryx/previews/edo-woodblock/work-order-1781913967751-7-1/games/kawanakajima-foundry-samurai-proof/
 **Preview entrypoint:** `games/kawanakajima-foundry-samurai-proof/index.html`
 
 ## What Exists
@@ -19,7 +20,7 @@
   - Playable mirrored files are under `assets/audio/`.
   - AUDIO toggles `battlefield_loop.wav`; CHARGE/REFORM/CLASH play file-backed cues.
   - Raw Foundry outputs and provenance are preserved under `assets/generated/foundry/audio/asset-1781916330853-f7d831d9/`.
-- **Verification evidence:** `VERIFICATION.json`, `verify.js`, `ASSET_MANIFEST.md`, and six committed review screenshots under `screenshots/`.
+- **Verification evidence:** `VERIFICATION.json`, `verify.js`, `ASSET_MANIFEST.md`, six committed review screenshots under `screenshots/`, and hosted preview runtime checks.
 
 ## What Is Not Done
 

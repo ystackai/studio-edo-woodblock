@@ -36,6 +36,7 @@ mustExist(path.join(ROOT, 'assets/audio/formation_step.wav'), 'file-backed forma
 mustExist(path.join(ROOT, 'assets/generated/foundry/audio/asset-1781916330853-f7d831d9/summary.json'), 'Foundry audio summary');
 mustExist(path.join(ROOT, 'DELIVERABLE_STATUS.md'), 'reviewable deliverable status');
 mustExist(path.join(ROOT, 'UNITY_BLOCKER.md'), 'Unity blocker note');
+mustExist(path.join(ROOT, '../../.factoryx/preview-entrypoint'), 'FactoryX preview entrypoint');
 
 checkContent(path.join(ROOT, 'index.html'), [
   { name: 'canvas element', test: c => /<canvas id="c"/.test(c) },
@@ -56,6 +57,10 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
   { name: 'Unity blocker', test: c => /Unity playable world:\*\* not created|Unity Editor/.test(c) },
   { name: 'autonomy not proven', test: c => /Autonomous completion:\*\* not proven/.test(c) },
+]);
+
+checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
+  { name: 'preview opens Samurai proof', test: c => c.trim() === 'games/kawanakajima-foundry-samurai-proof/index.html' },
 ]);
 
 // Asset sizes roughly
