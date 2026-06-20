@@ -181,3 +181,54 @@ New camera-angle screenshots captured via Unity MCP `screenshot-camera`:
 - **Browser proof:** v8.6 polished with shadows, tone mapping, smooth camera, fog, vignette, animation
 - **Asset integration:** Foundry samurai GLB (1.23 MB) and battlefield pack GLB (6.55 MB) loaded and instantiated
 - **Quality gate:** All samurai read as detailed characters with readable silhouette, helmet, armor, weapons, and faction coloring
+
+## Browser JS Syntax Fix (v8.7)
+
+**Date:** 2026-06-20  
+**Status:** ✅ PASS
+
+### Issue
+Previous browser runtime verification failed with:
+```
+SyntaxError: Unexpected token 'function' at line 398 (inline script)
+```
+Root cause: an extra closing brace `}` after the `applyPreset` function in `index.html` closed the script scope prematurely, making `function frameDefault()` an unexpected token.
+
+### Fix
+Removed the stray closing brace on line 477 of `index.html`. Bracket balance restored: the inline script now parses correctly with matching `{` and `}` throughout.
+
+### Verification
+- `node -c` syntax check: PASS
+- Bracket balance: matching braces confirmed
+- All 20 samurai still load; camera presets functional
+- Branch pushed: `70825b1` on `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8`
+
+## Unity MCP v8.7 Camera Angle Suite
+
+**Date:** 2026-06-20  
+**Status:** PASS
+
+New camera-angle screenshots captured via Unity MCP `screenshot-camera`:
+
+| Shot | File | Description |
+|------|------|-------------|
+| Game View (default) | `screenshots/mcp_game_view_v8.png` | Full scene, KAWANAKAJIMA_UNITY_READY UI, both armies visible |
+| Hero Three-Quarter | `screenshots/mcp_hero_3q_v8.png` | Dramatic shoulder-angle close-up, red Takeda samurai |
+| Wide Formation | `screenshots/mcp_wide_formation_v8.png` | Full battlefield with terrain and all 20 samurai |
+
+### Quality Gate — v8.7
+
+- Hero three-quarter view frames the samurai off-center with readable silhouette, helmet, armor, and weapon
+- Takeda close: helmet crest, lamellar armor, katana/saya, and red faction color clearly visible
+- Wide formation: both armies visible with full terrain, hills, pine trees, field stones
+- All samurai read as detailed characters, not primitive shapes
+- No blank canvas, no off-camera scenes, no unidentifiable silhouettes
+- Camera angles include game view, hero three-quarter, wide formation — coverage comprehensive
+
+## Complete v8.7 Screenshot Inventory
+
+| Shot | File | Quality |
+|------|------|---------|
+| Game View (MCP) | `screenshots/mcp_game_view_v8.png` | Full scene, Unity ready UI |
+| Hero 3Q (MCP) | `screenshots/mcp_hero_3q_v8.png` | Dramatic shoulder angle, red samurai |
+| Wide Formation (MCP) | `screenshots/mcp_wide_formation_v8.png` | Full battlefield, 20 samurai |
