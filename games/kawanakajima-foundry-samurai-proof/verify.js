@@ -48,6 +48,7 @@ checkContent(path.join(ROOT, 'index.html'), [
   { name: 'charge reform', test: c => /function charge|btn-charge/.test(c) },
   { name: 'file-backed audio paths', test: c => /battlefield_loop\.wav|charge_cue\.wav|clash_accent\.wav/.test(c) },
   { name: 'audio controls', test: c => /btn-audio|toggleAudio|hasFileBackedAudio/.test(c) },
+  { name: 'default capture marker', test: c => /markCaptureReady\('overview'\)/.test(c) },
   { name: 'window expose', test: c => /KAWANAKAJIMA_FOUNDRY/.test(c) },
   { name: 'no oscillator claim', test: c => !/oscillator|playTone|WebAudio.*beep/i.test(c) || /BLOCKER|silent/.test(c) },
 ]);

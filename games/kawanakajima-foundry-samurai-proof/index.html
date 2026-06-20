@@ -497,6 +497,7 @@
         isAudioEnabled: () => audio.enabled
       };
       applyUrlCamIfReady();
+      if (!requestedUrlCam()) markCaptureReady('overview');
     }
 
     function onResize() {
