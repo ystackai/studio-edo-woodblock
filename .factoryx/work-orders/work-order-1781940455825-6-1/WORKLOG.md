@@ -25,7 +25,7 @@
    - PREVIEW.md (points to browser proof; notes Unity path)
    - WORKLOG.md (this file)
 6. Will refresh top-level blockers/READMEs + games/ blocker to cite this WO id.
-7. Will commit, push to `codex/samurai-unity-guarded-retry`, create PR with FactoryX Work Order Context containing the goal/payload.
+7. Committed, pushed to `codex/samurai-unity-guarded-retry`, created PR https://github.com/ystackai/studio-edo-woodblock/pull/163 with FactoryX Work Order Context containing the goal/payload.
 8. No Unity build claimed. Browser proof + handoff preserved as-is.
 
 ## Decisions (guarded rules followed)

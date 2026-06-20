@@ -79,6 +79,8 @@ For true Unity: blocked. When a capable runtime appears, open the handoff projec
 
 This run correctly reports the Unity blocker. The system has demonstrated honest reporting for `deliverable_id: kawanakajima-samurai-unity`, `deliverable_gate_id: unity-build-evidence`.
 
+**PR:** https://github.com/ystackai/studio-edo-woodblock/pull/163 (branch codex/samurai-unity-guarded-retry)
+
 - PR will be opened/updated on branch `codex/samurai-unity-guarded-retry` with Work Order context.
 - No claim of Unity completion is made in code, docs, or PR body.
 - Source handoff + browser proof are preserved as the usable state until Unity runtime capacity exists.

@@ -27,6 +27,7 @@ See `.factoryx/work-orders/work-order-1781940455825-6-1/screenshots/` (if popula
 ## Work Order Context Links
 
 - Full goal + payload in the canonical PR body.
+- **PR:** https://github.com/ystackai/studio-edo-woodblock/pull/163
 - Blocker details: `UNITY_BLOCKER.md` (this dir)
 - Verification: `VERIFICATION.md`
 - Unity handoff: `unity/kawanakajima-samurai/`
