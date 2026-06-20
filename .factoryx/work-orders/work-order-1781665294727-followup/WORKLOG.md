@@ -177,3 +177,34 @@ Status: art+music materially redesigned with fresh file assets + manifest + brow
 Work Order: work-order-1781665294727-followup
 Status: merge conflict addressed (clean sim), backups cleaned, fresh verif evidence captured + docs updated; pushed; PR#157 advanced for review.
 
+
+## 2026-06-20 execution pass (material art + music redesign using GenerateImage + gen_music.py to address "music and art are terrible please improve")
+- Inspected: branch at 45fa1f4 (synced with remote), main ancestor (clean), PR#157 (prior merge conflict at old head resolved in history; gh API unavailable without GH_TOKEN but git fetch confirms position).
+- Foundry health: reachable, only "blender" provider (no HF/OpenAI for 2D). Used built-in GenerateImage tool + local numpy (no in-code-only) to produce real file-backed assets per asset_contract_v2.
+- Visual art redesign (address "art are terrible"):
+  - Generated via GenerateImage with progressively tuned house-style prompts ("bold heavy ink authority, solid silhouettes for boat/wave/pine, feathered, generous ma, graphic not photo, high contrast").
+  - Installed: base-motif.jpg 300 kB (center crop dark 39.6% <60L — strong ink presence), reveal-detail.jpg 174 kB (light emergent details + vermilion seal for attention reward).
+  - Stats confirmed via PIL/numpy; ready screenshot meanL 161 reflects darker composition.
+- Music redesign (address "music are terrible"):
+  - Authored + ran gen_music.py (numpy + wave, checked into this WO dir for provenance): produces stutter-drop (42kB 0.48s wooden+wet wobble), resolve-breath (278kB 3.15s breathy pad with cycle), friction-rub (19kB 0.22s tactile).
+  - More organic/hesitant/physical; reactive scheduler in code already tuned to modulate gaps/gain.
+- Updated: ASSET_MANIFEST.md (drop + new WO-context copy at FACTORYX_WORK_ORDER_CONTEXT_DIR/ASSET_MANIFEST.md) with current sizes, full provenance (WO id + feedback verbatim + gen methods + integration points + verif note).
+- Ran real browser runtime verif (xvfb-run + /usr/bin/chromium, virtual-time-budget, direct file:// of drop + ?verify=1): ready.png 768kB, post-interact.png 737kB; both valid non-blank (substantial content); logs clean after dbus filter (zero pageerror/uncaught/game console/net errors); exit 0; harness state + marker + new assets exercised.
+- Updated: VERIFICATION.md (checklist payload, new run log), PREVIEW.md (fresh evidence), this WORKLOG.
+- No changes to index.html (robust load + draw already in place); kept rub-to-still verb, house style (restraint, feathering, ma, one gesture), direct preview, taste-gate, reversible melancholy, 9/9 feel.
+- All per payload, WORKFLOW.md, asset_contract_v2 (real files + manifest in drop + WO dir + loaded + browser evidence), house style, and the verbatim feedback. Addressed before unrelated polish.
+- Next: focused git add (assets jpg/wav + manifests + WO mds + screenshots/), commit, git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup (per canonical branch rule), update gh PR#157 context if token allows (body already carries full prompt from prior).
+- Current branch HEAD will advance; PR#157 remains the canonical.
+
+Work Order: work-order-1781665294727-followup
+Status: art+music materially redesigned with fresh file-backed generated assets + WO-context manifest + browser evidence; ready for commit/push/review.
+
+
+- Pushed: 45fa1f4..86432b2 to origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup (success; remote advanced).
+- gh pr view unavailable (GH_TOKEN not set for API in this runtime, per design); branch push is the mechanism; PR#157 will reflect the new commit on canonical FactoryX branch.
+- All changes address the operator feedback "music and art are terrible please improve" with real file-backed assets (GenerateImage + numpy) + manifest in WO context + fresh browser evidence. No unrelated edits. Merge position clean (main ancestor, 0 conflicts in sim).
+- Ready for review. Evidence in WO dir (ASSET_MANIFEST.md, screenshots/, VERIFICATION etc) + committed on branch.
+
+Work Order: work-order-1781665294727-followup
+Status: pushed 86432b2; PR#157 https://github.com/ystackai/studio-edo-woodblock/pull/157 updated via branch; feedback addressed with generated assets + verification.
+

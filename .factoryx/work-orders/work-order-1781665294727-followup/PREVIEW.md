@@ -63,3 +63,15 @@ Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
 
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
+
+## Fresh evidence (2026-06-20 material redesign pass addressing feedback with GenerateImage + numpy)
+- Art: new GenerateImage base-motif.jpg (300 kB, center dark 39.6% strong ink authority, bold silhouettes per refined prompt) + reveal-detail.jpg (174 kB, emergent details + seal).
+- Music: fresh stems via gen_music.py (numpy): stutter-drop.wav 42 kB (0.48s wooden+wet with wobble), resolve-breath.wav 278 kB (3.15s breath-mod pad), friction-rub.wav 19 kB. More physical/hesitant vs prior.
+- Verification screenshots (real chromium + xvfb, vtime, direct file://): ready.png 768 kB (valid, non-blank, strong ink visible meanL 161), post-interact.png 737 kB (forced resolved + marker + caption + reveal asset).
+- Payload ~0.85 MB. All checks green; 9/9 feel; direct preview exercised; no runtime errors; logs clean (dbus only).
+- ASSET_MANIFEST.md (in assets/ + WO-context copy) updated with exact sizes, 2026-06-20 provenance, verbatim feedback tie-in, gen methods (GenerateImage + gen_music.py), integration points, browser evidence.
+- Also created .factoryx/work-orders/work-order-1781665294727-followup/ASSET_MANIFEST.md per contract instructions for durable record in FACTORYX_WORK_ORDER_CONTEXT_DIR.
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
+Canonical preview: drops/indigo-stutter/index.html

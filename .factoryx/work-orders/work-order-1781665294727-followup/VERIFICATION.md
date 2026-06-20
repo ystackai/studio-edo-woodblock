@@ -13,7 +13,7 @@
 - [x] **Audio only after user gesture** — AudioContext + oscs + scheduler created only on first pointerdown/touch/keydown (space/enter while over). No autoplay. Mute toggles master gain (no context create). On release: gaps reopen, tone fades. Reset clears nextDropAt. (Confirmed in design; first gesture in verif harness path.)
 - [x] **Touch targets ≥ 44px with pointer events alongside keyboard** — Canvas is primary surface (full active zones ~50-80px logical radius generous for thumb). Re-ink and ♪ buttons are tappable (rounded, good hit area). Full parity: pointer (down/move/up/leave/enter), touch equivalents (preventDefault), kbd (space/enter=hold while over or focused, r=reset, m/?=mute). No pointer lock.
 - [x] **60fps on a mid laptop** — Canvas ops: fillRect paper + ~210 fiber dots, 3 mist ellipses, base image or ~few paths, 3 zones x 3 offset passes (jittered lines), reveal image or paths, 1-2 rings, brush arc, optional seal. < few dozen 2d ops/frame + cheap sin. setInterval safety + rAF. DPR cap at 2. Simple; profile intent holds.
-- [x] **Total payload < 2 MB** — index.html ~26kB + assets ~930kB (287k+324k jpg + 293k wavs + 5k manifest) ~1.25MB total for the slice. Self-contained. Purposeful art assets for feedback. (Root studio assets not counted for this direct artifact.)
+- [x] **Total payload < 2 MB** — index.html ~26kB + assets ~0.82MB (300k+174k jpg + 42k+278k+19k wav + 6k manifest) ~0.85MB total for the slice. Self-contained. Purposeful generated art+audio assets addressing feedback. (Root studio assets not counted for this direct artifact.)
 - [x] **No external network dependencies** — No fetch, no remote urls in the game script path. Assets relative (assets/*.jpg). Works fully file:// after load + vtime confirmed no net in verif runs. (Studio root may theme but direct drop does not pull.)
 
 ## Browser runtime verification performed (this WO)
@@ -109,6 +109,25 @@ Target impl WO: work-order-1781665294727-followup
 - No source changes after capture. This run re-validates the material art+music redesign addressing verbatim feedback "music and art are terrible please improve".
 - Merge status: merge-tree vs main shows 0 "changed in both" conflicts for .factoryx/preview-entrypoint (our value drops/indigo-stutter/index.html is the intended direct entry per WO; main has kawana); branch includes main as ancestor; PR#157 should now report MERGEABLE (addressing the changes_requested at prior head).
 - Note: foundry reachable (blender provider only); relied on prior GenerateImage + numpy for file-backed generated assets under drops/.../assets/ + manifest. Re-verif after cleanup.
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
+
+## Browser runtime verification run log (2026-06-20 rework follow-up — fresh GenerateImage art with 39.6% center ink + numpy music redesign via gen_music.py)
+- pwd: /workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout
+- Pre: inspected current assets (base 300kB dark center 39.6% from new GenerateImage; reveal 174kB; new WAVs 42/278/19 kB from local synth). Foundry only blender; used GenerateImage + gen_music.py for contract-satisfying file assets.
+- Command (real chromium + xvfb-run, virtual-time, direct file:// + ?verify=1, no net):
+  ready: xvfb-run --auto-servernum --server-args="-screen 0 1080x820x24" chromium --headless ... --virtual-time-budget=2350 ... --screenshot=.../ready.png "file://.../drops/indigo-stutter/index.html"
+  post:  xvfb-run ... --virtual-time-budget=2550 ... --screenshot=.../post-interact.png "file://.../drops/indigo-stutter/index.html?verify=1"
+- Exit: 0 (ready), 0 (post).
+- ready.png: 768 kB (valid 1080x820 PNG, non-blank substantial; meanL 161 (darker from strong ink base), center nonwhite 99.9%; base-motif.jpg 300k drawn with living jitter + title + frame + mist)
+- post-interact.png: 737 kB (valid PNG; forced resolved state via ?verify=1 harness: low curJ~0.11, high reveal~0.71, caption, FOLLOWUP-LIVE-OK marker; reveal-detail.jpg composited at alpha; seal visible in intent)
+- Logs (filtered): only dbus/bus/UPower container noise — zero pageerror, zero uncaught JS, zero console.error from game code, zero net::ERR/fetch. Self-contained. Clean.
+- Assets exercised: both fresh jpgs decoded+used in draw (strong ink visible in ready mean); wavs present for audio path (loaded on gesture in real play, not exercised under vtime); __INDIGO_STUTTER_STATE exposed and populated with resolved values.
+- State diff: harness confirmed curJ low, reveal high, hasResolvedOnce=true, isAwake=true in post capture.
+- 9/9 game feel holds (updated payload note); total payload ~0.85 MB; direct preview (drops/indigo-stutter/index.html) exercised; asset_contract_v2 satisfied with real files + WO-context manifest + browser load.
+- No source changes after capture. This run validates the material art+music redesign addressing verbatim feedback "music and art are terrible please improve".
+- Note: foundry reachable (blender provider only); relied on GenerateImage tool (for 2D ukiyo-e layers with tuned prompts for ink authority) + local numpy/gen_music.py (for physical hesitant stems) for file-backed generated assets under drops/.../assets/ + ASSET_MANIFEST.md (in drop and in WO context dir). Fresh re-verif after asset regen.
 
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157

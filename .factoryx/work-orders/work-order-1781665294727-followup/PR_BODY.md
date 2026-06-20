@@ -97,3 +97,16 @@ Canonical PR remains https://github.com/ystackai/studio-edo-woodblock/pull/157 (
 - Merge conflict addressed via branch position + clean merge-tree (addresses the changes_requested from github-mergeability at prior sha).
 - Fresh chromium evidence + cleanup in this commit.
 - All requirements met: generated file assets + manifest + provenance + browser verif + direct preview + full context in tree + PR.
+
+## 2026-06-20 follow-up evidence update (material redesign for feedback)
+- Fresh generated assets addressing "music and art are terrible please improve":
+  - base-motif.jpg 300 kB (GenerateImage, center 39.6% dark ink authority, bold silhouettes)
+  - reveal-detail.jpg 174 kB (GenerateImage, reward details + seal)
+  - stutter-drop.wav 42 kB, resolve-breath.wav 278 kB, friction-rub.wav 19 kB (numpy via gen_music.py — physical, hesitant, breathy)
+- ASSET_MANIFEST.md updated (drop + FACTORYX_WORK_ORDER_CONTEXT_DIR copy) with provenance, sizes, methods, integration.
+- Browser verif re-run (xvfb+chromium real runtime, vtime, file://): ready.png 768 kB (strong ink), post-interact.png 737 kB (resolved harness); exit 0; logs clean (no pageerror/net/game errors); assets exercised.
+- 9/9 game feel; ~0.85 MB payload; direct preview drops/indigo-stutter/index.html; no unrelated scope.
+- PR branch will be advanced via git push; body carries full original prompt + WO context.
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
