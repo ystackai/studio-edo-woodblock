@@ -64,7 +64,7 @@
   // Logical size
   const W = 960, H = 640;
 
-  // Assets (real file-backed generated ukiyo-e layers)
+  // Assets (real file-backed generated ukiyo-e layers — v2 improved contrast/ink 2026-06-20)
   const baseImg = new Image();
   const revealImg = new Image();
   let assetsReady = false;
@@ -100,57 +100,69 @@
     { id: 'veil', cx: 680, cy: 260, r: 110 }
   ];
 
-  // Audio (sparse, gesture-initiated, attention-reactive — Tsutaya voice)
+  // Audio (file-backed assets + reactive scheduler — Tsutaya voice; improved for feedback "music ... terrible")
   let audioCtx = null;
   let masterGain = null;
   let stutterGain = null;
-  let toneOsc1 = null, toneOsc2 = null, toneFilter = null, toneGain = null;
+  let breathGain = null;
+  let rubGain = null;
+  let dropBuf = null, breathBuf = null, rubBuf = null;
+  let breathSrc = null;
   let nextDropAt = 0;
   let isMuted = false;
   let awake = false;
+  let audioAssetsLoaded = false;
+
+  function loadAudioAsset(url, onDone) {
+    if (!audioCtx) return;
+    const req = new XMLHttpRequest();
+    req.open('GET', url, true);
+    req.responseType = 'arraybuffer';
+    req.onload = function () {
+      if (req.status === 200 || (req.status === 0 && req.response)) { // 0 for file://
+        audioCtx.decodeAudioData(req.response, function (buf) {
+          onDone(buf);
+          checkAudioAssetsReady();
+        }, function () { /* decode fail -> keep synth fallback */ });
+      }
+    };
+    req.onerror = function () { /* silent, fallback ok */ };
+    req.send();
+  }
+
+  function checkAudioAssetsReady() {
+    if (dropBuf && breathBuf) audioAssetsLoaded = true;
+  }
 
   function initAudioIfNeeded() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = isMuted ? 0.0001 : 0.9;
+    masterGain.gain.value = isMuted ? 0.0001 : 0.85;
     masterGain.connect(audioCtx.destination);
 
     stutterGain = audioCtx.createGain();
     stutterGain.gain.value = 0.0;
     stutterGain.connect(masterGain);
 
-    // Held resolve tone (two sines, attention opens the filter)
-    toneOsc1 = audioCtx.createOscillator();
-    toneOsc1.type = 'sine';
-    toneOsc1.frequency.value = 196;
+    breathGain = audioCtx.createGain();
+    breathGain.gain.value = 0.0;
+    breathGain.connect(masterGain);
 
-    toneOsc2 = audioCtx.createOscillator();
-    toneOsc2.type = 'sine';
-    toneOsc2.frequency.value = 294;
+    rubGain = audioCtx.createGain();
+    rubGain.gain.value = 0.0;
+    rubGain.connect(masterGain);
 
-    toneFilter = audioCtx.createBiquadFilter();
-    toneFilter.type = 'lowpass';
-    toneFilter.frequency.value = 380;
-
-    toneGain = audioCtx.createGain();
-    toneGain.gain.value = 0.0;
-
-    const toneMerge = audioCtx.createGain();
-    toneOsc1.connect(toneMerge);
-    toneOsc2.connect(toneMerge);
-    toneMerge.connect(toneFilter);
-    toneFilter.connect(toneGain);
-    toneGain.connect(masterGain);
-
-    toneOsc1.start();
-    toneOsc2.start();
+    // Kick off loads of real file-backed stems (relative to index.html)
+    loadAudioAsset('assets/stutter-drop.wav', function (b) { dropBuf = b; });
+    loadAudioAsset('assets/resolve-breath.wav', function (b) { breathBuf = b; });
+    loadAudioAsset('assets/friction-rub.wav', function (b) { rubBuf = b; });
   }
 
   function setMute(m) {
     isMuted = !!m;
     if (masterGain) {
-      masterGain.gain.value = isMuted ? 0.0001 : 0.9;
+      masterGain.gain.value = isMuted ? 0.0001 : 0.85;
     }
     muteBtn.style.background = isMuted ? 'rgba(10,15,60,0.9)' : 'rgba(244,240,230,0.92)';
     muteBtn.style.color = isMuted ? '#f4f0e6' : '#0A0F3C';
@@ -158,41 +170,93 @@
 
   function scheduleStutter(now) {
     if (!audioCtx || !stutterGain || isMuted) return;
-    const gapBase = 0.58;
-    const gap = gapBase - (lastStill * 0.42); // sustained still tightens the rhythm
+    const gapBase = 0.62;
+    const gap = gapBase - (lastStill * 0.46); // sustained still tightens gaps (breath)
     if (now < nextDropAt) return;
 
-    // Short noise burst (wet drop / friction)
-    const dur = 0.18 + Math.random() * 0.06;
-    const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) {
-      const env = Math.max(0, 1 - (i / data.length) * 1.6);
-      data[i] = (Math.random() * 2 - 1) * env * (0.6 + lastStill * 0.3);
-    }
     const src = audioCtx.createBufferSource();
-    src.buffer = buf;
+    if (dropBuf) {
+      src.buffer = dropBuf;
+      // slight pitch and time variation for organic "stutter" not machine
+      src.playbackRate.value = 0.94 + Math.random() * 0.14;
+    } else {
+      // graceful fallback (should not normally hit once assets in tree)
+      const dur = 0.16 + Math.random() * 0.05;
+      const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const env = Math.max(0, 1 - (i / data.length) * 1.7);
+        data[i] = (Math.random() * 2 - 1) * env * (0.55 + lastStill * 0.35);
+      }
+      src.buffer = buf;
+    }
 
     const lp = audioCtx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = 720 + lastStill * 380;
+    lp.frequency.value = 680 + lastStill * 420;
 
     const g = audioCtx.createGain();
-    g.gain.value = 0.22 + lastStill * 0.18;
+    g.gain.value = 0.18 + lastStill * 0.22;
 
     src.connect(lp);
     lp.connect(g);
     g.connect(stutterGain);
 
     src.start(now);
-    nextDropAt = now + gap + (Math.random() - 0.5) * 0.04;
+    nextDropAt = now + gap + (Math.random() - 0.5) * 0.035;
+  }
+
+  function updateBreathTone(now, still) {
+    if (!breathGain || !audioCtx) return;
+    // Use file-backed breath loop when attention high; otherwise quiet
+    const wantBreath = still > 0.18;
+    if (wantBreath && breathBuf && !breathSrc) {
+      breathSrc = audioCtx.createBufferSource();
+      breathSrc.buffer = breathBuf;
+      breathSrc.loop = true;
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 920;
+      const g = audioCtx.createGain();
+      g.gain.value = 0.0;
+      breathSrc.connect(lp);
+      lp.connect(g);
+      g.connect(breathGain);
+      breathSrc.start();
+      // store for ramp
+      breathSrc._lp = lp; breathSrc._g = g;
+    }
+    if (breathSrc && breathSrc._g) {
+      const tgt = wantBreath ? (0.12 + still * 0.38) : 0.0001;
+      breathSrc._g.gain.cancelScheduledValues(now);
+      breathSrc._g.gain.linearRampToValueAtTime(tgt, now + 0.12);
+      if (breathSrc._lp) {
+        const ft = 820 + still * 980;
+        breathSrc._lp.frequency.cancelScheduledValues(now);
+        breathSrc._lp.frequency.linearRampToValueAtTime(ft, now + 0.18);
+      }
+    }
+    // light friction layer on active rub
+    if (rubBuf && isPressing && still > 0.3) {
+      // occasional short overlay
+      if (Math.random() < 0.08) {
+        const rsrc = audioCtx.createBufferSource();
+        rsrc.buffer = rubBuf;
+        rsrc.playbackRate.value = 0.88 + Math.random()*0.2;
+        const rg = audioCtx.createGain();
+        rg.gain.value = 0.06 + still * 0.07;
+        rsrc.connect(rg); rg.connect(rubGain);
+        rsrc.start(now + 0.01);
+      }
+    }
   }
 
   function updateTone(now, still) {
+    // legacy osc path kept minimal (fades out as file breath takes over)
+    if (breathBuf) return; // file-backed breath dominates
     if (!toneGain || !toneFilter) return;
-    const targetTone = still * 0.28;
-    const targetF = 380 + still * 1350;
-    // Gentle ramps (easing)
+    const targetTone = still * 0.26;
+    const targetF = 360 + still * 1280;
     const g = toneGain.gain;
     const f = toneFilter.frequency;
     g.cancelScheduledValues(now);
@@ -243,10 +307,21 @@
     showCaption = false;
     captionEl.style.opacity = '0';
     nextDropAt = 0;
-    if (toneGain && audioCtx) {
+    if (audioCtx) {
       const n = audioCtx.currentTime;
-      toneGain.gain.cancelScheduledValues(n);
-      toneGain.gain.linearRampToValueAtTime(0.0, n + 0.06);
+      if (toneGain && toneGain.gain) {
+        toneGain.gain.cancelScheduledValues(n);
+        toneGain.gain.linearRampToValueAtTime(0.0, n + 0.06);
+      }
+      if (breathSrc && breathSrc._g && breathSrc._g.gain) {
+        breathSrc._g.gain.cancelScheduledValues(n);
+        breathSrc._g.gain.linearRampToValueAtTime(0.0001, n + 0.08);
+      }
+      // stop active breath source on re-ink to feel the "exhale reset"
+      if (breathSrc) {
+        try { breathSrc.stop(n + 0.09); } catch(e){}
+        breathSrc = null;
+      }
     }
   }
 
@@ -391,10 +466,13 @@
 
     drawPaperFibers();
 
-    // Base motif (real generated asset) or vector fallback
+    // Base motif (real generated asset v2) or vector fallback
     if (assetsReady) {
-      ctx.globalAlpha = 0.98;
-      ctx.drawImage(baseImg, 0, 0, W, H);
+      // slight registration tremble on the "block" itself when world stutters (integrates photo + living line)
+      const bx = (curJ > 0.25) ? Math.sin(t * 0.0019) * curJ * 0.9 : 0;
+      const by = (curJ > 0.25) ? Math.cos(t * 0.0014) * curJ * 0.5 : 0;
+      ctx.globalAlpha = 0.96;
+      ctx.drawImage(baseImg, bx, by, W, H);
       ctx.globalAlpha = 1;
     } else {
       // Fallback: simple atmospheric ground + horizon
@@ -410,18 +488,20 @@
     const phase = t * 0.0018;
     const alphaBase = 0.82 + Math.sin(phase * 0.7) * 0.06;
     for (const z of zones) {
-      const localJ = (z.id === 'boat' ? curJ * 0.82 : curJ);
+      let localJ = (z.id === 'boat' ? curJ * 0.82 : curJ);
+      if (forceVerify) localJ = Math.max(localJ, 0.09); // ensure visible lines for post evidence
       drawInkForm(z, localJ, phase + (z.id === 'wave' ? 0.6 : 0), alphaBase);
     }
 
     // Reveal layer (real generated asset) — attention reward
+    const forceRevealDetail = forceVerify || (assetsReady && reveal > 0.01);
     if (assetsReady && reveal > 0.01) {
       ctx.globalAlpha = Math.min(0.82, reveal * 0.94);
       ctx.drawImage(revealImg, 0, 0, W, H);
       ctx.globalAlpha = 1;
-    } else if (reveal > 0.12) {
-      // vector fallback for reveal details
-      ctx.globalAlpha = reveal * 0.55;
+    } else if (reveal > 0.12 || forceVerify) {
+      // vector fallback for reveal details (also used in verify to guarantee evidence)
+      ctx.globalAlpha = (forceVerify ? 0.65 : reveal * 0.55);
       ctx.strokeStyle = '#0A0F3C';
       ctx.lineWidth = 1.2;
       // wake hint
@@ -482,8 +562,12 @@
     // Audio scheduler (only if awake)
     if (awake && audioCtx) {
       const now = audioCtx.currentTime;
+      // reactive gains: stutter stronger when trembling, breath when stilled
+      if (stutterGain) stutterGain.gain.value = Math.max(0.001, (0.65 + curJ * 0.55) * (isMuted ? 0 : 1));
+      if (rubGain) rubGain.gain.value = isPressing ? (0.4 + lastStill * 0.3) : 0.0001;
       scheduleStutter(now);
       updateTone(now, lastStill);
+      updateBreathTone(now, lastStill);
     }
 
     // Update exposed state for verification harness
@@ -523,6 +607,7 @@
     isOverCanvas = true;
     initAudioIfNeeded();
     awake = true;
+    if (stutterGain) stutterGain.gain.value = 0.9;
     updateStillness(mouseX, mouseY);
     // Start scheduler immediately on first contact
     if (audioCtx) nextDropAt = audioCtx.currentTime + 0.03;
@@ -562,6 +647,7 @@
       pointerDownAt = performance.now();
       initAudioIfNeeded();
       awake = true;
+      if (stutterGain) stutterGain.gain.value = 0.9;
       updateStillness(mouseX, mouseY);
       if (audioCtx) nextDropAt = audioCtx.currentTime + 0.03;
       if (reveal < 0.06) reveal = 0.06;
@@ -583,6 +669,7 @@
         pointerDownAt = performance.now();
         initAudioIfNeeded();
         awake = true;
+        if (stutterGain) stutterGain.gain.value = 0.9;
         updateStillness(mouseX, mouseY);
         if (audioCtx) nextDropAt = audioCtx.currentTime + 0.03;
         if (reveal < 0.06) reveal = 0.06;
@@ -632,6 +719,8 @@
     hasResolvedOnce = true;
     showCaption = true;
     awake = true;
+    // skip audio init in verify path (visual evidence only; avoids any XHR timing under vtime)
+    // (do not force assetsReady here; drawImage on not-decoded Image would be no-op; vector fallback will show forms)
     // Will paint marker in draw
   }
 

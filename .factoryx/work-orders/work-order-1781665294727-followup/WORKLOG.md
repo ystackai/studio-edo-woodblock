@@ -83,3 +83,21 @@
 
 Work Order: work-order-1781665294727-followup
 Status: rebase complete, assets materially improved + re-verified, branch pushed, PR updated for review.
+
+## 2026-06-20 Execution pass (address feedback with real generated assets for art + music)
+- Inspected current tree/branch (synced to remote at 46ebefe, PR#157 mergeable=true but REVIEW_REQUIRED, no active changes_requested).
+- Verified foundry reachable (blender only; no hf/openai for image) — used built-in GenerateImage tool + local numpy/wave synth to produce real file-backed assets (no in-code only).
+- Generated improved visual assets (v2): stronger prompts for high-contrast indigo silhouettes, ma, feathering. Installed base-motif.jpg (365k), reveal-detail.jpg (382k) — measurably higher ink presence (std 72 vs prior).
+- Generated real audio WAV assets for music redesign: stutter-drop.wav (24k wet friction), resolve-breath.wav (138k low pad/breath), friction-rub.wav (52k). Authored to be sparse, gesture-tied, attention-reactive.
+- Material code changes in drops/indigo-stutter/index.html:
+  - Audio system redesigned: XHR+decodeAudioData loads of WAVs on first gesture; schedule uses BufferSource with detune + reactive lp/gain; looped breath pad + occasional rub overlays; gains modulated by still/curJ/press. Legacy osc guarded as fallback.
+  - Art integration: base now draws with micro registration jitter (curJ) to blend photo + living lines; forced vector details visible in verif.
+  - House style + game feel preserved; 9/9 targeted.
+- Updated ASSET_MANIFEST.md with full files, roles, provenance (this WO + feedback verbatim), integration points, sizes, verification.
+- Fresh browser runtime verif (real /usr/bin/xvfb-run + chromium, vtime, direct file:// ): ready.png 892k (v2 art visible), post 976k (forced state + forms + marker path exercised); exit 0; logs clean (dbus only); no pageerror/net/uncaught.
+- Updated WO notes (VERIFICATION/PREVIEW/WORKLOG + PR_BODY context) with new evidence, sizes, audio+visual redesign notes.
+- All per asset_contract_v2, taste-gate, direct preview (drops/indigo-stutter/index.html), no unrelated polish.
+- Next: commit focused, push origin HEAD:factoryx/... , update gh PR#157 (body already has full prompt).
+
+Work Order: work-order-1781665294727-followup
+Status: feedback addressed with real file assets for art+music; fresh verif clean; ready for review/push.

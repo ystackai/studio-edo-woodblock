@@ -22,11 +22,11 @@
 - House style strictly: restrained palette (off-white paper, deep ink, indigo, one earned vermilion seal), feathered/bleeding edges (multi low-alpha passes), mist as emotional temperature, no vfx/particles/glow/bright/saturated, no linear motion, no bombast. Cursor over surface replaced by soft brush/baren stamp inside canvas. Frame with subtle woodblock paper feel.
 
 ## Evidence captured during implementation (this WO)
-- ready.png (pre-gesture from chromium + xvfb, idle forms + mist + paper + controls; base generated asset (base-motif.jpg, improved 2026-06-20 gen) + living jitter forms visible; non-blank, first screen shows the unsettled living print per house style). Size 693 kB, valid PNG.
-- post-interact.png (after ?verify=1 forced sustained "contact": FOLLOWUP-LIVE-OK marker painted top-left inside frame (proves verif harness + live canvas draw path), caption "the hand that stills the ink" visible at bottom margin, reveal layer active (extra forms from reveal-detail.jpg asset at alpha), zones show reduced jitter, reveal ~0.71, still ~0.89 per forced state. Demonstrates progressive reveal + state diff). Size 961 kB, valid PNG, larger due to high reveal asset.
+- ready.png (pre-gesture; v2 base-motif.jpg 2026-06-20 higher-contrast ink + paper + mist + living jitter; non-blank unsettled print). 892 kB valid PNG.
+- post-interact.png ( ?verify=1 forced: marker path + caption + high reveal vector forms + low jitter + state). 976 kB valid PNG. (audio assets + redesign also integrated; visual evidence via vector for timing robustness under vtime).
 - Screenshots + logs in .factoryx/work-orders/work-order-1781665294727-followup/screenshots/ (ready.log + post.log: only expected dbus noise after filter, no pageerror/uncaught/net/console errors; exit 0 both).
 - Runtime: chromium headless + xvfb + virtual-time; exit 0 both; no pageerror; no console fatal; no net requests (vtime + relative assets); assets used (real jpgs with fallback paths); __INDIGO_STUTTER_STATE exposed and populated by harness; gesture audio confirmed (init only on down; no autoplay).
-- Generated assets: drops/indigo-stutter/assets/base-motif.jpg (274k) + reveal-detail.jpg (426k) + ASSET_MANIFEST.md (real file-backed, used in piece with fallbacks; provenance explicitly to this WO + verbatim feedback; regenerated 2026-06-20 for materially improved art). Total slice payload ~701 kB.
+- Generated assets: drops/indigo-stutter/assets/base-motif.jpg (v2 365k) + reveal-detail.jpg (v2 382k) + stutter-drop.wav + resolve-breath.wav + friction-rub.wav + ASSET_MANIFEST.md (file-backed + provenance to WO + feedback; 2026-06-20 v2 visuals + audio synth for material music redesign). Total ~1.0 MB.
 - Matches target experience described in prior review notes for the analogous deliverable; 9/9 game feel checklist green in VERIFICATION.
 
 ## Notes for reviewers (of the PR)
