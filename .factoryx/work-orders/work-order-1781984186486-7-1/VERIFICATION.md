@@ -232,3 +232,37 @@ New camera-angle screenshots captured via Unity MCP `screenshot-camera`:
 | Game View (MCP) | `screenshots/mcp_game_view_v8.png` | Full scene, Unity ready UI |
 | Hero 3Q (MCP) | `screenshots/mcp_hero_3q_v8.png` | Dramatic shoulder angle, red samurai |
 | Wide Formation (MCP) | `screenshots/mcp_wide_formation_v8.png` | Full battlefield, 20 samurai |
+
+## v8.8 — Browser JS Fix + Additional Screenshot Suite (2026-06-20)
+
+**Status:** PASS
+
+### Browser Runtime Fix
+- **Problem:** `games/kawanakajima-foundry-samurai-proof/index.html` had an unclosed `forEach` callback in the animation loop (`tick()` function), causing `SyntaxError: missing ) after argument list` at line 819 during browser runtime JavaScript syntax checks.
+- **Fix:** Added closing `});` after `renderer.render(scene, camera);` inside the `tick()` function to properly close the `actors.forEach()` callback.
+- **Verification:** Bracket/paren/square-bracket balance all at 0 via node syntax analysis. JS syntax check passes.
+
+### Unity MCP Verification
+- **Ping:** `http://172.21.0.1:25666` returns `pong` (HTTP 200).
+- **Script-execute:** Simple probes succeed. Complex probes with LINQ return 500 (known limitation).
+- **Scene state:** `Kawanakajima` scene, 73 root GameObjects, `IsPlaying: true`, `IsCompiling: false`.
+- **Bootstrap:** `KawanakajimaRuntimeBootstrap` present.
+
+### New Screenshot Suite (v8.8)
+
+| Shot | File | Description |
+|------|------|-------------|
+| Wide formation | `screenshots/v88_wide_formation.png` | Full battlefield view showing 20 samurai (10 red Takeda, 10 blue Uesugi) in formation with Unity UI overlay. Camera preset selection visible. |
+| Hero close-up | `screenshots/v88_hero_closeup.png` | Dramatic close-up of a samurai showing helmet crest, armor plates, katana, and faction coloring. |
+| Scene view | `screenshots/v88_scene_view.png` | Editor scene view with full terrain, trees, hills, waterfall, and all samurai visible. Unity Editor UI visible with PLAY indicator. |
+
+All screenshots pass visual quality gate — samurai are large enough to judge silhouette, materials, and faction treatment.
+
+### Assets Verified
+- `samurai_character.glb` (2.7 MB) — Foundry v5 samurai
+- `samurai_battlefield_pack.glb` (6.9 MB) — Terrain, hills, trees, stones, waterfall
+- 5 audio WAVs (2.53 MB) — battlefield loop, charge, clash, step, confirm
+
+### Build Verification
+- Mac build: `Builds/Mac/KawanakajimaSamurai.app` (112 MB)
+- Build succeeded with 0 Unity console errors

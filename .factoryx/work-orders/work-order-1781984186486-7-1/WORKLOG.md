@@ -73,3 +73,13 @@
 - **Build:** Mac app build succeeded through Unity MCP at `Builds/Mac/KawanakajimaSamurai.app` (112 MB)
 - **Browser proof:** v8.6 polished with shadows, tone mapping, smooth camera, fog, vignette, animation
 - **Quality gate:** All samurai read as detailed characters with readable silhouette, helmet, armor, weapons, and faction coloring
+
+**v8.8 (2026-06-20 ~21:50 UTC):** Browser JS syntax fix + Unity MCP screenshot suite
+- Fixed unclosed `forEach` callback in `tick()` animation loop of `index.html` (added `});` after `renderer.render`)
+- Verified bracket/paren/square-bracket balance at 0 via syntax analysis
+- Captured 3 new Unity MCP screenshots via `screenshot-game-view` and `screenshot-scene-view`:
+     - Wide formation (691×352) — full battlefield, 20 samurai, Unity UI overlay
+     - Hero close-up — samurai helmet, armor, katana detail
+     - Scene view — editor viewport with terrain, trees, waterfall
+- Updated VERIFICATION.md, DELIVERABLE_STATUS.md, PREVIEW.md
+- Committed and pushed to branch `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8`

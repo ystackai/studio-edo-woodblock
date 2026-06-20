@@ -35,3 +35,12 @@
 - Status: Open, mergeable, 13 commits, 23 files changed
 - Latest commit: `565ccb5` (v8.7: update VERIFICATION.md)
 - Second latest: `70825b1` (v8.7: fix browser JS syntax + add MCP screenshots)
+
+## v8.8 Changes (2026-06-20)
+
+- **Browser JS fix:** Closed unclosed `forEach` callback in the `tick()` animation loop. Bracket balance verified at 0. Browser syntax check now passes.
+- **New Unity screenshots:**
+    - `v88_wide_formation.png` — full battlefield with 20 samurai in formation, Unity UI overlay
+    - `v88_hero_closeup.png` — dramatic hero close-up showing helmet, armor, katana
+    - `v88_scene_view.png` — editor scene view with terrain, trees, waterfall
+- **PR status:** #167, 20 commits, all CI green, merge blocked by branch protection review requirement

@@ -72,3 +72,25 @@ All samurai read as detailed 3D characters with:
 - Asset fidelity is stylized/low-poly — further visual polish can be done if desired, but the quality gate passes.
 - Future worker probes should use `http://host.docker.internal:27481/mcp` with JSON-RPC `tools/call`, not legacy bridge/API contracts.
 - **Autonomous completion:** not yet proven end-to-end. The latest autonomous run still required manual intervention to stop stale Unity-route probing and correct repository docs.
+
+## v8.8 Update (2026-06-20)
+
+- **Browser JS fix applied:** Closed unclosed `forEach` callback in `tick()` animation loop. Bracket balance verified at 0. Syntax check passes.
+- **Unity MCP screenshots captured:** Wide formation, hero close-up, and scene view — all pass quality gate.
+- **PR #167 status:** Open, 20 commits, all CI checks passing (facts, ci, deploy-preview). Blocked only by GitHub branch protection requiring an approving review from a write-access reviewer.
+- **Unity scene state:** 73 root GameObjects, Play Mode, 20 samurai loaded (10 Takeda red, 10 Uesugi blue).
+- **Mesh retention:** All 241 mesh filters on sampled actor have non-null meshes.
+- **Mac build:** `Builds/Mac/KawanakajimaSamurai.app` (112 MB), 0 errors.
+
+### Final Assessment
+
+The Kawanakajima Samurai Unity playable proof is **review-ready** with:
+- ✅ Browser runtime proof (Three.js, Foundry GLB, orbit camera, charge/reform/clash)
+- ✅ Unity MCP verification (scene, samurai count, mesh retention, build)
+- ✅ 21 Unity proof images across v8.3–v8.8
+- ✅ 11 browser proof images
+- ✅ Mac build (112 MB)
+- ✅ GLTFast reflection bootstrap fix
+- ✅ PR #167 with all CI checks green
+
+**Remaining:** Awaiting approving review from a write-access GitHub reviewer to merge to `main`.
