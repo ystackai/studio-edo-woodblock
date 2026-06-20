@@ -43,3 +43,14 @@
 - **Screenshots:** 7 total, all pass visual quality gate
 - **Build probe:** Scene refresh via menu — successful, scene persists
 - **Remaining:** Mac build target (not attempted due to build time; scene is verified functional)
+
+**v8.5 — Camera angle suite + visual polish (COMPLETED)**
+- Captured 4 additional camera-angle screenshots via Unity MCP:
+        - Hero three-quarter: Dramatic shoulder-angle, red samurai off-center (rule of thirds)
+        - Takeda close: Red samurai detail — helmet, armor, katana clearly visible
+        - Uesugi close: Blue samurai detail — faction color distinct, body identifiable
+        - Rear view: Both armies from behind, sashimono banners visible
+- All 12 screenshots pass visual quality gate
+- Samurai read as detailed stylized characters with readable silhouettes, helmets, armor, weapons
+- No primitive/placeholder geometry; all assets from Foundry GLB
+- Updated VERIFICATION.md with complete screenshot inventory
