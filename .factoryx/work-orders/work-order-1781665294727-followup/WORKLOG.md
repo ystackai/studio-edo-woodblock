@@ -154,3 +154,22 @@ Status: fresh art assets generated (addressing feedback), re-verified clean, doc
 Work Order: work-order-1781665294727-followup
 Status: art+music materially redesigned with fresh file assets + manifest + browser evidence; branch ready for push/review.
 
+## 2026-06-20 execution pass (address merge conflict review + stray cleanup + fresh browser re-verification)
+- Inspected current tree (HEAD 66fd8ab == origin/wo branch; main is ancestor at 95ada6e; merge-tree simulation shows 0 conflicts on preview-entrypoint vs main — the prior changes_requested at 4e72976 addressed by branch history).
+- Per payload review_context: the github-mergeability changes_requested ("rebase or merge main") is the blocking item before other polish.
+- Executed: cleaned stray backups index.html.{backup,bak,tmp} from drops/indigo-stutter/ (untracked but polluting; matches "Stray backup files from prior experiments cleaned" requirement in PREVIEW/VERIF).
+- Re-ran full real browser runtime verification (after installing xvfb pkg; used xvfb-run + /usr/bin/chromium + virtual-time + direct file:// + ?verify=1 harness): 
+  - ready.png: 658476 bytes (valid PNG 1080x820)
+  - post-interact.png: 866553 bytes (valid; forced state exercised + FOLLOWUP-LIVE-OK marker + assets visible)
+  - Logs: only dbus noise (container); exit 0 both; no pageerror, no uncaught, no game console/net errors.
+- Updated VERIFICATION.md (new run log section + merge note), PREVIEW.md (fresh evidence), this WORKLOG.
+- Confirmed: .factoryx/preview-entrypoint still points to drops/indigo-stutter/index.html (direct per rules, not games/ or root).
+- Asset contract: real files in place (jpg + wav under assets/, manifest with provenance + feedback verbatim + integration + sizes + verif note); loaded by index.html canvas + XHR decode; no in-code-only.
+- Merge resolution: since merge sim clean and main ancestor, branch is now positioned as mergeable. (If GitHub still flags, force a merge commit or rebase replay would be next, but current evidence supports clean.)
+- No code changes to index.html or assets (kept the material redesign from prior passes); only hygiene + evidence refresh + doc updates addressing the explicit rework feedback and the merge blocker.
+- Next: git add -f the specific WO evidence files + screenshots updates for this followup (leave other ?? workorder dirs untracked), commit focused, git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup (force-with-lease per precedent), prepare PR#157 body.
+- All per WORKFLOW.md, asset_contract_v2, taste-gate first, game feel, house style, direct preview, "address this feedback before unrelated polish".
+
+Work Order: work-order-1781665294727-followup
+Status: merge conflict addressed (clean sim), backups cleaned, fresh verif evidence captured + docs updated; ready for commit/push/PR refresh.
+

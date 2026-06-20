@@ -93,5 +93,22 @@ Target impl WO: work-order-1781665294727-followup
 - No source changes after capture. This run validates the material art+music redesign addressing "music and art are terrible please improve".
 - Note: foundry only blender (no 2d image provider); relied on GenerateImage tool + local numpy synth for file-backed generated assets per contract. Re-ran after each material asset update.
 
+## Browser runtime verification run log (2026-06-20 post-rework follow-up verification — after backup cleanup + merge clean check)
+- pwd: /workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout
+- Pre-verif: cleaned stray index.html.{backup,bak,tmp} from drops/indigo-stutter/ (untracked; per PREVIEW/VERIF hygiene and "Stray backup files ... cleaned").
+- Command (real chromium + xvfb-run, virtual-time, direct file:// + ?verify=1, no net):
+  ready: xvfb-run --auto-servernum --server-args="-screen 0 1080x820x24" chromium ... --virtual-time-budget=2350 ... --screenshot=.../ready.png "file://.../drops/indigo-stutter/index.html"
+  post:  xvfb-run ... --virtual-time-budget=2550 ... --screenshot=.../post-interact.png "file://.../drops/indigo-stutter/index.html?verify=1"
+- Exit: 0 (ready), 0 (post).
+- ready.png: 658 kB (valid 1080x820 PNG, non-blank, substantial content; base-motif.jpg drawn with living jitter forms + title + frame + paper fibers + mist)
+- post-interact.png: 866 kB (valid PNG; forced resolved state via ?verify=1 harness: low curJ~0.11, high reveal~0.71, caption, FOLLOWUP-LIVE-OK marker painted; reveal-detail.jpg composited)
+- Logs (filtered): only dbus/bus/UPower container noise (expected in this env) — zero pageerror, zero uncaught JS, zero console.error from game code, zero net::ERR/fetch. Self-contained. Clean.
+- Assets exercised: jpgs (147k/205k) decoded+used in draw; wavs (37k/273k/24k) present for audio path (loaded on gesture in real play); __INDIGO_STUTTER_STATE exposed and populated.
+- State diff: harness confirmed curJ low, reveal high, hasResolvedOnce=true, isAwake=true in post capture.
+- 9/9 game feel holds; total payload ~0.73 MB (index 26k + jpgs 353k + wavs 335k + manifest); direct preview exercised; asset_contract_v2 satisfied (real files + manifest + load in playable slice).
+- No source changes after capture. This run re-validates the material art+music redesign addressing verbatim feedback "music and art are terrible please improve".
+- Merge status: merge-tree vs main shows 0 "changed in both" conflicts for .factoryx/preview-entrypoint (our value drops/indigo-stutter/index.html is the intended direct entry per WO; main has kawana); branch includes main as ancestor; PR#157 should now report MERGEABLE (addressing the changes_requested at prior head).
+- Note: foundry reachable (blender provider only); relied on prior GenerateImage + numpy for file-backed generated assets under drops/.../assets/ + manifest. Re-verif after cleanup.
+
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157

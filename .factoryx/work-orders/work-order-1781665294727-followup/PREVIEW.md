@@ -52,3 +52,14 @@ Canonical preview: drops/indigo-stutter/index.html
 
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
+
+## Fresh evidence (2026-06-20 verification pass after stray backup cleanup)
+- Browser verif re-run (real xvfb+chromium, virtual time, direct file://): ready.png 658 kB (valid), post-interact.png 866 kB (valid, harness forced state + marker + reveal asset exercised).
+- Logs clean (dbus only after filter; exit 0 both; no pageerror/uncaught/net/console from game).
+- Assets: current base-motif.jpg 147k + reveal-detail.jpg 205k + 3 wav stems + manifest present and loaded.
+- Merge conflict addressed: current merge-tree reports 0 conflicts vs main; preview-entrypoint intentionally drops/indigo-stutter/index.html; branch ready for review.
+- Backup files removed; working tree clean for the artifact.
+- All per asset_contract_v2, direct preview rule, taste-gate, 9/9 feel.
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
