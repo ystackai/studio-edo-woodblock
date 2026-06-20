@@ -408,251 +408,119 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         return path.Contains("://") ? path : "file://" + path;
     }
 
-    private void ConfigureActorRoot(GameObject root, int index, bool takeda)
-    {
-        int local = index % 10;
-        float x = (takeda ? -7.4f : 7.4f) + (local - 4.5f) * 1.05f;
-        float z = -5.8f + (local % 3 - 1) * 0.2f;
-        root.transform.position = new Vector3(x, 0f, z);
-        root.transform.rotation = Quaternion.Euler(0f, takeda ? 87f : -87f, 0f);
-        root.transform.localScale = Vector3.one * (0.96f + (index % 5) * 0.012f);
 
-        ApplyPoseVariant(root.transform, index, takeda);
+    private static async Task<object> LoadGltf(string url)
+    {
+        var type = FindType("GLTFast.GltfImport");
+        if (type == null)
+        {
+            Debug.LogWarning("glTFast is not compiled yet; GLB loading is unavailable for " + url);
+            return null;
+        }
+
+        var gltf = CreateGltfImport(type);
+        if (gltf == null)
+        {
+            Debug.LogWarning("glTFast GltfImport constructor API was not found.");
+            return null;
+        }
+
+        var load = FindMethod(type, "Load", parameters => parameters.Length > 0 && parameters[0].ParameterType == typeof(string));
+        if (load == null)
+        {
+            Debug.LogWarning("glTFast Load(string) API was not found.");
+            return null;
+        }
+
+        var loaded = await AwaitBooleanTask(load.Invoke(gltf, BuildArgs(load.GetParameters(), url)));
+        return loaded ? gltf : null;
     }
 
-    private static void ApplyPoseVariant(Transform root, int index, bool takeda)
+    private static async Task<bool> InstantiateGltfMainScene(object gltf, Transform parent)
     {
-        float guard = takeda ? -7f : 7f;
-        foreach (var child in root.GetComponentsInChildren<Transform>(true))
+        var method = FindMethod(gltf.GetType(), "InstantiateMainSceneAsync", parameters => parameters.Length > 0 && parameters[0].ParameterType == typeof(Transform));
+        if (method == null)
         {
-            string name = child.name.ToLowerInvariant();
-            if (name.Contains("helmet") || name.Contains("kabuto"))
+            Debug.LogWarning("glTFast InstantiateMainSceneAsync(Transform) API was not found.");
+            return false;
+        }
+
+        return await AwaitBooleanTask(method.Invoke(gltf, BuildArgs(method.GetParameters(), parent)));
+    }
+
+    private static object CreateGltfImport(Type type)
+    {
+        foreach (var constructor in type.GetConstructors(BindingFlags.Instance | BindingFlags.Public))
+        {
+            try
             {
-                child.localRotation *= Quaternion.Euler(0f, (index % 5 - 2) * 1.8f, 0f);
+                return constructor.Invoke(BuildArgs(constructor.GetParameters()));
             }
-            if (name.Contains("left") && (name.Contains("arm") || name.Contains("kote") || name.Contains("gloved hand")))
+            catch (Exception ex)
             {
-                child.localRotation *= Quaternion.Euler(guard, 0f, 2f + index % 4);
+                Debug.LogWarning($"glTFast GltfImport constructor failed: {ex.Message}");
             }
-            if (name.Contains("right") && (name.Contains("arm") || name.Contains("kote") || name.Contains("gloved hand")))
+        }
+
+        return null;
+    }
+
+    private static System.Reflection.MethodInfo FindMethod(Type type, string name, Func<System.Reflection.ParameterInfo[], bool> predicate)
+    {
+        foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (method.Name != name) continue;
+            var parameters = method.GetParameters();
+            if (predicate(parameters)) return method;
+        }
+
+        return null;
+    }
+
+    private static object[] BuildArgs(System.Reflection.ParameterInfo[] parameters, params object[] provided)
+    {
+        var args = new object[parameters.Length];
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (i < provided.Length)
             {
-                child.localRotation *= Quaternion.Euler(-guard * 0.55f, 0f, -2f - index % 3);
+                args[i] = provided[i];
+                continue;
             }
-            if (name.Contains("sashimono") || name.Contains("banner"))
+
+            var parameterType = parameters[i].ParameterType;
+            var defaultValue = parameters[i].HasDefaultValue ? parameters[i].DefaultValue : null;
+            if (defaultValue != null && defaultValue != DBNull.Value && defaultValue != Type.Missing)
             {
-                child.localRotation *= Quaternion.Euler((index % 4 - 1) * 1.5f, 0f, takeda ? -3f : 3f);
+                args[i] = defaultValue;
+                continue;
             }
+
+            args[i] = parameterType.IsValueType ? Activator.CreateInstance(parameterType) : null;
         }
+
+        return args;
     }
 
-    private void AddFactionStandard(Transform parent, bool takeda, int index)
+    private static Type FindType(string fullName)
     {
-        var pole = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        pole.name = "Faction standard pole";
-        pole.transform.SetParent(parent, false);
-        pole.transform.localPosition = new Vector3(takeda ? -0.28f : 0.28f, 1.95f, -0.36f);
-        pole.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -5f : 5f);
-        pole.transform.localScale = new Vector3(0.025f, 0.78f, 0.025f);
-        ApplySharedMaterial(pole.GetComponent<Renderer>(), poleMat);
-
-        var cloth = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        cloth.name = takeda ? "Takeda red standard" : "Uesugi blue standard";
-        cloth.transform.SetParent(parent, false);
-        cloth.transform.localPosition = new Vector3(takeda ? -0.28f : 0.28f, 2.45f, -0.36f);
-        cloth.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -5f : 5f);
-        cloth.transform.localScale = new Vector3(0.36f, 0.48f, 0.018f);
-        ApplySharedMaterial(cloth.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
-    }
-
-    private void AddYari(Transform parent, bool takeda, int index)
-    {
-        var shaft = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        shaft.name = "Additive yari shaft";
-        shaft.transform.SetParent(parent, false);
-        shaft.transform.localPosition = new Vector3(takeda ? 0.58f : -0.58f, 1.38f, 0.03f);
-        shaft.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -22f : 22f);
-        shaft.transform.localScale = new Vector3(0.018f, 1.35f, 0.018f);
-        ApplySharedMaterial(shaft.GetComponent<Renderer>(), poleMat);
-
-        var tip = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-        tip.name = "Additive yari blade";
-        tip.transform.SetParent(parent, false);
-        tip.transform.localPosition = new Vector3(takeda ? 0.98f : -0.98f, 2.64f, 0.03f);
-        tip.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -22f : 22f);
-        tip.transform.localScale = new Vector3(0.045f, 0.18f, 0.045f);
-        ApplySharedMaterial(tip.GetComponent<Renderer>(), stoneMat);
-    }
-
-    private void HandleInput()
-    {
-        if (Input.GetKeyDown(KeyCode.Alpha1)) ApplyCameraPreset("overview");
-        if (Input.GetKeyDown(KeyCode.Alpha2)) ApplyCameraPreset("red");
-        if (Input.GetKeyDown(KeyCode.Alpha3)) ApplyCameraPreset("blue");
-        if (Input.GetKeyDown(KeyCode.Alpha4)) ApplyCameraPreset("side");
-        if (Input.GetKeyDown(KeyCode.Alpha5)) ApplyCameraPreset("top");
-        if (Input.GetKeyDown(KeyCode.Alpha6)) ApplyCameraPreset("inspect");
-        if (Input.GetKeyDown(KeyCode.C)) Charge();
-        if (Input.GetKeyDown(KeyCode.R)) Reform();
-        if (Input.GetKeyDown(KeyCode.A)) ToggleMusic();
-        if (Input.GetKeyDown(KeyCode.X)) PlaySfx(clashAccent);
-        if (Input.GetKeyDown(KeyCode.P)) ToggleFoundryBattlefieldPack();
-
-        if (Input.GetMouseButtonDown(0)) previousMouse = Input.mousePosition;
-        if (Input.GetMouseButton(0))
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
-            Vector2 current = Input.mousePosition;
-            Vector2 delta = current - previousMouse;
-            yaw -= delta.x * 0.004f;
-            pitch = Mathf.Clamp(pitch + delta.y * 0.003f, 0.08f, 1.35f);
-            previousMouse = current;
+            var type = assembly.GetType(fullName, false);
+            if (type != null) return type;
         }
+        return null;
+    }
 
-        float wheel = Input.GetAxis("Mouse ScrollWheel");
-        if (Mathf.Abs(wheel) > 0.001f)
+    private static async Task<bool> AwaitBooleanTask(object value)
+    {
+        if (value is Task<bool> booleanTask) return await booleanTask;
+        if (value is Task task)
         {
-            distance = Mathf.Clamp(distance - wheel * 8f, 2.6f, 42f);
+            await task;
+            var resultProperty = task.GetType().GetProperty("Result");
+            return resultProperty == null || resultProperty.GetValue(task) is true;
         }
+        return value is true;
     }
 
-    private void AnimateActors(float dt)
-    {
-        for (int i = 0; i < actors.Count; i++)
-        {
-            var actor = actors[i];
-            if (actor.Root == null) continue;
-            Vector3 basePos = actor.BasePosition;
-            Vector3 current = actor.Root.transform.position;
-            current.y = basePos.y + Mathf.Sin(Time.time * 1.55f + actor.IdlePhase) * 0.015f;
-            if (charging)
-            {
-                current = Vector3.Lerp(current, actor.ChargeTarget, Mathf.Clamp01(dt * 2.8f));
-                actor.Root.transform.rotation = actor.BaseRotation * Quaternion.Euler(actor.Takeda ? 5f : -5f, 0f, 0f);
-            }
-            else
-            {
-                current.x = Mathf.Lerp(current.x, basePos.x, Mathf.Clamp01(dt * 4.2f));
-                current.z = Mathf.Lerp(current.z, basePos.z, Mathf.Clamp01(dt * 4.2f));
-                actor.Root.transform.rotation = Quaternion.Slerp(actor.Root.transform.rotation, actor.BaseRotation, Mathf.Clamp01(dt * 4.2f));
-            }
-            actor.Root.transform.position = current;
-        }
-    }
-
-    private void Charge()
-    {
-        charging = true;
-        status = "CHARGING";
-        for (int i = 0; i < actors.Count; i++)
-        {
-            var actor = actors[i];
-            float direction = actor.Takeda ? 1f : -1f;
-            actor.ChargeTarget = actor.BasePosition + new Vector3(direction * 3.9f, 0f, ((i % 5) - 2) * 0.16f);
-        }
-        PlaySfx(chargeCue);
-        Invoke(nameof(PlayClash), 0.72f);
-    }
-
-    private void Reform()
-    {
-        charging = false;
-        status = "REFORM";
-        PlaySfx(formationStep);
-        Invoke(nameof(SetReadyStatus), 0.28f);
-    }
-
-    private void SetReadyStatus()
-    {
-        status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : status;
-    }
-
-    private void PlayClash()
-    {
-        PlaySfx(clashAccent);
-    }
-
-    private void ToggleMusic()
-    {
-        if (musicSource.clip == null)
-        {
-            status = "AUDIO CLIP MISSING";
-            return;
-        }
-        musicEnabled = !musicEnabled;
-        if (musicEnabled) musicSource.Play();
-        else musicSource.Stop();
-        PlaySfx(uiConfirm);
-    }
-
-    private void ToggleFoundryBattlefieldPack()
-    {
-        if (!foundryBattlefieldPackReady || foundryBattlefieldPackRoot == null)
-        {
-            status = "FOUNDRY PACK MISSING";
-            return;
-        }
-
-        showingFoundryBattlefieldPack = !showingFoundryBattlefieldPack;
-        foundryBattlefieldPackRoot.SetActive(showingFoundryBattlefieldPack);
-        foreach (var actor in actors)
-        {
-            if (actor.Root != null) actor.Root.SetActive(!showingFoundryBattlefieldPack);
-        }
-        status = showingFoundryBattlefieldPack ? "FOUNDRY 20-SAMURAI PACK VIEW" : "KAWANAKAJIMA_UNITY_READY";
-        PlaySfx(uiConfirm);
-    }
-
-    private void PlaySfx(AudioClip clip)
-    {
-        if (clip != null) sfxSource.PlayOneShot(clip);
-    }
-
-    private void ApplyCameraPreset(string preset)
-    {
-        switch (preset)
-        {
-            case "red":
-                cameraTarget = actors.Count > 3 ? actors[3].Root.transform.position + new Vector3(0f, 1.55f, 0.15f) : new Vector3(-5f, 1.7f, -5f);
-                yaw = -0.72f; pitch = 0.30f; distance = 5.3f;
-                status = "RED CLOSE";
-                break;
-            case "blue":
-                cameraTarget = actors.Count > 13 ? actors[13].Root.transform.position + new Vector3(0f, 1.55f, 0.15f) : new Vector3(5f, 1.7f, -5f);
-                yaw = -1.58f; pitch = 0.30f; distance = 5.0f;
-                status = "BLUE CLOSE";
-                break;
-            case "side":
-                cameraTarget = new Vector3(0f, 1.6f, -2f);
-                yaw = -3.02f; pitch = 0.22f; distance = 14.5f;
-                status = "SIDE PROFILE";
-                break;
-            case "top":
-                cameraTarget = new Vector3(0f, 1.4f, -4f);
-                yaw = -1.55f; pitch = 1.20f; distance = 18.5f;
-                status = "TOP FORMATION";
-                break;
-            case "inspect":
-                cameraTarget = actors.Count > 8 ? actors[8].Root.transform.position + new Vector3(0f, 1.48f, 0.18f) : new Vector3(-5f, 1.8f, -5f);
-                yaw = -0.72f; pitch = 0.31f; distance = 4.35f;
-                status = "INSPECT ASSET";
-                break;
-            default:
-                cameraTarget = cameraDefaultTarget;
-                yaw = -0.68f; pitch = 0.24f; distance = 14.5f;
-                status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : status;
-                break;
-        }
-    }
-
-    private void UpdateCamera()
-    {
-        if (mainCamera == null) return;
-        float cp = Mathf.Cos(pitch);
-        var offset = new Vector3(
-            Mathf.Sin(yaw) * cp * distance,
-            Mathf.Sin(pitch) * distance,
-            Mathf.Cos(yaw) * cp * distance
-        );
-        mainCamera.transform.position = cameraTarget + offset;
-        mainCamera.transform.LookAt(cameraTarget);
-    }
-}
