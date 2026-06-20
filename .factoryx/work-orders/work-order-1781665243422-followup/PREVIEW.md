@@ -45,5 +45,5 @@
 Work Order: work-order-1781665243422-followup
 Canonical preview: games/mist-settles-on-one-carved-horizon-5ca8e144/index.html
 Chromium verif: clean on direct entrypoint (fresh re-run 2026-06-20 on f1f40fe; --dump-dom + screenshots + CI redirect sim confirm no factory home, only the living print)
-Latest commit on branch: f1f40fe (current HEAD; verification refresh)
-PR: https://github.com/ystackai/studio-edo-woodblock/pull/156 (update head + body with latest evidence if needed; contains full Work Order context)
+Latest commit on branch: 2cd2fc5 (fresh chromium re-verif + doc refresh; pushed)
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/156 (head should be updated to 2cd2fc5 via push; refresh PR body from .factoryx/.../PR_BODY.md which embeds the full original prompt + FactoryX Work Order Context)
