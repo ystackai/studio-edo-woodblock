@@ -85,3 +85,12 @@
 - Deadline 08:15Z not yet passed; this keeps documenting per polish_until_deadline while blocked.
 
 **Current Status:** BLOCKED (Unity gates). Assets + browser proof + handoff + manifest ready. PR #163 carries full context.
+
+## Push + Branch Update
+
+- git fetch + git push origin HEAD:codex/samurai-unity-guarded-retry succeeded.
+- Local 1f1cfde pushed, now remote at 1f1cfde on codex/samurai-unity-guarded-retry.
+- Branch ahead of previous remote by the doc+manifest commit.
+- Existing PR https://github.com/ystackai/studio-edo-woodblock/pull/163 will reflect the new commit (PR body already contains the full Work Order Context + goal from prior).
+- No new PR created; canonical branch/PR updated per instructions.
+- gh not usable in this shell (no host login), but push is the delivery mechanism specified.
