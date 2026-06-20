@@ -1,5 +1,7 @@
 # FactoryX Work Order PR — Rekick follow-up
 
+**2026-06-20 update:** Rebased for mergeability (now MERGEABLE); regenerated art assets with improved ukiyo-e fidelity (274k/426k); fresh chromium verif run + screenshots updated; WO notes refreshed. See WORKLOG.md for execution trace.
+
 This PR is the reviewable code follow-up for:
 
 - Work Order: work-order-1781665294727-followup
