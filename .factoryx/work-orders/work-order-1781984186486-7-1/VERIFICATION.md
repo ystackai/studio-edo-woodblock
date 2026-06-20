@@ -44,6 +44,21 @@
 - ✅ UI shows `KAWANAKAJIMA_UNITY_READY`
 - ✅ No compile errors from GLTFast reflection bootstrap
 
+## Unity Mac Build Verification
+
+**Date:** 2026-06-20
+**Status:** PASS
+
+The deployed FactoryX worker invoked the Mac Unity editor through Unity MCP and
+called `KawanakajimaUnityBuild.BuildMac()` from `script-execute`.
+
+Result:
+
+- Build response: `success`
+- Output path: `/Users/marcus/Documents/Github/studio-edo-woodblock/unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
+- Console build logs: `Kawanakajima Unity build succeeded`
+- Unity console errors during build: `0`
+
 ### What Changed
 
 - `CreateGltfImport` in `KawanakajimaRuntimeBootstrap.cs` now discovers GLTFast's 4 required interface types via reflection and passes concrete instances to the constructor

@@ -10,6 +10,7 @@
 - **Fix:** `CreateGltfImport()` now discovers concrete types via reflection (`DefaultDownloadProvider`, `TimeBudgetPerFrameDeferAgent`, `BuiltInMaterialGenerator`, `ConsoleLogger`), instantiates them, and passes to constructor
 - **Verification:** Unity MCP scene probe confirms 20 samurai loaded, status `KAWANAKAJIMA_UNITY_READY`
 - **Screenshots:** overview, red close, wide formation — all pass quality gate
+- **Build:** Mac Unity build succeeded through Unity MCP at `Builds/Mac/KawanakajimaSamurai.app`
 - **Files changed:** `unity/kawanakajima-samurai/Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs`
 - **Commit:** `d0cd759`
 

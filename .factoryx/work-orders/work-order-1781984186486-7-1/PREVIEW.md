@@ -10,6 +10,7 @@
 - **Scene:** `unity/kawanakajima-samurai/Assets/Kawanakajima/Scenes/Kawanakajima.unity`
 - **Runtime:** `KawanakajimaRuntimeBootstrap` creates the world at Play Mode/build time.
 - **Mac editor path:** `/Users/marcus/Documents/Github/studio-edo-woodblock/unity/kawanakajima-samurai`
+- **Mac build output:** `unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
 - **Unity MCP:** `http://172.21.0.1:25666`, ping returns `pong`.
 
 ## Verification Screenshots
