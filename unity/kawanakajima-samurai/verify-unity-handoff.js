@@ -54,7 +54,7 @@ mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Linux build
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Mac build hook', /BuildTarget\.StandaloneOSX/);
 mustContain('README.md', 'verified local Unity build documented', /Verified Local Build[\s\S]*KawanakajimaUnityBuild\.BuildMac[\s\S]*Exit code 0/);
 mustContain('UNITY_BUILD_VERIFICATION.md', 'Mac build success documented', /Build result: succeeded[\s\S]*Builds\/Mac\/KawanakajimaSamurai\.app/);
-mustContain('UNITY_LOCAL_STATUS.md', 'Mac Unity MCP routing documented', /Worker routed URL:\s*`http:\/\/172\.21\.0\.1:25666`[\s\S]*Worker preflight: passed/);
+mustContain('UNITY_LOCAL_STATUS.md', 'Mac Unity MCP routing documented', /Worker routed URL:\s*`http:\/\/host\.docker\.internal:27481\/mcp`[\s\S]*Worker preflight: passed via JSON-RPC[\s\S]*scene-list-opened/);
 
 if (errors.length) {
   console.error('UNITY HANDOFF VERIFICATION FAILS:');

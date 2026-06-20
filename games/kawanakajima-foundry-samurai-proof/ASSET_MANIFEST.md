@@ -9,7 +9,7 @@
 
 ## Status
 
-Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity playable build is **not included in this PR**. The Unity source handoff is present, and the deployed Edo worker can now reach the Mac-host Unity MCP listener with authenticated `ping` success; scene insertion/build verification still needs to be run against that listener.
+Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. The Unity source handoff is present, Mac-local Unity build verification is documented, and the deployed Edo worker reaches the live Unity MCP listener at `http://host.docker.internal:27481/mcp` using standard JSON-RPC `tools/call`.
 
 ## Generated Assets (Asset Foundry provenance)
 
@@ -80,7 +80,8 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 
 ## Known Limitations
 
-- **Unity playable build:** Not created in this PR. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac-host Unity MCP listener is reachable from the deployed Edo worker at `http://172.21.0.1:25666` and authenticated `POST /api/system-tools/ping` returns `pong`. The next pass should use that listener for scene insertion and build verification.
+- **Unity build artifact:** The Mac build was verified locally and documented under `unity/kawanakajima-samurai/UNITY_BUILD_VERIFICATION.md`, but the `.app` bundle itself is not committed to git.
+- **Unity MCP route:** Current worker-to-Mac route is `http://host.docker.internal:27481/mcp`. Manual probes must use JSON-RPC `initialize`, `tools/list`, and `tools/call`; do not use old bridge/API contracts.
 - **Asset fidelity:** Stylized, not photoreal. v5 improved over v4 (no more slab/blocky reads).
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.

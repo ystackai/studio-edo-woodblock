@@ -12,7 +12,7 @@
 | Browser proof (JS syntax) | ✅ PASS — stray brace removed, syntax check clean |
 | Browser proof (asset load) | ✅ PASS — 1.23 MB GLB, 6.55 MB battlefield, 2.53 MB audio |
 | Browser proof (gameplay) | ✅ PASS — camera presets, charge/reform/clash, orbit controls |
-| Unity MCP ping | ✅ PASS — `POST /api/system-tools/ping` returns `pong` |
+| Unity MCP scene call | ✅ PASS — `tools/call` → `scene-list-opened` returns loaded `Kawanakajima` scene |
 | Unity Play Mode | ✅ PASS — 20 samurai loaded, `KAWANAKAJIMA_UNITY_READY` |
 | Unity mesh retention | ✅ PASS — 241/241 non-null meshes, 72,927 vertices |
 | Unity Mac build | ✅ PASS — `KawanakajimaSamurai.app` (112 MB) |
@@ -20,10 +20,16 @@
 | Screenshot coverage | ✅ PASS — 21 Unity images, 8 browser images across v8.3–v8.7 |
 | PR #167 | ✅ OPEN, mergeable, 13 commits |
 
+## Foundry Provenance
+
+- Samurai character: Asset Foundry Blender job `asset-1781913507610-bf69e595`
+- 20-samurai battlefield pack: Asset Foundry Blender job `asset-1781935845583-91a9fdbe`
+- Audio loop and SFX: Asset Foundry job `asset-1781916330853-f7d831d9`
+
 ## v8.7 Changes
 
 - **Browser JS fix:** Removed extra `}` after `applyPreset()` — fixed `Unexpected token 'function'` SyntaxError in browser runtime
-- **New MCP screenshots:** 3 camera angles captured from Unity MCP game view and camera tools
+- **New MCP screenshots:** 3 camera angles captured from Unity game view and camera tools
 - **Documentation:** VERIFICATION.md, PREVIEW.md updated with v8.7 evidence
 
 ## Browser Proof
@@ -64,3 +70,5 @@ All samurai read as detailed 3D characters with:
 
 - None blocking. The proof is reviewable with both browser and Unity MCP evidence.
 - Asset fidelity is stylized/low-poly — further visual polish can be done if desired, but the quality gate passes.
+- Future worker probes should use `http://host.docker.internal:27481/mcp` with JSON-RPC `tools/call`, not legacy bridge/API contracts.
+- **Autonomous completion:** not yet proven end-to-end. The latest autonomous run still required manual intervention to stop stale Unity-route probing and correct repository docs.

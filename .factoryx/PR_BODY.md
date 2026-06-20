@@ -28,7 +28,8 @@ Guarded Samurai Unity retry. Starting from the merged Kawanakajima battlefield p
   - Durable evidence: `unity/kawanakajima-samurai/UNITY_BUILD_VERIFICATION.md`
 - Local Unity-MCP deployment:
   - Unity-MCP package `com.ivanmurzak.unity.mcp` 0.81.1
-  - Listener: `http://localhost:25666`
+  - Worker route: `http://host.docker.internal:27481/mcp`
+  - Protocol: JSON-RPC `initialize`, `tools/list`, then `tools/call`
   - Verified tool calls: `editor-application-get-state`, `scene-list-opened`, `assets-find`
 - Work-order context updated:
   - `.factoryx/work-orders/work-order-1781940455825-6-1/UNITY_BUILD_VERIFICATION.md`
