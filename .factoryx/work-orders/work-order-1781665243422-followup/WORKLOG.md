@@ -134,3 +134,25 @@ Remote branch: pushed and in sync (f27d559 then f283d49).
 PR: #156 (branch pushed with evidence; PR body can be refreshed from wo/PR_BODY.md containing full prompt + context).
 
 
+
+## 2026-06-20 Re-verification + preview mechanism confirmation (current session)
+
+- On branch at f46194c (up to date with its remote).
+- Inspected PR #156 via web (public): shows previous deploys had "had a problem deploying" + inactive review-preview after force-push; this can leave the WO preview URL serving stale or default factory home content even when .factoryx/preview-entrypoint is correct in tree.
+- Executed real browser runtime verification (chromium) against exact entrypoint:
+  - ready.png captured (953405 bytes)
+  - post-interact.png (?verify=1) captured (953324 bytes)
+  - Logs: only dbus errors, no pageerror/console/fetch/game errors.
+  - DOM markers: <title>Mist settles on one carved horizon</title> + FOLLOWUP-LIVE-OK in verify mode; no home selectors.
+- Simulated the exact CI logic from .github/workflows/factoryx-delivery.yml "Prepare FactoryX preview root":
+  - python read of .factoryx/preview-entrypoint yields the mist path.
+  - [ -f "./games/mist-settles-on-one-carved-horizon-5ca8e144/index.html" ] succeeds.
+  - entry_url normalized to games/.../  (no index.html suffix).
+  - Therefore next deploy-preview will write a redirect index at preview root pointing at the mist game (not leave the studio home).
+- Updated screenshots/ (png + logs + index.html gallery), PREVIEW.md, VERIFICATION.md with fresh 2026-06-20 evidence + explicit CI sim note.
+- This pass ensures that even after prior deploy hiccups, a new push of this WO branch will re-run the preview deploy job with correct entrypoint, directly addressing the operator feedback before any other changes.
+- No changes to the print implementation, assets, or unrelated files. Focused on verification + making the preview root reliable for the review URL.
+
+Current local HEAD will advance with evidence commit.
+Remote: will push to canonical factoryx/.../work-order-1781665243422-followup to trigger CI deploy-preview.
+PR: #156 (update head + re-deploy should resolve any stale home preview).

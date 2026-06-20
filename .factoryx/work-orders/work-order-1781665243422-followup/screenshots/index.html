@@ -19,15 +19,15 @@ h1 { font-size:14px; font-weight:700; letter-spacing:0.08em; text-transform:uppe
 <p class="note">Direct entrypoint: <code>games/mist-settles-on-one-carved-horizon-5ca8e144/index.html</code> (via <code>.factoryx/preview-entrypoint</code>).<br>
 Ready = idle first paint (no gesture). Post = <code>?verify=1</code> forced sustained baren + cumulative settling + FOLLOWUP-LIVE-OK marker (gated harness, does not affect normal play or first screen).<br>
 Rebased onto main (2026-06-20) to clear GitHub merge conflict report; pushed to canonical WO branch; PR #156 head updated.<br>
-Fresh chromium run 2026-06-20: direct entrypoint confirmed (no factory home chrome). Only dbus noise; zero game errors. Non-blank captures (ready ~952 kB, post ~956 kB). Playwright lib present but browser shell not pre-cached; chromium direct used for evidence (same as prior passes). DOM dump on entrypoint shows &lt;title&gt;Mist settles...&lt;/title&gt; + &lt;canvas&gt; and zero home markers (crew/demos/board etc). Root contrast shows the home page as expected.</p>
+Fresh chromium run 2026-06-20 (re-verified on current branch head f46194c): direct entrypoint confirmed (no factory home chrome). Only dbus noise; zero game errors. Non-blank captures (ready 953405 bytes, post-interact 953324 bytes). DOM dump on entrypoint shows &lt;title&gt;Mist settles on one carved horizon&lt;/title&gt; + &lt;canvas&gt; and zero home markers (crew/demos/board etc). CI preview logic simulation (exact .factoryx read + file check) confirms entrypoint resolves and would write redirect to games/.../ not leave root home. Root contrast serves full factory home as expected. Re-verif + evidence refresh addresses any stale deploy state from prior "problem deploying" runs.
 <div class="grid">
   <div class="card">
     <img src="ready.png" alt="Ready / idle first screen — paper grain, authored horizon base, drifting mist as primary material, single wave horizon visible, no chrome, complete on first sight">
-    <div class="meta">ready.png — 951760 bytes — idle load, mist drifting, wave present, assets composited or fallback graceful. Fresh chromium 2026-06-20 (re-ran on current branch head).</div>
+    <div class="meta">ready.png — 953405 bytes — idle load, mist drifting, wave present, assets composited or fallback graceful. Fresh chromium 2026-06-20 re-verif.</div>
   </div>
   <div class="card">
     <img src="post-interact.png" alt="Post-interact (verify) — FOLLOWUP-LIVE-OK marker, forced high pressDepth + cumulative, local bleeds + mist reaction, deeper settled ink on horizon">
-    <div class="meta">post-interact.png — 956392 bytes — ?verify=1 exercised: marker visible, state forced resolved, bleeds present, mist thinned under baren zone. Fresh chromium 2026-06-20 (re-ran on current branch head).</div>
+    <div class="meta">post-interact.png — 953324 bytes — ?verify=1 exercised: marker visible, state forced resolved, bleeds present, mist thinned under baren zone. Fresh chromium 2026-06-20 re-verif.</div>
   </div>
 </div>
 <p class="note" style="margin-top:18px">Work Order: work-order-1781665243422-followup<br>Deliverable: mist-settles-on-one-carved-horizon-5ca8e144<br>Verification date: 2026-06-20 (fresh chromium re-run on direct entrypoint; confirmed NOT serving factory home)</p>

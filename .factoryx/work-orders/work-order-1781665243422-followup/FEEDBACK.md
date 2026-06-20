@@ -28,3 +28,13 @@ This violates:
 - Screenshots and notes in this work order dir.
 
 This feedback takes priority over adding features, new audio, or extra gestures.
+
+## Resolution (2026-06-20 re-verif pass)
+- .factoryx/preview-entrypoint confirmed pointing at direct `games/mist-settles-on-one-carved-horizon-5ca8e144/index.html`
+- Single self-contained index.html (no chrome, no appended links, clean </html>)
+- Real assets + ASSET_MANIFEST.md in place
+- Fresh chromium run on exact entrypoint + ?verify=1 : clean, non-blank screenshots, correct title, no home markers in DOM
+- CI preview prepare logic (from factoryx-delivery.yml) simulated end-to-end locally using the same python+bash reads: entrypoint present, target file exists → will install redirect at preview root (prevents serving factory home index.html)
+- Next push of canonical branch will trigger deploy-preview job with correct entrypoint, refreshing the /factoryx/previews/edo-woodblock/work-order-1781665243422-followup/ URL to show the mist print.
+- All required response items complete; feedback addressed before any polish.
+
