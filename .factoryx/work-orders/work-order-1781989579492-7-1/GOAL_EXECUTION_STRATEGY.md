@@ -131,13 +131,13 @@ Since Asset Foundry and Blender MCP are available (`http://factoryx-edo-woodbloc
 |-----------|--------|----------|
 | Asset Foundry | **HEALTHY** (200) | `http://factoryx-edo-woodblock-asset-foundry:18113` |
 | Blender MCP | Configured | Local `/usr/bin/blender` |
-| Unity MCP listener | Reachable | `http://172.21.0.1:25666` (Mac Studio bridge) |
+| Unity MCP listener | Reachable | `http://host.docker.internal:27481/mcp` (Mac-local MCP bridge from worker containers) |
 | Unity CLI | Available | `0.1.0-beta.7` (no Editor installed on worker) |
 | Unity Editor | Not on worker | Mac Studio: `2023.2.20f1` |
 
 ### 6.2 Build Strategy
 1. **Browser proof** (Three.js) — always available, always buildable
-2. **Unity Editor Play Mode** — drive via MCP to `http://172.21.0.1:25666`, capture screenshots
+2. **Unity Editor Play Mode** — drive via MCP to `http://host.docker.internal:27481/mcp`, capture screenshots
 3. **Unity Mac build** — via MCP `build-execute` or similar, produce `KawanakajimaSamurai.app`
 4. If Mac build is blocked: capture the blocker with logs and keep Editor Play Mode as proof
 
@@ -195,7 +195,7 @@ Since Asset Foundry and Blender MCP are available (`http://factoryx-edo-woodbloc
 ### Phase 1: Asset Audit & Quality Check (Current)
 - [x] Verify Asset Foundry health: **200 OK**
 - [x] Verify Blender MCP availability: **configured, `/usr/bin/blender`**
-- [x] Verify Unity MCP listener: **reachable at `http://172.21.0.1:25666`**
+- [x] Verify Unity MCP listener: **reachable at `http://host.docker.internal:27481/mcp`**
 - [x] Inspect existing samurai contact sheet: readable silhouette, proper scale
 - [x] Inspect existing browser proof: non-blank, 20 samurai, orbit controls
 - [x] Inspect existing Unity build: 112 MB Mac .app, exit code 0
