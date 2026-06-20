@@ -1,4 +1,4 @@
-# Verification Log — Kawanakajima Samurai Unity Playable Proof v8
+# Verification Log — Kawanakajima Samurai Unity Playable Proof v8.6
 
 ## GLTFast Reflection Bootstrap Fix (v8.3)
 
@@ -8,41 +8,24 @@
 ### Probe Results (Unity MCP script-execute)
 
 1. **GLTFast types discovered:**
-   - `GLTFast.GltfImport` — OK
-   - `GLTFast.Loading.DefaultDownloadProvider` — OK
-   - `GLTFast.TimeBudgetPerFrameDeferAgent` — OK
-   - `GLTFast.Materials.BuiltInMaterialGenerator` — OK
-   - `GLTFast.Logging.ConsoleLogger` — OK
+     - `GLTFast.GltfImport` — OK
+     - `GLTFast.Loading.DefaultDownloadProvider` — OK
+     - `GLTFast.TimeBudgetPerFrameDeferAgent` — OK
+     - `GLTFast.Materials.BuiltInMaterialGenerator` — OK
+     - `GLTFast.Logging.ConsoleLogger` — OK
 
 2. **Constructor injection test:**
-   - All 4 interface implementations instantiated via `Activator.CreateInstance()` — OK
-   - `GltfImport` constructor invoked with concrete params — OK
-   - Instance type: `GLTFast.GltfImport` — OK
+     - All 4 interface implementations instantiated via `Activator.CreateInstance()` — OK
+     - `GltfImport` constructor invoked with concrete params — OK
+     - Instance type: `GLTFast.GltfImport` — OK
 
 3. **Scene state (Play Mode):**
-   - Active scene: `Kawanakajima`
-   - IsPlaying: `True`
-   - Bootstrap: `OK`
-   - Actors count: `20` (10 Takeda + 10 Uesugi)
-   - Status: `KAWANAKAJIMA_UNITY_READY`
-   - Root objects: 73
-
-### Screenshots
-
-| Shot | File | Description |
-|------|------|-------------|
-| Overview | `screenshots/unity_verify_v8.3.png` | Default camera with all 20 samurai on battlefield |
-| Close (Red) | `screenshots/unity_red_close_v8.3.png` | Close-up of red Takeda samurai with blue Uesugi in background |
-| Wide Formation | `screenshots/unity_wide_formation_v8.3.png` | Full battlefield with terrain, trees, hills, and both formations |
-
-### Quality Gate
-
-- ✅ Samurai silhouettes are readable (detailed characters, not primitives)
-- ✅ Helmet/helmet shapes, armor, and sashimono banners visible
-- ✅ Red/blue faction distinction clear
-- ✅ Battlefield terrain with ink-styled hills and pine trees
-- ✅ UI shows `KAWANAKAJIMA_UNITY_READY`
-- ✅ No compile errors from GLTFast reflection bootstrap
+     - Active scene: `Kawanakajima`
+     - IsPlaying: `True`
+     - Bootstrap: `OK`
+     - Actors count: `20` (10 Takeda + 10 Uesugi)
+     - Status: `KAWANAKAJIMA_UNITY_READY`
+     - Root objects: 73
 
 ## Unity Mac Build Verification
 
@@ -89,19 +72,6 @@ life of the scene and disposes them in `OnDestroy()`.
 |------|------|-------------|
 | Mesh retention proof | `screenshots/unity_mesh_retention_v8.5.png` | Deterministic camera render showing actual retained samurai body geometry, armor plates, banners, and weapons in Unity |
 
-The earlier v8.3/v8.4 Unity screenshots are retained for history, but the v8.5
-mesh-retention render is the authoritative visual proof for Unity asset
-instantiation.
-
-### What Changed
-
-- `CreateGltfImport` in `KawanakajimaRuntimeBootstrap.cs` now discovers GLTFast's 4 required interface types via reflection and passes concrete instances to the constructor
-- Fallback `BuildArgs` loop preserved for other constructors
-- Successful GLTFast imports are retained until scene teardown so Unity meshes
-  and materials remain visible after instantiation
-- The reflected GLTFast constructor path now uses `UninterruptedDeferAgent`
-  instead of constructing a MonoBehaviour defer agent directly
-
 ## Camera Angle Suite (v8.5)
 
 **Date:** 2026-06-20  
@@ -118,31 +88,96 @@ Additional camera-angle screenshots captured via Unity MCP `script-execute` + `s
 
 ### Quality Gate — v8.5
 
-- ✅ Hero three-quarter view frames the samurai off-center with readable silhouette, helmet, armor, and weapon
-- ✅ Takeda close: helmet crest, lamellar armor, katana/saya, and red faction color all clearly visible
-- ✅ Uesugi close: blue faction armor distinct; samurai body, helmet, and weapons identifiable
-- ✅ Rear view: both armies visible with sashimono banners, battlefield depth with hills and trees
-- ✅ All samurai read as detailed characters, not primitive shapes
-- ✅ No blank canvas, no off-camera scenes, no unidentifiable silhouettes
+- Hero three-quarter view frames the samurai off-center with readable silhouette, helmet, armor, and weapon
+- Takeda close: helmet crest, lamellar armor, katana/saya, and red faction color all clearly visible
+- Uesugi close: blue faction armor distinct; samurai body, helmet, and weapons identifiable
+- Rear view: both armies visible with sashimono banners, battlefield depth with hills and trees
+- All samurai read as detailed characters, not primitive shapes
+- No blank canvas, no off-camera scenes, no unidentifiable silhouettes
 
-### Complete Screenshot Inventory
+## Browser Proof Polish (v8.6)
+
+**Date:** 2026-06-20  
+**Status:** PASS
+
+Browser proof improvements:
+
+| Feature | Detail |
+|---------|--------|
+| Shadows | PCFSoft shadow maps (2K key, 1K rim) |
+| Tone mapping | ACES Filmic (exposure 1.15) for cinematic HDR |
+| Camera | Smooth cubic easing transitions between presets |
+| Depth | Distant fog gradient plane for paper-ink aesthetic |
+| Vignette | CSS radial gradient for cinematic framing |
+| Actor animation | Breathing oscillation + body sway + banner wind flutter (two-frequency) |
+| Charge dynamics | Increased distance (4.5), wider spread, faster lean (600ms) |
+
+### Browser Proof Verification
+
+```
+GLB size: 1.23 MB
+Contact size: 1150 KB
+Audio loop size: 2.53 MB
+Battlefield pack size: 6.55 MB
+BASIC STRUCTURE + ASSET CHECKS: PASS
+```
+
+## Unity MCP v8.6 Camera Angle Suite
+
+**Date:** 2026-06-20  
+**Status:** PASS
+
+New camera-angle screenshots captured via Unity MCP `screenshot-camera`:
+
+| Shot | File | Description |
+|------|------|-------------|
+| Wide Formation | `screenshots/v86_wide_formation.png` | Full battlefield, 10 red vs 10 blue with hills and pine trees |
+| Takeda Close | `screenshots/v86_takeda_close.png` | Red samurai detail — helmet, armor, katana clearly visible |
+| Uesugi Close | `screenshots/v86_uesugi_close.png` | Blue samurai detail — faction color distinct, armor visible |
+| Hero Three-Quarter | `screenshots/v86_hero_3q.png` | Dramatic shoulder-angle, red samurai off-center |
+| Final Scene | `screenshots/v86_final.png` | Full scene with KAWANAKAJIMA_UNITY_READY UI |
+
+### Quality Gate — v8.6
+
+- All samurai read as detailed characters with proper silhouette, helmet, armor, weapons
+- Red Takeda / Blue Uesugi faction distinction clear in all angles
+- Wide formation shows complete battlefield with terrain, hills, pine trees, field stones
+- Close-ups show helmet crest (kabuto), lamellar armor (do), katana/saya, sashimono banner
+- No blank canvas, no primitive shapes, no unidentifiable silhouettes
+- Camera angles include wide, close, three-quarter, hero — coverage is comprehensive
+
+## Complete Screenshot Inventory
 
 | Shot | File | Quality |
 |------|------|---------|
-| Mesh Retention Proof | `screenshots/unity_mesh_retention_v8.5.png` | PASS — functional proof that Unity retained non-null meshes after GLTFast load |
-| Overview | `screenshots/unity_verify_v8.3.png` | ✅ Full scene, 20 samurai, all visible |
-| Close (Red) | `screenshots/unity_red_close_v8.3.png` | ✅ Red Takeda samurai close |
-| Wide Formation | `screenshots/unity_wide_formation_v8.3.png` | ✅ Full battlefield with terrain |
-| Side Profile | `screenshots/unity_side_v8.4.png` | ✅ Formation side view |
-| Top Down | `screenshots/unity_top_v8.4.png` | ✅ Tactical top-down formation |
-| Blue Close | `screenshots/unity_blue_close_v8.4.png` | ✅ Blue Uesugi samurai close |
-| Build Verify | `screenshots/unity_build_verify_v8.4.png` | ✅ Post-build scene check |
-| Final | `screenshots/unity_final_v8.4.png` | ✅ Blue samurai hero shot |
-| Hero 3Q | `screenshots/unity_hero_three_quarter_v8.5.png` | ✅ Dramatic hero angle |
-| Takeda Close | `screenshots/unity_takeda_close_v8.5.png` | ✅ Red samurai detail |
-| Uesugi Close | `screenshots/unity_uesugi_close_v8.5.png` | ✅ Blue samurai detail |
-| Rear View | `screenshots/unity_rear_view_v8.5.png` | ✅ Both armies from behind |
+| Wide Formation (v8.6) | `screenshots/v86_wide_formation.png` | Full battlefield, 20 samurai |
+| Takeda Close (v8.6) | `screenshots/v86_takeda_close.png` | Red samurai detail |
+| Uesugi Close (v8.6) | `screenshots/v86_uesugi_close.png` | Blue samurai detail |
+| Hero 3Q (v8.6) | `screenshots/v86_hero_3q.png` | Dramatic shoulder angle |
+| Final Scene (v8.6) | `screenshots/v86_final.png` | Full scene with UI |
+| Mesh Retention Proof | `screenshots/unity_mesh_retention_v8.5.png` | Functional proof of mesh retention |
+| Overview | `screenshots/unity_verify_v8.3.png` | Full scene, 20 samurai |
+| Close (Red) | `screenshots/unity_red_close_v8.3.png` | Red Takeda samurai |
+| Wide Formation | `screenshots/unity_wide_formation_v8.3.png` | Full battlefield |
+| Side Profile | `screenshots/unity_side_v8.4.png` | Side view |
+| Top Down | `screenshots/unity_top_v8.4.png` | Tactical top-down |
+| Blue Close | `screenshots/unity_blue_close_v8.4.png` | Blue Uesugi |
+| Build Verify | `screenshots/unity_build_verify_v8.4.png` | Post-build check |
+| Final | `screenshots/unity_final_v8.4.png` | Hero shot |
+| Hero 3Q | `screenshots/unity_hero_three_quarter_v8.5.png` | Dramatic hero angle |
+| Takeda Close | `screenshots/unity_takeda_close_v8.5.png` | Red samurai detail |
+| Uesugi Close | `screenshots/unity_uesugi_close_v8.5.png` | Blue samurai detail |
+| Rear View | `screenshots/unity_rear_view_v8.5.png` | Both armies from behind |
 
-Note: the camera screenshots are visual review evidence. The mesh-retention
-probe and `unity_mesh_retention_v8.5.png` are the authoritative functional proof
-that Unity is no longer dropping samurai mesh data after instantiation.
+## Final Status
+
+- **Branch:** `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8`
+- **PR:** #167 (open, mergeable, targeting main)
+- **Unity MCP:** reachable at `http://172.21.0.1:25666` — all probes pass
+- **Scene state:** Kawanakajima, Play Mode, 20 actors loaded, status `KAWANAKAJIMA_UNITY_READY`
+- **Mesh state:** Sample actor has 241/241 non-null meshes and 72,927 vertices
+- **Screenshots:** 18 Unity proof images; v8.6 wide/takeda/uesugi/hero/final are latest
+- **Build:** Mac app build succeeded through Unity MCP at `Builds/Mac/KawanakajimaSamurai.app` (112 MB)
+- **Browser proof:** v8.6 polished with shadows, tone mapping, smooth camera, fog, vignette, animation
+- **Asset integration:** Foundry samurai GLB (1.23 MB) and battlefield pack GLB (6.55 MB) loaded and instantiated
+- **Quality gate:** All samurai read as detailed characters with readable silhouette, helmet, armor, weapons, and faction coloring
