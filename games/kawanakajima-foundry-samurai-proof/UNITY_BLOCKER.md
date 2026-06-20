@@ -6,9 +6,9 @@ Unity Editor/MCP listener is not available in this worker container runtime.
 
 - `unity --version` returns `0.1.0-beta.7` (standalone Unity CLI is present).
 - `unity editors -i` returns only the header `Version Arch Default Platforms`, so no Editor is installed.
-- `df -h /cache` currently shows about 2.1G free on the 38G root-backed cache mount; this is below the 18G minimum used by the FactoryX Unity Editor install helper.
+- `df -h /cache` has stayed under about 2.1G free on the 38G root-backed cache mount during live checks; this is below the 18G minimum used by the FactoryX Unity Editor install helper.
 - No Unity MCP project listener is running.
-- A Unity source handoff now exists at `unity/kawanakajima-samurai/` with copied GLB/WAV assets, the newer 20-samurai battlefield scene pack GLB/manifest, a runtime bootstrap, and Editor build hooks.
+- A Unity source handoff now exists at `unity/kawanakajima-samurai/` with copied GLB/WAV assets, the v3 20-samurai battlefield scene pack GLB/manifest, a runtime bootstrap, and Editor build hooks.
 - No Unity Editor build was created or verified.
 - This deliverable is the browser/Three.js review proof plus a Unity source handoff only.
 - If final shipping requires Unity, the host needs more disk or a different worker with an installed Unity Editor and Unity-side MCP package/listener.

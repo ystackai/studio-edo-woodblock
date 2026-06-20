@@ -7,15 +7,16 @@
 **Status:** Browser proof with v5 repaired asset (procedural kabuto, mempo, lamellar do, sode, hakama, geta/tabi, katana, and restrained sashimono; 1.23MB GLB). Rear rim lighting + extra layered distant hills in game + render for Japanese countryside depth and silhouette readability. 20 actors, 6 repeatable cameras (overview/redClose/blueClose/sideProfile/topFormation/assetInspect). Verified with node verify.js PASS and non-blank Blender evidence. Unity blocked per preflight.
 
 ## Current Foundry 20-Samurai Battlefield Pack
-Asset Foundry job `asset-1781933644954-6853e6a2` now provides a single Blender-authored battlefield scene pack:
+Asset Foundry job `asset-1781935845583-91a9fdbe` now provides the current single Blender-authored battlefield scene pack. This v3 pass supersedes the earlier `asset-1781933644954-6853e6a2` pack for review/build use while preserving the older job in history.
 
-- `samurai_battlefield_pack.glb` (3.4 MB) — one GLB scene containing 20 named samurai, 10 Takeda and 10 Uesugi, on a Japanese countryside battlefield with road, river, rice paddies, cedar hills, banners, weapons, and reviewable formation spacing.
-- `samurai_battlefield_pack_source.blend` (12 MB) — source Blender file for the full pack.
+- `samurai_battlefield_pack.glb` (6.6 MB) — one GLB scene containing 20 named samurai, 10 Takeda and 10 Uesugi, on a Japanese countryside battlefield with road, river, rice paddies, cedar hills, banners, weapons, and reviewable formation spacing.
+- `samurai_battlefield_pack_source.blend` (21 MB) — source Blender file for the full pack.
 - `samurai_battlefield_manifest.json` — `warrior_count=20`, exact 10/10 faction split, per-warrior ID, pose, position, and yaw.
 - `samurai_battlefield_contact_sheet.png` — repeatable evidence cameras: wide clash, overhead layout, Takeda line, Uesugi line, center meeting.
 - `samurai_battlefield_wide_clash.png` and per-camera PNGs — human-reviewable visual evidence.
+- v3 fidelity changes: denser individual lamellar plate meshes, matte charcoal iron, smaller shikoro neck plates instead of disk-like helmets, wind-bent sashimono cloth panels, rolling terrain, dust patches, stones, and grass tufts. It remains stylized, not photoreal.
 
-Preserved under `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai-battlefield-pack/asset-1781933644954-6853e6a2/`.
+Preserved under `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/`.
 
 Unity mirrors:
 
@@ -86,8 +87,8 @@ All file-backed; no in-browser oscillators. Provenance retained in generated/fou
 6. assetInspect — close on unmodified Foundry hero for material/silhouette gate.
 
 ## Blockers
-- **Unity:** Unity CLI exists, but no Unity Editor/project listener is installed and `/cache` only has 4.5G free. A Unity source handoff now exists under `unity/kawanakajima-samurai/`, but no Unity Editor build was created or claimed. This PR remains the browser/Three.js review proof plus Unity source handoff. See `UNITY_BLOCKER.md`.
-- **Unity update:** The live preflight now reports about 2.1G free on `/cache`, still below the 18G minimum. Unity Editor/auth/license/listener remain unavailable.
+- **Unity:** Unity CLI exists, but no Unity Editor/project listener is installed and `/cache` has stayed under about 2.1G free during live preflight checks, below the 18G minimum. A Unity source handoff now exists under `unity/kawanakajima-samurai/`, but no Unity Editor build was created or claimed. This PR remains the browser/Three.js review proof plus Unity source handoff. See `UNITY_BLOCKER.md`.
+- **Unity update:** Unity Editor/auth/license/listener remain unavailable.
 - No per-actor unique Blender variants beyond pose/scale (single source GLB used for fidelity; variants are runtime transforms only — acceptable per "use the Foundry GLB as the base visual asset").
 - Visual gate: v4 review renders read as blocky/cylindrical with slab banners. v5 replaces the final runtime GLB with a Blender repair pass that keeps the samurai recognizably stylized but removes the worst Minecraft-like slab read. Large framing + contact comparison panel provided so human reviewer can judge directly.
 
@@ -116,7 +117,7 @@ All file-backed; no in-browser oscillators. Provenance retained in generated/fou
 - Preview path: `games/kawanakajima-foundry-samurai-proof/`
 - Unity source handoff: `unity/kawanakajima-samurai/`
   - GLB copied to `Assets/StreamingAssets/Kawanakajima/samurai_character.glb`.
-  - Full 20-samurai battlefield pack copied to `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb`.
+  - Full v3 20-samurai battlefield pack copied to `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb`.
   - Battlefield manifest copied to `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json`.
   - WAVs copied to `Assets/Resources/KawanakajimaAudio/`.
   - `KawanakajimaRuntimeBootstrap.cs` loads the GLB through Unity glTFast and creates the 20-actor countryside scene at runtime.

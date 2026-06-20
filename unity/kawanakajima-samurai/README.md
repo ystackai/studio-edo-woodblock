@@ -7,7 +7,7 @@ It is not a completed Unity build yet because the FactoryX worker currently has 
 ## Contents
 
 - `Assets/StreamingAssets/Kawanakajima/samurai_character.glb` - live Foundry Samurai asset from job `asset-1781913507610-bf69e595`.
-- `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` - live Foundry 20-samurai battlefield scene pack from job `asset-1781933644954-6853e6a2`.
+- `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` - live Foundry 20-samurai battlefield scene pack v3 from job `asset-1781935845583-91a9fdbe`.
 - `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` - 20 named warriors, 10 Takeda and 10 Uesugi, with positions and poses.
 - `Assets/Resources/KawanakajimaAudio/*.wav` - file-backed audio from Foundry job `asset-1781916330853-f7d831d9`.
 - `Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs` - runtime scene builder and playable loop.
