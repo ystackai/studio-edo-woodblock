@@ -10,8 +10,8 @@
 - The preview root opens the changed artifact directly. No links appended after </html>, no homepage or catalog mutation.
 
 ## What the review sees (target after rework)
-- Warm handmade paper (#f4f0e6 or #f8f4eb) ground with subtle fiber texture + one strong ukiyo-e composition in deep indigo ink (#0A0F3C / #0f172a): a horizon line or wave crest, mist veils, and a quiet central silhouette motif (e.g. lone boat or pine or robed figure). The primary ink forms visibly "stutter" — gentle organic jitter / phase-shifted tremble on the living lines — before any gesture. Mist drifts slowly. The whole first screen is already a complete, quiet, slightly unsettled statement. No loading chrome, no big "START" button dominating, no tutorial overlay.
-- Obvious affordance for the verb: the living ink zones carry a slightly "damp" or thirsty treatment (micro lighter edges or paper absorption look) vs the dry paper. Moving the pointer (or touch) over/near them produces a soft expanding pressure ring / baren-like cursor. The jitter on the exact forms under contact visibly and immediately damps / steadies. This is the core "rub to still" verb — legible in <5s.
+- Warm handmade paper (#f4f0e6) ground with subtle fiber texture + one strong ukiyo-e composition in deep indigo ink (#0A0F3C / #0f172a): a horizon line or wave crest, mist veils, and a quiet central silhouette motif (lone boat + pine). The primary ink forms visibly "stutter" — strong organic jitter on the living lines — before any gesture (now higher amplitude for obviousness). Mist drifts slowly. The whole first screen is already a complete, quiet, slightly unsettled statement. A single restrained sublabel under the title describes the point poetically ("linger where the ink trembles — it settles only under sustained hand"). No loading chrome, no big "START", no tutorial overlay.
+- Obvious affordance for the verb: the living ink zones carry a slightly "damp" or thirsty treatment vs the dry paper. Moving the pointer over/near them produces an immediate soft attention ring + visible micro-damping on the lines under the cursor (even without press) — exploration itself shows the response. Sustained press deepens damping + expands pressure ring (baren-like). The jitter damps/steadies on contact. Core "linger to still" verb legible in <5s; sublabel describes the meaning.
 - Audio: completely silent until first gesture (per rules). On first pointerdown / touch / space-hold over the print surface: AudioContext created, sparse stuttering water-drop / friction rhythm begins (clearly broken, hesitant, gapped — the "stutter"). Sustained contact over active zones fills the gaps in real time; a soft resolving tone or simple held phrase emerges and can be sustained by continued presence. On release the gaps gradually reopen, tone fades — the world exhales.
 - Progressive reveal: regions that receive sustained attention (~1.5-3s cumulative) begin to show an under-layer or resolution (deeper ink settling, mist thinning locally so a distant form sharpens, or a second crisper "final pass" line appears). The "completion" of the print is authored by the user's sustained attention. This is the point of the interaction.
 - A single, tiny, poetic caption may appear for a few seconds after the first successful resolve cycle (e.g. "the hand that stills the ink" or "ink holds what the baren quiets" in the lower margin or corner, 8-11px, restrained ink color). It is not instructions or a how-to; it is the print's quiet title for the gesture the player just performed. It fades after ~4s or on reset.
@@ -28,13 +28,12 @@
 - Fresh re-capture (closeout execution): ready.png (~512kB) + post-interact.png (~682kB) overwritten with current chromium evidence (see VERIFICATION.md for commands + log); post shows FOLLOWUP-LIVE-OK + caption + reveal exercised.
 
 ## Notes for reviewers
-- This is a follow-up rework attached to the same deliverable node (smoke-edo-asset-generation-skill-proof-pack-13658fec). The original asset-gen smoke (melody + art combo in indigo-stutter) is preserved in spirit and now exercised through player agency; the change makes the *point of touching it* legible, immediate, and rewarding within house constraints.
-- Real file-backed generated/authored assets (ukiyo-e layers) are included under drops/indigo-stutter/assets/ + ASSET_MANIFEST.md + provenance to satisfy the asset_contract_v2 in the payload.
-- Preview root opens the changed artifact directly.
-- The PR for this WO contains the full FactoryX prompt in the body (updated during closeout execution).
-- Browser runtime verification (real chromium) executed multiple times; latest fresh captures + logs in this WO's screenshots/ + VERIFICATION.md.
-- Backup files cleaned from drop (pre-existing old passive versions).
-- No unrelated polish: feedback addressed first; taste gate passed before expansion. Latest agent review (LGTM on PR #155) confirms all gates passed.
+- This is a follow-up rework attached to the same deliverable node (smoke-edo-asset-generation-skill-proof-pack-13658fec). The asset-gen smoke (melody + art) is preserved and exercised through player agency; the interaction + explanation now make the *point* legible (sustained attention settles the fragile print; hover already shows response; sublabel describes without lecturing).
+- Real file-backed generated/authored assets (ukiyo-e layers) under drops/indigo-stutter/assets/ + ASSET_MANIFEST.md + provenance satisfy asset_contract_v2.
+- Preview root opens the changed artifact directly (drops/indigo-stutter/index.html).
+- Browser runtime verification (real chromium) executed; fresh ready/post captures (with sublabel + stronger jitter visible) + state in this WO's screenshots/ + VERIFICATION.md.
+- No unrelated polish: feedback addressed (stronger telegraph + hover response + description) before polish. Changes on canonical WO branch.
+- gh auth unavailable in runner; push to factoryx/... branch; update PR manually if needed with full prompt (see FULL_WORK_ORDER_PROMPT.txt).
 
 Work Order: work-order-1781665294730-followup
 Target deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec

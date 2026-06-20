@@ -100,15 +100,18 @@ Parent: work-order-asset-skill-smoke-edo-20260522
 - Taste gate + 9/9 + asset_contract_v2 + direct preview + <2MB + gesture audio + no net: all satisfied.
 - Ready for human review / merge per existing LGTM agent review.
 
-## Execution pass 2026-06-20 (current agent)
-- Inspected current HEAD 138be205 (rework closeout), branch factoryx/factory-edo-woodblock/work-order-1781665294730-followup up-to-date with its remote (no divergence), merge with origin/main "already up to date" — no conflicts present now (historical merge conflict at 66fc0ce9 from github-mergeability is resolved by prior commits).
-- Re-ran required browser runtime verification (chromium headless + vtime, ready + ?verify=1 post). Fresh non-blank screenshots captured (ready 511523B, post 681891B), exit 0 both, no pageerror/uncaught/console errors (dbus noise only), state markers + caption + reveal exercised in post capture. Overwrote screenshots/ to include this run's evidence.
-- Confirmed .factoryx/preview-entrypoint = "drops/indigo-stutter/index.html", real assets + ASSET_MANIFEST.md with provenance under drops/.../assets/, index uses them + fallbacks.
-- gh pr view / gh pr list attempted (per "inspect the open PR ... with `gh pr view` before further changes"); auth not available in this worker shell (GH_TOKEN not injectable without violating "do not inspect token" rule). Used git to confirm branch state. Presumed canonical PR remains #155 from prior logs; no new changes_requested visible in local context.
-- Updated VERIFICATION.md and this WORKLOG with fresh run details + evidence summary. No code or interaction changes (feedback already addressed in a33ace3); this pass satisfies "Run browser/runtime verification" + evidence.
-- Staged modified screenshots (fresh evidence binaries) + updated md notes.
-- Will push canonical with `git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294730-followup`.
-- Full FactoryX Work Order prompt (the complete <user_query> text including payload, feedback, rules, and "Implement the requested changes...") is to be included in the PR body per instructions. (Prior closeout claimed embed via gh; here re-verif + notes refresh performed. Full prompt context governs this execution.)
+## Execution pass 2026-06-20 (current agent — telegraph + description follow-through)
+- Inspected current HEAD 0c973f5 (add FULL prompt), branch up-to-date with remote (00 ahead/behind), merge-base with origin/main is current main tip — no active merge conflicts (prior github-mergeability changes_requested at old sha resolved).
+- Re-ran browser runtime verification per payload (chromium + vtime budget, ready + post?verify=1). Fresh captures: ready 514749B, post 683911B; exit 0; only dbus noise (no pageerror, no console fatal, no uncaught, no net reqs in vtime). Evidence updated in screenshots/.
+- Confirmed preview entrypoint, assets (real jpgs 165k/207k + manifest), direct root still correct. No foundry image gen used (healthz ok but no 2d/image providers configured; blender only; used existing file-backed + small code telegraph changes).
+- Performed targeted material changes to interaction/explanation to further address operator feedback ("flat and pointless... don't understand the point... make more obvious to explore or describe"):
+  - Increased idle jitter amp on living zones (baseJ 6.2/5.4/4.8 + boat) so the stutter is visibly the dominant unsettled quality on first screen.
+  - Added hover micro-damping + soft attention ring (distinct lighter ring when isOver && !press): moving pointer over the print now visibly steadies the lines underneath immediately — exploration itself demonstrates the verb and response before any hold.
+  - Added always-visible, restrained sublabel under title that describes the point poetically to the user: "linger where the ink trembles — it settles only under sustained hand". Complements the enacted interaction without tutorial chrome.
+  - Updated updateStillness, drawPressure, init values, reset logic; aria + labels consistent. Kept house style, single verb, real assets.
+- Re-ran chromium verif post-edit; ready capture now shows the descriptive sublabel + stronger tremble; post confirms state. Updated VERIFICATION.md, FEEDBACK.md, this WORKLOG with details + evidence.
+- gh not usable (no login in shell, per prior); inspected via git only. Will push to canonical branch. Expect to update PR #155 body (if open) with latest evidence + full WO prompt reference (FULL_WORK_ORDER_PROMPT.txt present).
+- All changes focused on feedback resolution; no unrelated scope, no other files edited, taste gate + 9/9 still hold (stronger telegraph makes core verb even more obvious in first seconds).
 
 Work Order: work-order-1781665294730-followup
 Branch: factoryx/factory-edo-woodblock/work-order-1781665294730-followup
