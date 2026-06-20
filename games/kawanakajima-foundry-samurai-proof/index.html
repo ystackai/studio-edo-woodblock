@@ -27,7 +27,12 @@
      .info-row { display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid rgba(200,184,160,0.1); font-size:10px; }
      .info-row .k { opacity:0.5; }
       #vignette { position:absolute; inset:0; pointer-events:none; z-index:5;
-        background: radial-gradient(ellipse at center, transparent 55%, rgba(6,4,2,0.45) 100%); }
+        background: radial-gradient(ellipse at center, transparent 55%, rgba(6,4,2,0.45) 100%);
+        animation: vignetteBreath 8s ease-in-out infinite alternate; }
+      @keyframes vignetteBreath {
+        0%   { opacity: 0.85; }
+        100% { opacity: 1; }
+      }
      .takeda { color:#c46050; }
      .uesugi { color:#6080b8; }
      #info-content { font-size:10px; line-height:1.5; }
@@ -387,7 +392,15 @@
       camera.position.lerpVectors(camTransOrig.pos, camTransDest.pos, e);
       const lookTarget = new THREE.Vector3().lerpVectors(camTransOrig.target, camTransDest.target, e);
       camera.lookAt(lookTarget);
-      if (t >= 1) camTransitionActive = false;
+        if (t >= 1) {
+        camTransitionActive = false;
+        // Sync orbit state to the camera actual position/target after transition
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        yaw = Math.atan2(dir.x, dir.z);
+        pitch = Math.asin(Math.max(-1, Math.min(1, -dir.y)));
+        dist = camera.position.distanceTo(target);
+        }
      }
     let yaw = -1.82, pitch = 0.36, dist = 15.2;
     let target = new THREE.Vector3(-2.8, 1.8, -1.5);
@@ -677,7 +690,9 @@
     }
 
     // === CHARGE / REFORM ===
+let chargeFlash = 0;
     function charge() {
+chargeFlash = 1.0;
       chargePhase = 1;
       statusEl.textContent = 'CHARGING';
       actors.forEach((a) => {
@@ -815,7 +830,10 @@
           found = actors.find(a => a.mesh === obj || a.mesh.children.includes(obj) || obj.parent === a.mesh);
           obj = obj.parent;
         }
-        if (found) inspectActor(found);
+          if (found) {
+          found._flashTime = performance.now();
+          inspectActor(found);
+          }
       }
     });
 
@@ -895,6 +913,40 @@
           a.mesh.rotation.x *= 0.88;
           a.mesh.rotation.z *= 0.88;
         }
+
+          // Fog breathing — subtle ambient shift
+          fogMat.opacity = 0.06 + Math.sin(t * 0.3) * 0.015;
+          groundFog.scale.set(1 + Math.sin(t * 0.2) * 0.03, 1, 1);
+
+          // Charge flash fade
+          if (chargeFlash > 0) chargeFlash *= 0.94;
+          if (chargeFlash > 0.01) {
+          renderer.domElement.style.boxShadow = 'inset 0 0 60px rgba(200,100,80,' + (chargeFlash * 0.25) + ')';
+          }
+
+          // Samurai click flash
+          actors.forEach((a) => {
+          if (a._flashTime && performance.now() - a._flashTime < 500) {
+          const pulse = Math.sin((performance.now() - a._flashTime) * 0.02) * 0.3 + 0.7;
+          a.mesh.traverse((o) => {
+          if (o.isMesh && o.material) {
+          o.material._origEmissive = o.material._origEmissive || o.material.emissive.clone();
+          const col = a.team === 'takeda' ? 0xc46050 : 0x6080b8;
+          o.material.emissive.setHex(col);
+          o.material.emissiveIntensity = pulse * 0.12;
+          }
+          });
+          } else if (a._flashTime) {
+          // Reset emissive after flash
+          a.mesh.traverse((o) => {
+          if (o.isMesh && o.material) {
+          o.material.emissive.copy(o.material._origEmissive || new THREE.Color(0));
+          o.material.emissiveIntensity = 0;
+          }
+          });
+          a._flashTime = null;
+          }
+          });
 
         // Wind on banner cloth
         a.mesh.traverse((o) => {
