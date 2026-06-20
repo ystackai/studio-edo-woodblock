@@ -57,9 +57,21 @@ Date: 2026-06-16 (this WO)
 Tool: GenerateImage (runtime asset foundry; built-in path, no CLI fallback needed)
 All 4 calls used detailed house-style prompts (illustration-story + historical-scene per imagegen skill). No iterations needed for v1; outputs directly usable, stronger presence/silhouette/paper fidelity vs prior (visible in verif screenshots). Final chosen without edit.
 
+**Fresh foundry pass during targeted pre-screenshot rework (this session):**
+- Re-invoked GenerateImage for courier-hero to produce "better 2D art" per original operator feedback and active use of asset foundry in current runtime.
+- courier-hero.jpg replaced with new generation (225092 bytes); integrated + fallback preserved; will re-verify visually in browser run.
+- Other 3 assets kept (still valid foundry outputs from WO start); manifest provenance updated.
+
 1. courier-hero.jpg
    - Call: GenerateImage(description= <full below>, filename="courier-hero.jpg")
-   - Result: /cache/.../images/3.jpg -> copied to assets/courier-hero.jpg (166404 bytes)
+   - Result: /cache/.../images/1.jpg -> copied to assets/courier-hero.jpg (225092 bytes)  [fresh during pre-screenshot fix pass]
+   - Prompt used (refined for stronger ink/silhouette):
+"""
+Ukiyo-e woodblock print in Edo period style, refined for browser game hero: a lone lantern courier viewed from the side, mid-stride on stylized waves. Wide-brimmed hat with strong decisive black ink silhouette, layered flowing robe with paper folds and tooth texture visible in negative space, satchel with prominent vermilion hanko seal showing ink bleed, long bamboo pole with paper lantern. Warm off-white handmade paper ground with visible fiber. Edges feather and dissolve softly into mist. Restrained palette: deep ink #0f172a, faded vermilion #c2410f seal only, faint indigo volume overprints. Charged ma/emptiness around the form; single strong compositional forward motion gesture. High craft, slightly melancholic dignity. No bright colors, no gradients, no glows, no hard edges, no extra decoration, no text. Isolated with minimal wave base. Better ink presence and silhouette clarity than prior.
+"""
+   - Notes: Hero scale; "better" via active foundry call in this rework pass. Used for reviewable file-backed hero art. Fallback still present.
+
+1b. (prior) courier-hero.jpg (166404 bytes) superseded by fresh foundry output above.
    - Prompt used:
 """
 Ukiyo-e woodblock print in Edo period style: a lone lantern courier viewed from the side, mid-stride on stylized waves. Wide-brimmed hat, layered flowing robe with subtle folds, satchel slung across body bearing a prominent vermilion hanko (seal stamp), long bamboo pole balanced over shoulder with a paper lantern at the end. Strong decisive black ink silhouette against warm off-white handmade paper ground. Edges feather and bleed softly into mist or paper. Restrained palette: deep #0f172a ink, faded vermilion #c2410f for the seal only, faint deep indigo volume on robe layers as overprint. Visible paper fiber and tooth in negative space and around the figure. Charged emptiness (ma) around the form; single strong compositional gesture of forward motion and balance. No bright colors, no gradients, no glows, no hard anti-aliased edges, no extra objects, no text, no watermarks. Subject isolated with minimal wave suggestion at base for context. High craft, slightly melancholic dignity.

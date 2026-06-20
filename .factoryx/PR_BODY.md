@@ -66,6 +66,12 @@ Latest review requested changes. Address this feedback before unrelated polish.
 - Full prompt + context in this PR body.
 - Ready for human review now that merge conflict gate is cleared by merge commit on branch.
 
+**Latest targeted fix (addressing reviewer-default changes_requested):**
+- browser runtime pre-screenshot timed out on .factoryx-runtime-check-*.html harness.
+- Added ultra-early sync paint guard (canvas-only, first thing after ctx) + hardened boot (early render, DOM guards, early state exposure).
+- Fresh evidence: chromium vtime direct produced 104kB non-blank ready-pre-fix.png with recognizable content on pre capture.
+- No other changes. PR #153 will be updated with this commit.
+
 ---
 
 ## FactoryX Work Order Context

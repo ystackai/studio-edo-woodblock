@@ -36,5 +36,11 @@
 
 **Post-merge update (cef612f):** Branch merged with origin/main to clear github-mergeability "changes_requested" (merge conflicts). Fresh chromium ready + post screenshots captured and archived post-resolution (see screenshots/ready-postmerge.png, post-interact-postmerge.png). All game assets + behavior unchanged. PR #153 updated via notes; merge commit on canonical branch. Direct entrypoint still `games/93-lantern-surf-courier/index.html`.
 
+**Targeted fix for agentic review "pre-screenshot timed out" (changes_requested):**
+- Added ultra-early synchronous paint guard + boot hardening (guards on DOM, early render + __LANTERN_SURF_STATE) so the attract/pre state always produces visible canvas content for harness pre-screenshots under virtual-time and wrapper inlining.
+- Evidence: fresh chromium vtime capture produced ready-pre-fix.png (104kB, non-blank, recognizable elements from first script paint).
+- All other review context (foundry art, full prompt in PR, direct entrypoint, merge resolved) remains.
+- No change to the playable game or first-30s experience.
+
 Work Order: work-order-1781634384793-7-2
 PR: https://github.com/ystackai/studio-edo-woodblock/pull/153

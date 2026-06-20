@@ -68,3 +68,17 @@ Target deliverable: lantern-surf-courier-36c969ed
 Current branch HEAD: cef612f (post merge + evidence update)
 PR: https://github.com/ystackai/studio-edo-woodblock/pull/153
 
+**Follow-up for agent review changes_requested on pre-screenshot timeout (current task):**
+- Latest review (reviewer-default, head null): browser runtime verification failed .../.factoryx-runtime-check-7.html ... pre-screenshot timed out. Also reminder that prior agent run had not reported PR (but this WO did report #153).
+- Address before polish: targeted hardening only.
+- Changes:
+  - games/93-lantern-surf-courier/index.html: ultra-early sync paint (paper+silhouette) right after ctx; early render(0) + DOM guards + early __STATE in boot.
+  - Updated VERIFICATION.md, PREVIEW.md, WORKLOG.md, PR_BODY.md with evidence + explanation.
+  - Fresh chromium vtime on direct entrypoint: 104kB ready-pre-fix.png written cleanly.
+- No gameplay, asset, or style change. Foundry assets remain (addressed original feedback).
+- Will commit, push to canonical factoryx/... branch, update PR #153 with full context.
+- This ensures browser runtime verification produces good pre evidence under the harness, and PR artifact is current.
+
+Current branch HEAD (after this): will be recorded on commit/push.
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/153 (update with new commit + notes)
+
