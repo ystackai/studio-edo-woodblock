@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="studio-slug" content="edo-woodblock">
   <title>ystackai — Ukiyo-e masters building ephemeral digital art, one print at a time.</title>
+  <script>
+    (function () {
+      var path = window.location.pathname.replace(/\/+$/, '/') || '/';
+      if (/\/factoryx(?:\/[^/]+)?\/previews\/edo-woodblock\/studio-art-build\/$/.test(path)) {
+        window.location.replace('drops/floating-score/');
+      }
+    }());
+  </script>
   <link rel="stylesheet" href="https://ystackai.com/shared/studio-theme.css?v=20260327-avatarfix1">
   <link rel="stylesheet" href="https://ystackai.com/shared/platform.css?v=20260327-avatarfix1">
   <style>

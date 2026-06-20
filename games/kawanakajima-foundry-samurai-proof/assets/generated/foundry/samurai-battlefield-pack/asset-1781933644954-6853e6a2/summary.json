@@ -1,0 +1,36 @@
+{
+  "asset_name": "kawanakajima-20-samurai-battlefield-pack-01",
+  "notes": [
+    "Generated through Asset Foundry using a /goal-style prompt.",
+    "Scene contains 20 named samurai: 10 Takeda and 10 Uesugi, staged in opposing ranks on a Japanese countryside battlefield.",
+    "Outputs include a single scene GLB, source blend, warrior manifest, and repeatable review camera contact sheet."
+  ],
+  "outputs": {
+    "blender_script": "/asset-foundry/outputs/asset-1781933644954-6853e6a2/samurai_battlefield_pack_blender.py",
+    "blender_stderr": "/asset-foundry/outputs/asset-1781933644954-6853e6a2/blender_stderr.log",
+    "blender_stdout": "/asset-foundry/outputs/asset-1781933644954-6853e6a2/blender_stdout.log",
+    "contact_sheet": "/asset-foundry/outputs/asset-1781933644954-6853e6a2/samurai_battlefield_contact_sheet.png",
+    "glb": "/asset-foundry/outputs/asset-1781933644954-6853e6a2/samurai_battlefield_pack.glb",
+    "manifest": "/asset-foundry/outputs/asset-1781933644954-6853e6a2/samurai_battlefield_manifest.json",
+    "poster": "/asset-foundry/outputs/asset-1781933644954-6853e6a2/samurai_battlefield_wide_clash.png",
+    "source_blend": "/asset-foundry/outputs/asset-1781933644954-6853e6a2/samurai_battlefield_pack_source.blend"
+  },
+  "recipe": "samurai_battlefield_pack",
+  "stats": {
+    "inspection_views": [
+      "wide_clash",
+      "overhead_layout",
+      "takeda_line",
+      "uesugi_line",
+      "center_meeting"
+    ],
+    "material_count": 24,
+    "mesh_count": 754,
+    "object_count": 899,
+    "prompt_format": "/goal",
+    "stable_camera_views": 5,
+    "takeda_count": 10,
+    "uesugi_count": 10,
+    "warrior_count": 20
+  }
+}

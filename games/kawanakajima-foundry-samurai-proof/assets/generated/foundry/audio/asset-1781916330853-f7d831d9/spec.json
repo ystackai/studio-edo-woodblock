@@ -1,0 +1,17 @@
+{
+  "asset_name": "kawanakajima-samurai-audio-pack",
+  "constraints": [],
+  "created_at_ms": 1781916330853,
+  "job_id": "asset-1781916330853-f7d831d9",
+  "prompt": "/goal Create a file-backed audio pack for a playable 3D Kawanakajima samurai battlefield game: restrained taiko-like low drums, distant wooden clacks, banner wind, charge cue, clash accent, and a short loopable battlefield music sketch. Preserve WAV files, waveform preview, tracker/source metadata, summary, and provenance. Do not use oscillator-only in-game placeholders; this pack must be reusable by Unity or browser integration.",
+  "provenance": {
+    "creative_provider": "unspecified",
+    "execution_backend": "local",
+    "recipe_runner": "python",
+    "recipe_source": "/asset-foundry/recipes/cozy_audio_pack.py"
+  },
+  "recipe": "cozy_audio_pack",
+  "references": [],
+  "requested_by": "codex-samurai-goal-continuation",
+  "style": "Edo countryside at dusk; restrained martial rhythm; taiko pulse, shakuhachi-like breath via synthesis if available, woodblock clacks, wind, no harsh arcade beeps, loopable and game-ready"
+}

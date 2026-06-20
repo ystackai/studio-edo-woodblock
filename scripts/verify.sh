@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [ -f package-lock.json ]; then
+  npm ci --no-audit --no-fund
+elif [ -f package.json ]; then
+  npm install --no-audit --no-fund
+fi
+
+if [ -f package.json ] && grep -q '"playwright"' package.json; then
+  npx playwright install --with-deps chromium
+fi
+
+./verify.sh "$@"
+if [ -f verify.js ]; then
+  node verify.js
+fi

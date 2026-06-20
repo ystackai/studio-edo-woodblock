@@ -1,0 +1,38 @@
+{
+  "asset_name": "kawanakajima_samurai_battlefield_pack_v3",
+  "created_at_ms": 1781935845587,
+  "duration_s": 282.21,
+  "job_dir": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe",
+  "job_id": "asset-1781935845583-91a9fdbe",
+  "log": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/runner.log",
+  "outputs": {
+    "blender_script": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/samurai_battlefield_pack_blender.py",
+    "blender_stderr": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/blender_stderr.log",
+    "blender_stdout": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/blender_stdout.log",
+    "contact_sheet": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/samurai_battlefield_contact_sheet.png",
+    "glb": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb",
+    "manifest": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/samurai_battlefield_manifest.json",
+    "poster": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/samurai_battlefield_wide_clash.png",
+    "source_blend": "/asset-foundry/outputs/asset-1781935845583-91a9fdbe/samurai_battlefield_pack_source.blend"
+  },
+  "recipe": "samurai_battlefield_pack",
+  "state": "completed",
+  "stats": {
+    "inspection_views": [
+      "wide_clash",
+      "overhead_layout",
+      "takeda_line",
+      "uesugi_line",
+      "center_meeting"
+    ],
+    "material_count": 29,
+    "mesh_count": 1425,
+    "object_count": 2142,
+    "prompt_format": "/goal",
+    "stable_camera_views": 5,
+    "takeda_count": 10,
+    "uesugi_count": 10,
+    "warrior_count": 20
+  },
+  "updated_at_ms": 1781936127825
+}

@@ -1,0 +1,23 @@
+{
+  "asset_name": "kawanakajima-20-samurai-battlefield-pack-01",
+  "constraints": [],
+  "created_at_ms": 1781933644954,
+  "job_id": "asset-1781933644954-6853e6a2",
+  "params": {
+    "battle": "meeting engagement",
+    "takeda_count": 10,
+    "terrain": "Japanese countryside",
+    "uesugi_count": 10
+  },
+  "prompt": "/goal Create a reviewable game asset pack for a Samurai game: 20 warring samurai, 10 Takeda and 10 Uesugi, meeting on a Japanese countryside battlefield. Use Blender to generate a self-verifiable GLB scene, source blend, warrior manifest, stable camera renders, and contact sheet evidence. The pack should be suitable as the staging target for a later Unity playable world.",
+  "provenance": {
+    "creative_provider": "unspecified",
+    "execution_backend": "local",
+    "recipe_runner": "python",
+    "recipe_source": "/asset-foundry/recipes/samurai_battlefield_pack.py"
+  },
+  "recipe": "samurai_battlefield_pack",
+  "references": [],
+  "requested_by": "factoryx-samurai-goal",
+  "style": "Kawanakajima countryside at dawn: muted field grass, muddy road, rice paddies, river, cedar hills; Takeda red armor vs Uesugi blue armor; readable opposing ranks; stylized but less blocky, not Minecraft-like"
+}
