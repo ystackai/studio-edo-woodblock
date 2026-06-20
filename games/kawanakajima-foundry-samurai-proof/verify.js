@@ -6,6 +6,12 @@ const path = require('path');
 
 const ROOT = __dirname;
 const errors = [];
+const BATTLEFIELD_JOB = 'asset-1781935845583-91a9fdbe';
+const BATTLEFIELD_ROOT = path.join(
+  ROOT,
+  'assets/generated/foundry/samurai-battlefield-pack',
+  BATTLEFIELD_JOB
+);
 
 function mustExist(p, desc) {
   if (!fs.existsSync(p)) { errors.push('MISSING ' + desc + ': ' + p); return false; }
@@ -39,6 +45,12 @@ mustExist(path.join(ROOT, 'UNITY_BLOCKER.md'), 'Unity blocker note');
 mustExist(path.join(ROOT, '../../.factoryx/preview-entrypoint'), 'FactoryX preview entrypoint');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), 'Unity handoff README');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/verify-unity-handoff.js'), 'Unity handoff verifier');
+mustExist(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_pack.glb'), 'Foundry 20-samurai battlefield pack GLB');
+mustExist(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_pack_source.blend'), 'Foundry 20-samurai battlefield source blend');
+mustExist(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_manifest.json'), 'Foundry 20-samurai battlefield manifest');
+mustExist(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_contact_sheet.png'), 'Foundry 20-samurai battlefield contact sheet');
+mustExist(path.join(BATTLEFIELD_ROOT, 'summary.json'), 'Foundry 20-samurai battlefield summary');
+mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb'), 'Unity mirrored battlefield pack GLB');
 
 checkContent(path.join(ROOT, 'index.html'), [
   { name: 'canvas element', test: c => /<canvas id="c"/.test(c) },
@@ -57,6 +69,7 @@ checkContent(path.join(ROOT, 'index.html'), [
 
 checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'asset Foundry job', test: c => /asset-1781913507610-bf69e595/.test(c) },
+  { name: 'battlefield Foundry job', test: c => new RegExp(BATTLEFIELD_JOB).test(c) },
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
   { name: 'Unity blocker', test: c => /Unity playable world:\*\* not created|Unity Editor/.test(c) },
   { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
@@ -81,9 +94,39 @@ if (contact.size < 300000) errors.push('contact sheet missing or truncated');
 const loop = fs.statSync(path.join(ROOT, 'assets/audio/battlefield_loop.wav'));
 if (loop.size < 1000000) errors.push('battlefield loop too small for the Foundry WAV preview');
 
+let battlefield = null;
+const battlefieldGlb = fs.statSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_pack.glb'));
+const unityBattlefieldGlb = fs.statSync(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb'));
+if (battlefieldGlb.size < 6000000) errors.push('battlefield pack GLB too small for v3 generated pack');
+if (unityBattlefieldGlb.size !== battlefieldGlb.size) errors.push('Unity mirrored battlefield GLB size does not match Foundry output');
+try {
+  const manifest = JSON.parse(fs.readFileSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_manifest.json'), 'utf8'));
+  const summary = JSON.parse(fs.readFileSync(path.join(BATTLEFIELD_ROOT, 'summary.json'), 'utf8'));
+  battlefield = {
+    assetFoundryJob: BATTLEFIELD_JOB,
+    warriorCount: manifest.warrior_count,
+    takedaCount: (manifest.factions && manifest.factions.takeda || []).length,
+    uesugiCount: (manifest.factions && manifest.factions.uesugi || []).length,
+    glbSize: battlefieldGlb.size,
+    manifest: `assets/generated/foundry/samurai-battlefield-pack/${BATTLEFIELD_JOB}/samurai_battlefield_manifest.json`,
+    contactSheet: `assets/generated/foundry/samurai-battlefield-pack/${BATTLEFIELD_JOB}/samurai_battlefield_contact_sheet.png`,
+    objectCount: summary.stats && summary.stats.object_count,
+    meshCount: summary.stats && summary.stats.mesh_count,
+    stableCameraViews: summary.stats && summary.stats.stable_camera_views,
+    unityMirror: true
+  };
+  if (battlefield.warriorCount !== 20) errors.push('battlefield manifest warrior count is not 20');
+  if (battlefield.takedaCount !== 10) errors.push('battlefield manifest Takeda count is not 10');
+  if (battlefield.uesugiCount !== 10) errors.push('battlefield manifest Uesugi count is not 10');
+  if (battlefield.stableCameraViews !== 5) errors.push('battlefield summary stable camera count is not 5');
+} catch (error) {
+  errors.push('battlefield manifest/summary parse failed: ' + error.message);
+}
+
 console.log('GLB size:', (glb.size/1024/1024).toFixed(2), 'MB');
 console.log('Contact size:', (contact.size/1024).toFixed(0), 'KB');
 console.log('Audio loop size:', (loop.size/1024/1024).toFixed(2), 'MB');
+console.log('Battlefield pack size:', (battlefieldGlb.size/1024/1024).toFixed(2), 'MB');
 
 if (errors.length) {
   console.error('VERIFICATION FAILS:');
@@ -97,10 +140,11 @@ if (errors.length) {
     assetFoundryJob: 'asset-1781913507610-bf69e595',
     actorCount: 20,
     glbSize: glb.size,
+    battlefieldPack: battlefield,
     audioFoundryJob: 'asset-1781916330853-f7d831d9',
     audioLoopSize: loop.size,
     unityHandoff: true,
-    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff',
+    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff',
     passed: true
   }, null, 2));
   console.log('Wrote VERIFICATION.json');
