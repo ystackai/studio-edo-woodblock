@@ -170,6 +170,10 @@ Status: art+music materially redesigned with fresh file assets + manifest + brow
 - Next: git add -f the specific WO evidence files + screenshots updates for this followup (leave other ?? workorder dirs untracked), commit focused, git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup (force-with-lease per precedent), prepare PR#157 body.
 - All per WORKFLOW.md, asset_contract_v2, taste-gate first, game feel, house style, direct preview, "address this feedback before unrelated polish".
 
+- Pushed: 66fd8ab..1a9ed4f (verif+cleanup), then 1a9ed4f..1068313 (PR_BODY record); remote wo branch now at 1068313. PR#157 will show updated commits on the canonical branch. gh direct not available (no GH_TOKEN in automation per env); body + tree carry full context + evidence.
+- Merge: addressed (clean sim + position + re-verif post hygiene).
+- Evidence complete for review: real generated assets (file jpg/wav + manifest), browser runtime (chromium clean), direct preview, full prompt in PR notes/tree.
+
 Work Order: work-order-1781665294727-followup
-Status: merge conflict addressed (clean sim), backups cleaned, fresh verif evidence captured + docs updated; ready for commit/push/PR refresh.
+Status: merge conflict addressed (clean sim), backups cleaned, fresh verif evidence captured + docs updated; pushed; PR#157 advanced for review.
 
