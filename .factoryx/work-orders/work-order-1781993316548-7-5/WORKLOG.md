@@ -15,3 +15,15 @@
 - Pushed to origin/factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8
 - PR #167 status: OPEN, mergeable, CI green, blocked only by branch protection requiring approving review
 - No code changes needed — deliverable is review-ready
+
+## v8.11 — 2026-06-20 (continuation)
+
+- Removed 3 scratch .bak files from drops/ (index.html.bak ×2, main.js.bak ×1)
+- Created ASSET_MANIFEST.md documenting all generated assets with provenance
+- Asset evidence:
+  - Samurai character GLB 1.23 MB (Foundry Blender recipe)
+  - Battlefield pack GLB 6.55 MB (20 warriors, 10/10 faction, Foundry Blender recipe)
+  - 5 game audio WAVs (2.8+ MB total) + 4 Foundry SFX + 1 music loop
+- Ran Unity MCP smoke: initialize OK, 38 tools listed, scene-list-opened confirms Kawanakajima scene loaded (73 roots, valid)
+- Both verifiers (browser + Unity handoff) remain PASS
+- No browser JS syntax regressions; all .js files pass syntax check
