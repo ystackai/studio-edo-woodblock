@@ -53,6 +53,8 @@
 - `verify-unity-handoff.js` validation script
 
 ### 6. Remaining Items
-- Push branch and create PR #162 for this work order
-- Unity build blocked — no Editor available
-- Visual review pending human confirmation of Foundry asset quality at close camera views
+- PR #164 opened for this work order.
+- Local Mac Studio Unity integration is live: Unity 2023.2.20f1 builds the project and exposes the Unity MCP listener for worker use.
+- `KawanakajimaUnityBuild.BuildMac` completed in batchmode with exit code 0 and produced `Builds/Mac/KawanakajimaSamurai.app` (112 MB).
+- The remote worker still does not host Unity Editor directly; it routes Unity MCP calls to the Mac listener.
+- Visual review pending human confirmation of Foundry asset quality at close camera views.

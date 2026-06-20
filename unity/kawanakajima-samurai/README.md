@@ -2,7 +2,7 @@
 
 **Work Order:** work-order-1781967391303-7-1  
 **Deliverable:** Kawanakajima 20 Samurai Countryside Unity Game  
-**Status:** Unity source handoff — playable structure with all assets and scripts in place.  
+**Status:** Unity source handoff plus verified local Mac build and Unity MCP routing.
 **Playables:** Browser proof at `games/kawanakajima-foundry-samurai-proof/`
 
 ## Overview
@@ -56,6 +56,22 @@ unity/kawanakajima-samurai/
 | Audio stems | `asset-1781916330853-f7d831d9` | ~2.7 MB | Battlefield loop, charge/clash/confirm/step SFX |
 
 All assets verified via `node verify-unity-handoff.js` → **PASS**
+
+## Verified Local Build
+
+Recorded on 2026-06-20 from the local Mac Studio:
+
+```bash
+Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
+  -executeMethod KawanakajimaUnityBuild.BuildMac \
+  -logFile /tmp/kawanakajima-batch-build.log
+```
+
+Result:
+- Exit code 0
+- Output: `Builds/Mac/KawanakajimaSamurai.app`
+- Bundle size: 112 MB
+- Unity Editor: 2023.2.20f1
 
 ## Quick Start
 
@@ -121,15 +137,15 @@ Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
 - Creates materials for terrain (paper earth), distant hills (ink tones), pine trees, stones, and faction standards
 - Loads samurai GLB from StreamingAssets via glTFast
 - Instantiates 20 actors (10 Takeda left, 10 Uesugi right) with pose variants
-- Animation loop: idle breathing, charge animation, banner wind, dust particles
+- Animation loop: idle breathing, charge animation, and reform
 - Camera: orbit controls + 6 presets (overview, redClose, blueClose, sideProfile, topFormation, assetInspect)
 - Audio: file-backed WAV files, toggle loop, SFX on charge/clash/confirm/step
-- Exposes `window.KAWANAKAJIMA_FOUNDRY` for verification harness
+- Optional Foundry battlefield pack view toggled with `P`
 
 ## Known Blockers
 
-- **Unity playable build:** Requires Unity Editor installed locally. This worker has Unity CLI/MCP only (no Editor). Local Mac Studio has Unity 2023.2.20f1 with MCP listener — Mac build is possible locally.
-- **Disk space:** Remote worker `/cache` has ~2 GB free; Unity Editor install requires 18 GB minimum.
+- **Remote worker Unity hosting:** The remote worker has Unity CLI/MCP only and does not host the Editor directly. It routes Unity MCP calls to the Mac Studio listener instead.
+- **Disk space:** Remote worker `/cache` has limited free space; Unity Editor installation remains a poor fit there.
 
 ## Browser Proof
 

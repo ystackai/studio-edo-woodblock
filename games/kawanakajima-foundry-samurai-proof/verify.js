@@ -81,7 +81,7 @@ checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
 
 checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), [
   { name: 'Unity handoff references Foundry Samurai', test: c => /asset-1781913507610-bf69e595/.test(c) },
-  { name: 'Unity handoff documents blocker', test: c => /no installed Unity Editor|Unity-side MCP listener|18 GB/.test(c) },
+  { name: 'Unity handoff documents local build', test: c => /Verified Local Build[\s\S]*KawanakajimaUnityBuild\.BuildMac[\s\S]*Exit code 0/.test(c) },
 ]);
 
 // Asset sizes roughly

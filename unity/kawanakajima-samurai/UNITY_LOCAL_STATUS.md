@@ -15,6 +15,8 @@ The Kawanakajima Samurai Unity project now opens and builds on the local Mac Stu
 
 - Batch method: `KawanakajimaUnityBuild.BuildMac`
 - Output: `Builds/Mac/KawanakajimaSamurai.app`
+- Size: 112 MB
+- Last verified: 2026-06-20T15:27:40Z
 - Verification: `UNITY_BUILD_VERIFICATION.md`
 
 ## Local MCP
@@ -22,6 +24,8 @@ The Kawanakajima Samurai Unity project now opens and builds on the local Mac Stu
 - CLI/server tools installed under `/Users/marcus/codex-work/local-unity-tools`
 - Unity project package: `com.ivanmurzak.unity.mcp` 0.81.1
 - Listener URL: `http://localhost:25666`
+- Worker routed URL: `http://172.21.0.1:25666`
+- Worker preflight: passed
 - MCP tool calls were verified against the running editor.
 
 Remote worker capacity notes from the earlier Hetzner attempt remain in the work-order history.

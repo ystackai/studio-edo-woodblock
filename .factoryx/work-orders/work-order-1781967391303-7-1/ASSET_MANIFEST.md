@@ -3,7 +3,7 @@
 **Work Order:** work-order-1781967391303-7-1  
 **Deliverable:** Kawanakajima 20 Samurai Countryside Unity Game  
 **Date:** 2026-06-20  
-**Status:** Browser proof complete, Unity source handoff complete, Unity playable build blocked
+**Status:** Browser proof complete, Unity source handoff complete, local Mac Unity build verified
 
 ---
 
@@ -109,7 +109,7 @@
 | `unity/kawanakajima-samurai/UNITY_BUILD_VERIFICATION.md` | Build verification notes |
 | `unity/kawanakajima-samurai/UNITY_LOCAL_STATUS.md` | Local Mac status |
 
-**Unity Editor:** Available on local Mac (2023.2.20f1) with MCP listener at `http://localhost:25666`. Remote worker lacks Editor.
+**Unity Editor:** Available on local Mac (2023.2.20f1) with MCP listener at `http://localhost:25666`. The remote worker lacks its own Editor and routes Unity MCP traffic to the Mac listener.
 
 ---
 
@@ -122,6 +122,8 @@
 | CHARGE/REFORM interaction | ✅ actors animate to charge positions, then reform |
 | Audio system | ✅ 5 file-backed WAV files, toggle works, SFX on charge/clash/confirm |
 | Unity handoff structure | ✅ verify-unity-handoff.js: PASS |
+| Unity Mac build | ✅ `KawanakajimaUnityBuild.BuildMac`: exit code 0, `Builds/Mac/KawanakajimaSamurai.app` (112 MB) |
+| Worker-to-Mac Unity MCP | ✅ preflight and MCP protocol discovery pass through `http://172.21.0.1:25666` |
 | Foundry asset provenance | ✅ GLB from asset-1781913507610-bf69e595 + v5 Blender repair |
 | Battlefield pack | ✅ 6.55 MB GLB, manifest, contact sheet, evidence images |
 | Canvas non-blank | ✅ All screenshots show non-blank 3D scene with visible samurai |
@@ -132,7 +134,7 @@
 
 ## 7. Known Blockers
 
-1. **Unity playable build** — no Unity Editor available on remote worker (only CLI/MCP binaries). Local Mac Studio has Unity 2023.2.20f1 with MCP listener, so a Mac build is possible locally.
+1. **Remote worker Unity hosting** — no Unity Editor available on the remote worker (only CLI/MCP binaries). Local Mac Studio has Unity 2023.2.20f1 with MCP listener and produced the Mac build.
 2. **Visual review** — the v5 repair pass addresses the v4 block/slab read but remains stylized (not photoreal). Human visual review recommended via committed screenshots.
 
 ---
@@ -141,4 +143,4 @@
 
 - **Branch:** `factoryx/edo-samurai-20-unity-game`
 - **Target:** `main`
-- **PR:** To be opened after this polish pass
+- **PR:** #164

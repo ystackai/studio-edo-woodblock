@@ -76,6 +76,19 @@ Generated: 2026-06-20
 
 **Result: UNITY HANDOFF STRUCTURE: PASS**
 
+### Local Unity Build + MCP Verification
+| Check | Result |
+|-------|--------|
+| Local Unity Editor | PASS — Unity 2023.2.20f1 on Mac Studio |
+| Batch build command | PASS — `KawanakajimaUnityBuild.BuildMac` |
+| Batch build exit code | PASS — exit code 0 |
+| Build output | PASS — `unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app` |
+| Build size | PASS — 112 MB |
+| Worker-to-Mac Unity MCP preflight | PASS — remote worker can reach the Mac listener through `http://172.21.0.1:25666` |
+| MCP protocol initialization | PASS — server `gamedev-mcp-server` v8.0.0.0 reported 38 tools |
+
+**Result: LOCAL UNITY BUILD + MCP ROUTING: PASS**
+
 ---
 
 ## 3. Visual Review
@@ -103,13 +116,20 @@ Generated: 2026-06-20
 
 ## 4. Blockers & Known Issues
 
-### Unity Build — BLOCKED
-Unity Editor is not installed in the runtime environment (18 GB required, only 2.1 GB free).
-- Unity CLI and MCP package are present but no running Editor listener.
-- `unity --version` returns 0.1.0-beta.7 (CLI only).
-- Unity MCP listener at `http://172.21.0.1:25666` is not reachable.
-- Full Unity build is **not claimed** — only source handoff provided.
-- See `unity/kawanakajima-samurai/UNITY_BLOCKER.md` for details.
+### Unity Build — RESOLVED ON MAC STUDIO
+The local Mac Studio now hosts the Unity Editor and can build the project.
+- Unity Editor: 2023.2.20f1
+- Verified build command: `KawanakajimaUnityBuild.BuildMac`
+- Build output: `Builds/Mac/KawanakajimaSamurai.app`
+- Build size: 112 MB
+- Verification log: `/tmp/kawanakajima-batch-build.log`
+
+### Remote Worker Unity Hosting — LIMITED
+The remote worker still does not host Unity Editor locally because of disk/capacity limits. It now routes Unity MCP traffic to this Mac instead:
+- Worker MCP URL: `http://172.21.0.1:25666`
+- Local Mac listener: `http://localhost:25666`
+- Worker preflight: PASS
+- MCP protocol/tool discovery: PASS
 
 ### Audio — PARTIALLY RESOLVED
 - Browser game: all 5 audio files are file-backed from Foundry (battlefield_loop, charge_cue, clash_accent, ui_confirm, formation_step).
@@ -140,9 +160,11 @@ Unity Editor is not installed in the runtime environment (18 GB required, only 2
 ```
 BASIC STRUCTURE + ASSET CHECKS: PASS
 UNITY HANDOFF STRUCTURE: PASS
+LOCAL UNITY BUILD + MCP ROUTING: PASS
 RUNTIME BEHAVIOR: PASS
 VISUAL REVIEW: PASS (pending human confirmation of Foundry asset quality)
-UNITY BUILD: BLOCKED (no Editor)
+UNITY BUILD: PASS (Mac Studio)
+REMOTE UNITY HOSTING: LIMITED (worker routes to Mac listener)
 ```
 
-**Overall: PASS (with documented Unity build blocker)**
+**Overall: PASS (with documented remote-worker hosting limitation)**
