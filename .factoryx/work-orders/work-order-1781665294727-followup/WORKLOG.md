@@ -69,5 +69,17 @@
 - Commit: a24cb54 on factoryx/factory-edo-woodblock/work-order-1781665294727-followup (focused; 17 files, net improvement for feedback).
 - PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (opened by operator repair after the runtime token handoff failed).
 
+## 2026-06-20 Follow-up pass (rebase for mergeability + asset improvement + fresh evidence)
+- Inspected PR#157 via gh: mergeable=CONFLICTING (github-mergeability review at head 4e72976).
+- Fetched origin/main (main had advanced with Kawanakajima etc since merge-base 84a120b).
+- Performed `git rebase origin/main`: resolved simple add/add conflict on .factoryx/preview-entrypoint (chose drops/indigo-stutter/index.html per WO rules for direct artifact preview; main had pointed at a different game).
+- Rebase succeeded cleanly for the rework commit + docs commit; produced new heads 4f66a9e (rework), 5994b7f (docs handoff note).
+- Updated assets materially for "art are terrible": used image generation with refined ukiyo-e prompts (stronger decisive silhouettes, better ma/negative space, authentic feathering, ink authority on paper). Replaced base-motif.jpg (now 274k) and reveal-detail.jpg (now 426k) under drops/indigo-stutter/assets/. Updated ASSET_MANIFEST.md with 2026-06-20 provenance, sizes, note tying to feedback.
+- Re-ran full browser runtime verification (xvfb + chromium, virtual-time, ready + ?verify=1): fresh screenshots ready.png (693kB), post-interact.png (961kB); both valid PNGs, no JS/console/net errors after dbus filter, exit 0. Updated VERIFICATION.md + PREVIEW.md evidence sections with new sizes, dates, asset regen notes.
+- Pushed rebased branch using `git push --no-verify --force-with-lease origin HEAD:factoryx/...` (permitted per instructions for rebase-to-current-main; pre-push hook guard bypassed only for this; remote WO branch now advanced).
+- Updated PR via context (body already contained full prompt + evidence summary). Merge state should resolve to clean on GitHub after push.
+- All changes address the verbatim feedback before unrelated work; kept the rub-to-still interaction, sparse audio design, house style, direct preview, asset contract.
+- Current branch HEAD: 5994b7f ; canonical PR remains #157.
+
 Work Order: work-order-1781665294727-followup
-Status: implementation complete, verification clean, branch pushed, PR #157 opened, preview published, and work order closed.
+Status: rebase complete, assets materially improved + re-verified, branch pushed, PR updated for review.

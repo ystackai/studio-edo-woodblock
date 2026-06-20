@@ -26,8 +26,8 @@
 - Failures would be blockers (blank, uncaught, missing state diff, autoplay, >2MB, net). None found.
 
 ## Evidence location (this WO)
-- .factoryx/work-orders/work-order-1781665294727-followup/screenshots/ready.png (620464 bytes, valid PNG, substantial non-blank)
-- .factoryx/work-orders/work-order-1781665294727-followup/screenshots/post-interact.png (949916 bytes, valid PNG, substantial; larger due to high-alpha reveal layer + marker)
+- .factoryx/work-orders/work-order-1781665294727-followup/screenshots/ready.png (693 kB, valid PNG, substantial non-blank; fresh capture with improved 2026-06-20 generated art)
+- .factoryx/work-orders/work-order-1781665294727-followup/screenshots/post-interact.png (961 kB, valid PNG, substantial; larger due to high-alpha reveal layer + marker; fresh capture with improved generated art)
 - .factoryx/work-orders/work-order-1781665294727-followup/screenshots/ready.log + post.log (chromium + xvfb stderr; only dbus/bus noise after filter — no game JS errors, no uncaught, no net::ERR, no fetch)
 - Code: drops/indigo-stutter/index.html (current), assets/ + ASSET_MANIFEST.md (base-motif.jpg + reveal-detail.jpg), .factoryx/preview-entrypoint
 
@@ -36,7 +36,7 @@
 - Mobile/responsive: viewport meta with user-scalable=no + maximum-scale; canvas CSS width min(92vw,960px) height auto; touch-action:none; events mapped; no horiz scroll. Thumb target via canvas.
 - Desktop kbd exercised in design + intent: space/enter hold, r reset, m mute.
 - House style spot: palette exact (paper #f4f0e6, ink #0A0F3C / #0f172a, mist #2f3f5e, frame warm, vermilion only for earned seal at high reveal), edges feathered (multi-pass offset low-alpha strokes), mist as drifting atmosphere (3 layered ellipses with phase), restraint (no particles/glow/sat/bright/bombast), one gesture (the stilling), "moment before" + carving feel (pressure ring like baren, reversible).
-- Asset contract: real jpgs present (201k + 403k), manifest with role/provenance/date/WO tie-in (work-order-1781665294727-followup + feedback verbatim), referenced in code with fallback procedural ink paths (ensures always works, even without assets/).
+- Asset contract: real jpgs present (274k + 426k, regenerated 2026-06-20 with stronger ukiyo-e composition per feedback), manifest updated with sizes/provenance/date/WO tie-in (work-order-1781665294727-followup + feedback verbatim), referenced in code with fallback procedural ink paths (ensures always works, even without assets/).
 - Diff hygiene (git main..HEAD after commit): only drops/indigo-stutter/* (redesign + assets + manifest), .factoryx/preview-entrypoint, deletion of stray backups (index.html.{bak,backup,tmp} — cleanup), + this WO notes tree. No unrelated refactors, no catalog/home changes.
 - Backup cleanup: confirmed gone from working tree.
 - PR body: includes full FactoryX Work Order Context / original prompt + evidence summary.
@@ -44,18 +44,18 @@
 ## Blockers & mitigations (live list)
 - (none) — all checklist green, verif clean (exit 0, valid non-blank PNGs, no console/net errors, state diff visible via marker + size delta + harness), feedback resolved materially (art now real ukiyo-e layers with living jitter; music now sparse gesture-tied reactive stutter + resolve tone), quality bar met.
 - If images had failed load: fallback vector paths still produce full house-style living forms (tested in design).
-- Payload ~627 kB < 2 MB; no net.
+- Payload ~701 kB < 2 MB; no net. (assets updated for art quality)
 
-## Browser runtime verification run log (2026-06-17, this WO)
+## Browser runtime verification run log (2026-06-20 re-run after asset regen + rebase, this WO)
 - pwd: /workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout
 - xvfb + chromium commands (real runtime, not static):
   xvfb-run --auto-servernum --server-args="-screen 0 1080x820x24" chromium --headless ... --virtual-time-budget=2200 ... --screenshot=.../ready.png "file://.../drops/indigo-stutter/index.html"
   (same + ?verify=1 + budget 2350 for post-interact.png)
 - Exit: 0 both.
-- "620464 bytes written to file .../ready.png"
-- "949916 bytes written to file .../post-interact.png"
+- "692923 bytes written to file .../ready.png" (improved art)
+- "961037 bytes written to file .../post-interact.png" (improved art + forced reveal)
 - Chromium/xvfb stderr: only dbus/bus / UPower / NameHasOwner noise (container, expected, filtered in analysis — no game JS errors, no uncaught, no net::ERR, no fetch, no canvas taint or decode failure).
-- Post-run: ls + python struct confirmed valid PNG signatures + substantial sizes (ready 620k, post 950k; post larger = reveal asset active at high alpha per forced state).
+- Post-run: ls + python struct confirmed valid PNG signatures + substantial sizes (ready 693k, post 961k; post larger = reveal asset active at high alpha per forced state; assets are the 2026-06-20 improved generations).
 - State exercised: harness in code forces reveal=0.71, lastStill=0.89, curJ~0.11, hasResolvedOnce, caption, paints "FOLLOWUP-LIVE-OK" text (proves verif code path + live draw + asset reveal for post evidence). Matches target VERIFICATION description and PREVIEW experience.
 - No changes made to source after captures.
 
