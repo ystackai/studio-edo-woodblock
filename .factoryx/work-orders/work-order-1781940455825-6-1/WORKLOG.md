@@ -40,7 +40,15 @@
 
 - Unity capacity (disk + Editor + auth + listener) required for next real attempt.
 - Future worker must re-run the exact preflight commands and only proceed on success.
-- PR will carry the full work order prompt in context section.
+- PR carries the full work order prompt in context section: https://github.com/ystackai/studio-edo-woodblock/pull/163
+
+## Final Status for this Execution
+
+- Branch pushed: codex/samurai-unity-guarded-retry
+- PR opened: #163
+- All docs updated under .factoryx/work-orders/work-order-1781940455825-6-1/
+- Honest blocker verdict submitted. No Unity playable build claimed.
+- Changes left in place per instructions.
 
 ## Related Artifacts
 
