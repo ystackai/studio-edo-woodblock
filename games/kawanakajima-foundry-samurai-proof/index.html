@@ -26,6 +26,8 @@
      .cam-btn { font-size:9px; padding:3px 6px; }
      .info-row { display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid rgba(200,184,160,0.1); font-size:10px; }
      .info-row .k { opacity:0.5; }
+      #vignette { position:absolute; inset:0; pointer-events:none; z-index:5;
+        background: radial-gradient(ellipse at center, transparent 55%, rgba(6,4,2,0.45) 100%); }
      .takeda { color:#c46050; }
      .uesugi { color:#6080b8; }
      #info-content { font-size:10px; line-height:1.5; }
@@ -33,6 +35,7 @@
 </head>
 <body>
    <canvas id="c"></canvas>
+     <div id="vignette"></div>
 
    <div class="ui top">
      <div>
@@ -732,8 +735,8 @@
       actors.forEach((a) => {
         const dir = a.team === 'takeda' ? 1 : -1;
         const dest = a.basePos.clone();
-        dest.x += dir * 3.9;
-        dest.z += (Math.random() - 0.5) * 0.7;
+        dest.x += dir * 4.5;
+        dest.z += (Math.random() - 0.5) * 1.0;
         a.chargeDest = dest;
       });
       if (audio.enabled) {
@@ -931,17 +934,19 @@
       }
       pos.needsUpdate = true;
 
-      // Actor animation
+       // Actor animation — breathing, subtle sway, charge lean, banner wind flutter
       actors.forEach((a) => {
         if (!a.mesh) return;
         const baseY = a.basePos ? a.basePos.y : 0;
         const ph = a.mesh.userData.idlePhase || a.idx || 0;
-        a.mesh.position.y = baseY + Math.sin(t * 1.55 + ph) * 0.011;
+        a.mesh.position.y = baseY + Math.sin(t * 0.8 + ph) * 0.008;
+        // Gentle body sway — slight rotation on Y axis
+        a.mesh.rotation.y += Math.sin(t * 0.4 + ph * 1.7) * 0.0002;
 
         if (chargePhase && a.chargeDest) {
           const p = a.mesh.position;
-          p.x = p.x * 0.90 + a.chargeDest.x * 0.10;
-          p.z = p.z * 0.90 + a.chargeDest.z * 0.10;
+          p.x = p.x * 0.92 + a.chargeDest.x * 0.08;
+          p.z = p.z * 0.92 + a.chargeDest.z * 0.08;
           a.mesh.rotation.x = (a.team === 'takeda' ? 0.11 : -0.11) * 0.8;
           a.mesh.rotation.z = (a.team === 'takeda' ? 0.02 : -0.02);
         } else {
@@ -952,9 +957,10 @@
         // Wind on banner cloth
         a.mesh.traverse((o) => {
           if (o.name && o.name.toLowerCase().includes('banner')) {
-            o.rotation.z = Math.sin(t * 1.35 + (a.idx || 0)) * 0.018;
-          }
-        });
+            const wind = Math.sin(t * 1.5 + (a.idx || 0) * 0.7) * 0.022;
+            const gust = Math.sin(t * 3.7 + (a.idx || 0) * 2.1) * 0.006;
+            o.rotation.z = wind + gust;
+            }
       });
 
       renderer.render(scene, camera);
