@@ -112,6 +112,10 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const scene = new THREE.Scene();
      // Kawanakajima misty atmosphere — paper-ink fog gradient
@@ -125,10 +129,30 @@
      // Lighting: cool near-white key + rim/kicker. Color from materials.
     const keyLight = new THREE.DirectionalLight(0xe8eef4, 2.1);
     keyLight.position.set(12, 28, -11);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 80;
+    keyLight.shadow.camera.left = -25;
+    keyLight.shadow.camera.right = 25;
+    keyLight.shadow.camera.top = 25;
+    keyLight.shadow.camera.bottom = -25;
+    keyLight.shadow.bias = -0.001;
     scene.add(keyLight);
 
     const rimLight = new THREE.DirectionalLight(0x9fb3c8, 2.05);
     rimLight.position.set(-22, 11, 19);
+    rimLight.castShadow = true;
+    rimLight.shadow.mapSize.width = 1024;
+    rimLight.shadow.mapSize.height = 1024;
+    rimLight.shadow.camera.near = 0.5;
+    rimLight.shadow.camera.far = 60;
+    rimLight.shadow.camera.left = -20;
+    rimLight.shadow.camera.right = 20;
+    rimLight.shadow.camera.top = 20;
+    rimLight.shadow.camera.bottom = -20;
+    rimLight.shadow.bias = -0.002;
     scene.add(rimLight);
 
     const fillLow = new THREE.DirectionalLight(0x8a7a64, 0.55);
@@ -158,6 +182,20 @@
     groundFog.rotation.x = -Math.PI * 0.5;
     groundFog.position.y = 0.15;
     scene.add(groundFog);
+
+     // Distant fog gradient for depth — paper-ink aesthetic
+    const distFogGeo = new THREE.PlaneGeometry(200, 100, 1, 1);
+    const distFogMat = new THREE.MeshBasicMaterial({
+      color: 0x2a2418,
+      transparent: true,
+      opacity: 0.12,
+      side: THREE.DoubleSide,
+      depthWrite: false
+     });
+    const distFog = new THREE.Mesh(distFogGeo, distFogMat);
+    distFog.rotation.x = -Math.PI * 0.5;
+    distFog.position.set(0, -0.5, -40);
+    scene.add(distFog);
 
      // === TERRAIN ===
     // Rolling ground with height variation — Japanese countryside
@@ -323,6 +361,38 @@
     // Camera orbit state
     let isDragging = false;
     let prevX = 0, prevY = 0;
+
+     // === SMOOTH CAMERA TRANSITIONS ===
+    let camTransitionActive = false;
+    let camTransStart = 0;
+    let camTransDuration = 0.8;
+    let camTransOrig = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+    let camTransDest = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+     }
+
+    function startCamTransition(destPos, destTarget) {
+      camTransOrig.pos.copy(camera.position);
+      camTransOrig.target.copy(camera.getWorldDirection(new THREE.Vector3()).negate().add(camera.position));
+      // Actually use the stored target
+      camTransDest.pos.copy(destPos);
+      camTransDest.target.copy(destTarget);
+      camTransStart = performance.now();
+      camTransitionActive = true;
+     }
+
+    function updateCamTransition() {
+      if (!camTransitionActive) return;
+      const elapsed = (performance.now() - camTransStart) / 1000;
+      const t = Math.min(elapsed / camTransDuration, 1);
+      const e = easeInOutCubic(t);
+      camera.position.lerpVectors(camTransOrig.pos, camTransDest.pos, e);
+      const lookTarget = new THREE.Vector3().lerpVectors(camTransOrig.target, camTransDest.target, e);
+      camera.lookAt(lookTarget);
+      if (t >= 1) camTransitionActive = false;
+     }
     let yaw = -1.82, pitch = 0.36, dist = 15.2;
     let target = new THREE.Vector3(-2.8, 1.8, -1.5);
 
@@ -386,17 +456,29 @@
 
     function applyPreset(name) {
       if (camPresets[name]) {
+         // Capture current state for smooth transition
+        const origPos = camera.position.clone();
         camPresets[name]();
+        const destPos = camera.position.clone();
+        const destTarget = target.clone();
+        camTransOrig.pos.copy(origPos);
+        camTransDest.pos.copy(destPos);
+        camTransDest.target.copy(destTarget);
+        camTransStart = performance.now();
+        camTransDuration = 0.7;
+        camTransitionActive = true;
+        camera.position.copy(camTransOrig.pos);
+        camera.lookAt(camTransOrig.target);
         statusEl.textContent = name === 'assetInspect' ? 'INSPECT' : (chargePhase ? 'CHARGING' : 'FORMATION');
         if (name !== 'assetInspect') reviewPanel.classList.remove('open');
         if (name === 'assetInspect') {
           setTimeout(() => {
             if (statusEl.textContent === 'INSPECT') statusEl.textContent = chargePhase ? 'CHARGING' : 'FORMATION';
-          }, 1600);
-        }
-      }
-    }
-
+           }, 1600);
+         }
+       }
+     }
+}
     function frameDefault() { camPresets.overview(); }
 
     function setFormationActorsVisible(visible) {
@@ -574,7 +656,7 @@
           const isTakeda = i < 10;
           const clone = baseScene.clone(true);
           clone.traverse((o) => {
-            if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; }
+            if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
           });
           applyVariantPose(clone, i, isTakeda);
           const actor = { mesh: clone, team: isTakeda ? 'takeda' : 'uesugi', idx: i };
@@ -828,6 +910,7 @@
     function tick() {
       requestAnimationFrame(tick);
       t += 0.016;
+      updateCamTransition();
 
       // Animate dust particles — gentle drift
       const pos = dustParticles.geometry.attributes.position;
