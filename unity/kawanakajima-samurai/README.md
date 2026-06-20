@@ -62,6 +62,23 @@ Expected build outputs:
 - `unity/kawanakajima-samurai/Builds/WebGL/`
 - `unity/kawanakajima-samurai/Builds/Linux/KawanakajimaSamurai`
 
-## Current Blocker
+## Current Blocker (updated for guarded retry work-order-1781940455825-6-1)
 
-The live FactoryX host has about 2.1 GB free on `/cache`; the Unity Editor install helper requires at least 18 GB before attempting installation. Until that runtime has more disk or a separate Unity-capable worker is assigned, this project cannot be built or verified with Unity Editor/MCP inside FactoryX.
+**This is a source handoff only. No playable Unity build was or can be produced in the current runtime.**
+
+Exact preflight (2026-06-20):
+- `unity --version`: 0.1.0-beta.7 (thin CLI wrapper)
+- `unity editors -i`: VersionArchDefaultPlatforms (no Editor installed)
+- `unity auth status`: You are not signed in.
+- `unity license`: (empty)
+- `df -h /cache`: 1.3 GB free (insufficient; ~18 GB required)
+- `unity-mcp-cli status unity/kawanakajima-samurai`:
+  - WARN: Unity is not running with this project
+  - ERROR: Not available (connection refused) @ http://localhost:23914
+- Build attempt: `Error: Editor 2022.3.0f1 (x86_64) is not installed.`
+
+Unity MCP not registered for this run. A Unity MCP server binary alone is not a listener — the Editor must be running the package and status must report reachable.
+
+See `.factoryx/work-orders/work-order-1781940455825-6-1/UNITY_BLOCKER.md` for the full guarded-retry record and escalation verdict.
+
+Until a worker with real Editor + license + listener + disk appears, treat this as a ready-to-open source project + the browser Three.js proof at `games/kawanakajima-foundry-samurai-proof/`. Do not claim a Unity deliverable.
