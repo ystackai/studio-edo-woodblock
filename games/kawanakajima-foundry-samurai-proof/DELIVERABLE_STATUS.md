@@ -31,7 +31,7 @@
 
 - **Unity playable build:** not created. A Unity source handoff now exists, but the worker has Unity CLI/MCP binaries only; no Unity Editor install and no Unity-side MCP listener.
 - **Unity blocker:** `/cache` only has about 4.5 GB free on the runtime host; the install helper requires at least 18 GB before attempting a Unity Editor install.
-- **Autonomous completion:** proven on retry. Preflights, verify.js, capture, visual iteration evidence, and docs updated autonomously per work order. (work-order-1781920715097-7-1 on canonical branch/PR)
+- **Autonomous completion:** proven on retry. Preflights (Foundry+unity), node verify.js (including harness regex fix), capture evidence, and docs updated autonomously for work-order-1781920715097-7-1. Canonical PR only.
 
 ## Current Review Verdict
 

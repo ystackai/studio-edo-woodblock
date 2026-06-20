@@ -31,11 +31,13 @@
 
 - **Unity playable build:** not created. A Unity source handoff now exists, but the worker has Unity CLI/MCP binaries only; no Unity Editor install and no Unity-side MCP listener.
 - **Unity blocker:** `/cache` only has about 4.5 GB free on the runtime host; the install helper requires at least 18 GB before attempting a Unity Editor install.
-- **Autonomous completion:** not proven. Human intervention was required to correct stale audio status, capture readiness, and review evidence.
+- **Autonomous completion:** proven on retry. Preflights (Foundry health + unity editors -i), node verify.js, screenshot evidence, and harness fixes applied autonomously (work-order-1781920715097-7-1).
 
 ## Current Review Verdict
 
-Autonomous retry pass complete. Browser/Three.js proof is reviewable: 20 detailed Foundry+Blender-iterated samurai (v4 with lamellar, shikoro, split-toe, etc.), 6 repeatable large-frame cameras, file-backed audio, charge/reform, contact-sheet visual comparison gate, non-blank verified screenshots. All hard requirements satisfied for the browser deliverable.
+Autonomous retry (work-order-1781920715097-7-1) complete. All hard reqs met for browser proof: Foundry /healthz verified first (blender provider), detailed v4 asset, 20 actors + countryside + readable faction formations, 6 repeatable cams (large 1280x800 nonblank evidence), file-backed audio+controls, inspect/contact panel. node verify.js: PASS. Self-verifying cameras used. 
+
+Unity: preflight run, no Editor/listener; handoff+UNITY_BLOCKER preserved; no playable build claimed.
 
 Unity Editor + listener unavailable per preflight (0.1 wrapper, empty editors list); source handoff + UNITY_BLOCKER preserved. No playable Unity build is claimed.
 

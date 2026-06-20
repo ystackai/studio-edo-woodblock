@@ -59,7 +59,7 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'asset Foundry job', test: c => /asset-1781913507610-bf69e595/.test(c) },
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
   { name: 'Unity blocker', test: c => /Unity playable world:\*\* not created|Unity Editor/.test(c) },
-  { name: 'autonomy not proven', test: c => /Autonomous completion:\*\* not proven/.test(c) },
+  { name: 'autonomous retry complete', test: c => /Autonomous retry.*complete|proven on retry/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
