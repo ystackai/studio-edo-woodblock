@@ -117,3 +117,22 @@ Work Order: work-order-1781665294730-followup
 Branch: factoryx/factory-edo-woodblock/work-order-1781665294730-followup
 Deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec
 Parent: work-order-asset-skill-smoke-edo-20260522
+
+## Redesign execution pass (2026-06-20)
+- Read FEEDBACK (original operator: flat/pointless, unclear point), PREVIEW, VERIF, GOAL, TECH, current index.html + assets + screenshots.
+- Ran chromium ready/post; vision review of ready: still sparse/flat, lines read geometric despite prior telegraph, no strong "why touch".
+- Foundry health OK (Blender) — generated fresh file-backed assets with GenerateImage for this pass (new base + reveal) to materially improve visual clarity of living forms and reward.
+- Copied assets to drops/indigo-stutter/assets/, updated (and created WO-context) ASSET_MANIFEST.md with sizes, prompts, provenance 2026-06-20, integration.
+- Material redesign in drop index.html:
+  - Raised jitter amps + breathing + smoothed curved feathered paths (quadratic + multi pass) + zone realign to new art; active damp hint wash.
+  - Stronger hover response, better pressure visual + settling dots.
+  - Faster meaningful reveal (asset + extra settled birds/lines); sublabel text + opacity tuned + diegetic paper text "linger to still the lines".
+  - Audio contrast sharpened (gappy noise -> held melodic).
+- Re-ran verif captures multiple times (ready ~670k post ~791k); confirmed no errors, state markers, before/after diff in evidence.
+- Performed rebase on main (clean).
+- Updated all WO notes (VERIF/WORKLOG/PREVIEW/FEEDBACK + new ASSET_MANIFEST in context).
+- Checklist: taste gate stronger (obvious living wave lines + immediate local response on hover + legend + sublabel describe the sustained-still verb and reward); 9/9 holds.
+- No unrelated changes; focused on feedback (more obvious to explore via telegraph + describe via text + assets + audio).
+- Next closeout: commit, push canonical, update PR body with full prompt.
+
+Work Order: work-order-1781665294730-followup

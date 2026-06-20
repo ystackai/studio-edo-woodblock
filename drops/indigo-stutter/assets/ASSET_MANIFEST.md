@@ -4,17 +4,17 @@ This manifest + real file-backed assets under `drops/indigo-stutter/assets/` sat
 
 ## Files
 
-- `base-motif.jpg` (165 kB)
-  - Role: Base ukiyo-e ink layer. Drawn first (after paper, under live jitter ink and mist). Provides the authored "skill output" composition: horizon/wave crest, mist veils, lone boat silhouette, distant pine. The live canvas system (stutter jitter on key lines + pressure response + reveal) lets the player "finish" this generated print.
-  - Generation: Produced via asset-generation tooling for this rework (ukiyo-e woodblock print style prompt, restrained indigo on warm paper, feathered silhouettes, negative space, Hiroshige-adjacent atmosphere).
-  - Provenance: Generated 2026-06-17 during work-order-1781665294730-followup implementation pass. Part of explicit feedback-driven redesign to make the art+melody interaction legible and player-authored.
-  - Usage in index.html: Loaded as Image, drawn via ctx.drawImage at 0,0 scaled to canvas logical size with globalAlpha ~0.95. Fallback: if load fails or slow, equivalent procedural horizon + boat + mist paths are drawn instead (ensures first paint and offline always work).
+- `base-motif.jpg` (217 kB)
+  - Role: Base ukiyo-e ink layer. Drawn first (after paper, under live jitter ink and mist). Provides the authored "skill output" composition: horizon/wave crest with organic feathered brushwork, mist veils, lone boat silhouette, distant pine. The live canvas system overlays trembling primary ink on the generated base; player attention stills and settles the forms to reveal the resolved composition.
+  - Generation: Produced via GenerateImage asset-generation tooling during rework pass (detailed ukiyo-e woodblock prompt, restrained deep indigo on warm washi, feathered organic strokes, Hiroshige-adjacent atmosphere, negative space). 1152x864 RGB.
+  - Provenance: Generated 2026-06-20 during work-order-1781665294730-followup (followup execution addressing operator "flat and pointless" feedback). New asset pass for stronger legible ink forms that telegraph the living/stutter quality.
+  - Usage in index.html: Loaded as Image, drawn via ctx.drawImage at 0,0 scaled to canvas with globalAlpha ~0.96. Fallback procedural if needed.
 
-- `reveal-detail.jpg` (207 kB)
-  - Role: Subtle under-ink / reflection / final-pass detail layer. Increases in opacity (0 -> 0.35-0.55) only in regions that have received sustained player attention (local reveal progress or global stillness driven). Represents the "settled" or "completed" state the player's baren/breath co-authors.
-  - Generation: Matched prompt to base-motif for seamless compositing (same palette, feathering, minimal forms: boat wake, small bird/sail in mist, additional settled strokes). Low inherent contrast so it reads as emergent rather than overlaid.
-  - Provenance: Generated 2026-06-17 during work-order-1781665294730-followup. Same session and intent as base-motif.
-  - Usage in index.html: Loaded as second Image, drawn after base and primary jitter ink, clipped or alpha-modulated per attended zone (simple globalStillness * 0.4 or per-zone accumulator mask for the taste-gate slice). Fallback: skip or draw faint additional procedural strokes if image unavailable.
+- `reveal-detail.jpg` (265 kB)
+  - Role: Emergent under-ink / final-pass / reflection detail layer. Opacity rises (0 -> ~0.5) with sustained player contact on living zones. When high, the scene visibly "completes" (birds, wake, sharpened distant forms appear) demonstrating the point: sustained attention authors the settled print.
+  - Generation: Matched prompt and palette to base-motif for seamless composite (same indigo/paper, delicate feathering). Designed with emergent details (birds, reflections, extra wave accents) that reward attention; low-mid contrast for reveal use.
+  - Provenance: Generated 2026-06-20 same session as base-motif-v2 in work-order-1781665294730-followup. Explicitly created to make the interaction's "reward" and "point" (co-authoring resolution) dramatically visible.
+  - Usage in index.html: Drawn after primary ink at modulated alpha (0.06 + reveal*0.48); augments with procedural settled strokes at high reveal for clarity. Fallback draws extra crisp wave/figure lines.
 
 ## Notes for reviewers / future
 - Both assets are small, purpose-built for this living print. They are the concrete output of the asset-generation skill being smoked/proven.

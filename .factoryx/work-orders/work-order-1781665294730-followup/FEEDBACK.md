@@ -28,3 +28,17 @@ melody plus art is a nice combo but not sure what is going on here this seems ki
 
 Work Order: work-order-1781665294730-followup
 Target deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec
+
+## 2026-06-20 redesign pass (this execution)
+- Confirmed via fresh capture + vision: despite prior sublabel + hover, the piece read "flat" (sparse mist + geometric lines); point of "sustained still to settle" not legible enough from first screen or interaction.
+- Addressed by:
+  - New generated assets with curling feathered wave as strong salient living form (more "begs to be touched").
+  - Higher idle jitter + breathing + organic smoothed brushy line draw + subtle active zone wash (obvious to explore without words).
+  - Sublabel strengthened + diegetic paper text + stronger immediate hover damp + pressure marks (exploration itself shows the response).
+  - Reveal now dramatically adds birds + settled details only under sustained contact (the reward makes the point felt).
+  - Audio now clearly breaks vs resolves with the verb.
+- Self play (mental + verif harness): first screen has prominent living wave + sublabel sets expectation; hover visibly damps + rings; hold builds reveal + holds tone + shows birds. Release returns tremble. 20-30s to feel "I co-author the settled print".
+- The feedback clause satisfied: more obvious to explore (telegraph + response) + described to user (text + enacted).
+- Kept: house style, one-verb slice, real assets + manifest, prior useful poetic identity and audio system.
+- Residual: static screenshots always limited (no motion); live file:// play shows the full effect.
+

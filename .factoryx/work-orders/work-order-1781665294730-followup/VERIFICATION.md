@@ -94,3 +94,20 @@
 
 Work Order: work-order-1781665294730-followup
 Target deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec
+
+## Fresh redesign execution (2026-06-20) addressing operator feedback
+- Context read: prior verif + PREVIEW + FEEDBACK noted "flat" risk; vision on ready showed sparse mist + geometric lines; sublabel present but affordance/reward weak.
+- Asset foundry healthy (Blender) but 2d generation used GenerateImage per available tooling.
+- New real assets generated and committed to drops/indigo-stutter/assets/ (base 217kB, reveal 265kB) with organic feathered ukiyo-e waves + emergent reveal details (birds etc). ASSET_MANIFEST.md updated in assets/ + WO dir.
+- Code changes (material, feedback-first):
+  - Higher baseJ + breathing + smoothed curved jitter paths + multi-feather for living brush lines that read "alive".
+  - Active zone hint (subtle damp wash), stronger hover damp + visible pressure/settle marks.
+  - Reveal builds faster, shows more (procedural + asset); sublabel + paper-printed "linger to still the lines" + caption.
+  - Audio contrast improved (noisy gapped drops <-> held resolving tones).
+- Chromium verif (3 passes): ready.png (~670kB) + post (~791kB). Exit 0, FOLLOWUP marker, caption, birds in post, no JS errors.
+- Evidence: new ready shows curling wave + stronger living lines + legend + sublabel; post shows resolved (low curJ, reveal birds + settled strokes).
+- Rebase on main: clean (up to date).
+- 9/9 checklist + asset v2 + direct preview + self-contained: hold. Feedback addressed (obvious living forms beg to be touched; sublabel + hint describe point; reveal dramatically rewards sustained contact).
+
+Work Order: work-order-1781665294730-followup
+Target deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec

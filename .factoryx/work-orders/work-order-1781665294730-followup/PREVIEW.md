@@ -2,6 +2,7 @@
 
 **Review Work Order:** work-order-1781665294730-followup
 **Canonical entrypoint:** `drops/indigo-stutter/index.html`
+**Note (this pass):** Material redesign pass executed: new generated assets (base + reveal) via GenerateImage for stronger ukiyo-e ink forms; higher-amplitude organic feathered living lines with breathing + active zone hint; stronger hover/pressure response; clearer sublabel + diegetic "linger to still the lines" printed on paper; improved audio contrast (gapped noisy -> held resolving tones); dramatic reveal (birds + extra settled strokes); re-ink and controls intact. Real assets + manifest in drop + WO context.
 
 ## How to preview
 - Direct: open `drops/indigo-stutter/index.html` in a modern browser (file:// is valid and required for verification; also works served).
