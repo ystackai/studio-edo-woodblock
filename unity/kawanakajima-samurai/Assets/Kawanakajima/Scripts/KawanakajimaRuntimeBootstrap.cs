@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
-using GLTFast;
 using UnityEngine;
 
 public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
@@ -225,75 +225,142 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private async Task LoadSamuraiFormation()
     {
         var url = StreamingAssetUrl(samuraiGlbStreamingAssetsPath);
-        var gltf = new GltfImport();
-        var loaded = await gltf.Load(url);
-        if (!loaded)
+        var gltf = await LoadGltf(url);
+        if (gltf == null)
         {
             Debug.LogError("Failed to load Foundry GLB from " + url);
             return;
         }
 
-        for (int i = 0; i < ActorCount; i++)
+        try
         {
-            bool takeda = i < 10;
-            var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_Samurai_" + (i % 10 + 1).ToString("00"));
-            var success = await gltf.InstantiateMainSceneAsync(root.transform);
-            if (!success)
+            for (int i = 0; i < ActorCount; i++)
             {
-                Debug.LogError("Failed to instantiate Foundry Samurai " + i);
-                UnityEngine.Object.Destroy(root);
-                continue;
+                bool takeda = i < 10;
+                var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_Samurai_" + (i % 10 + 1).ToString("00"));
+                var success = await InstantiateGltfMainScene(gltf, root.transform);
+                if (!success)
+                {
+                    Debug.LogError("Failed to instantiate Foundry Samurai " + i);
+                    UnityEngine.Object.Destroy(root);
+                    continue;
+                }
+
+                ConfigureActorRoot(root, i, takeda);
+                AddFactionStandard(root.transform, takeda, i);
+                if (i % 3 == 0) AddYari(root.transform, takeda, i);
+
+                var actor = new Actor
+                {
+                    Root = root,
+                    Takeda = takeda,
+                    Index = i,
+                    BasePosition = root.transform.position,
+                    BaseRotation = root.transform.rotation,
+                    ChargeTarget = root.transform.position,
+                    IdlePhase = i * 0.47f
+                };
+                actors.Add(actor);
             }
-
-            ConfigureActorRoot(root, i, takeda);
-            AddFactionStandard(root.transform, takeda, i);
-            if (i % 3 == 0) AddYari(root.transform, takeda, i);
-
-            var actor = new Actor
-            {
-                Root = root,
-                Takeda = takeda,
-                Index = i,
-                BasePosition = root.transform.position,
-                BaseRotation = root.transform.rotation,
-                ChargeTarget = root.transform.position,
-                IdlePhase = i * 0.47f
-            };
-            actors.Add(actor);
+        }
+        finally
+        {
+            (gltf as IDisposable)?.Dispose();
         }
     }
 
     private async Task LoadFoundryBattlefieldPack()
     {
         var url = StreamingAssetUrl(battlefieldPackGlbStreamingAssetsPath);
-        var gltf = new GltfImport();
-        var loaded = await gltf.Load(url);
-        if (!loaded)
+        var gltf = await LoadGltf(url);
+        if (gltf == null)
         {
             Debug.LogWarning("Optional 20-samurai Foundry battlefield pack was not loaded from " + url);
             return;
         }
 
-        foundryBattlefieldPackRoot = new GameObject("Foundry_20_Samurai_Battlefield_Pack");
-        var instantiated = await gltf.InstantiateMainSceneAsync(foundryBattlefieldPackRoot.transform);
-        if (!instantiated)
+        try
         {
-            Debug.LogWarning("Optional 20-samurai Foundry battlefield pack failed to instantiate");
-            UnityEngine.Object.Destroy(foundryBattlefieldPackRoot);
-            foundryBattlefieldPackRoot = null;
-            return;
-        }
+            foundryBattlefieldPackRoot = new GameObject("Foundry_20_Samurai_Battlefield_Pack");
+            var instantiated = await InstantiateGltfMainScene(gltf, foundryBattlefieldPackRoot.transform);
+            if (!instantiated)
+            {
+                Debug.LogWarning("Optional 20-samurai Foundry battlefield pack failed to instantiate");
+                UnityEngine.Object.Destroy(foundryBattlefieldPackRoot);
+                foundryBattlefieldPackRoot = null;
+                return;
+            }
 
-        foundryBattlefieldPackRoot.transform.position = new Vector3(0f, 0.02f, -1.2f);
-        foundryBattlefieldPackRoot.transform.localScale = Vector3.one * 1.15f;
-        foundryBattlefieldPackRoot.SetActive(false);
-        foundryBattlefieldPackReady = true;
+            foundryBattlefieldPackRoot.transform.position = new Vector3(0f, 0.02f, -1.2f);
+            foundryBattlefieldPackRoot.transform.localScale = Vector3.one * 1.15f;
+            foundryBattlefieldPackRoot.SetActive(false);
+            foundryBattlefieldPackReady = true;
+        }
+        finally
+        {
+            (gltf as IDisposable)?.Dispose();
+        }
     }
 
     private static string StreamingAssetUrl(string relativePath)
     {
         string path = Path.Combine(Application.streamingAssetsPath, relativePath);
         return path.Contains("://") ? path : "file://" + path;
+    }
+
+    private static async Task<object> LoadGltf(string url)
+    {
+        var type = FindType("GLTFast.GltfImport");
+        if (type == null)
+        {
+            Debug.LogWarning("glTFast is not compiled yet; GLB loading is unavailable for " + url);
+            return null;
+        }
+
+        var gltf = Activator.CreateInstance(type);
+        var load = type.GetMethod("Load", BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(string) }, null);
+        if (load == null)
+        {
+            Debug.LogWarning("glTFast Load(string) API was not found.");
+            return null;
+        }
+
+        var loaded = await AwaitBooleanTask(load.Invoke(gltf, new object[] { url }));
+        return loaded ? gltf : null;
+    }
+
+    private static async Task<bool> InstantiateGltfMainScene(object gltf, Transform parent)
+    {
+        var method = gltf.GetType().GetMethod("InstantiateMainSceneAsync", BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(Transform) }, null);
+        if (method == null)
+        {
+            Debug.LogWarning("glTFast InstantiateMainSceneAsync(Transform) API was not found.");
+            return false;
+        }
+
+        return await AwaitBooleanTask(method.Invoke(gltf, new object[] { parent }));
+    }
+
+    private static Type FindType(string fullName)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var type = assembly.GetType(fullName, false);
+            if (type != null) return type;
+        }
+        return null;
+    }
+
+    private static async Task<bool> AwaitBooleanTask(object value)
+    {
+        if (value is Task<bool> booleanTask) return await booleanTask;
+        if (value is Task task)
+        {
+            await task;
+            var resultProperty = task.GetType().GetProperty("Result");
+            return resultProperty == null || resultProperty.GetValue(task) is true;
+        }
+        return value is true;
     }
 
     private void ConfigureActorRoot(GameObject root, int index, bool takeda)
