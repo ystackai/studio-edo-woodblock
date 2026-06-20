@@ -10,7 +10,9 @@ from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[2]
 GAME_DIR = ROOT / "games" / "kawanakajima-foundry-samurai-proof"
-SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v3.blend"
+SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v4.blend"
+if not SOURCE_BLEND.exists():
+    SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v3.blend"
 if not SOURCE_BLEND.exists():
     SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source.blend"
 SOURCE_HERO = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_hero.png"
@@ -79,6 +81,17 @@ def build_scene():
         if obj not in source_objects:
             bpy.data.objects.remove(obj, do_unlink=True)
 
+    template = bpy.data.collections.new("normalized_foundry_samurai_template")
+    for src in source_objects:
+        copy = src.copy()
+        copy.data = src.data
+        copy.animation_data_clear()
+        copy.name = f"template_{src.name}"
+        copy.matrix_world = normalize @ src.matrix_world
+        template.objects.link(copy)
+    for obj in source_objects:
+        bpy.data.objects.remove(obj, do_unlink=True)
+
     ground_mat = material("ink_washed_field", (0.26, 0.23, 0.18, 1))
     path_mat = material("trampled_central_path", (0.16, 0.13, 0.10, 1))
     red_mat = material("takeda_marker_red", (0.55, 0.10, 0.08, 1))
@@ -99,7 +112,20 @@ def build_scene():
     path.data.materials.append(path_mat)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 
-    for x, y, s in [(-5.3, -4.4, 1.2), (5.0, -3.7, 1.0), (-4.7, 4.3, 0.9), (4.4, 4.1, 1.25)]:
+    # extra layered distant hills for Japanese countryside depth (ink wash read)
+    for kk in range(3):
+        hh = bpy.data.objects.new(f"far_hill_{kk}", bpy.data.meshes.new(f"fh{kk}"))
+        bm = bpy.data.meshes.new(f"fh{kk}")
+        # simple large plane as hill proxy
+        bpy.ops.mesh.primitive_plane_add(size=22 + kk*3, location=(1.2*kk-1.5, -9.5 -kk*1.8, 0.6 + kk*0.15))
+        hobj = bpy.context.object
+        hobj.name = f"far_hill_{kk}"
+        hobj.rotation_euler = (math.radians(-3), math.radians(8*kk-4), 0)
+        hobj.scale = (1.6, 0.8, 0.06)
+        hobj.data.materials.append(ground_mat)
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+    for x, y, s in [(-5.3, -4.4, 1.2), (5.0, -3.7, 1.0), (-4.7, 4.3, 0.9), (4.4, 4.1, 1.25), (-8.1, 1.6, 0.85), (7.8, 2.9, 0.78), (-1.8, -8.2, 0.95)]:
         add_tree(x, y, s, trunk_mat, pine_mat)
 
     placements = []
@@ -113,47 +139,46 @@ def build_scene():
     actor_targets = {}
     for idx, (side, x, y, zrot, team_mat, row, col) in enumerate(placements):
         scale = 0.98 + ((idx % 4) - 1) * 0.025
-        placement = Matrix.Translation(Vector((x, y, 0))) @ Matrix.Rotation(zrot, 4, "Z") @ Matrix.Scale(scale, 4) @ normalize
-        first = None
-        for src in source_objects:
-            copy = src.copy()
-            copy.data = src.data
-            copy.animation_data_clear()
-            copy.name = f"{side}_{idx:02d}_{src.name}"
-            copy.matrix_world = placement @ src.matrix_world
-            bpy.context.collection.objects.link(copy)
-            first = first or copy
+        placement = Matrix.Translation(Vector((x, y, 0))) @ Matrix.Rotation(zrot, 4, "Z") @ Matrix.Scale(scale, 4)
+        inst = bpy.data.objects.new(f"{side}_{idx:02d}_foundry_samurai", None)
+        inst.instance_type = "COLLECTION"
+        inst.instance_collection = template
+        inst.matrix_world = placement
+        bpy.context.collection.objects.link(inst)
         actor_targets.setdefault(side, Vector((x, y, 0.95)))
-        if first is not None:
-            bpy.ops.mesh.primitive_cube_add(size=1, location=(x, y - 0.23, 1.28))
-            banner = bpy.context.object
-            banner.name = f"{side}_{idx:02d}_faction_color_check"
-            banner.dimensions = (0.04, 0.44, 0.34)
-            banner.rotation_euler[2] = zrot
-            banner.data.materials.append(team_mat)
-            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-
-    for obj in source_objects:
-        bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(x, y - 0.23, 1.28))
+        banner = bpy.context.object
+        banner.name = f"{side}_{idx:02d}_faction_color_check"
+        banner.dimensions = (0.04, 0.44, 0.34)
+        banner.rotation_euler[2] = zrot
+        banner.data.materials.append(team_mat)
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 
     bpy.ops.object.light_add(type="SUN", location=(-3.5, -4.0, 6.0))
     sun = bpy.context.object
     sun.name = "soft_morning_sun"
-    sun.data.energy = 3.1
+    sun.data.energy = 4.2
     sun.rotation_euler = (math.radians(42), 0, math.radians(-32))
 
     bpy.ops.object.light_add(type="AREA", location=(1.5, -3.5, 3.2))
     area = bpy.context.object
     area.name = "cool_front_fill"
-    area.data.energy = 680
+    area.data.energy = 820
     area.data.size = 5.5
 
     # extra blue-side kicker for readable formation on Uesugi line
     bpy.ops.object.light_add(type="AREA", location=(4.5, 2.8, 4.8))
     bk = bpy.context.object
     bk.name = "blue_side_fill"
-    bk.data.energy = 310
+    bk.data.energy = 380
     bk.data.size = 3.8
+
+    # rear rim for helmet crest + shoulder silhouette separation (cool tone)
+    bpy.ops.object.light_add(type="AREA", location=(-1.2, 5.5, -7.5))
+    rr = bpy.context.object
+    rr.name = "rear_rim_silhouette"
+    rr.data.energy = 520
+    rr.data.size = 4.2
 
     world = bpy.context.scene.world or bpy.data.worlds.new("kawanakajima_world")
     bpy.context.scene.world = world
@@ -178,11 +203,11 @@ def build_scene():
 
     views = {
         "overview": ((4.6, -7.1, 3.4), (0.0, 0.0, 0.85), 45),
-        "redClose": ((-3.1, -3.9, 1.85), (-1.75, -1.15, 0.95), 68),
-        "blueClose": ((2.6, 2.8, 1.72), (1.55, 0.85, 0.98), 62),
+        "redClose": ((-4.75, -3.65, 2.05), (-2.18, -2.0, 0.98), 54),
+        "blueClose": ((4.75, -3.15, 2.05), (2.18, -1.95, 0.98), 54),
         "sideProfile": ((6.4, -0.25, 1.65), (0.15, 0.25, 0.9), 55),
         "topFormation": ((0.0, -0.1, 9.0), (0.0, -0.05, 0.0), 35),
-        "assetInspect": ((-2.85, -2.55, 1.68), (-1.65, -0.95, 1.08), 72),
+        "assetInspect": ((-4.15, -3.35, 1.85), (-2.2, -2.0, 1.05), 62),
     }
 
     aliases = {

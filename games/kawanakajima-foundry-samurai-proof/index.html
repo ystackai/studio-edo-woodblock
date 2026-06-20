@@ -109,7 +109,7 @@
     keyLight.position.set(12, 28, -11);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x9fb3c8, 1.6);
+    const rimLight = new THREE.DirectionalLight(0x9fb3c8, 2.05);
     rimLight.position.set(-22, 11, 19);
     scene.add(rimLight);
 
@@ -121,6 +121,11 @@
     const blueFill = new THREE.DirectionalLight(0xaab8c8, 0.7);
     blueFill.position.set(18, 8, -4);
     scene.add(blueFill);
+
+    // extra rear rim for helmet/shoulder silhouette separation on samurai forms (cool, not colored key)
+    const rearRim = new THREE.DirectionalLight(0xb8c4d0, 1.35);
+    rearRim.position.set(8, 9, -29);
+    scene.add(rearRim);
 
     scene.add(new THREE.AmbientLight(0x3f372a, 1.25));
 
@@ -142,14 +147,14 @@
     path.position.set(0, 0.0, -3.8);
     scene.add(path);
 
-    // Distant field / hill layers for depth and mist read
-    for (let k = 0; k < 4; k++) {
+    // Distant field / hill layers for depth and mist read (layered ukiyo-e style countryside)
+    for (let k = 0; k < 6; k++) {
       const h = new THREE.Mesh(
-        new THREE.PlaneGeometry(82 + k * 7, 26),
-        new THREE.MeshLambertMaterial({ color: 0x423c30, transparent: true, opacity: 0.62 - k * 0.05 })
+        new THREE.PlaneGeometry(92 + k * 8, 30),
+        new THREE.MeshLambertMaterial({ color: 0x423c30, transparent: true, opacity: 0.58 - k * 0.04 })
       );
       h.rotation.x = -Math.PI * 0.5;
-      h.position.set((k % 2 ? 2.5 : -1.5) * (1 + k * 0.6), 0.02 + k * 0.008, -18 - k * 9);
+      h.position.set((k % 2 ? 1.5 : -2.2) + k * 0.6, 0.04 + k * 0.012, -26 - k * 5.5);
       scene.add(h);
     }
 
@@ -660,9 +665,12 @@
           const p = a.mesh.position;
           p.x = p.x * 0.90 + a.chargeDest.x * 0.10;
           p.z = p.z * 0.90 + a.chargeDest.z * 0.10;
-          a.mesh.rotation.x = (a.team === 'takeda' ? 0.07 : -0.07) * 0.65;
+          // forward lean + slight weapon read for charge interaction (additive to Foundry pose)
+          a.mesh.rotation.x = (a.team === 'takeda' ? 0.11 : -0.11) * 0.8;
+          a.mesh.rotation.z = (a.team === 'takeda' ? 0.02 : -0.02);
         } else {
           a.mesh.rotation.x *= 0.88;
+          a.mesh.rotation.z *= 0.88;
         }
 
         // Gentle wind on the model's own sashimono banner cloth (additive animation)

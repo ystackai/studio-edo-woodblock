@@ -8,7 +8,7 @@
 
 ## What Exists
 
-- **Samurai asset:** live Asset Foundry + iterated Blender v2 (hands/feet/mempo improved, provenance preserved). Base job asset-1781913507610-bf69e595, v2 generated 20260620.
+- **Samurai asset:** live Asset Foundry + iterated Blender v4 (shikoro, lamellar, fingers, tabi strap; provenance preserved). Base job asset-1781913507610-bf69e595, v4 20260620 on retry.
   - Primary runtime asset: `assets/samurai_character.glb`.
   - Source/evidence retained under `assets/generated/foundry/samurai/`.
   - Contact sheet and hero render are embedded in the in-game inspection panel.

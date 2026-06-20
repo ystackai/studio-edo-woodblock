@@ -11,8 +11,8 @@
 - The preview root opens the 3D proof directly.
 
 ## What the review sees
-- First viewport: non-blank 3D Japanese countryside tableau with 20 samurai (10 per side) using the iterated improved asset (base asset-1781913507610-bf69e595 + v2 Blender pass asset-20260620-improved-samurai-v2 via foundry blender provider).
-- Improvements address visual gate: parented fingers on hands, split-toe tabi feet (non-paddle), recessed eyes + defined mempo/kabuto crest (no disk face). Silhouettes, armor plates, standards, weapons readable at close cams.
+- First viewport: non-blank 3D Japanese countryside tableau with 20 samurai (10 per side) using the iterated improved asset (base asset-1781913507610-bf69e595 + v4 Blender pass via foundry blender provider on canonical retry).
+- Improvements address visual gate: shikoro neck guard plates, lamellar plate hints, separated fingers, split-toe tabi + geta strap (non-paddle, profile readable), stronger helmet silhouette. Silhouettes, armor, standards, weapons readable at close cams. Extra hill layers + rear rim for depth.
 - Default camera: cinematic low/shoulder, rule-of-thirds framing into the meeting/battle lines. Fog + layered ground + sparse pines for depth and atmosphere per house style.
 - Characters are large enough in close views to judge silhouette, lamellar armor, mempo, kabuto crest, sashimono banner, katana, tabi.
 - Controls: drag to orbit, wheel zoom, click any samurai to inspect. Bottom bar and 1-6 keys select repeatable verification cameras.

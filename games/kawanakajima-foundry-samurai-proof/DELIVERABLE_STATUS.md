@@ -8,10 +8,10 @@
 
 ## What Exists
 
-- **Samurai asset:** live Asset Foundry + iterated Blender v2 (hands/feet/mempo improved, provenance preserved). Base job asset-1781913507610-bf69e595, v2 generated 20260620.
-  - Primary runtime asset: `assets/samurai_character.glb`.
-  - Source/evidence retained under `assets/generated/foundry/samurai/`.
-  - Contact sheet and hero render are embedded in the in-game inspection panel.
+- **Samurai asset:** live Asset Foundry + iterated Blender v4 (v3 base + shikoro neck guard, lamellar hints, finger separation, split-toe/geta strap for profile; provenance preserved). Base job asset-1781913507610-bf69e595, v4 20260620.
+  - Primary runtime asset: `assets/samurai_character.glb` (2.74 MB).
+  - Source/evidence retained under `assets/generated/foundry/samurai/improved-20260620-v4/`.
+  - Contact sheet and hero render (v4) embedded in the in-game inspection panel.
 - **20-warrior game proof:** browser/Three.js scene with 10 Takeda and 10 Uesugi samurai in a Japanese countryside battle tableau.
   - Uses the Foundry GLB as the visible character base.
   - Variants come from pose transforms, scale, formation, faction standards, and small additive props.
@@ -35,4 +35,4 @@
 
 ## Current Review Verdict
 
-This is a coherent browser-reviewable proof with file-backed assets, file-backed audio, repeatable camera evidence, and a concrete Unity source handoff. It is not yet the requested final Unity game because no Unity Editor/listener is available for build verification. The next required infrastructure step is a worker with a Unity Editor installed and a running Unity MCP listener, then a new autonomous work order should build and inspect the Unity project.
+This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence (large focal samurai in close views), in-game contact comparison, charge/reform interaction, and Unity source handoff. v4 asset + depth lighting/terrain polish applied on canonical retry. Browser/Three.js proof verified (node verify PASS, 1280x800 nonblank screenshots). Unity playable build not claimed: no Editor/listener available (see UNITY_BLOCKER.md). PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (only canonical used).

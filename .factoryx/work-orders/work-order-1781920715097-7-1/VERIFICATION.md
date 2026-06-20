@@ -25,13 +25,14 @@ Captured after construction + any fixes:
 ## Visual issues identified in loop
 (Updated live during self-review + canonical retry 20260620)
 - Previous vision flagged blocky/cylinder limbs, paddle feet, disk-face helmet on the base Foundry asset.
-- Autonomous visual iteration: used Foundry blender provider + direct /usr/bin/blender to produce v2 asset (asset-20260620-improved-samurai-v2) with:
-  - parented finger geometry on gloved hands (readable silhouette, non-sphere)
-  - split-toe tabi foot volumes + heel/toe straps (non-paddle)
-  - recessed eye slits + nose ridge + stronger maedate crest on mempo/kabuto (no flat disk)
-- Updated 20-actor scene, 6 repeatable cameras, contact sheet, and all evidence refreshed with large non-blank renders from improved asset.
-- node verify.js: PASS (GLB 0.79MB, contact 443KB, file audio, 20 actors, structure).
-- Unity preflight: wrapper present (0.1.0-beta.7) but no Editor/listener (confirmed `unity editors -i`). Handoff + UNITY_BLOCKER preserved. Browser/Three.js proof is the deliverable.
+- Autonomous visual iteration (retry): used Foundry blender + /usr/bin/blender on v3 source to produce v4 asset (improved-20260620-v4) with:
+  - shikoro (neck guard plates) for helmet silhouette
+  - lamellar kozane hints on torso
+  - separated finger nubs + clearer split-toe + geta strap (non-paddle, readable in side/inspect)
+- Scene polish: rear rim light + 6 layered hills in runtime and render rig for Japanese countryside depth and form separation. Charge lean improved.
+- 20-actor scene, 6 repeatable cameras, contact/hero updated from v4, evidence refreshed (1280x800 large nonblank).
+- node verify.js: PASS (GLB 2.61MB, contact 816KB, file audio, 20 actors, structure).
+- Unity preflight: wrapper 0.1.0-beta.7, no Editor/listener (`unity editors -i` empty). Handoff + UNITY_BLOCKER preserved. Browser/Three.js proof is the deliverable.
 
 ## Final status
 See PR body for summary + links. Any remaining visual blocker recorded in ASSET_MANIFEST. Browser proof ready for review; preview at games/kawanakajima-foundry-samurai-proof/ . Unity source handoff exists, but Unity Editor build verification remains blocked by missing Editor/listener.

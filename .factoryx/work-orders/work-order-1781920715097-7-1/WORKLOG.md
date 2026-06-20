@@ -62,3 +62,30 @@
 - New GLB has named parts for pose + improved geo.
 - All 6 views nonblank, large, focal samurai readable.
 - PR remains https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical only).
+
+## Canonical retry v4 polish 2026-06-20 (autonomous)
+- Verified Foundry healthz (blender provider ok); confirmed no Unity Editor via `unity --version` + `unity editors -i`.
+- Ran node verify.js baseline: PASS.
+- Identified least realistic: stylized limbs/helmet/flat feet from prior vision notes on Foundry source.
+- Created + ran improve-samurai-v4.py via /usr/bin/blender on v3 source: added shikoro neck plates, torso lamellar hints, finger separation, split-toe + geta strap.
+- Exported v4 GLB (2.74MB), contact_sheet_v4, hero_v4, source_v4.blend. Preserved all in generated/foundry/samurai/improved-20260620-v4/.
+- Promoted v4 GLB + pngs to assets/ for runtime + in-game review panel.
+- Polished runtime (index.html): +rear rim light, +2 hill layers for depth, improved charge lean + banner response.
+- Polished render rig (render-*.py): +rear rim, more pines, extra hills for matching inspection renders.
+- Updated render to prefer source_v4.blend.
+- Re-ran node verify.js: PASS (GLB ~2.6MB, contact 816KB).
+- Refreshed 6 repeatable cameras via Blender render (overview, redClose, blueClose, sideProfile, topFormation, assetInspect) — all 1280x800 large non-blank.
+- Updated all ASSET_MANIFEST, DELIVERABLE_STATUS, PREVIEW, VERIFICATION, WORKLOG in game/ and .factoryx/wo-*/ .
+- No hand-authored placeholders; all focal samurai from Foundry+Blender iteration. No material retint on GLB.
+- Unity handoff and UNITY_BLOCKER untouched (still accurate: no playable build claimed).
+- House style respected: restrained ink/earth, silhouette, ma via fog/hills, no saturated keys.
+- Browser proof ready; preview at games/kawanakajima-foundry-samurai-proof/index.html .
+- Will push to canonical branch only: factoryx/factory-edo-woodblock/work-order-1781913967751-7-1 ; update PR 161 body.
+
+## Final status for this pass
+- 20 warring samurai (10 Takeda red vs 10 Uesugi blue) in Japanese countryside.
+- File-backed audio from Foundry.
+- 6 cameras repeatable, large focal assets for visual gate.
+- Interaction: orbit, zoom, click-inspect, charge (lean forward), reform.
+- All hard reqs met for browser/Three.js proof. Unity source handoff present.
+- PR URL exactly: https://github.com/ystackai/studio-edo-woodblock/pull/161

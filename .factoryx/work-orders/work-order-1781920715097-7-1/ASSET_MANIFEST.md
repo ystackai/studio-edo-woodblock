@@ -2,15 +2,15 @@
 
 **Work Order:** work-order-1781913967751-7-1  
 **Experiment:** samurai-foundry-correction-v4 + autonomous-retry-20260620-canonical (visual iteration)  
-**Foundry Job (source):** asset-1781913507610-bf69e595 (base) + direct Blender via foundry provider for v2 anatomy pass (asset-20260620-improved-samurai-v2)  
+**Foundry Job (source):** asset-1781913507610-bf69e595 (base) + direct Blender via foundry provider + v3/v4 anatomy+silhouette passes (improved-20260620-v4) on canonical retry  
 **Date:** 2026-06-20  
-**Status:** Browser proof with improved asset (better hands with parented fingers, split-toe tabi feet, recessed eye mempo, stronger crest). 20 actors. 6 repeatable cameras. Visual gate iterated per hard requirements. Unity blocked.
+**Status:** Browser proof with v4 improved asset (shikoro neck plates, lamellar hints, finger sep, split-toe+geta strap). 2.74MB GLB + rear-rim + 6 hill layers for depth. 20 actors. 6 repeatable cameras. node verify PASS, large evidence. Unity blocked. Visual gate addressed with Foundry+Blender iteration.
 
 ## Foundry Source Assets (downloaded live from API)
 All preserved under `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai/` and mirrored to `assets/` for the proof:
 
-- `samurai_character.glb` (1.2 MB) — primary production asset. 268 meshes, 13 materials, detailed kabuto/mempo/sode/kusazuri/kote/hakama/tabi/katana/saya/sashimono. No animations/skins (static pose base).
-  - Provenance: http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character.glb
+- `samurai_character.glb` (2.74 MB) — primary (v4). 190+ meshes. Base + shikoro + kozane + finger/toe details.
+  - Provenance: base asset-1781913507610-bf69e595 + v4 Blender pass via foundry provider (improved-20260620-v4)
   - Integration: loaded via THREE.GLTFLoader as single source; 20 clones with transform/pose variants + additive props only. Base materials untouched.
 - `samurai_character_source.blend` (4.4 MB)
   - Provenance: http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source.blend

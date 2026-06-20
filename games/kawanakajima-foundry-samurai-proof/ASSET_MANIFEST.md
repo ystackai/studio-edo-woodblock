@@ -2,19 +2,19 @@
 
 **Work Order:** work-order-1781913967751-7-1  
 **Experiment:** samurai-foundry-correction-v4 + autonomous-retry-20260620-canonical (visual iteration)  
-**Foundry Job (source):** asset-1781913507610-bf69e595 (base) + direct Blender via foundry provider + autonomous v3 anatomy+silhouette iteration (20260620-v3) on canonical retry  
+**Foundry Job (source):** asset-1781913507610-bf69e595 (base) + direct Blender via foundry provider + autonomous v3 + v4 anatomy+silhouette iteration (20260620-v4) on canonical retry  
 **Date:** 2026-06-20  
-**Status:** Browser proof with v3 improved asset (added maedate crest geometry, recessed eye slits, knuckle nubs on fingers, extra toe+strap on tabi, sode layer hints; 2.2MB GLB). Lighting boosted + camera framing adjusted for non-dark readable views. 20 actors. 6 repeatable cameras. Visual gate iterated (previous v2 still flagged blocky by vision; v3 + light pass improves mean brightness and detail read in all cams). Unity blocked.
+**Status:** Browser proof with v4 improved asset (v3 base + shikoro neck plates, lamellar kozane hints on torso, separated finger nubs, clearer split-toe + geta strap; 2.74MB GLB). Rear rim lighting + extra layered distant hills in game + render for Japanese countryside depth and silhouette readability. 20 actors, 6 repeatable cameras (overview/redClose/blueClose/sideProfile/topFormation/assetInspect). Verified with node verify.js PASS, large non-blank 1280x800 evidence. Unity blocked per preflight.
 
 ## Foundry Source Assets (downloaded live from API)
 All preserved under `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai/` and mirrored to `assets/` for the proof:
 
-- `samurai_character.glb` (2.20 MB) — primary (v3). Base + readable crest/eye slits/finger knuckles/extra tabi toe+strap/sode layers. 188+ meshes.
-  - Provenance: base asset-1781913507610-bf69e595 + v3 Blender pass 20260620 (improved-20260620-v3)
-  - Integration: loaded via THREE.GLTFLoader as single source; 20 clones with transform/pose variants + additive props only. Base materials untouched.
+- `samurai_character.glb` (2.74 MB) — primary (v4). Base + shikoro neck guard plates + lamellar hints + finger separation + split-toe/geta strap. 190+ meshes.
+  - Provenance: base asset-1781913507610-bf69e595 + v3/v4 Blender passes 20260620 (improved-20260620-v4 via foundry blender provider)
+  - Integration: loaded via THREE.GLTFLoader as single source; 20 clones with transform/pose variants + additive props only. Base materials untouched per generated asset contract.
 - `samurai_character_source.blend` (4.4 MB)
   - Provenance: http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source.blend
-- `samurai_character_contact_sheet.png` (486 KB, 840×1140 RGB)
+- `samurai_character_contact_sheet.png` (816 KB)
   - Provenance: .../samurai_character_contact_sheet.png
   - Used in-game: review panel for direct visual comparison during INSPECT ASSET.
 - `samurai_character_hero.png` (907 KB)
@@ -75,7 +75,7 @@ All file-backed; no in-browser oscillators. Provenance retained in generated/fou
 ## Self-Verification Loop (polish pass on canonical branch)
 1. Confirmed WebGL context creation fails in headless chromium (no /dev/dri, no xvfb); capture now uses direct Blender + detailed Foundry source .blend (202 meshes) to render the exact 6 cameras in matching 20-actor scene. Produces ~980k-1M 1280x800 PNGs with real asset silhouettes.
 2. Ran blender render script + node verify.js after each change. All 6 views large, mean>30, show integrated samurai + terrain + standards.
-3. Least realistic visible in current: the source Foundry asset remains stylized (cylindrical limb read at distance, flat foot forms) — characteristic of the delivered model. No hand replacement; large framing in assetInspect + red/blueClose + contact panel preserved for human judgment. Added central path + 2 more pines for countryside readability.
+3. Least realistic visible: stylized cylindrical limb/helmet read at distance (characteristic of Foundry delivered model). v4 addressed: shikoro plates + lamellar + finger/toe definition. Large framing + contact preserved. Extra hills + rear rim for countryside depth and form separation.
 4. Audio iterated: replaced generic bunny mirrors with ffmpeg low-rumble battlefield loop + hits for coherence while keeping foundry job files.
 5. Small polish: updated labels ("Kawanakajima 1561"), added path strip between lines for faction separation.
 6. Stop: no remaining runtime blocker for browser proof; Unity still blocked (see UNITY_BLOCKER). Evidence refreshed. Best version committed.
@@ -103,7 +103,8 @@ All file-backed; no in-browser oscillators. Provenance retained in generated/fou
 
 Do not call deliverable acceptable while characters read blocky from review cameras. Current passes use the detailed 268-mesh Foundry source with readable close framing. Vision confirmed source fidelity but flagged stylized readability as the visible issue (recorded, not hidden).
 
-## v3 Polish (20260620 canonical retry)
-- v3 asset + lighting/camera pass applied.
-- All 6 views now high mean (no dark blockers), focal samurai large.
-- GLB 2.2MB promoted, verify PASS.
+## v4 Polish (20260620 canonical retry on PR #161)
+- v4 asset (shikoro, kozane, fingers, tabi) + rear rim + 6-layer hills + improved charge lean applied.
+- Render rig + runtime use v4 source; 6 views re-rendered large/nonblank.
+- node verify.js: PASS (GLB 2.61MB+, contact 816KB, file audio, 20 actors, structure).
+- Evidence refreshed in screenshots/ and .factoryx/work-order context. No Unity Editor, browser proof complete.
