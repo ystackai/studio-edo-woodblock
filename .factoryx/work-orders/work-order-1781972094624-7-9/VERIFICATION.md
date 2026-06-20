@@ -40,15 +40,16 @@
 
 ## Unity Verification
 
-- **MCP endpoint:** `http://172.21.0.1:25666` — returns 401 Unauthorized (no token available)
-- **Unity CLI:** `0.1.0-beta.7` (wrapper only)
-- **Unity Editor:** Not installed (`unity editors -i` shows no editors)
-- **Disk space:** ~2.1 GB free on /cache (needs 18 GB minimum)
+- **MCP endpoint:** `http://172.21.0.1:25666` — reachable from the deployed Edo worker.
+- **Auth check:** `POST /api/system-tools/ping` with `Authorization: Bearer $UNITY_MCP_TOKEN` returns HTTP 200 and `{"result":"pong"}`.
+- **Unity bridge:** the Unity MCP listener is running on the Mac host and is reachable through the worker route; `GET /`, `/health`, or dummy-token probes are not valid availability checks.
+- **Hetzner Unity CLI:** `0.1.0-beta.7` wrapper only; no Unity Editor is installed in the Hetzner worker container.
+- **Disk space:** host cleanup recovered `/` to about 3.2 GB free after deploy, still below a comfortable Unity Editor install margin.
 - **Handoff assets:** GLB, WAVs, manifest all present in `unity/kawanakajima-samurai/`
 - **Runtime bootstrap:** `KawanakajimaRuntimeBootstrap.cs` loads GLB, creates 20 actors
 - **Build hooks:** `KawanakajimaUnityBuild.cs` with WebGL/Linux build entrypoints
-- **Result:** Unity playable build **not created** — see UNITY_BLOCKER.md
+- **Result:** Unity playable build **not created in this PR**. The next pass should drive the existing Mac Unity MCP listener to load the handoff project, verify the scene, and build.
 
-## Verification Result: PASS (browser) / BLOCKED (Unity)
+## Verification Result: PASS (browser) / PENDING (Unity build)
 
-Browser proof is functional and reviewable. Unity playable build cannot be produced on this worker.
+Browser proof is functional and reviewable. Unity is no longer blocked by listener reachability, but this PR still has no verified Unity scene/build artifact.

@@ -9,7 +9,7 @@
 
 ## Status
 
-Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity playable build is **blocked** — no Unity Editor/listener available on the worker (see UNITY_BLOCKER.md). This is a browser/Three.js review proof plus Unity source handoff.
+Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity playable build is **not included in this PR**. The Unity source handoff is present, and the deployed Edo worker can now reach the Mac-host Unity MCP listener with authenticated `ping` success; scene insertion/build verification still needs to be run against that listener.
 
 ## Generated Assets (Asset Foundry provenance)
 
@@ -18,7 +18,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 - **Size:** 1.23 MB
 - **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v5 repair pass (2026-06-20)
 - **Source:** `http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source_v5.blend`
-- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. No Unity Editor build was produced.
+- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. No Unity build artifact was produced in this PR.
 - **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
@@ -80,7 +80,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 
 ## Known Limitations
 
-- **Unity playable build:** Not created — no Unity Editor/listener available. Worker has Unity CLI (0.1.0-beta.7) but no installed Editor and no MCP listener. `/cache` has ~2.1 GB free vs 18 GB minimum needed.
+- **Unity playable build:** Not created in this PR. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac-host Unity MCP listener is reachable from the deployed Edo worker at `http://172.21.0.1:25666` and authenticated `POST /api/system-tools/ping` returns `pong`. The next pass should use that listener for scene insertion and build verification.
 - **Asset fidelity:** Stylized, not photoreal. v5 improved over v4 (no more slab/blocky reads).
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.
