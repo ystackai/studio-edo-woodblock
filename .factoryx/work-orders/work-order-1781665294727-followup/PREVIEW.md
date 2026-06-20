@@ -40,5 +40,5 @@
 - Live play (open the direct index.html file://) will let a reviewer feel the taste-gate slice: the unsettled lines invite touch; holding stills them and reveals the resolved world; release returns the tremble. The point of the art+melody is now the player's sustained attention. Per house style: quiet, slightly melancholic, craft-dignified, already beginning to dissolve.
 
 Work Order: work-order-1781665294727-followup
-Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (current on factoryx/factory-edo-woodblock/work-order-1781665294727-followup)
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (current on factoryx/factory-edo-woodblock/work-order-1781665294727-followup @60cb3b6)
 Canonical preview: drops/indigo-stutter/index.html
