@@ -317,28 +317,88 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             return null;
         }
 
-        var gltf = Activator.CreateInstance(type);
-        var load = type.GetMethod("Load", BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(string) }, null);
+        var gltf = CreateGltfImport(type);
+        if (gltf == null)
+        {
+            Debug.LogWarning("glTFast GltfImport constructor API was not found.");
+            return null;
+        }
+
+        var load = FindMethod(type, "Load", parameters => parameters.Length > 0 && parameters[0].ParameterType == typeof(string));
         if (load == null)
         {
             Debug.LogWarning("glTFast Load(string) API was not found.");
             return null;
         }
 
-        var loaded = await AwaitBooleanTask(load.Invoke(gltf, new object[] { url }));
+        var loaded = await AwaitBooleanTask(load.Invoke(gltf, BuildArgs(load.GetParameters(), url)));
         return loaded ? gltf : null;
     }
 
     private static async Task<bool> InstantiateGltfMainScene(object gltf, Transform parent)
     {
-        var method = gltf.GetType().GetMethod("InstantiateMainSceneAsync", BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(Transform) }, null);
+        var method = FindMethod(gltf.GetType(), "InstantiateMainSceneAsync", parameters => parameters.Length > 0 && parameters[0].ParameterType == typeof(Transform));
         if (method == null)
         {
             Debug.LogWarning("glTFast InstantiateMainSceneAsync(Transform) API was not found.");
             return false;
         }
 
-        return await AwaitBooleanTask(method.Invoke(gltf, new object[] { parent }));
+        return await AwaitBooleanTask(method.Invoke(gltf, BuildArgs(method.GetParameters(), parent)));
+    }
+
+    private static object CreateGltfImport(Type type)
+    {
+        foreach (var constructor in type.GetConstructors(BindingFlags.Instance | BindingFlags.Public))
+        {
+            try
+            {
+                return constructor.Invoke(BuildArgs(constructor.GetParameters()));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"glTFast GltfImport constructor failed: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    private static System.Reflection.MethodInfo FindMethod(Type type, string name, Func<System.Reflection.ParameterInfo[], bool> predicate)
+    {
+        foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (method.Name != name) continue;
+            var parameters = method.GetParameters();
+            if (predicate(parameters)) return method;
+        }
+
+        return null;
+    }
+
+    private static object[] BuildArgs(System.Reflection.ParameterInfo[] parameters, params object[] provided)
+    {
+        var args = new object[parameters.Length];
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (i < provided.Length)
+            {
+                args[i] = provided[i];
+                continue;
+            }
+
+            var parameterType = parameters[i].ParameterType;
+            var defaultValue = parameters[i].HasDefaultValue ? parameters[i].DefaultValue : null;
+            if (defaultValue != null && defaultValue != DBNull.Value && defaultValue != Type.Missing)
+            {
+                args[i] = defaultValue;
+                continue;
+            }
+
+            args[i] = parameterType.IsValueType ? Activator.CreateInstance(parameterType) : null;
+        }
+
+        return args;
     }
 
     private static Type FindType(string fullName)
