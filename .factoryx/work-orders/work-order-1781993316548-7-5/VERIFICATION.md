@@ -1,23 +1,24 @@
-# Verification — work-order-1781993316548-7-5
+# Verification — work-order-1781993316548-7-5 (v8.13)
 
 ## Browser Verification
 
 - `node games/kawanakajima-foundry-samurai-proof/verify.js` → **PASS**
-  - GLB: 1.23 MB (Foundry)
-  - Contact sheet: 1150 KB
-  - Audio loop: 2.53 MB
-  - Battlefield pack: 6.55 MB (20 warriors, 10/10 faction split)
-  - All structure, path, size, syntax, audio, Unity handoff checks pass
-  - VERIFICATION.json written with full evidence
+   - GLB character: 1.23 MB (Foundry)
+   - GLB battlefield pack: 6.55 MB (20 warriors, 10/10 faction split)
+   - Audio: 5 curated game WAVs (2.53 MB loop, 156 KB charge, 52 KB clash, 24 KB step, 12 KB UI)
+   - Contact sheet: 1150 KB
+   - All structure, path, size, syntax, audio, Unity handoff checks pass
+   - No scratch `.bak`, `.backup`, or `.tmp` files remain in the workspace
+   - ASSET_MANIFEST.md written with provenance
 
 ## Unity Handoff Verification
 
 - `node unity/kawanakajima-samurai/verify-unity-handoff.js` → **PASS**
-  - Unity handoff structure intact
-  - StreamingAssets GLB present
-  - Scripts, scenes, build hooks present
+   - Unity handoff structure intact
+   - StreamingAssets GLB present (samurai_character.glb + samurai_battlefield_pack.glb)
+   - Scripts, scenes, build hooks present
 
-## Unity MCP Live Smoke
+## Unity MCP Live Smoke (2026-06-20)
 
 - Initialize with protocolVersion `2024-11-05` → **200 OK**, returned `Mcp-Session-Id`
 - `tools/list` → 38 tools listed (assets-find, scene-list-opened, script-execute, etc.)
@@ -26,6 +27,14 @@
   - IsLoaded: true, IsDirty: false, IsValidScene: true
   - RootCount: 73
   - Path: `Assets/Kawanakajima/Scenes/Kawanakajima.unity`
+
+## Generated Assets
+
+- ASSET_MANIFEST.md written at `.factoryx/work-orders/work-order-1781993316548-7-5/ASSET_MANIFEST.md`
+- Samurai character GLB: 1.23 MB (Foundry, Blender source retained)
+- Battlefield pack GLB: 6.55 MB (20 warriors, 10/10 split, Blender source retained)
+- Audio: 5 curated game WAV files plus retained Foundry source package metadata
+- All assets integrated in browser and Unity StreamingAssets
 
 ## Visual Evidence
 
@@ -43,6 +52,13 @@
 | Foundry contact | assets/samurai_character_contact_sheet.png | ✅ |
 | Foundry hero | assets/samurai_character_hero.png | ✅ |
 
+## Scratch Cleanup
+
+- `drops/drop-edo-woodblock-2026-04-14t183006z-concept-cycle/index.html.bak` → removed
+- `drops/drop-edo-woodblock-2026-04-14t183006z-concept-cycle/main.js.bak` → removed
+- `drops/indigo-stutter/index.html.bak` → removed
+- `*.backup` and `*.tmp` scratch files removed in v8.12
+
 ## Quality Gates
 
 - ✅ First viewport: nonblank 3D scene with 20 samurai visible
@@ -54,6 +70,7 @@
 - ✅ Audio: file-backed WAVs, loop toggle, SFX on charge/clash/step
 - ✅ No scratch files committed
 - ✅ No oscillator/fake audio claims
+- ✅ ASSET_MANIFEST.md with provenance documentation
 
 ## Remaining
 
@@ -72,4 +89,3 @@
 - Verified zero scratch files (.bak, .tmp, .backup) remain in workspace
 - Both verifiers remain green; no browser JS syntax regressions
 - Pushed as v8.12 to origin/factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8
-

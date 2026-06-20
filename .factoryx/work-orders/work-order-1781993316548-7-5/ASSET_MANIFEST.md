@@ -53,17 +53,16 @@ All audio files are file-backed WAV (not oscillator-only):
 | Asset | Path | Size | Source |
 |---|---|---|---|
 | Battlefield loop | `assets/audio/battlefield_loop.wav` | 2.53 MB | Foundry recipe `cozy_audio_pack` (job `asset-1781916330853-f7d831d9`) |
-| Charge cue | `assets/audio/charge_cue.wav` | 156 KB | Hand-authored / Foundry |
-| Clash accent | `assets/audio/clash_accent.wav` | 52 KB | Hand-authored / Foundry |
-| Formation step | `assets/audio/formation_step.wav` | 24 KB | Hand-authored / Foundry |
-| UI confirm | `assets/audio/ui_confirm.wav` | 12 KB | Hand-authored / Foundry |
-| Tracker loop (v2) | `assets/generated/foundry/audio/.../music_v2/cozy_bunny_tracker_loop_v2.wav` | 5.3 MB | Foundry `cozy_audio_pack` |
-| Pickup chime | `.../sfx_v2/pickup_chime_bright.wav` | 125 KB | Foundry |
-| Soft impact | `.../sfx_v2/soft_impact_puff.wav` | 73 KB | Foundry |
-| UI confirm glass | `.../sfx_v2/ui_confirm_glass.wav` | 83 KB | Foundry |
-| Bunny hop | `.../sfx_v2/bunny_hop_plush.wav` | 59 KB | Foundry |
+| Charge cue | `assets/audio/charge_cue.wav` | 156 KB | Curated from generated audio pack |
+| Clash accent | `assets/audio/clash_accent.wav` | 52 KB | Curated from generated audio pack |
+| Formation step | `assets/audio/formation_step.wav` | 24 KB | Curated from generated audio pack |
+| UI confirm | `assets/audio/ui_confirm.wav` | 12 KB | Curated from generated audio pack |
 
-**Waveform PNGs:** `assets/audio/battlefield_loop_waveform.png`, foundry `sfx_v2_waveforms.png`
+Source metadata for the generated audio package is retained at
+`games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/audio/asset-1781916330853-f7d831d9/spec.json`
+and records the prompt for a reusable Kawanakajima samurai battlefield audio pack.
+
+**Waveform PNG:** `assets/audio/battlefield_loop_waveform.png`
 
 ---
 
@@ -81,7 +80,7 @@ All audio files are file-backed WAV (not oscillator-only):
 
 - `node games/kawanakajima-foundry-samurai-proof/verify.js` → PASS
 - GLB sizes: character 1.23 MB, battlefield pack 6.55 MB (within expected range)
-- Audio: 5 main game WAVs + 4 Foundry SFX + 1 music loop (all > 10 KB, no oscillator-only)
+- Audio: 5 curated game WAVs plus retained source package metadata (all game WAV files > 10 KB, no oscillator-only)
 - All structure, path, size, syntax checks pass
 - No scratch files committed
 - No oscillator/fake audio claims in the deliverable
