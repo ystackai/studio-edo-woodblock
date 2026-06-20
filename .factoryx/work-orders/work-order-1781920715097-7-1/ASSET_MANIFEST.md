@@ -1,7 +1,7 @@
 # ASSET_MANIFEST — kawanakajima-foundry-samurai-proof (work-order-1781913967751-7-1)
 
-**Work Order:** work-order-1781913967751-7-1  
-**Experiment:** samurai-foundry-correction-v4 + autonomous-retry-20260620-canonical (visual iteration)  
+**Work Order:** work-order-1781920715097-7-1 (autonomous retry on canonical 1781913967751-7-1)  
+**Experiment:** samurai-foundry-correction-v4 + autonomous-retry-20260620-canonical (visual iteration) + final preflight+verify pass 2026-06-20  
 **Foundry Job (source):** asset-1781913507610-bf69e595 (base) + direct Blender via foundry provider + v3/v4 anatomy+silhouette passes (improved-20260620-v4) on canonical retry  
 **Date:** 2026-06-20  
 **Status:** Browser proof with v4 improved asset (shikoro neck plates, lamellar hints, finger sep, split-toe+geta strap). 2.74MB GLB + rear-rim + 6 hill layers for depth. 20 actors. 6 repeatable cameras. node verify PASS, large evidence. Unity blocked. Visual gate addressed with Foundry+Blender iteration.

@@ -36,3 +36,11 @@ Captured after construction + any fixes:
 
 ## Final status
 See PR body for summary + links. Any remaining visual blocker recorded in ASSET_MANIFEST. Browser proof ready for review; preview at games/kawanakajima-foundry-samurai-proof/ . Unity source handoff exists, but Unity Editor build verification remains blocked by missing Editor/listener.
+
+## Retry execution verification (work-order-1781920715097-7-1)
+- Foundry healthz: PASS (blender provider).
+- unity --version + editors -i : wrapper only, no Editor (blocker confirmed).
+- node verify.js: PASS.
+- 6 screenshots: large (1.1M+), nonblank, 1280x800.
+- All hard gates satisfied for browser deliverable on canonical PR.
+- Updated WORKLOG / DELIVERABLE / ASSET / PREVIEW for this run ID.

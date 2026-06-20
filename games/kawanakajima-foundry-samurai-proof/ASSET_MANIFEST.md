@@ -1,7 +1,7 @@
 # ASSET_MANIFEST — kawanakajima-foundry-samurai-proof (work-order-1781913967751-7-1)
 
-**Work Order:** work-order-1781913967751-7-1  
-**Experiment:** samurai-foundry-correction-v4 + autonomous-retry-20260620-canonical (visual iteration)  
+**Work Order:** work-order-1781920715097-7-1 (autonomous retry on canonical work-order-1781913967751-7-1)  
+**Experiment:** samurai-foundry-correction-v4 + autonomous-retry-20260620-canonical (visual iteration) + final verification pass 2026-06-20  
 **Foundry Job (source):** asset-1781913507610-bf69e595 (base) + direct Blender via foundry provider + autonomous v3 + v4 anatomy+silhouette iteration (20260620-v4) on canonical retry  
 **Date:** 2026-06-20  
 **Status:** Browser proof with v4 improved asset (v3 base + shikoro neck plates, lamellar kozane hints on torso, separated finger nubs, clearer split-toe + geta strap; 2.74MB GLB). Rear rim lighting + extra layered distant hills in game + render for Japanese countryside depth and silhouette readability. 20 actors, 6 repeatable cameras (overview/redClose/blueClose/sideProfile/topFormation/assetInspect). Verified with node verify.js PASS, large non-blank 1280x800 evidence. Unity blocked per preflight.

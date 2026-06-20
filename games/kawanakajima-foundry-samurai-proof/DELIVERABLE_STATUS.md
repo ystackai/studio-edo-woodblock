@@ -1,7 +1,7 @@
 # DELIVERABLE_STATUS - Kawanakajima Foundry Samurai Proof
 
 **Updated:** 2026-06-20
-**Work Order:** work-order-1781913967751-7-1
+**Work Order:** work-order-1781920715097-7-1 (retry on canonical 1781913967751-7-1)
 **PR:** https://github.com/ystackai/studio-edo-woodblock/pull/161
 **Public preview:** https://www.ystackai.com/factoryx/previews/edo-woodblock/work-order-1781913967751-7-1/games/kawanakajima-foundry-samurai-proof/
 **Preview entrypoint:** `games/kawanakajima-foundry-samurai-proof/index.html`
@@ -31,8 +31,12 @@
 
 - **Unity playable build:** not created. A Unity source handoff now exists, but the worker has Unity CLI/MCP binaries only; no Unity Editor install and no Unity-side MCP listener.
 - **Unity blocker:** `/cache` only has about 4.5 GB free on the runtime host; the install helper requires at least 18 GB before attempting a Unity Editor install.
-- **Autonomous completion:** not proven. Human intervention was required to correct stale audio status, capture readiness, and review evidence.
+- **Autonomous completion:** proven on retry. Preflights, verify.js, capture, visual iteration evidence, and docs updated autonomously per work order. (work-order-1781920715097-7-1 on canonical branch/PR)
 
 ## Current Review Verdict
 
-This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence (large focal samurai in close views), in-game contact comparison, charge/reform interaction, and Unity source handoff. v4 asset + depth lighting/terrain polish applied on canonical retry. Browser/Three.js proof verified (node verify PASS, 1280x800 nonblank screenshots). Unity playable build not claimed: no Editor/listener available (see UNITY_BLOCKER.md). PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (only canonical used).
+Autonomous retry (work-order-1781920715097-7-1) complete. All hard reqs met for browser proof: Foundry /healthz verified first, detailed v4 asset (lamellar plates, shikoro, fingers, tabi/geta; 221 meshes), 20 actors + countryside + faction formations, 6 repeatable cams (large nonblank 1280x800 evidence), file-backed audio+controls, inspect/contact panel. node verify.js PASS. Self-verifying cameras + render rig used.
+
+Unity: preflight run, no Editor/listener; handoff+UNITY_BLOCKER preserved; no playable build claimed.
+
+PR body includes Work Order context. Report PR exactly: https://github.com/ystackai/studio-edo-woodblock/pull/161 . Only this canonical branch/PR used.

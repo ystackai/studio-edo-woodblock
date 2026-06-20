@@ -89,3 +89,18 @@
 - Interaction: orbit, zoom, click-inspect, charge (lean forward), reform.
 - All hard reqs met for browser/Three.js proof. Unity source handoff present.
 - PR URL exactly: https://github.com/ystackai/studio-edo-woodblock/pull/161
+
+## Autonomous retry execution (work-order-1781920715097-7-1) 2026-06-20
+- Confirmed on canonical branch factoryx/factory-edo-woodblock/work-order-1781913967751-7-1 @ bf2a7e8 (and later).
+- Asset Foundry health: verified /healthz -> 200, blender provider active at /usr/bin/blender. Used before any placeholders.
+- Unity preflight mandatory: `unity --version` -> 0.1.0-beta.7 wrapper; `unity editors -i` -> no Editor listed (empty). Confirmed no playable Unity build claim. UNITY_BLOCKER.md accurate.
+- node verify.js : PASS (GLB 2.61MB, contact 816KB, 5 audio WAVs, structure, 20 actors, file-backed audio, Unity handoff refs, no oscillator).
+- Screenshot evidence (6 cams): all 1280x800, 1.1-1.3MB, nonblank (means 59-113). Refreshed via capture-views.sh + render rig.
+- v4 improved asset confirmed: 221 meshes in source .blend, lamellar plates, sashimono, mempo, detailed cuirass rows — not block/Minecraft. Contact sheet comparison in UI for gate.
+- Least realistic identified in prior: stylized cylinder read + foot forms (source Foundry characteristic). Addressed by v4 anatomy pass (shikoro, fingers, split-toe/geta, kozane) + large close framing + in-game contact panel + preserved source .blend + renders. No hand replacement.
+- No FEEDBACK.md blocking input present.
+- House style: ink/earth palette, rear rim + layered hills for depth, cinematic low shoulder default, fog, ma.
+- Browser/Three.js proof complete per all hard requirements. Preview entrypoint set. No Unity Editor/listener so no playable Unity claim.
+- git push to canonical: up-to-date after refresh.
+- Will update PR #161 body with Work Order context + status + artifacts + verification + blockers.
+- Final PR URL: https://github.com/ystackai/studio-edo-woodblock/pull/161

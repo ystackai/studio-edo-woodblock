@@ -1,7 +1,7 @@
 # DELIVERABLE_STATUS - Kawanakajima Foundry Samurai Proof
 
 **Updated:** 2026-06-20
-**Work Order:** work-order-1781913967751-7-1
+**Work Order:** work-order-1781920715097-7-1 (canonical retry on 1781913967751-7-1)
 **PR:** https://github.com/ystackai/studio-edo-woodblock/pull/161
 **Public preview:** https://www.ystackai.com/factoryx/previews/edo-woodblock/work-order-1781913967751-7-1/games/kawanakajima-foundry-samurai-proof/
 **Preview entrypoint:** `games/kawanakajima-foundry-samurai-proof/index.html`
@@ -35,4 +35,8 @@
 
 ## Current Review Verdict
 
-This is a coherent browser-reviewable proof with file-backed assets, file-backed audio, repeatable camera evidence, and a concrete Unity source handoff. It is not yet the requested final Unity game because no Unity Editor/listener is available for build verification. The next required infrastructure step is a worker with a Unity Editor installed and a running Unity MCP listener, then a new autonomous work order should build and inspect the Unity project.
+Autonomous retry pass complete. Browser/Three.js proof is reviewable: 20 detailed Foundry+Blender-iterated samurai (v4 with lamellar, shikoro, split-toe, etc.), 6 repeatable large-frame cameras, file-backed audio, charge/reform, contact-sheet visual comparison gate, non-blank verified screenshots. All hard requirements satisfied for the browser deliverable.
+
+Unity Editor + listener unavailable per preflight (0.1 wrapper, empty editors list); source handoff + UNITY_BLOCKER preserved. No playable Unity build is claimed.
+
+PR body will include full Work Order context + artifacts + verification + blockers. PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 exactly.

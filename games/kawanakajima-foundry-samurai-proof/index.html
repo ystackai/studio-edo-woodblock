@@ -214,6 +214,9 @@
     }
     addWarBanner('takeda field standard', -9.4, -7.1, 0x7d1f18, 0xd6be78);
     addWarBanner('uesugi field standard', 9.4, -4.3, 0x1e365c, 0xd8d0bd);
+    // Additional closer standards for faction-readable formations at overview/top cams (per spec)
+    addWarBanner('takeda line standard', -7.8, -2.5, 0x7d1f18, 0xd6be78);
+    addWarBanner('uesugi line standard', 7.8, -2.0, 0x1e365c, 0xd8d0bd);
 
     // Early paint of base scene (ground, trees, fog) so first viewport is non-blank even before GLB decodes in capture envs
     renderer.render(scene, camera);

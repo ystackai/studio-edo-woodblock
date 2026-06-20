@@ -44,4 +44,7 @@ Screenshots in `.factoryx/work-orders/work-order-1781913967751-7-1/screenshots/`
 - Unity Editor/listener unavailable, so the Unity source handoff has not been built or inspected inside Unity (see UNITY_BLOCKER.md).
 - This is the browser Three.js proof pending any later Unity port.
 
+## Retry pass 2026-06-20
+Preflights, full verify, and 6-cam evidence re-confirmed. All requirements met for the browser deliverable. PR https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical only).
+
 Do not approve if any review camera shows characters as blocky cubes, capsules, disks, or unreadable dark dots.
