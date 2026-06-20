@@ -81,6 +81,17 @@ Re-verified after rebase + on current head 2026-06-20; sizes refreshed, same cle
 ## Verdict
 Ready for human review / merge gate. The home-page bug is fixed by construction (direct self-contained entrypoint + explicit .factoryx/preview-entrypoint + chromium verif on that path + CI logic confirmed to redirect not home). Rebase cleared the merge-conflicts block; fresh re-verif + evidence 2026-06-20. The living print satisfies the original goal, the taste-gate slice (one verb: quiet sustained baren on one wave horizon in mist), the asset contract v2, and the full game-feel + house-style bar. Live file:// + chromium (re-ran) + preview sim confirm direct mist print (not factory home).
 
+## Fresh browser verification pass (this session, HEAD f1f40fe)
+- Re-ran chromium headless directly on the canonical entrypoint (file://.../index.html and ?verify=1).
+- ready.png: 950298 bytes, exit 0, non-blank. Title "Mist settles on one carved horizon", full canvas, drifting mist visible on first paint. Zero factory-home strings in DOM (no demos-row/crew/blog/ystackai title/board etc). Only dbus noise in logs.
+- post-interact.png: 956139 bytes, exit 0, non-blank. FOLLOWUP-LIVE-OK marker present, forced high press + cumulative + bleeds exercised.
+- Confirmed via --dump-dom + targeted extraction: correct <title>, <canvas> present, no home chrome bleed into the direct page.
+- CI preview prepare simulation re-executed: .factoryx/preview-entrypoint read yields mist path; target file exists; redirect index would be written pointing at games/mist-settles-on-one-carved-horizon-5ca8e144/ (not root home).
+- Asset foundry healthz checked (reachable, blender provider available); assets already present as real file-backed JPGs + manifest per prior generation for contract v2. No change needed.
+- Branch 9 ahead of main (WO commits only; no merge conflict in tree). Clean re-verif on current HEAD.
+- This pass reconfirms the operator feedback is resolved: opening the WO preview root (after next deploy-preview) or the direct file serves the living print exclusively.
+
 Work Order: work-order-1781665243422-followup
-Chromium: clean on direct entrypoint (2026-06-20 fresh)
+Chromium: clean on direct entrypoint (2026-06-20 fresh on f1f40fe)
 PR: https://github.com/ystackai/studio-edo-woodblock/pull/156
+Asset foundry: checked (providers noted; pre-generated authored assets used)

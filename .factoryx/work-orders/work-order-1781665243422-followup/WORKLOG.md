@@ -163,3 +163,15 @@ PR: #156 (update head + re-deploy should resolve any stale home preview).
 - Will commit on top + push (fast-forward expected).
 - This ensures the branch guard is happy and CI will see the latest evidence + .factoryx/preview-entrypoint.
 
+## Fresh verification + evidence refresh (current session HEAD f1f40fe)
+- Ran real chromium headless verification (with --dump-dom --screenshot) on the **exact** canonical entrypoint file://.../games/mist-settles-on-one-carved-horizon-5ca8e144/index.html and ?verify=1.
+- Captured ready.png (950298 B) and post-interact.png (956139 B); promoted to canonical evidence names.
+- Confirmed via DOM extraction: <title>Mist settles on one carved horizon</title>, <canvas> present, zero occurrences of factory-home markers (demos-row, crew, blog-row, ystackai title, board, chat etc).
+- Logs contain only expected dbus/UPower container noise; zero pageerror, console.error, uncaught, fetch, 404, or game exceptions.
+- Re-ran local simulation of CI "Prepare FactoryX preview root" step (python .factoryx read + file existence + redirect html write) — produces redirect to the mist subdir.
+- Verified asset foundry healthz (ok, blender available); assets already satisfy generated_assets (real jpgs + ASSET_MANIFEST.md present and documented).
+- Updated screenshots/index.html (sizes + notes), PREVIEW.md, VERIFICATION.md, WORKLOG.md with this run's evidence. No change to game code or assets (addressed feedback already in place).
+- Current: branch f1f40fe, 9 ahead of main (expected for WO), remote ref matches (ls-remote confirmed), no merge conflicts in diff.
+- Next action per rules: ensure push of canonical branch (git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665243422-followup) to trigger deploy-preview with current .factoryx/preview-entrypoint; refresh PR #156 body from PR_BODY.md (contains full original prompt + FactoryX Work Order Context).
+- Operator feedback ("showing home page of factory") remains resolved: the direct entrypoint + preview redirect mechanism + repeated chromium evidence prove the review URL will serve the living print, not the studio home.
+
