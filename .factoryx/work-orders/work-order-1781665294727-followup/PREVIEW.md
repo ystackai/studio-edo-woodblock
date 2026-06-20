@@ -42,3 +42,13 @@
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (current on factoryx/factory-edo-woodblock/work-order-1781665294727-followup @60cb3b6)
 Canonical preview: drops/indigo-stutter/index.html
+
+## Fresh evidence (2026-06-20 rework pass with new generated assets)
+- New GenerateImage assets installed: base-motif.jpg (144 kB, 23.5% dark ink, strong silhouettes per refined prompt), reveal-detail.jpg (201 kB, 10.7% with emergent birds/wakes/seal).
+- Music: fresh numpy-synth WAVs: stutter-drop 36kB (0.42s organic wooden+wet), resolve-breath 267kB (3.1s breath-modulated pad), friction-rub 24kB.
+- Verification screenshots updated: ready.png 643 kB (center crop 26.6% dark ink visible), post-interact.png 846 kB (forced resolved + marker + caption + reveal layer).
+- Payload reduced to ~0.7 MB total for slice. All checks green; 9/9 feel; direct preview exercised; no runtime errors.
+- ASSET_MANIFEST.md updated with exact current sizes + provenance tying to this WO + verbatim feedback + gen methods (GenerateImage + numpy).
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157

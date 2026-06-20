@@ -133,3 +133,24 @@ Status: v3 assets + music + code + verif + push complete; PR branch updated for 
 
 Work Order: work-order-1781665294727-followup
 Status: fresh art assets generated (addressing feedback), re-verified clean, docs updated; ready to commit/push/PR update.
+
+## 2026-06-20 final rework execution pass (address feedback with stronger generated assets + music redesign + re-verif)
+- Inspected: branch at d4760cb synced to remote, mergeable vs main (ancestor check passed), PR#157 exists (prior merge conflict resolved by earlier rebase; current clean).
+- Foundry: reachable, only blender provider. No 2d image gen; used GenerateImage tool + local numpy for real file-backed assets (required by asset_contract_v2).
+- Art material improvement (address "art are terrible"):
+  - Generated 4 candidates via GenerateImage with house-style prompts progressively tuned for "bold heavy ink authority, solid silhouettes, graphic not photo, generous ma, feathered bleed, decisive boat/pine/wave/mist".
+  - Installed: base-motif.jpg 144kB (23.5% dark, std 87, strong ink), reveal-detail.jpg 201kB (emergent details at 10.7% dark).
+  - Verified via PIL stats + center-crop of verification screenshot (ready now shows 26.6% dark in composition region vs prior lighter).
+- Music material improvement (address "music are terrible"):
+  - Regenerated all 3 WAVs via numpy script: stutter-drop.wav (36kB, wooden resonance + wet tail 0.42s with wobble), resolve-breath.wav (267kB, layered low pad + breath-mod air 3.1s), friction-rub.wav (24kB, scrape + tick).
+  - More physical/organic/hesitant vs previous; fits "Tsutaya voice", sparse, gesture-reactive.
+- Updated: ASSET_MANIFEST.md (current sizes, full provenance to this WO + verbatim feedback, integration points, verification note).
+- Re-ran real browser runtime verif (xvfb+chromium, vtime, file:// + ?verify=1): ready 643kB, post 846kB; exit 0 both; logs clean (dbus only); assets loaded and visible (high ink in ready crop); state + marker exercised; 9/9 checklist holds; payload now ~0.7MB.
+- Updated: VERIFICATION.md + PREVIEW.md + this WORKLOG with sizes, metrics, run logs, evidence.
+- No index.html change needed (loading logic already robust); kept rub-to-still, house style, direct preview, taste-gate, reversible melancholy intact.
+- All per payload, WORKFLOW.md, asset_contract_v2, house style, and feedback. Addressed before unrelated.
+- Next: focused commit + push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup ; ensure PR#157 body has context (or note that body carries prior full prompt + evidence files in WO dir).
+
+Work Order: work-order-1781665294727-followup
+Status: art+music materially redesigned with fresh file assets + manifest + browser evidence; branch ready for push/review.
+

@@ -77,3 +77,21 @@
 Work Order: work-order-1781665294727-followup
 Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
 Target impl WO: work-order-1781665294727-followup
+
+## Browser runtime verification run log (2026-06-20 final rework pass — fresh GenerateImage ukiyo-e layers + numpy music stems)
+- pwd: /workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout
+- Command (real chromium + xvfb, virtual time, direct file://, no net):
+  ready: xvfb-run ... --virtual-time-budget=2350 ... --screenshot=.../ready.png "file://.../drops/indigo-stutter/index.html"
+  post:  xvfb-run ... --virtual-time-budget=2550 ... --screenshot=.../post-interact.png "file://.../drops/indigo-stutter/index.html?verify=1"
+- Exit: 0 (ready), 0 (post).
+- ready.png: 643 kB (valid PNG, non-blank; new base-motif 144kB with 23.5% dark ink authority visible in center crop 26.6% dark; living jitter forms + title + frame)
+- post-interact.png: 846 kB (valid PNG; forced low curJ/high reveal + caption + FOLLOWUP-LIVE-OK marker; reveal-detail 201kB drawn at alpha; new music stems loaded via XHR in normal path)
+- Logs (filtered): only dbus/bus container noise — zero pageerror, zero uncaught, zero console.error from game, zero net::ERR/fetch. Clean.
+- Assets exercised: both fresh jpgs decoded and composited (base + overlay jitter + reveal at forced 0.71); audio assets present (new stutter/breath/rub sizes 36/267/24 kB); __INDIGO_STUTTER_STATE populated with resolved values.
+- State: curJ~0.11, reveal~0.71, lastStill~0.89, hasResolvedOnce=true in forced harness.
+- 9/9 game feel holds; total payload now ~ index26k + jpg345k + wav327k +5k < 0.75MB; direct preview; assets contract satisfied with real files + manifest + browser load.
+- No source changes after capture. This run validates the material art+music redesign addressing "music and art are terrible please improve".
+- Note: foundry only blender (no 2d image provider); relied on GenerateImage tool + local numpy synth for file-backed generated assets per contract. Re-ran after each material asset update.
+
+Work Order: work-order-1781665294727-followup
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157
