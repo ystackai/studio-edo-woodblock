@@ -175,3 +175,19 @@ PR: #156 (head at ad03dca; paste/update body from PR_BODY.md containing the full
 - Next action per rules: ensure push of canonical branch (git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665243422-followup) to trigger deploy-preview with current .factoryx/preview-entrypoint; refresh PR #156 body from PR_BODY.md (contains full original prompt + FactoryX Work Order Context).
 - Operator feedback ("showing home page of factory") remains resolved: the direct entrypoint + preview redirect mechanism + repeated chromium evidence prove the review URL will serve the living print, not the studio home.
 
+## Session continuation (2026-06-20, after initial git snapshot)
+- Performed fresh chromium captures using absolute paths: ready-fresh.png (955243 B), post-fresh.png (953464 B).
+- Confirmed via log + grep: title correct, no home-page chrome strings in DOM, canvas present, verify marker exercised.
+- Wrote ASSET_MANIFEST.md into FACTORYX_WORK_ORDER_CONTEXT_DIR (`.factoryx/work-orders/work-order-1781665243422-followup/ASSET_MANIFEST.md`) documenting the three authored JPGs, roles, provenance (Grok GenerateImage 2026-06-17), integration points in the game index.html, sizes, and browser verif evidence. (The copy under game/assets/ remains the integration manifest.)
+- Ran `git merge --no-ff origin/main` (result: already up to date; no conflicts; serves to advance PR head sha for github-mergeability re-evaluation).
+- Updated PREVIEW.md, VERIFICATION.md, and this WORKLOG with fresh evidence sections, sizes, DOM checks, foundry note, and note that preview-entrypoint did not require change.
+- Added untracked fresh screenshots to tree for commit.
+- Attempting commit + `git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665243422-followup` to advance remote and PR#156 head (full prompt stays in PR_BODY.md).
+- All prior useful work kept; no unrelated changes; feedback addressed first; real assets + manifest in WO context present.
+
+Current status after actions:
+- Branch still on factoryx/.../work-order-1781665243422-followup
+- Direct mist entrypoint verified clean (not factory home)
+- PR https://github.com/ystackai/studio-edo-woodblock/pull/156 (will be updated via push + body refresh)
+
+Work Order: work-order-1781665243422-followup

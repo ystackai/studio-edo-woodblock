@@ -95,3 +95,19 @@ Work Order: work-order-1781665243422-followup
 Chromium: clean on direct entrypoint (2026-06-20 fresh on f1f40fe)
 PR: https://github.com/ystackai/studio-edo-woodblock/pull/156
 Asset foundry: checked (providers noted; pre-generated authored assets used)
+
+## Continuation verification (same session, post-merge attempt + new screenshots)
+- Asset foundry re-checked: healthy, blender provider available. (Image assets originated from GenerateImage during rework implementation since no HF image provider; committed binaries + manifest satisfy contract.)
+- Fresh chromium captures (absolute paths, 2026-06-20):
+  - ready-fresh.png (955243 bytes): first paint of direct mist entrypoint. Paper texture, horizon base, drifting mist, wave all present. No UI, no text, no factory chrome in DOM.
+  - post-fresh.png (953464 bytes): ?verify=1 exercised; marker + interaction state visible.
+- DOM validation: <title> exact, canvas rendered at size, FOLLOWUP-LIVE-OK present under verify; grep for home markers (crew, demos, board, hero, ystackai title etc) returned 0 matches.
+- .factoryx/preview-entrypoint still points at the mist game index.html; no update needed.
+- ASSET_MANIFEST.md written to FACTORYX_WORK_ORDER_CONTEXT_DIR (in addition to the one under game assets/) documenting files, provenance, integration, and this browser evidence.
+- Git: `git merge --no-ff origin/main` (noop, already incorporates; no conflicts); 13 WO commits ahead. Pre-push guard satisfied as not behind remote WO ref.
+- All game-feel items and original goal remain satisfied. The home-page bug fix (direct entry + entrypoint + CI redirect + verification on exact path) is durable.
+
+Verdict remains: ready; feedback addressed; assets real; preview will not serve factory home.
+Work Order: work-order-1781665243422-followup
+Chromium: clean (ready-fresh + post-fresh 2026-06-20)
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/156

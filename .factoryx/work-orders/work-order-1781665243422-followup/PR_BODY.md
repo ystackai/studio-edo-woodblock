@@ -128,3 +128,17 @@ Cut one living print: a single wave-form horizon in ink on paper grain, complete
 **Ready for review.** The home-page bug is fixed at the source (direct entrypoint + .factoryx/preview-entrypoint + repeated fresh DOM+chromium proof on 271215d that the served artifact is the mist print alone, never the factory home). The living print is direct, self-contained, house-style compliant, asset-contract compliant (real jpgs + manifest under games/.../assets), fully verified in real browser (chromium headless + --dump-dom + CI preview redirect sim), and attached to the same deliverable as a reviewable follow-up. Branch pushed to canonical ref (latest 271215d); PR #156 head updated automatically; refresh body from this file if stale.
 
 (End of PR body — the original full user prompt from the work order launch is reproduced in the "Full Payload JSON" + "Original parent goal/context" sections above for traceability.)
+
+## Latest session update (2026-06-20 continuation)
+- Fresh chromium verification executed: ready-fresh.png (955k), post-fresh.png (953k); direct entrypoint; --dump-dom confirms <title>Mist settles on one carved horizon</title> + canvas + FOLLOWUP-LIVE-OK; 0 home page strings (no crew, demos, board, hero chrome).
+- Added ASSET_MANIFEST.md to the Work Order context dir per rules.
+- `git merge --no-ff origin/main` (already up-to-date, no conflicts) to help github-mergeability re-check.
+- Updated all memory (PREVIEW/VERIFICATION/WORKLOG + this body) + committed evidence.
+- Attempting push of canonical branch `factoryx/factory-edo-woodblock/work-order-1781665243422-followup` to advance PR #156 head.
+- Preview entrypoint unchanged (still correct); no homepage mutation.
+- Feedback fully addressed; real generated assets present; browser runtime verified.
+
+**PR update instruction for maintainers:** if the PR description is stale, replace it with the content of this PR_BODY.md file (it contains the full original work order prompt under the FactoryX Work Order Context section).
+
+Work Order: work-order-1781665243422-followup
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/156

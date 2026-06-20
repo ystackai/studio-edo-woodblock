@@ -47,3 +47,18 @@ Canonical preview: games/mist-settles-on-one-carved-horizon-5ca8e144/index.html
 Chromium verif: clean on direct entrypoint (fresh re-run 2026-06-20 on f1f40fe; --dump-dom + screenshots + CI redirect sim confirm no factory home, only the living print)
 Latest commit on branch: ad03dca (final PR body notes + evidence; pushed)
 PR: https://github.com/ystackai/studio-edo-woodblock/pull/156 (head at ad03dca; refresh body from PR_BODY.md containing full prompt + context)
+
+## Fresh verification pass (2026-06-20 session continuation)
+- Re-ran chromium headless directly on canonical entrypoint + ?verify=1 from current workspace state.
+- ready-fresh.png (955243 bytes): idle first paint; warm washi ground + authored horizon base + drifting mist veils + single carved wave visible immediately. No chrome, no text, no loading, no factory home elements. Mist motion on first sight.
+- post-fresh.png (953464 bytes): ?verify=1 forced resolved state; FOLLOWUP-LIVE-OK marker + high pressDepth + cumulative + seeded bleeds + local mist reaction exercised.
+- DOM inspection (--dump-dom piped through grep): <title>Mist settles on one carved horizon</title>, <canvas id="c"> present, FOLLOWUP-LIVE-OK painted; 0 occurrences of home strings (demos-row, crew-strip, board-lanes, hero, live_homepage, ystackai — Ukiyo-e etc).
+- Also added ASSET_MANIFEST.md into FACTORYX_WORK_ORDER_CONTEXT_DIR per payload rules.
+- Merge main (no-ff attempt) performed to advance head against current origin/main for github-mergeability (already up-to-date in ancestry, no conflicts surfaced).
+- Preview entrypoint remains `games/mist-settles-on-one-carved-horizon-5ca8e144/index.html` (no change needed; direct self-contained satisfies the operator feedback).
+- This reconfirms: opening the WO preview root serves the living print exclusively (via CI redirect + direct file), never the factory home.
+
+Work Order: work-order-1781665243422-followup
+Canonical preview: games/mist-settles-on-one-carved-horizon-5ca8e144/index.html
+Chromium: clean 2026-06-20 (ready-fresh + post-fresh, direct entrypoint, no home markers)
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/156
