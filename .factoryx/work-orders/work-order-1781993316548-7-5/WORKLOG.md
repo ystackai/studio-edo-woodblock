@@ -23,7 +23,7 @@
 - Asset evidence:
   - Samurai character GLB 1.23 MB (Foundry Blender recipe)
   - Battlefield pack GLB 6.55 MB (20 warriors, 10/10 faction, Foundry Blender recipe)
-  - 5 game audio WAVs (2.8+ MB total) + 4 Foundry SFX + 1 music loop
+  - 5 curated game audio WAVs plus retained Foundry audio package metadata
 - Ran Unity MCP smoke: initialize OK, 38 tools listed, scene-list-opened confirms Kawanakajima scene loaded (73 roots, valid)
 - Both verifiers (browser + Unity handoff) remain PASS
 - No browser JS syntax regressions; all .js files pass syntax check
