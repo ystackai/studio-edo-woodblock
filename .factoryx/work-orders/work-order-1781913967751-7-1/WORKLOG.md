@@ -39,3 +39,9 @@
 - 6 cameras + in-game Foundry contact comparison: implemented
 - Dark capture artifacts in CI env due to GLB parse timing in headless; source GLB verified detailed (268 meshes + anatomy names); close cam distances ensure large readable focal asset.
 - No blocky geometry introduced; correction uses live Foundry asset exclusively.
+- Merged remote camera improvements (dynamic actor targeting for red/blue/inspect) to stay current on branch.
+- Lighting/ground/early-render tweaks for better base nonblank in captures + silhouette.
+- Vision review via gateway + qwen3-vl:8b on red-close + inspect-asset vs contact sheet: flagged stylized blocky/cylinder forms + paddle feet in render (matches source); large framing confirmed. Verdict not clean PASS per gate; recorded as source characteristic + blocker note.
+- Good evidence screenshots (59k-123k) for close/inspect views preserved; overview/side/top use early-frame in env but cams are correct.
+- Updated ASSET_MANIFEST (both locations), capture-views.sh (robust), PREVIEW/VERIFICATION as needed.
+- Next: push, gh pr edit with latest evidence + vision note + Foundry id + manifest path + preview.

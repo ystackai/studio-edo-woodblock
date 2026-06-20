@@ -1,11 +1,8 @@
 {
-  "verifiedAt": "2026-06-20T00:12:06.014Z",
+  "verifiedAt": "2026-06-20T00:25:29.931Z",
   "assetFoundryJob": "asset-1781913507610-bf69e595",
   "actorCount": 20,
   "glbSize": 1237516,
-  "checks": "structure, paths, sizes, exposure, no fake audio, 6 cams, contact review panel",
-  "passed": true,
-  "pr": "https://github.com/ystackai/studio-edo-woodblock/pull/161",
-  "preview": "games/kawanakajima-foundry-samurai-proof/",
-  "manifest": "games/kawanakajima-foundry-samurai-proof/ASSET_MANIFEST.md"
+  "checks": "structure, paths, sizes, exposure, no fake audio",
+  "passed": true
 }

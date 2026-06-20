@@ -21,6 +21,8 @@ Captured after construction + any fixes:
 
 ## Visual issues identified in loop
 (Updated live during self-review)
+- Headless capture produces small early-frame pngs (21k dark) for some views due to GLB async timing; close cams have good 59-123k shots with large focal.
+- Vision (gateway qwen3-vl) on good close/inspect shots vs contact: "blocky cubes, flat paddle feet, and the helmet's disk face" — same as source Foundry model. Large framing achieved; no geo replacement. Recorded in ASSET_MANIFEST as characteristic of asset-1781913507610-bf69e595.
 
 ## Final status
-See PR body for summary + links. Any remaining visual blocker recorded in ASSET_MANIFEST.
+See PR body for summary + links. Any remaining visual blocker recorded in ASSET_MANIFEST. Browser proof ready for review; preview at games/kawanakajima-foundry-samurai-proof/ .

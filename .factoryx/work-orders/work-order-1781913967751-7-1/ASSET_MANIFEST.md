@@ -24,6 +24,7 @@ All committed to `games/kawanakajima-foundry-samurai-proof/assets/generated/foun
 - Audio: file-backed audio not available (documented).
 - Unity: see UNITY_BLOCKER.md (also mirrored).
 - No further generated variants from Blender in this pass (single high-fidelity source preserved).
+- Visual: vision gate on close shots notes the Foundry source asset renders with stylized (cylinder-limb, flat foot) forms that can read blocky; faithfully reproduced at large scale in review cameras + contact comparison; recorded, not substituted. See game ASSET_MANIFEST + WORKLOG for full vision response.
 
 ## PR Requirements (from payload)
 - github_pr

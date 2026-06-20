@@ -99,7 +99,7 @@
     keyLight.position.set(12, 28, -11);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x9fb3c8, 1.15);
+    const rimLight = new THREE.DirectionalLight(0x9fb3c8, 1.35);
     rimLight.position.set(-22, 11, 19);
     scene.add(rimLight);
 
@@ -107,12 +107,12 @@
     fillLow.position.set(3, 4, 22);
     scene.add(fillLow);
 
-    scene.add(new THREE.AmbientLight(0x3f372a, 0.9));
+    scene.add(new THREE.AmbientLight(0x3f372a, 1.05));
 
     // Japanese countryside ground — layered paper/earth, subtle ridges, ink tone
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(110, 88),
-      new THREE.MeshLambertMaterial({ color: 0x4a4235, flatShading: false })
+      new THREE.MeshLambertMaterial({ color: 0x524a3d, flatShading: false })
     );
     ground.rotation.x = -Math.PI * 0.5;
     ground.position.y = -0.01;
@@ -122,7 +122,7 @@
     for (let k = 0; k < 4; k++) {
       const h = new THREE.Mesh(
         new THREE.PlaneGeometry(82 + k * 7, 26),
-        new THREE.MeshLambertMaterial({ color: 0x3a3429, transparent: true, opacity: 0.55 - k * 0.06 })
+        new THREE.MeshLambertMaterial({ color: 0x423c30, transparent: true, opacity: 0.62 - k * 0.05 })
       );
       h.rotation.x = -Math.PI * 0.5;
       h.position.set((k % 2 ? 2.5 : -1.5) * (1 + k * 0.6), 0.02 + k * 0.008, -18 - k * 9);
@@ -156,6 +156,9 @@
       r.rotation.set(Math.random() * 0.6, i, Math.random() * 0.4);
       scene.add(r);
     }
+
+    // Early paint of base scene (ground, trees, fog) so first viewport is non-blank even before GLB decodes in capture envs
+    renderer.render(scene, camera);
 
     // Groups
     const takedaGroup = new THREE.Group();
