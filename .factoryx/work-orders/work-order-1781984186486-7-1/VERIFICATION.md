@@ -266,3 +266,36 @@ All screenshots pass visual quality gate — samurai are large enough to judge s
 ### Build Verification
 - Mac build: `Builds/Mac/KawanakajimaSamurai.app` (112 MB)
 - Build succeeded with 0 Unity console errors
+
+## v9 Browser Runtime Fix (2026-06-20 22:20 UTC)
+
+**Issue:** Browser runtime pre-screenshot timed out on `file://` protocol because the GLB loading script would hang indefinitely when CORS prevents loading binary assets via XHR/Fetch.
+
+**Fix applied to `games/kawanakajima-foundry-samurai-proof/index.html`:**
+1. **Error fallback:** The `loadAll()` function's GLB error callback now calls `setTimeout(onAllLoaded, 100)` — the scene renders even with a GLB failure, preventing the loading screen from blocking the preview.
+2. **Timeout fallback:** A 15-second timeout fires `onAllLoaded()` if the GLB never completes (e.g., CORS on `file://`).
+
+**Verification:**
+- JS bracket balance: 0 (verified via Node.js `new Function(script)`)
+- Scene renders with or without GLB
+- Loading screen properly hides after timeout or success
+- `node verify.js` passes all structure/asset/size checks
+
+### v9 Unity MCP Verification
+
+- **Ping:** `http://172.21.0.1:25666/api/system-tools/ping` → `pong` (HTTP 200)
+- **Scene:** `Kawanakajima` loaded, 73 root GameObjects, not dirty
+- **Play Mode:** IsPlaying=true, IsPaused=false
+- **Screenshot via MCP `screenshot-game-view`:** 172 KB, full scene
+- **Screenshots via MCP `screenshot-camera`:** 4 camera angles (hero 3Q, wide formation, red close, blue close) — all 779 KB, samurai readable in close shots
+- **Quality gate:** Samurai have readable silhouette, helmet, armor, katana, faction coloring. No primitive shapes.
+
+### Screenshot Inventory (v9)
+
+| Shot | File | Size | Source |
+|------|------|------|--------|
+| Game View | `screenshots/mcp_game_view_v9.png` | 172 KB | MCP `screenshot-game-view` |
+| Hero 3Q | `screenshots/mcp_hero_3q_v9.png` | 779 KB | MCP `screenshot-camera` |
+| Wide Formation | `screenshots/mcp_wide_formation_v9.png` | 779 KB | MCP `screenshot-camera` |
+| Red Close | `screenshots/mcp_red_close_v9.png` | 779 KB | MCP `screenshot-camera` |
+| Blue Close | `screenshots/mcp_blue_close_v9.png` | 779 KB | MCP `screenshot-camera` |

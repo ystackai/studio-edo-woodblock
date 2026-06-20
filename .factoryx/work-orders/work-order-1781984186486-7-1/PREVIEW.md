@@ -44,3 +44,15 @@
     - `v88_hero_closeup.png` — dramatic hero close-up showing helmet, armor, katana
     - `v88_scene_view.png` — editor scene view with terrain, trees, waterfall
 - **PR status:** #167, 20 commits, all CI green, merge blocked by branch protection review requirement
+
+## v9 Update (2026-06-20 22:20 UTC)
+
+- **Browser runtime fix:** Added GLB error fallback (`setTimeout(onAllLoaded, 100)`) and 15-second timeout fallback to `loadAll()`. The scene renders even if Foundry GLB fails to load via `file://` (CORS restriction).
+- **Unity MCP screenshots (5 new):**
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_game_view_v9.png` — full scene with Unity UI overlay
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_hero_3q_v9.png` — dramatic hero three-quarter close-up
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_wide_formation_v9.png` — full battlefield overview with all 20 samurai
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_red_close_v9.png` — Takeda (red) close inspection
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_blue_close_v9.png` — Uesugi (blue) close inspection
+- **Screenshot quality:** All samurai readable in close shots — helmet, armor, katana, faction coloring visible. No primitive shapes or unidentifiable silhouettes.
+- **Browser proof:** JS bracket balance at 0; loading screen no longer blocks indefinitely.

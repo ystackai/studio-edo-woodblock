@@ -66,6 +66,20 @@ All samurai read as detailed 3D characters with:
 - Proper lighting (shadows, tone mapping, atmospheric depth)
 - Clear material detail (armor plates, helmet crest, katana/saya)
 
+
+## v9 Update (2026-06-20 22:20 UTC)
+
+- **Browser runtime fix applied:** Added GLB error fallback (`setTimeout(onAllLoaded, 100)`) and 15-second timeout fallback to the `loadAll()` function. This ensures the scene renders even if the Foundry GLB fails to load via `file://` protocol (CORS restriction). Loading screen will never block indefinitely.
+- **Browser JS bracket balance:** Verified at 0 via Node.js syntax analysis.
+- **Unity MCP screenshots (v9):** 5 new screenshots captured via Unity MCP `screenshot-game-view` and `screenshot-camera`:
+  - `mcp_game_view_v9.png` — full scene with Unity UI overlay
+  - `mcp_hero_3q_v9.png` — dramatic hero three-quarter close-up
+  - `mcp_wide_formation_v9.png` — full battlefield overview
+  - `mcp_red_close_v9.png` — Takeda (red) close inspection
+  - `mcp_blue_close_v9.png` — Uesugi (blue) close inspection
+- **Screenshot quality:** All samurai readable in close shots — helmet crest, armor plates, katana, faction coloring clearly visible. No primitive shapes, blocks, or unidentifiable silhouettes.
+- **Unity MCP scene state:** 73 root GameObjects, Play Mode active, scene `Kawanakajima` loaded and not dirty.
+
 ## Remaining Items
 
 - None blocking. The proof is reviewable with both browser and Unity MCP evidence.

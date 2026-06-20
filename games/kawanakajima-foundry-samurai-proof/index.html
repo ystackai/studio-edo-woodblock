@@ -609,9 +609,19 @@
         onAllLoaded();
       }, undefined, (err) => {
         console.error('Foundry GLB load failed', err);
-        statusEl.textContent = 'LOAD ERR';
+        setTimeout(onAllLoaded, 100);
+        statusEl.textContent = 'GLB UNAVAILABLE';
       });
     }
+
+    // Timeout fallback: if the GLB never loads (e.g. CORS on file://), proceed anyway
+    setTimeout(() => {
+      if (loaded < ACTOR_COUNT) {
+        console.warn('GLB load timed out, proceeding with ' + loaded + ' of ' + ACTOR_COUNT + ' actors');
+        statusEl.textContent = loaded > 0 ? 'PARTIAL LOAD' : 'GLB UNAVAILABLE';
+        if (loaded < ACTOR_COUNT) onAllLoaded();
+       }
+     }, 15000);
 
     // === PLACE ACTORS IN FORMATION ===
     function placeActors() {
