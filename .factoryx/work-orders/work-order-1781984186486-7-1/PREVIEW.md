@@ -16,10 +16,11 @@
 - **Unity MCP:** `http://172.21.0.1:25666`, ping returns `pong`.
 - **Scene state:** 20 actors loaded, status `KAWANAKAJIMA_UNITY_READY`, root count 73
 
-## Verification Screenshots (12 total)
+## Verification Screenshots (13 total)
 
 | Shot | File | Description |
 |------|------|-------------|
+| Mesh Retention Proof | `screenshots/unity_mesh_retention_v8.5.png` | Deterministic Unity render proving the samurai meshes remain visible after GLTFast loading |
 | Overview | `screenshots/unity_verify_v8.3.png` | Default camera with all 20 samurai on battlefield |
 | Close (Red) | `screenshots/unity_red_close_v8.3.png` | Red Takeda samurai close inspection |
 | Wide Formation | `screenshots/unity_wide_formation_v8.3.png` | Full battlefield with terrain, trees, hills |
@@ -32,6 +33,10 @@
 | Takeda Close | `screenshots/unity_takeda_close_v8.5.png` | Red samurai detail — helmet, armor, katana |
 | Uesugi Close | `screenshots/unity_uesugi_close_v8.5.png` | Blue samurai detail — faction color distinct |
 | Rear View | `screenshots/unity_rear_view_v8.5.png` | Both armies from behind, sashimono banners |
+
+The v8.5 mesh-retention screenshot and mesh probe are the current authoritative
+Unity functional proof. The art direction remains stylized and still needs a
+dedicated realism/polish pass before it should be treated as final game art.
 
 ## PR
 

@@ -59,15 +59,53 @@ Result:
 - Console build logs: `Kawanakajima Unity build succeeded`
 - Unity console errors during build: `0`
 
+## Unity Mesh Retention Verification (v8.5)
+
+**Date:** 2026-06-20
+**Status:** PASS
+
+The first Unity handoff proof reported 20 actors, but a later mesh probe showed
+that the instantiated `MeshFilter` components had null `sharedMesh` references.
+The GLB files themselves were valid; the runtime was disposing the `GltfImport`
+objects immediately after scene instantiation, which released the meshes and
+materials that Unity needed to render.
+
+`KawanakajimaRuntimeBootstrap` now retains successful GLTFast imports for the
+life of the scene and disposes them in `OnDestroy()`.
+
+### Probe Results (Unity MCP script-execute)
+
+- Actor checked: `Takeda_Samurai_09`
+- Mesh filters: `241`
+- Mesh filters with non-null mesh: `241`
+- Vertex count: `72,927`
+- Renderer count: `241`
+- Bounds: approximately `(3.59, 3.03, 4.16)`
+- Status: `KAWANAKAJIMA_UNITY_READY`
+
+### Authoritative Screenshot
+
+| Shot | File | Description |
+|------|------|-------------|
+| Mesh retention proof | `screenshots/unity_mesh_retention_v8.5.png` | Deterministic camera render showing actual retained samurai body geometry, armor plates, banners, and weapons in Unity |
+
+The earlier v8.3/v8.4 Unity screenshots are retained for history, but the v8.5
+mesh-retention render is the authoritative visual proof for Unity asset
+instantiation.
+
 ### What Changed
 
 - `CreateGltfImport` in `KawanakajimaRuntimeBootstrap.cs` now discovers GLTFast's 4 required interface types via reflection and passes concrete instances to the constructor
 - Fallback `BuildArgs` loop preserved for other constructors
+- Successful GLTFast imports are retained until scene teardown so Unity meshes
+  and materials remain visible after instantiation
+- The reflected GLTFast constructor path now uses `UninterruptedDeferAgent`
+  instead of constructing a MonoBehaviour defer agent directly
 
 ## Camera Angle Suite (v8.5)
 
 **Date:** 2026-06-20  
-**Status:** ✅ PASS
+**Status:** PASS
 
 Additional camera-angle screenshots captured via Unity MCP `script-execute` + `screenshot-scene-view`:
 
@@ -91,6 +129,7 @@ Additional camera-angle screenshots captured via Unity MCP `script-execute` + `s
 
 | Shot | File | Quality |
 |------|------|---------|
+| Mesh Retention Proof | `screenshots/unity_mesh_retention_v8.5.png` | PASS — functional proof that Unity retained non-null meshes after GLTFast load |
 | Overview | `screenshots/unity_verify_v8.3.png` | ✅ Full scene, 20 samurai, all visible |
 | Close (Red) | `screenshots/unity_red_close_v8.3.png` | ✅ Red Takeda samurai close |
 | Wide Formation | `screenshots/unity_wide_formation_v8.3.png` | ✅ Full battlefield with terrain |
@@ -103,3 +142,7 @@ Additional camera-angle screenshots captured via Unity MCP `script-execute` + `s
 | Takeda Close | `screenshots/unity_takeda_close_v8.5.png` | ✅ Red samurai detail |
 | Uesugi Close | `screenshots/unity_uesugi_close_v8.5.png` | ✅ Blue samurai detail |
 | Rear View | `screenshots/unity_rear_view_v8.5.png` | ✅ Both armies from behind |
+
+Note: the camera screenshots are visual review evidence. The mesh-retention
+probe and `unity_mesh_retention_v8.5.png` are the authoritative functional proof
+that Unity is no longer dropping samurai mesh data after instantiation.
