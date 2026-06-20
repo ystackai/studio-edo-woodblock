@@ -101,3 +101,21 @@ Status: rebase complete, assets materially improved + re-verified, branch pushed
 
 Work Order: work-order-1781665294727-followup
 Status: feedback addressed with real file assets for art+music; fresh verif clean; ready for review/push.
+
+## 2026-06-20 v3 follow-up execution (material art+music improvement + re-verif after prior pass)
+- Inspected: branch at 7ef595f (synced with remote), PR#157 (previously had merge conflict review, now rebased in history and clean vs main).
+- Foundry: only blender; no image providers. Used agent GenerateImage tool + numpy synth for real file assets (satisfies contract).
+- Visuals (art redesign): two fresh GenerateImage calls with refined house-style prompts ("decisive silhouettes, ma, feathering, ink authority, restrained Edo melancholy"). Replaced base-motif.jpg + reveal-detail.jpg (186k/312k). Removed stray -v3 temps.
+- Audio (music redesign): wrote+ran gen_audio.py (numpy) producing improved stems: stutter-drop (physical wet 33k), resolve-breath (longer warmer 2.8s loop 241k), friction-rub (19k). More atmospheric and less "terrible".
+- Code changes (focused on feedback):
+  - Tuned scheduleStutter (wider 0.82 base gaps, more detune, lp/gain curves) + updateBreathTone (earlier start, stronger gain ramp, filter open, rub prob) for new stems.
+  - Removed dead toneGain/toneFilter refs (were causing potential reset errors; legacy osc path was not initialized).
+  - Small art integration: stronger curJ-driven registration jitter on base draw (lets v3 photo breathe with overlays).
+- Updated: ASSET_MANIFEST.md (v3 sizes, fresh provenance tying to feedback + WO + generation method), PREVIEW/VERIFICATION/WORKLOG.
+- Ran real xvfb+chromium verification (vtime 2350/2550): ready.png 829k, post 1.04M; both valid non-blank; logs clean (dbus only); exit 0; harness state + marker exercised; assets drawn/decoded; no autoplay/net/JS errors.
+- All changes address "music and art are terrible please improve" directly; kept useful rub-to-still, house style, direct preview, taste-gate, 9/9 feel.
+- Next: git add focused, commit, push --force-with-lease to canonical branch, refresh gh PR#157 body/context.
+- Committed c7f1a24 (amend incl notes); pushed (forced lease) origin HEAD:factoryx/... (c7f1a24).
+- gh direct unavailable in this runtime (no interactive login); PR branch advanced so GitHub PR#157 will reflect new commit + prior body (already contains full FactoryX WO Context + prompt per prior). Local PR_BODY.md + WO notes carry the evidence.
+Work Order: work-order-1781665294727-followup
+Status: v3 assets + music + code + verif + push complete; PR branch updated for review.

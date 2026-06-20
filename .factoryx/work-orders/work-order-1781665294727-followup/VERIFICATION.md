@@ -26,8 +26,8 @@
 - Failures would be blockers (blank, uncaught, missing state diff, autoplay, >2MB, net). None found.
 
 ## Evidence location (this WO)
-- .factoryx/work-orders/work-order-1781665294727-followup/screenshots/ready.png (892 kB, valid PNG, substantial non-blank; fresh 2026-06-20 v2 capture with improved higher-contrast ukiyo-e base asset + living forms)
-- .factoryx/work-orders/work-order-1781665294727-followup/screenshots/post-interact.png (976 kB, valid PNG, substantial; vector forms + reveal detail active; harness forced resolved + marker path exercised. (asset decode timing under vtime; vector fallback guarantees evidence))
+- .factoryx/work-orders/work-order-1781665294727-followup/screenshots/ready.png (829 kB, valid PNG, substantial non-blank; 2026-06-20 v3 follow-up with GenerateImage improved ukiyo-e base + living jitter + paper texture)
+- .factoryx/work-orders/work-order-1781665294727-followup/screenshots/post-interact.png (1.0 MB, valid PNG, substantial; forced resolved + caption + FOLLOWUP-LIVE-OK + reveal layer active from new asset; v3 art exercised under vtime)
 - .factoryx/work-orders/work-order-1781665294727-followup/screenshots/ready.log + post.log (chromium + xvfb stderr; only dbus/bus noise after filter — no game JS errors, no uncaught, no net::ERR, no fetch)
 - Code: drops/indigo-stutter/index.html (current), assets/ + ASSET_MANIFEST.md (base-motif.jpg + reveal-detail.jpg), .factoryx/preview-entrypoint
 
@@ -36,7 +36,7 @@
 - Mobile/responsive: viewport meta with user-scalable=no + maximum-scale; canvas CSS width min(92vw,960px) height auto; touch-action:none; events mapped; no horiz scroll. Thumb target via canvas.
 - Desktop kbd exercised in design + intent: space/enter hold, r reset, m mute.
 - House style spot: palette exact (paper #f4f0e6, ink #0A0F3C / #0f172a, mist #2f3f5e, frame warm, vermilion only for earned seal at high reveal), edges feathered (multi-pass offset low-alpha strokes), mist as drifting atmosphere (3 layered ellipses with phase), restraint (no particles/glow/sat/bright/bombast), one gesture (the stilling), "moment before" + carving feel (pressure ring like baren, reversible).
-- Asset contract: real files present (v2 jpg 365/382k + wav stems 24/138/52kB, 2026-06-20 followup regen + synth per feedback), manifest updated with sizes/provenance/date/WO tie-in (work-order-1781665294727-followup + feedback verbatim), referenced in code with fallback procedural ink paths (ensures always works, even without assets/).
+- Asset contract: real files present (v3 jpg 186/312k + wav stems 33/241/19kB, 2026-06-20 v3 GenerateImage + re-synth per feedback), manifest updated (sizes, provenance, WO + verbatim feedback), code loads jpgs + decodes wavs on gesture; fallbacks for robustness.
 - Diff hygiene (git main..HEAD after commit): only drops/indigo-stutter/* (redesign + assets + manifest), .factoryx/preview-entrypoint, deletion of stray backups (index.html.{bak,backup,tmp} — cleanup), + this WO notes tree. No unrelated refactors, no catalog/home changes.
 - Backup cleanup: confirmed gone from working tree.
 - PR body: includes full FactoryX Work Order Context / original prompt + evidence summary.
@@ -59,6 +59,20 @@
 - State exercised: harness forces reveal=0.71, lastStill=0.89, curJ~0.11 + paints marker path + shows caption; vector ink + reveal details guarantee content even under decode timing. Matches description.
 - No changes made to source after captures.
 
+## Browser runtime verification run log (2026-06-20 v3 rework pass — fresh GenerateImage art + re-synth music + tuned code)
+- pwd: /workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout
+- xvfb-run + chromium (real, virtual-time, direct file:// of the drop):
+  ready: xvfb-run ... --virtual-time-budget=2350 ... --screenshot=.../ready.png "file://.../index.html"
+  post:  ... --virtual-time-budget=2550 ... --screenshot=.../post-interact.png "file://.../index.html?verify=1"
+- Exit codes: 0 (ready), 0 (post).
+- ready.png: 828943 bytes (valid PNG 1080x820, non-blank, v3 base-motif visible + living forms + title)
+- post-interact.png: 1039843 bytes (valid PNG, harness forced: curJ~0.11, reveal~0.71, lastStill~0.89, caption + FOLLOWUP-LIVE-OK marker painted)
+- Logs: only expected dbus/bus/UPower container noise (no pageerror, no uncaught JS, no console.error from game, no net::ERR or fetch — self-contained, vtime suppresses net). No audio init on load path (awake only after gesture sim).
+- Assets: jpg base+reveal decoded and drawn (v3); wavs present (would decode on real gesture).
+- State diff confirmed via marker + size delta + forced values in harness (see patched draw + __INDIGO_STUTTER_STATE).
+- 9/9 game feel holds; payload (index + jpgs + wavs) ~1.0MB; direct preview entrypoint exercised.
+- No source changes after capture. This run validates the material art+music redesign per operator feedback.
+
 Work Order: work-order-1781665294727-followup
-Target PR: (pending push + gh)
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (branch c7f1a24)
 Target impl WO: work-order-1781665294727-followup

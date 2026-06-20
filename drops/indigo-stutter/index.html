@@ -170,15 +170,16 @@
 
   function scheduleStutter(now) {
     if (!audioCtx || !stutterGain || isMuted) return;
-    const gapBase = 0.62;
-    const gap = gapBase - (lastStill * 0.46); // sustained still tightens gaps (breath)
+    // wider hesitant gaps when world trembles; tighter + more regular when still (music redesign)
+    const gapBase = 0.82;
+    const gap = gapBase - (lastStill * 0.58);
     if (now < nextDropAt) return;
 
     const src = audioCtx.createBufferSource();
     if (dropBuf) {
       src.buffer = dropBuf;
       // slight pitch and time variation for organic "stutter" not machine
-      src.playbackRate.value = 0.94 + Math.random() * 0.14;
+      src.playbackRate.value = 0.93 + Math.random() * 0.16;
     } else {
       // graceful fallback (should not normally hit once assets in tree)
       const dur = 0.16 + Math.random() * 0.05;
@@ -193,30 +194,30 @@
 
     const lp = audioCtx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = 680 + lastStill * 420;
+    lp.frequency.value = 620 + lastStill * 520;
 
     const g = audioCtx.createGain();
-    g.gain.value = 0.18 + lastStill * 0.22;
+    g.gain.value = 0.22 + lastStill * 0.18;
 
     src.connect(lp);
     lp.connect(g);
     g.connect(stutterGain);
 
     src.start(now);
-    nextDropAt = now + gap + (Math.random() - 0.5) * 0.035;
+    nextDropAt = now + gap + (Math.random() - 0.5) * 0.04;
   }
 
   function updateBreathTone(now, still) {
     if (!breathGain || !audioCtx) return;
-    // Use file-backed breath loop when attention high; otherwise quiet
-    const wantBreath = still > 0.18;
+    // Use file-backed breath loop (new longer atmospheric stem) when attention present
+    const wantBreath = still > 0.14;
     if (wantBreath && breathBuf && !breathSrc) {
       breathSrc = audioCtx.createBufferSource();
       breathSrc.buffer = breathBuf;
       breathSrc.loop = true;
       const lp = audioCtx.createBiquadFilter();
       lp.type = 'lowpass';
-      lp.frequency.value = 920;
+      lp.frequency.value = 780;
       const g = audioCtx.createGain();
       g.gain.value = 0.0;
       breathSrc.connect(lp);
@@ -227,42 +228,32 @@
       breathSrc._lp = lp; breathSrc._g = g;
     }
     if (breathSrc && breathSrc._g) {
-      const tgt = wantBreath ? (0.12 + still * 0.38) : 0.0001;
+      const tgt = wantBreath ? (0.09 + still * 0.52) : 0.0001;
       breathSrc._g.gain.cancelScheduledValues(now);
-      breathSrc._g.gain.linearRampToValueAtTime(tgt, now + 0.12);
+      breathSrc._g.gain.linearRampToValueAtTime(tgt, now + 0.14);
       if (breathSrc._lp) {
-        const ft = 820 + still * 980;
+        const ft = 680 + still * 1250;
         breathSrc._lp.frequency.cancelScheduledValues(now);
-        breathSrc._lp.frequency.linearRampToValueAtTime(ft, now + 0.18);
+        breathSrc._lp.frequency.linearRampToValueAtTime(ft, now + 0.22);
       }
     }
-    // light friction layer on active rub
-    if (rubBuf && isPressing && still > 0.3) {
-      // occasional short overlay
-      if (Math.random() < 0.08) {
+    // light friction layer on active rub (baren tactile)
+    if (rubBuf && isPressing && still > 0.25) {
+      if (Math.random() < 0.09) {
         const rsrc = audioCtx.createBufferSource();
         rsrc.buffer = rubBuf;
-        rsrc.playbackRate.value = 0.88 + Math.random()*0.2;
+        rsrc.playbackRate.value = 0.86 + Math.random()*0.24;
         const rg = audioCtx.createGain();
-        rg.gain.value = 0.06 + still * 0.07;
+        rg.gain.value = 0.07 + still * 0.06;
         rsrc.connect(rg); rg.connect(rubGain);
-        rsrc.start(now + 0.01);
+        rsrc.start(now + 0.008);
       }
     }
   }
 
   function updateTone(now, still) {
-    // legacy osc path kept minimal (fades out as file breath takes over)
-    if (breathBuf) return; // file-backed breath dominates
-    if (!toneGain || !toneFilter) return;
-    const targetTone = still * 0.26;
-    const targetF = 360 + still * 1280;
-    const g = toneGain.gain;
-    const f = toneFilter.frequency;
-    g.cancelScheduledValues(now);
-    f.cancelScheduledValues(now);
-    g.linearRampToValueAtTime(targetTone, now + 0.09);
-    f.linearRampToValueAtTime(targetF, now + 0.11);
+    // legacy osc path removed (file-backed breath + stutter now authoritative for music redesign)
+    return;
   }
 
   // Pointer state
@@ -309,10 +300,6 @@
     nextDropAt = 0;
     if (audioCtx) {
       const n = audioCtx.currentTime;
-      if (toneGain && toneGain.gain) {
-        toneGain.gain.cancelScheduledValues(n);
-        toneGain.gain.linearRampToValueAtTime(0.0, n + 0.06);
-      }
       if (breathSrc && breathSrc._g && breathSrc._g.gain) {
         breathSrc._g.gain.cancelScheduledValues(n);
         breathSrc._g.gain.linearRampToValueAtTime(0.0001, n + 0.08);
@@ -468,10 +455,11 @@
 
     // Base motif (real generated asset v2) or vector fallback
     if (assetsReady) {
-      // slight registration tremble on the "block" itself when world stutters (integrates photo + living line)
-      const bx = (curJ > 0.25) ? Math.sin(t * 0.0019) * curJ * 0.9 : 0;
-      const by = (curJ > 0.25) ? Math.cos(t * 0.0014) * curJ * 0.5 : 0;
-      ctx.globalAlpha = 0.96;
+      // registration tremble on the "block" itself when world stutters (photo + living line integration); stronger when jitter high to let new v3 art breathe
+      const jf = Math.max(0, (curJ - 0.08) / 0.92);
+      const bx = (curJ > 0.18) ? Math.sin(t * 0.0017) * jf * 1.6 : 0;
+      const by = (curJ > 0.18) ? Math.cos(t * 0.00125) * jf * 0.7 : 0;
+      ctx.globalAlpha = 0.985;
       ctx.drawImage(baseImg, bx, by, W, H);
       ctx.globalAlpha = 1;
     } else {
@@ -566,7 +554,6 @@
       if (stutterGain) stutterGain.gain.value = Math.max(0.001, (0.65 + curJ * 0.55) * (isMuted ? 0 : 1));
       if (rubGain) rubGain.gain.value = isPressing ? (0.4 + lastStill * 0.3) : 0.0001;
       scheduleStutter(now);
-      updateTone(now, lastStill);
       updateBreathTone(now, lastStill);
     }
 
