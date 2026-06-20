@@ -208,3 +208,7 @@ Status: art+music materially redesigned with fresh file-backed generated assets 
 Work Order: work-order-1781665294727-followup
 Status: pushed 86432b2; PR#157 https://github.com/ystackai/studio-edo-woodblock/pull/157 updated via branch; feedback addressed with generated assets + verification.
 
+- Amended + force-lease pushed: 2786eb4 (includes the push record in WORKLOG for provenance). Remote WO branch now at 2786eb4.
+- Canonical PR https://github.com/ystackai/studio-edo-woodblock/pull/157 should now show the latest commit on the FactoryX branch with full context + generated assets evidence + fresh chromium screenshots.
+
+Work Order: work-order-1781665294727-followup
