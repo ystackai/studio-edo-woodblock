@@ -35,7 +35,7 @@ Requirements: 20 warring samurai, 10 Takeda/red and 10 Uesugi/blue, meeting in a
 - Mac build: `Builds/Mac/KawanakajimaSamurai.app` (112 MB)
 
 ### Unity MCP Verification
-- MCP server at `http://172.21.0.1:25666` reachable and responding
+- MCP server at `http://host.docker.internal:27481/mcp` reachable and responding via standard JSON-RPC
 - Scene probe: `Kawanakajima` scene, 73 root GameObjects, 20 samurai loaded
 - Mesh retention: sampled actor has 241/241 non-null meshes, 72,927 vertices
 - Mac build via MCP: `BuildMac()` succeeds with 0 console errors
@@ -46,7 +46,8 @@ Requirements: 20 warring samurai, 10 Takeda/red and 10 Uesugi/blue, meeting in a
 - `DELIVERABLE_STATUS.md` — current status and quality gate results
 - `ASSET_MANIFEST.md` — asset inventory with provenance
 - `WORKLOG.md` — timeline of all autonomous iterations
-- `UNITY_BLOCKER.md` — blocker/escalation notes (none blocking)
+- `UNITY_BLOCKER.md` — Unity blocker/escalation notes
+- `browser-smoke-chromium.mjs` — dependency-free Chromium/CDP runtime smoke for workers without Playwright/Puppeteer
 
 ### Screenshots (24 total across v8.3–v8.8)
 - Unity: wide formation, hero close-up, side, top, red close, blue close, rear view, hero three-quarter, mesh retention proof, build verify, scene view
@@ -56,16 +57,17 @@ Requirements: 20 warring samurai, 10 Takeda/red and 10 Uesugi/blue, meeting in a
 - Fixed browser JS syntax error (unclosed forEach callback in animation tick loop)
 - Captured 3 new Unity MCP screenshots: wide formation, hero close-up, scene view
 - Updated all documentation (VERIFICATION, PREVIEW, DELIVERABLE_STATUS, WORKLOG)
-- All CI checks passing; PR blocked only by branch protection review requirement
+- All CI checks passing; PR blocked by branch protection review requirement and by the outstanding visual-fidelity pass for the original realistic/high-quality samurai goal
 
 ## Verification
 
 - **Browser runtime:** JS syntax check passes after v8.8 fix (bracket balance verified)
-- **Unity MCP ping:** `pong` (HTTP 200)
+- **Live Chromium smoke:** `node games/kawanakajima-foundry-samurai-proof/browser-smoke-chromium.mjs` passes on host Chrome and worker-container Chromium, proving `CAPTURE_READY:overview`, 20 actors, nonblank WebGL canvas, no console errors, and no failed asset requests
+- **Unity MCP route:** `http://host.docker.internal:27481/mcp` using JSON-RPC `initialize`, the returned `Mcp-Session-Id`, `tools/list`, then `tools/call`
 - **Unity scene state:** 73 root GOs, 20 samurai (10T/10U), Play Mode
 - **Mesh retention:** 241/241 non-null meshes, 72,927 vertices
 - **Mac build:** `Builds/Mac/KawanakajimaSamurai.app` (112 MB), 0 errors
-- **Quality gate:** All samurai read as detailed characters with readable silhouette, helmet, armor, weapons, faction coloring, proper scale and lighting
+- **Visual quality gate:** failed for the original realistic/high-quality target. Current screenshots remain stylized low-poly/capsule with simplified terrain; further Blender/Foundry fidelity work is required.
 
 ## Review Guidance
 
@@ -90,5 +92,7 @@ Requirements: 20 warring samurai, 10 Takeda/red and 10 Uesugi/blue, meeting in a
 - [x] Mac build artifact (112 MB)
 - [x] 24 review screenshots across 6 camera angles
 - [x] Browser JS syntax fix (v8.8)
+- [x] Dependency-free Chromium browser smoke harness
 - [x] All documentation updated (VERIFICATION, PREVIEW, DELIVERABLE_STATUS, ASSET_MANIFEST, WORKLOG)
 - [x] PR body contains full Work Order context
+- [ ] Realistic/high-quality samurai and countryside visual fidelity pass

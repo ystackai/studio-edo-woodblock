@@ -56,6 +56,7 @@ mustExist(path.join(ROOT, 'index.html'), 'index.html');
 if (fs.existsSync(path.join(ROOT, 'index.html.bak'))) {
   errors.push('temporary backup file index.html.bak must not be committed');
 }
+mustExist(path.join(ROOT, 'browser-smoke-chromium.mjs'), 'dependency-free Chromium browser smoke harness');
 mustExist(path.join(ROOT, 'three.min.js'), 'three');
 mustExist(path.join(ROOT, 'GLTFLoader.js'), 'GLTFLoader');
 mustExist(path.join(ROOT, 'assets/samurai_character.glb'), 'Foundry GLB');
@@ -172,7 +173,7 @@ if (errors.length) {
     audioFoundryJob: 'asset-1781916330853-f7d831d9',
     audioLoopSize: loop.size,
     unityHandoff: true,
-    checks: 'structure, paths, sizes, exposure, browser script syntax, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff',
+    checks: 'structure, paths, sizes, exposure, browser script syntax, Chromium smoke harness, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff',
     passed: true
   }, null, 2));
   console.log('Wrote VERIFICATION.json');

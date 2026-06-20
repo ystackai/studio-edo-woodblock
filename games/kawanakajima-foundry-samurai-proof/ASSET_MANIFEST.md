@@ -9,7 +9,7 @@
 
 ## Status
 
-Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. The Unity source handoff is present, Mac-local Unity build verification is documented, and the deployed Edo worker reaches the live Unity MCP listener at `http://host.docker.internal:27481/mcp` using standard JSON-RPC `tools/call`.
+Browser proof is runtime-reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. The Unity source handoff is present, Mac-local Unity build verification is documented, and the deployed Edo worker reaches the live Unity MCP listener at `http://host.docker.internal:27481/mcp` using standard JSON-RPC `tools/call`. The realistic/high-quality visual gate is not complete: current wide-formation imagery still reads stylized low-poly/capsule with simplified terrain.
 
 ## Generated Assets (Asset Foundry provenance)
 
@@ -19,7 +19,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 - **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v5 repair pass (2026-06-20)
 - **Source:** `http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source_v5.blend`
 - **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. No Unity build artifact was produced in this PR.
-- **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
+- **Visual gate:** v4 was blocky/slab-like and v5 improved the stylized anatomy, but the current in-game formation still reads low-poly/capsule rather than realistic production samurai. Treat this as a baseline asset, not a final visual-quality pass.
 
 ### 2. 20-Samurai Battlefield Pack
 - **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb`
@@ -76,13 +76,14 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 - First viewport shows non-blank 3D scene with camera framing subjects
 - Orbit controls (drag), zoom (wheel), keyboard shortcuts (1-6, A, C, R, X, T, F)
 - `node verify.js` passes all structure/asset/size checks
+- `node games/kawanakajima-foundry-samurai-proof/browser-smoke-chromium.mjs` passes on host Chrome and the FactoryX worker container Chromium, proving `CAPTURE_READY:overview`, 20 actors, and a nonblank WebGL canvas without Playwright/Puppeteer.
 - Canvas pixel variance confirms rendered scene (not blank)
 
 ## Known Limitations
 
 - **Unity build artifact:** The Mac build was verified locally and documented under `unity/kawanakajima-samurai/UNITY_BUILD_VERIFICATION.md`, but the `.app` bundle itself is not committed to git.
 - **Unity MCP route:** Current worker-to-Mac route is `http://host.docker.internal:27481/mcp`. Manual probes must use JSON-RPC `initialize`, `tools/list`, and `tools/call`; do not use old bridge/API contracts.
-- **Asset fidelity:** Stylized, not photoreal. v5 improved over v4 (no more slab/blocky reads).
+- **Asset fidelity:** Stylized, not photoreal. v5 improved over v4, but the current game view still has low-poly/capsule reads and simple blocky countryside geometry. A Blender/Foundry fidelity pass remains required for the original realistic/high-quality samurai goal.
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.
 
