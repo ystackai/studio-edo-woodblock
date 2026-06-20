@@ -50,12 +50,15 @@ Browser proof audio is also present under `games/kawanakajima-foundry-samurai-pr
 - Unity MCP ping: `pong` from `http://172.21.0.1:25666`.
 - GLTFast integration: reflection bootstrap with four service-interface implementations discovered and instantiated.
 - Scene state: `Kawanakajima`, Play Mode, 20 actors loaded, `KAWANAKAJIMA_UNITY_READY`.
-- Screenshots: overview, close samurai, and wide formation in `screenshots/`.
+- Mesh retention: sampled Unity actor has 241/241 non-null meshes, 72,927 vertices, and visible renderer bounds after GLTFast loading.
+- Authoritative functional screenshot: `screenshots/unity_mesh_retention_v8.5.png`.
+- Build: Mac app build succeeds at `unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`.
 
-## Verification Screenshots (12 total)
+## Verification Screenshots (13 total)
 
 | Shot | File | Size | Description |
 |------|------|------|-------------|
+| Mesh Retention Proof | `screenshots/unity_mesh_retention_v8.5.png` | 350 KB | Deterministic Unity render proving retained mesh geometry |
 | Overview | `screenshots/unity_verify_v8.3.png` | 68 KB | Default camera, all 20 samurai |
 | Red Close | `screenshots/unity_red_close_v8.3.png` | 78 KB | Takeda samurai close inspection |
 | Wide Formation | `screenshots/unity_wide_formation_v8.3.png` | 68 KB | Full battlefield with terrain |
@@ -78,3 +81,4 @@ Browser proof audio is also present under `games/kawanakajima-foundry-samurai-pr
 - Multiple camera angles: overview, close-ups, side, top, rear, hero three-quarter
 - Sashimono banners readable on all samurai
 - No blank canvas, no off-camera scenes
+- Current art direction is stylized and needs a dedicated realism/polish pass before final game art approval.

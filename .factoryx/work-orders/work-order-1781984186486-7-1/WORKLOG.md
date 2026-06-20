@@ -4,6 +4,23 @@
 
 ### 2026-06-20
 
+**v8.5 — GLTFast mesh retention fix (COMPLETED)**
+- **Problem:** Unity reported 20 actors loaded, but a direct mesh probe found 241 `MeshFilter` components with null `sharedMesh` references on a sampled samurai.
+- **Root cause:** The runtime disposed successful GLTFast `GltfImport` instances immediately after instantiation, releasing meshes/materials still referenced by the instantiated scene objects.
+- **Fix:** Retain successful GLTFast imports for the life of `KawanakajimaRuntimeBootstrap` and dispose them only in `OnDestroy()`.
+- **Cleanup:** Use GLTFast's non-MonoBehaviour `UninterruptedDeferAgent` in the reflected constructor path to avoid runtime warnings from directly constructing a component.
+- **Verification:** Unity MCP mesh probe on `Takeda_Samurai_09` reports 241/241 non-null meshes, 72,927 vertices, 241 renderers, and visible bounds.
+- **Screenshot:** `screenshots/unity_mesh_retention_v8.5.png` is the authoritative Unity render proof.
+- **Build:** Mac Unity build succeeded through Unity MCP at `Builds/Mac/KawanakajimaSamurai.app`.
+
+**v8.5 — Camera angle suite + visual polish (COMPLETED)**
+- Captured 4 additional camera-angle screenshots via Unity MCP:
+        - Hero three-quarter: Dramatic shoulder-angle, red samurai off-center
+        - Takeda close: Red samurai detail — helmet, armor, katana visible
+        - Uesugi close: Blue samurai detail — faction color distinct
+        - Rear view: Both armies from behind, sashimono banners visible
+- Screenshot inventory now includes 13 Unity proof images, including the mesh-retention render.
+
 **v8.4 — Camera angles + build probe (COMPLETED)**
 - Captured 4 additional camera angle screenshots via Unity MCP:
        - Side view: Takeda samurai in profile — helmet, armor, weapon details visible
@@ -36,21 +53,11 @@
 
 ## Final Status
 
-- **Branch:** `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8` (HEAD: `0c45be8` + new commits pending)
-- **PR:** #167 (open, mergeable, targeting main) — pending PR update with v8.4 results
+- **Branch:** `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8`
+- **PR:** #167 (open, targeting main)
 - **Unity MCP:** reachable at `http://172.21.0.1:25666` — all probes pass
 - **Scene state:** Kawanakajima, Play Mode, 20 actors loaded, status `KAWANAKAJIMA_UNITY_READY`
-- **Screenshots:** 7 total, all pass visual quality gate
-- **Build probe:** Scene refresh via menu — successful, scene persists
-- **Remaining:** Mac build target (not attempted due to build time; scene is verified functional)
-
-**v8.5 — Camera angle suite + visual polish (COMPLETED)**
-- Captured 4 additional camera-angle screenshots via Unity MCP:
-        - Hero three-quarter: Dramatic shoulder-angle, red samurai off-center (rule of thirds)
-        - Takeda close: Red samurai detail — helmet, armor, katana clearly visible
-        - Uesugi close: Blue samurai detail — faction color distinct, body identifiable
-        - Rear view: Both armies from behind, sashimono banners visible
-- All 12 screenshots pass visual quality gate
-- Samurai read as detailed stylized characters with readable silhouettes, helmets, armor, weapons
-- No primitive/placeholder geometry; all assets from Foundry GLB
-- Updated VERIFICATION.md with complete screenshot inventory
+- **Mesh state:** Sample actor has 241/241 non-null meshes and 72,927 vertices
+- **Screenshots:** 13 Unity proof images; v8.5 mesh-retention render is authoritative functional proof
+- **Build:** Mac app build succeeded through Unity MCP
+- **Remaining:** Art quality is functional/stylized, not yet a final realism pass.
