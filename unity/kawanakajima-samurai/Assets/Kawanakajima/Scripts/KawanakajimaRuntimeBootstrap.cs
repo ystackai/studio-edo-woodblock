@@ -348,42 +348,41 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     }
 
     private static object CreateGltfImport(Type type)
-      {
-         // For GLTFast.GltfImport, we need the 4-interface constructor.
-         // Discover concrete implementations via reflection.
+    {
+        // GLTFast.GltfImport in Unity 6 expects four service interfaces.
         var downloadProvider = FindType("GLTFast.Loading.DefaultDownloadProvider");
         var deferAgent = FindType("GLTFast.TimeBudgetPerFrameDeferAgent");
         var materialGenerator = FindType("GLTFast.Materials.BuiltInMaterialGenerator");
         var codeLogger = FindType("GLTFast.Logging.ConsoleLogger");
 
-         if (downloadProvider != null && deferAgent != null && materialGenerator != null && codeLogger != null)
-           {
+        if (downloadProvider != null && deferAgent != null && materialGenerator != null && codeLogger != null)
+        {
             var ctor = type.GetConstructor(new[] { downloadProvider, deferAgent, materialGenerator, codeLogger });
             if (ctor != null)
-               {
+            {
                 object dp = Activator.CreateInstance(downloadProvider);
                 object da = Activator.CreateInstance(deferAgent);
                 object mg = Activator.CreateInstance(materialGenerator);
                 object cl = Activator.CreateInstance(codeLogger);
                 return ctor.Invoke(new object[] { dp, da, mg, cl });
-               }
-           }
+            }
+        }
 
-          // Fallback: try all constructors via BuildArgs
         foreach (var constructor in type.GetConstructors(BindingFlags.Instance | BindingFlags.Public))
-          {
+        {
             try
-              {
+            {
                 return constructor.Invoke(BuildArgs(constructor.GetParameters()));
-              }
+            }
             catch (Exception ex)
-              {
+            {
                 Debug.LogWarning($"glTFast GltfImport constructor fallback failed: {ex.Message}");
-              }
-          }
+            }
+        }
 
         return null;
-      }
+    }
+
     private static System.Reflection.MethodInfo FindMethod(Type type, string name, Func<System.Reflection.ParameterInfo[], bool> predicate)
     {
         foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public))
