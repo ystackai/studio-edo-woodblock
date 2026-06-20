@@ -59,3 +59,17 @@
 
 - PR #167 merge blocked only by GitHub branch protection requiring one approving review from a write-access reviewer.
 - Unity build artifact (.app) not committed (verified locally on Mac).
+
+## v8.12 — 2026-06-20 (cleanup + verification)
+
+- `node games/kawanakajima-foundry-samurai-proof/verify.js` → **PASS**
+- `node unity/kawanakajima-samurai/verify-unity-handoff.js` → **PASS**
+- Unity MCP smoke (live):
+     - JSON-RPC `initialize` with protocolVersion `2024-11-05` → **200 OK**, received `Mcp-Session-Id`
+     - `tools/list` → 38+ tools (gamedev-mcp-server 8.0.0.0)
+     - `tools/call` with `scene-list-opened` → Scene `Kawanakajima` loaded, 1 root, IsDirty=false
+- Removed 4 scratch files from drops/ (index.html.backup ×2, index.html.tmp, main.js.backup)
+- Verified zero scratch files (.bak, .tmp, .backup) remain in workspace
+- Both verifiers remain green; no browser JS syntax regressions
+- Pushed as v8.12 to origin/factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8
+
