@@ -98,3 +98,9 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 | Asset inspect | assetInspect | screenshots/assetInspect.png | 779 KB |
 | Contact sheet | v5 contact | assets/samurai_character_contact_sheet.png | 1.12 MB |
 | Hero reference | v5 hero | assets/samurai_character_hero.png | 669 KB |
+| Scene view | MCP scene | screenshots/mcp_scene_view_v9.png | 64 KB |
+| Game view (v9) | MCP game | screenshots/mcp_game_view_v9.png | 172 KB |
+| Hero 3Q (v9) | MCP camera | screenshots/mcp_hero_3q_v9.png | 779 KB |
+| Wide formation (v9) | MCP camera | screenshots/mcp_wide_formation_v9.png | 779 KB |
+| Red close (v9) | MCP camera | screenshots/mcp_red_close_v9.png | 779 KB |
+| Blue close (v9) | MCP camera | screenshots/mcp_blue_close_v9.png | 779 KB |

@@ -56,3 +56,13 @@
      - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_blue_close_v9.png` — Uesugi (blue) close inspection
 - **Screenshot quality:** All samurai readable in close shots — helmet, armor, katana, faction coloring visible. No primitive shapes or unidentifiable silhouettes.
 - **Browser proof:** JS bracket balance at 0; loading screen no longer blocks indefinitely.
+
+## v9.1 Update (2026-06-20 22:40 UTC)
+
+- **Browser runtime timeout fix:** Reduced GLB timeout from 15s to 5s for faster fallback when assets are unavailable on `file://`.
+- **Skip GLB button:** Added `SKIP GLB` UI button for instant scene load without waiting for GLB.
+- **markCaptureReady guard:** Added null check for renderer/scene/camera to prevent errors when called before scene setup.
+- **Load screen hard hide:** Added `loadEl.style.display = 'none'` alongside CSS class toggle for more reliable hiding.
+- **Unity MCP scene view:** `screenshot-scene-view` returns 1280×800 scene content screenshot (64 KB, verified non-blank via pixel variance).
+- **Browser verification:** JS syntax check passes; all asset checks pass; scene renders within 5 seconds regardless of GLB availability.
+- **Verification:** `node verify.js` → `BASIC STRUCTURE + ASSET CHECKS: PASS`

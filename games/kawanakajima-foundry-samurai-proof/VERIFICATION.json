@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "verifiedAt": "2026-06-20T22:39:36.864Z",
+=======
+  "verifiedAt": "2026-06-20T22:36:30.858Z",
+>>>>>>> 783dbce (v9.1: browser runtime timeout fix + MCP scene view screenshot)
   "assetFoundryJob": "asset-1781913507610-bf69e595",
   "actorCount": 20,
   "glbSize": 1285892,
