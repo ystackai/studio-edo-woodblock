@@ -1,6 +1,6 @@
 # FactoryX Work Order PR — Rekick follow-up
 
-**2026-06-20 v3 update:** Materially improved art (fresh GenerateImage v3 ukiyo-e layers 186k/312k) + music (re-synth WAVs + tuned code); removed bugs; fresh verif clean; committed 7985b8a pushed to branch. PR#157. See WORKLOG.md for full trace + evidence.
+**2026-06-20 update:** Fresh GenerateImage art pass (base-motif 287k / reveal-detail 324k with stronger ukiyo-e prompts) to address "art are terrible"; re-verif clean (763k/872k PNGs, no errors); ASSET_MANIFEST + WO notes updated. PR#157 on canonical branch. See WORKLOG.md for full trace + evidence.
 
 This PR is the reviewable code follow-up for:
 
@@ -17,14 +17,14 @@ This PR is the reviewable code follow-up for:
 ## Summary of changes (addressing feedback before unrelated polish)
 - **Feedback addressed:** "music and art are terrible please improve" (verbatim from operator decision deliverable-decision-1781629581487-2, parent work-order-edo-inkblade-road-opens-assets-20260522).
 - Material redesign: replaced passive DOM water/list linear animation + basic synth beeps with a taste-gate 30-60s playable slice of one verb ("rub/hold to still the trembling ink") in one space (the ukiyo-e print).
-- Real file-backed generated/authored assets: drops/indigo-stutter/assets/base-motif.jpg (v3 186k) + reveal-detail.jpg (v3 312k) + stutter-drop.wav + resolve-breath.wav + friction-rub.wav + ASSET_MANIFEST.md (ukiyo-e v3 via GenerateImage + re-synth music stems 2026-06-20 v3 pass directly addressing feedback; full provenance/integration). Fallbacks kept. Satisfies asset_contract_v2.
+- Real file-backed generated/authored assets: drops/indigo-stutter/assets/base-motif.jpg (287k fresh) + reveal-detail.jpg (324k fresh) + stutter-drop.wav + resolve-breath.wav + friction-rub.wav + ASSET_MANIFEST.md (ukiyo-e via GenerateImage 2026-06-20 pass with refined prompts directly addressing "art are terrible"; prior music stems; full provenance/integration). Fallbacks kept. Satisfies asset_contract_v2.
 - Art: warm paper #f4f0e6, deep indigo ink, feathered silhouettes (boat, wave crest, pine, mist veils), drifting mist as emotional temperature, living jitter on forms (the "stutter"), pressure ring baren feedback, progressive reveal via attention (thins mist, emergent details + earned vermilion seal from reveal layer). One strong gesture, restraint, mono no aware.
 - Music/audio: completely silent until first user gesture (pointer/touch/keyboard). On gesture: sparse stuttering water-drop/friction rhythm (hesitant, gapped scheduler). Sustained stilling tightens gaps in real time + raises soft resolving held tone (dual low sines + lowpass opens with attention). Release re-opens gaps, tone exhales. Mute control. Matches house "sparse, physical, memory of the block".
 - Interaction/explanation: obvious affordance on first screen (trembling lines + damp treatment + ring beg touch); verb legible <8s; point enacted (still= reveal + resolve tone; release returns tremble) + minimal poetic caption "the hand that stills the ink" after first resolve. Re-ink (R) to replay the cycle. Reversible, <100ms response, easing everywhere.
-- House style, game feel 9/9, <2MB (~627kB), no net deps, responsive (touch/pointer/kbd), browser runtime clean.
+- House style, game feel 9/9, <2MB (~1.25MB with purposeful generated art), no net deps, responsive (touch/pointer/kbd), browser runtime clean.
 - Cleanup: stray .bak/backup/tmp removed from drop (per prior review notes).
 - Preview: direct to changed artifact; .factoryx/preview-entrypoint present.
-- Verification: real chromium + xvfb (vtime, ready + ?verify=1 post), clean (only dbus), valid non-blank PNGs 829k/1.04M, harness state+marker+assets exercised, exit 0 both. 9/9 feel.
+- Verification: real chromium + xvfb (vtime, ready + ?verify=1 post), clean (only dbus), valid non-blank PNGs 763k/872k (fresh assets), harness state+marker+assets exercised, exit 0 both. 9/9 feel.
 
 ## FactoryX Work Order Context (full prompt / payload for traceability)
 

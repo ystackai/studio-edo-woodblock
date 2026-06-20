@@ -119,3 +119,17 @@ Status: feedback addressed with real file assets for art+music; fresh verif clea
 - gh direct unavailable in this runtime (no interactive login); PR branch advanced so GitHub PR#157 will reflect new commit + prior body (already contains full FactoryX WO Context + prompt per prior). Local PR_BODY.md + WO notes carry the evidence.
 Work Order: work-order-1781665294727-followup
 Status: v3 assets + music + code + verif + push complete; PR branch updated for review.
+
+## 2026-06-20 execution pass (fresh GenerateImage visual assets + re-verification + doc sync)
+- Inspected PR#157: mergeable=MERGEABLE (github-mergeability changes_requested addressed by prior rebase); head d1b4264 matches local; gh wrapper via .factoryx/bin/gh used (auth via factory cache).
+- Foundry health: reachable, but only "blender" provider; no hf/openai image gen. Used agent GenerateImage tool (required for real file-backed assets per contract when no foundry image path).
+- Material art improvement: generated new base-motif.jpg (287k) + reveal-detail.jpg (324k) with refined prompts ("authentic Edo ukiyo-e woodblock print, deep indigo... decisive silhouettes, feathered bleeding edges, generous ma, high ink density, restrained melancholic"). Overwrote assets/ to directly address "art are terrible please improve".
+- Re-ran full browser runtime verification (xvfb-run + chromium headless + vtime + direct file:// + ?verify=1): ready.png 763k, post-interact.png 872k; both valid substantial PNGs (mean~195 std~60-70 variation); logs clean after dbus filter (no pageerror/uncaught/net/console errors); harness exercised (FOLLOWUP-LIVE-OK + forced state + reveal asset visible).
+- Updated: ASSET_MANIFEST.md (new jpg sizes + fresh 2026-06-20 GenerateImage provenance note + feedback tie-in), PREVIEW.md + VERIFICATION.md (evidence sections + checklist payload note + run log), this WORKLOG.
+- No code changes needed; interaction/audio/house style already solid from prior redesign. No unrelated polish.
+- All per asset_contract_v2 (real files now updated + manifest + loaded in index), taste-gate, direct preview (drops/indigo-stutter/index.html), WORKFLOW.md, 9/9 feel.
+- Next: focused git add (assets jpgs + WO mds + screenshots/), commit, push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294727-followup , use gh to comment/update PR#157 with latest evidence.
+- Current branch HEAD will advance with docs+assets update for review.
+
+Work Order: work-order-1781665294727-followup
+Status: fresh art assets generated (addressing feedback), re-verified clean, docs updated; ready to commit/push/PR update.

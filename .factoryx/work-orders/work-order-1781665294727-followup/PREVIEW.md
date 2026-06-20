@@ -22,16 +22,16 @@
 - House style strictly: restrained palette (off-white paper, deep ink, indigo, one earned vermilion seal), feathered/bleeding edges (multi low-alpha passes), mist as emotional temperature, no vfx/particles/glow/bright/saturated, no linear motion, no bombast. Cursor over surface replaced by soft brush/baren stamp inside canvas. Frame with subtle woodblock paper feel.
 
 ## Evidence captured during implementation (this WO)
-- ready.png (pre-gesture; v3 GenerateImage base-motif.jpg 2026-06-20 ukiyo-e ink + paper + mist + living jitter; non-blank unsettled print). 829 kB valid PNG.
-- post-interact.png ( ?verify=1 forced: marker + caption + high reveal from asset + low jitter + state exercised). 1.0 MB valid PNG.
+- ready.png (pre-gesture; fresh GenerateImage base-motif.jpg 2026-06-20 improved ukiyo-e ink + silhouettes + mist + living jitter; non-blank unsettled print). 763 kB valid PNG.
+- post-interact.png ( ?verify=1 forced: marker + caption + high reveal from asset + low jitter + state exercised). 872 kB valid PNG.
 - Screenshots + logs in .factoryx/work-orders/work-order-1781665294727-followup/screenshots/ (ready.log + post.log: dbus noise only after filter; exit 0; no pageerror/uncaught/net/console from game).
-- Runtime: chromium headless + xvfb + virtual-time; clean; assets loaded (v3 jpgs drawn, wavs present); __INDIGO_STUTTER_STATE populated; audio gate (only on gesture) respected.
-- Generated assets: drops/indigo-stutter/assets/base-motif.jpg (186k v3) + reveal-detail.jpg (312k v3) + stutter-drop.wav (33k) + resolve-breath.wav (241k) + friction-rub.wav (19k) + ASSET_MANIFEST.md (file-backed + provenance to this followup + feedback verbatim; 2026-06-20 v3 art via GenerateImage + re-synth music). Total slice ~1.0 MB.
+- Runtime: chromium headless + xvfb + virtual-time; clean; assets loaded (new jpgs drawn, wavs present); __INDIGO_STUTTER_STATE populated; audio gate (only on gesture) respected.
+- Generated assets: drops/indigo-stutter/assets/base-motif.jpg (287k fresh) + reveal-detail.jpg (324k fresh) + stutter-drop.wav (33k) + resolve-breath.wav (241k) + friction-rub.wav (19k) + ASSET_MANIFEST.md (file-backed + provenance to this followup + feedback verbatim; 2026-06-20 GenerateImage art pass + prior music stems). Total slice ~1.25 MB.
 - Matches target experience described in prior review notes for the analogous deliverable; 9/9 game feel checklist green in VERIFICATION.
 
 ## Notes for reviewers (of the PR)
 - This is the code follow-up rework addressing operator feedback "music and art are terrible please improve" on the Edo Inkblade / road-opening slice (realized as the living indigo stutter print in current studio drops).
-- Real file-backed generated/authored assets (ukiyo-e v3 layers via GenerateImage 2026-06-20 + re-synth music stems addressing "music and art are terrible") under drops/indigo-stutter/assets/ + ASSET_MANIFEST.md + provenance (satisfies asset_contract_v2; files + manifest + load in playable code).
+- Real file-backed generated/authored assets (fresh ukiyo-e layers via GenerateImage 2026-06-20 pass with stronger prompts for ink/silhouette/ma addressing "art are terrible please improve"; prior re-synth music stems) under drops/indigo-stutter/assets/ + ASSET_MANIFEST.md + provenance (satisfies asset_contract_v2; files + manifest + load in playable code).
 - Preview root opens the changed artifact directly (drops/indigo-stutter/index.html); .factoryx/preview-entrypoint present/correct.
 - The PR contains the full FactoryX Work Order Context / prompt (per instructions: in body + notes in tree).
 - Browser runtime verification (real chromium) executed; clean; captures + logs in this WO's screenshots/ + VERIFICATION.md.
@@ -40,5 +40,5 @@
 - Live play (open the direct index.html file://) will let a reviewer feel the taste-gate slice: the unsettled lines invite touch; holding stills them and reveals the resolved world; release returns the tremble. The point of the art+melody is now the player's sustained attention. Per house style: quiet, slightly melancholic, craft-dignified, already beginning to dissolve.
 
 Work Order: work-order-1781665294727-followup
-Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (branch 7985b8a + docs 3916d5e)
+Target PR: https://github.com/ystackai/studio-edo-woodblock/pull/157 (current on factoryx/factory-edo-woodblock/work-order-1781665294727-followup)
 Canonical preview: drops/indigo-stutter/index.html
