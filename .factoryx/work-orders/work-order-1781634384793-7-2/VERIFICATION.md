@@ -51,5 +51,17 @@
 - Re-ran chromium --headless --vtime direct on canonical entrypoint post-edit (clean logs, bytes written success, no pageerror etc).
 - Human review can proceed once PR body updated with context + screenshots linked (PR #153 updated with full prompt).
 
+**Merge conflict resolution verification (cef612f):**
+- Merged main to resolve "changes_requested" from github-mergeability.
+- Re-executed browser runtime verification directly on entrypoint after merge:
+  - ready.png (83.9kB): clean first paint, foundry courier-hero visible with hat/pole/seal, paper, gates (lantern-gate.jpg), letter, prompt, HUD.
+  - post-interact.png (80.9kB): gesture + vtime; collect path exercised (letters advanced via seed), courier transforms + foundry art, HUD live.
+  - No JS errors, no request fails, no blank; only container audio noise.
+- Game dir, assets (4 foundry jpgs), sfx, index.html all present and bit-identical for game logic post shared-file merge resolution.
+- .factoryx/preview-entrypoint still correctly points at lantern game.
+- Full 9/9 game feel + quality bar still hold; payload unchanged.
+- PR artifact: https://github.com/ystackai/studio-edo-woodblock/pull/153 (canonical branch pushed with merge + evidence commits).
+
 Work Order: work-order-1781634384793-7-2
 Target deliverable: lantern-surf-courier-36c969ed
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/153

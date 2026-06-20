@@ -49,3 +49,22 @@ Complete on branch (HEAD 8c0bcea + this follow-up entrypoint fix). All implement
 - [x] Payload size: 1.3MB total (incl local screenshots; core html+jpgs+wavs ~1.0MB) <2MB; offline; self-contained.
 - [x] Preview entrypoint file added + notes finalized; re-ran chromium verif locally (clean, 89062 bytes written on ready); committed + pushed canonical branch; PR #153 body updated with full prompt context.
 
+**Follow-up pass (HEAD cef612f + post-merge verif):**
+- GitHub reported merge conflicts (changes_requested by github-mergeability on ed064db). Performed `git fetch; git merge origin/main --allow-unrelated-histories`, resolved add/add conflicts on shared files (personas/*.md, studio.json, index.htmls, .ystack/*, .factoryx/preview-entrypoint) by taking main's versions for shared + ours for preview-entrypoint (lantern).
+- Committed merge as cef612f "Merge origin/main ... to resolve merge conflicts for review".
+- Pushed updated branch to origin (ed064db..cef612f); canonical PR #153 will see synchronize with merge commit.
+- Re-ran full browser runtime verification (chromium --headless --vtime + flags, direct on file:// entrypoint) post-merge:
+  - ready.png (83.9kB) captured: first paint coherent (foundry courier prominent, paper grain, waves, gates, letter, HUD, prompt).
+  - post-interact.png (81kB) captured via temp dispatch (reverted): running + easy letter collect path exercised (letters >0, HUD advanced), foundry assets drawn.
+  - Logs clean (only dbus/ALSA noise); 0 pageerror / console.error / request fails; "bytes written" success.
+- Copied fresh screenshots to WO/screenshots/ and game/screenshots/ ; archived as *-postmerge.png .
+- Updated .factoryx/PR_BODY.md , PREVIEW.md, VERIFICATION.md, this WORKLOG with resolution evidence + PR URL https://github.com/ystackai/studio-edo-woodblock/pull/153 .
+- All prior foundry assets, game code, sfx, mitigations, game feel, payload, direct preview intact (merge touched only shared non-game files).
+- This addresses the "did not report GitHub PR" and "merge conflicts" issues before any peripheral polish. Reviewable PR artifact now current on branch.
+- Next: platform CI should clear the mergeability gate; human review can proceed per operator prior approvals.
+
+Work Order: work-order-1781634384793-7-2
+Target deliverable: lantern-surf-courier-36c969ed
+Current branch HEAD: cef612f (post merge + evidence update)
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/153
+

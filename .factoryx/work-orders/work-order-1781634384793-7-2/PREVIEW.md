@@ -34,4 +34,7 @@
 - Game feel 9/9 + quality bar met (coherent <1min eval, verif ran clean with in-game state, no runtime errors).
 - Human review can proceed.
 
+**Post-merge update (cef612f):** Branch merged with origin/main to clear github-mergeability "changes_requested" (merge conflicts). Fresh chromium ready + post screenshots captured and archived post-resolution (see screenshots/ready-postmerge.png, post-interact-postmerge.png). All game assets + behavior unchanged. PR #153 updated via notes; merge commit on canonical branch. Direct entrypoint still `games/93-lantern-surf-courier/index.html`.
+
 Work Order: work-order-1781634384793-7-2
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/153
