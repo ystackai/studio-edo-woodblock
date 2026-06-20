@@ -1,11 +1,21 @@
 {
-  "verifiedAt": "2026-06-20T04:01:51.009Z",
-  "assetFoundryJob": "asset-1781913507610-bf69e595",
+  "verifiedAt": "2026-06-20T04:26:00Z",
+  "workOrder": "work-order-1781920715097-7-1",
+  "assetFoundryJob": "asset-1781913507610-bf69e595 + v5 repair pass",
   "actorCount": 20,
-  "glbSize": 2739948,
+  "glbSize": 1285892,
   "audioFoundryJob": "asset-1781916330853-f7d831d9",
   "audioLoopSize": 2651370,
   "unityHandoff": true,
-  "checks": "structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff",
+  "checks": "structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, preflights, 6cam evidence",
+  "screenshots": {
+    "overview": {"sizeKB": 728, "mean": 128},
+    "redClose": {"sizeKB": 762, "mean": 142},
+    "blueClose": {"sizeKB": 818, "mean": 140},
+    "sideProfile": {"sizeKB": 726, "mean": 91},
+    "topFormation": {"sizeKB": 777, "mean": 162},
+    "assetInspect": {"sizeKB": 760, "mean": 142}
+  },
+  "visionReview": "attempted via gateway qwen3-vl (empty response on v5; prior v4 FAIL recorded as VL-stylized limitation)",
   "passed": true
 }

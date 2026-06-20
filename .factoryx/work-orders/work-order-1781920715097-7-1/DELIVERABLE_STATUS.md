@@ -8,10 +8,10 @@
 
 ## What Exists
 
-- **Samurai asset:** live Asset Foundry + iterated Blender v4 (shikoro, lamellar, fingers, tabi strap; provenance preserved). Base job asset-1781913507610-bf69e595, v4 20260620 on retry.
-  - Primary runtime asset: `assets/samurai_character.glb`.
-  - Source/evidence retained under `assets/generated/foundry/samurai/`.
-  - Contact sheet and hero render are embedded in the in-game inspection panel.
+- **Samurai asset:** live Asset Foundry + v5 Blender repair pass on canonical (improved-20260620-v5, source .blend + glb + contact/hero/cs views; base asset-1781913507610-bf69e595). 
+  - Primary runtime asset: `assets/samurai_character.glb` (1.23 MB).
+  - Full provenance + v5 outputs under `assets/generated/foundry/samurai/improved-20260620-v5/`.
+  - Contact sheet and hero render (v5) embedded in the in-game inspection panel.
 - **20-warrior game proof:** browser/Three.js scene with 10 Takeda and 10 Uesugi samurai in a Japanese countryside battle tableau.
   - Uses the Foundry GLB as the visible character base.
   - Variants come from pose transforms, scale, formation, faction standards, and small additive props.
@@ -35,7 +35,7 @@
 
 ## Current Review Verdict
 
-Autonomous retry (work-order-1781920715097-7-1) complete. All hard reqs met for browser proof: Foundry /healthz verified first (blender provider), detailed v4 asset, 20 actors + countryside + readable faction formations, 6 repeatable cams (large 1280x800 nonblank evidence), file-backed audio+controls, inspect/contact panel. node verify.js: PASS. Self-verifying cameras used. 
+Autonomous retry (work-order-1781920715097-7-1) complete. All hard reqs met for browser proof: Foundry /healthz verified first (blender provider), v5 detailed asset (improved-20260620-v5), 20 actors + countryside + readable faction formations, 6 repeatable cams (large 1280x800 nonblank evidence, means 91-162), file-backed audio+controls, inspect/contact panel. node verify.js: PASS. Self-verifying cameras used. 
 
 Unity: preflight run, no Editor/listener; handoff+UNITY_BLOCKER preserved; no playable build claimed.
 

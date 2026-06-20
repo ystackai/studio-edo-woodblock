@@ -105,6 +105,19 @@
 - Will update PR #161 body with Work Order context + status + artifacts + verification + blockers.
 - Final PR URL: https://github.com/ystackai/studio-edo-woodblock/pull/161
 
+## v5 integration + final verification on canonical (work-order-1781920715097-7-1)
+- Detected remote advance to 68134a5 "Repair Samurai proof asset with v5 Blender pass".
+- Hard reset + integrated forward to v5 state per branch head guard (no force push).
+- Re-ran preflights (unity 0.1 wrapper no Editor; Foundry healthz blender ok).
+- node verify.js on v5: PASS (GLB 1.23MB, contact 1.15MB, 5 WAVs, 20 actors, structure).
+- 6 cams: large (726-818KB), nonblank (means 91-162 after v5 renders).
+- v5 asset: new improve-samurai-v5.py + source_v5.blend + samurai_character_v5.glb + updated contact/hero/cs views committed on canonical.
+- Re-rendered inspection views via updated render rig; evidence synced.
+- Vision review re-attempted on v5 redClose+contact (gateway); noted limitation.
+- Updated VERIFICATION.json / DELIVERABLE / ASSET notes for retry wo context to reflect v5 + final pass.
+- Browser proof + Unity handoff verified on current canonical.
+- Ready to push confirmation commit + update PR body.
+
 ## Verification pass fix (this invocation)
 - Ran mandatory preflights: unity --version (0.1.0-beta.7), unity editors -i (empty), Foundry /healthz (ok, blender).
 - Ran node verify.js : initially failed on stale "autonomy not proven" marker check in DELIVERABLE_STATUS.md (the deliverable now correctly claims completion).
