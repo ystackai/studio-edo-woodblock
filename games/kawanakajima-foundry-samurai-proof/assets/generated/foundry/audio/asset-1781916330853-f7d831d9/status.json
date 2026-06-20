@@ -1,0 +1,62 @@
+{
+  "asset_name": "kawanakajima-samurai-audio-pack",
+  "created_at_ms": 1781916330853,
+  "duration_s": 2.46,
+  "job_dir": "/asset-foundry/outputs/asset-1781916330853-f7d831d9",
+  "job_id": "asset-1781916330853-f7d831d9",
+  "log": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/runner.log",
+  "outputs": {
+    "music": {
+      "arrangement": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/music_v2/cozy_bunny_tracker_loop_v2.arrangement.json",
+      "mod": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/music_v2/cozy_bunny_loop_v2.mod",
+      "preview_wav": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/music_v2/cozy_bunny_tracker_loop_v2.wav",
+      "waveform": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/music_v2/music_v2_waveform.png"
+    },
+    "sfx": {
+      "bunny_hop_plush": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/sfx_v2/bunny_hop_plush.wav",
+      "pickup_chime_bright": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/sfx_v2/pickup_chime_bright.wav",
+      "soft_impact_puff": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/sfx_v2/soft_impact_puff.wav",
+      "ui_confirm_glass": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/sfx_v2/ui_confirm_glass.wav",
+      "waveform_contact": "/asset-foundry/outputs/asset-1781916330853-f7d831d9/sfx_v2/sfx_v2_waveforms.png"
+    }
+  },
+  "recipe": "cozy_audio_pack",
+  "state": "completed",
+  "stats": {
+    "metrics": {
+      "bunny_hop_plush": {
+        "duration_s": 0.34,
+        "peak_dbfs": -3.0,
+        "rms_dbfs": -14.06
+      },
+      "cozy_bunny_tracker_loop_v2": {
+        "duration_s": 30.968,
+        "peak_dbfs": -1.2,
+        "rms_dbfs": -17.68
+      },
+      "pickup_chime_bright": {
+        "duration_s": 0.72,
+        "peak_dbfs": -2.0,
+        "rms_dbfs": -17.02
+      },
+      "soft_impact_puff": {
+        "duration_s": 0.42,
+        "peak_dbfs": -3.5,
+        "rms_dbfs": -15.47
+      },
+      "ui_confirm_glass": {
+        "duration_s": 0.48,
+        "peak_dbfs": -2.5,
+        "rms_dbfs": -16.19
+      }
+    },
+    "music_duration_s": 30.968,
+    "music_formats": [
+      "wav_preview",
+      "mod",
+      "arrangement_json"
+    ],
+    "sfx_count": 4
+  },
+  "updated_at_ms": 1781916333318
+}
