@@ -892,11 +892,11 @@
             const wind = Math.sin(t * 1.5 + (a.idx || 0) * 0.7) * 0.022;
             const gust = Math.sin(t * 3.7 + (a.idx || 0) * 2.1) * 0.006;
             o.rotation.z = wind + gust;
-            }
+          }
+        });
       });
 
       renderer.render(scene, camera);
-     });
     }
 
     function start() {
