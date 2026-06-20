@@ -11,7 +11,7 @@ It is not a completed Unity build yet because the FactoryX worker currently has 
 - `Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` - 20 named warriors, 10 Takeda and 10 Uesugi, with positions and poses.
 - `Assets/Resources/KawanakajimaAudio/*.wav` - file-backed audio from Foundry job `asset-1781916330853-f7d831d9`.
 - `Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs` - runtime scene builder and playable loop.
-- `Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` - menu and batch build entrypoints.
+- `Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` - menu and WebGL, Linux, and Mac batch build entrypoints.
 - `Packages/manifest.json` - declares Unity glTFast (`com.unity.cloud.gltfast`) so the GLB can load at runtime.
 
 Unity's glTFast package is the official Unity package for glTF/GLB loading. The package documentation says to install it by package name `com.unity.cloud.gltfast`, and its runtime docs show loading via URL/file path and instantiating the main scene from script.
@@ -57,11 +57,32 @@ Unity \
   -logFile /tmp/kawanakajima-unity-linux.log
 ```
 
+```bash
+Unity \
+  -batchmode \
+  -quit \
+  -projectPath unity/kawanakajima-samurai \
+  -executeMethod KawanakajimaUnityBuild.BuildMac \
+  -logFile /tmp/kawanakajima-unity-mac.log
+```
+
 Expected build outputs:
 
 - `unity/kawanakajima-samurai/Builds/WebGL/`
 - `unity/kawanakajima-samurai/Builds/Linux/KawanakajimaSamurai`
+- `unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
 
-## Current Blocker
+## Local Mac Verification
 
-The live FactoryX host has about 2.1 GB free on `/cache`; the Unity Editor install helper requires at least 18 GB before attempting installation. Until that runtime has more disk or a separate Unity-capable worker is assigned, this project cannot be built or verified with Unity Editor/MCP inside FactoryX.
+The project now opens, generates its scene, builds, and accepts Unity-MCP tool calls on the local Mac Studio.
+
+- Unity Editor: `2023.2.20f1`
+- Scene generation: `KawanakajimaUnityBuild.CreateOrRefreshScene`
+- Mac build: `KawanakajimaUnityBuild.BuildMac`
+- Build output: `Builds/Mac/KawanakajimaSamurai.app`
+- Verification: `UNITY_BUILD_VERIFICATION.md`
+- Local status: `UNITY_LOCAL_STATUS.md`
+
+Unity-MCP is installed through `com.ivanmurzak.unity.mcp` 0.81.1 and was verified with a local listener at `http://localhost:25666`. The listener accepted `editor-application-get-state`, `scene-list-opened`, and `assets-find` tool calls against this project.
+
+Earlier remote worker capacity notes are preserved in `.factoryx/work-orders/work-order-1781940455825-6-1/`.

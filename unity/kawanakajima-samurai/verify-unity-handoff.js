@@ -51,6 +51,7 @@ mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'read
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'scene creation menu', /Create Or Refresh Scene/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'WebGL build hook', /BuildTarget\.WebGL/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Linux build hook', /BuildTarget\.StandaloneLinux64/);
+mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Mac build hook', /BuildTarget\.StandaloneOSX/);
 mustContain('README.md', 'Unity blocker documented', /no installed Unity Editor|Unity-side MCP listener|18 GB/);
 
 if (errors.length) {

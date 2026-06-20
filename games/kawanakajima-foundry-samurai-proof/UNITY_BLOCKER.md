@@ -1,6 +1,6 @@
 # UNITY_BLOCKER
 
-**Work Order:** work-order-1781920715097-7-1 (retry; canonical branch work-order-1781913967751-7-1)
+**Work Order:** work-order-1781940455825-6-1 (guarded Unity retry) — prior: work-order-1781920715097-7-1 (retry; canonical branch work-order-1781913967751-7-1)
 
 Unity Editor/MCP listener is not available in this worker container runtime.
 
@@ -16,3 +16,17 @@ Unity Editor/MCP listener is not available in this worker container runtime.
 The Unity source handoff is the correct starting point for subsequent Unity integration. It copies the single-character GLB, the full 20-samurai battlefield pack GLB/manifest, and WAV assets; declares Unity glTFast; creates the playable 20-samurai countryside scene at runtime; and includes a `P`/PACK toggle for inspecting the Foundry-authored battlefield pack once Unity can run.
 
 See also: `.factoryx/work-orders/work-order-1781913967751-7-1/ASSET_MANIFEST.md` and `games/kawanakajima-foundry-samurai-proof/ASSET_MANIFEST.md`.
+
+## Guarded Retry 1781940455825-6-1 — Fresh Preflight (2026-06-20)
+
+Exact commands run before any claim:
+
+- `unity --version` → 0.1.0-beta.7 (CLI wrapper only)
+- `unity editors -i` → VersionArchDefaultPlatforms (no Editors)
+- `unity auth status` → "You are not signed in..."
+- `unity license` → (empty)
+- `df -h /cache` → 1.1G free (97%)
+- `unity-mcp-cli status unity/kawanakajima-samurai` → Editor not running + listener connection refused on localhost:23914
+- Build attempt → "Error: Editor 2022.3.0f1 (x86_64) is not installed."
+
+**No Unity build artifact produced. No playable Unity completion claimed.** Source handoff + browser proof only. See `.factoryx/work-orders/work-order-1781940455825-6-1/UNITY_BLOCKER.md` for full record + escalation.

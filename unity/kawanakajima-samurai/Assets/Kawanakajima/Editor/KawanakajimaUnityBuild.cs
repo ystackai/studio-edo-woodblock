@@ -55,6 +55,20 @@ public static class KawanakajimaUnityBuild
         AssertBuildSucceeded(BuildPipeline.BuildPlayer(options));
     }
 
+    public static void BuildMac()
+    {
+        CreateOrRefreshScene();
+        Directory.CreateDirectory("Builds/Mac");
+        var options = new BuildPlayerOptions
+        {
+            scenes = new[] { ScenePath },
+            locationPathName = "Builds/Mac/KawanakajimaSamurai.app",
+            target = BuildTarget.StandaloneOSX,
+            options = BuildOptions.None
+        };
+        AssertBuildSucceeded(BuildPipeline.BuildPlayer(options));
+    }
+
     private static void AssertBuildSucceeded(BuildReport report)
     {
         if (report.summary.result != BuildResult.Succeeded)
