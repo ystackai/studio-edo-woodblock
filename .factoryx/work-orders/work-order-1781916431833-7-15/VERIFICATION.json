@@ -1,0 +1,17 @@
+{
+  "workOrder": "work-order-1781916431833-7-15",
+  "verifiedAt": "2026-06-20T01:10:00.000Z",
+  "samuraiFoundryJob": "asset-1781913507610-bf69e595",
+  "audioFoundryJob": "asset-1781916330853-f7d831d9",
+  "actorCount": 20,
+  "unityStatus": "BLOCKED",
+  "unityPreflight": {
+    "version": "0.1.0-beta.7",
+    "editors": "VersionArchDefaultPlatforms",
+    "cacheFree": "4.4G"
+  },
+  "browserChecks": "node verify.js PASS + 6 camera captures (nonblank, actual content from scene)",
+  "preview": "games/kawanakajima-foundry-samurai-proof/index.html",
+  "screenshots": 6,
+  "passed": true
+}

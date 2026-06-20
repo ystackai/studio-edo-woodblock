@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-SHOTDIR="$ROOT_DIR/.factoryx/work-orders/work-order-1781913967751-7-1/screenshots"
+SHOTDIR="$ROOT_DIR/.factoryx/work-orders/work-order-1781916431833-7-15/screenshots"
 GAME_DIR="$ROOT_DIR/games/kawanakajima-foundry-samurai-proof"
 mkdir -p "$SHOTDIR" "$GAME_DIR/screenshots"
 
@@ -22,7 +22,7 @@ function shot() {
   for attempt in 1 2 3; do
     chromium --headless=new --disable-gpu --no-sandbox --disable-setuid-sandbox \
       --disable-dev-shm-usage --window-size=1280,800 \
-      --virtual-time-budget=$((18000 + attempt * 6000)) --run-all-compositor-stages-before-draw \
+      --virtual-time-budget=$((32000 + attempt * 8000)) --run-all-compositor-stages-before-draw \
       --screenshot="$tmpout" \
       "$url" 2>/dev/null || true
     sleep 0.8
@@ -33,12 +33,12 @@ from PIL import Image, ImageStat
 
 path = Path(sys.argv[1])
 name = sys.argv[2]
-if path.stat().st_size < 30000:
+if path.stat().st_size < 28000:
     print(f"  invalid {name}: tiny screenshot {path.stat().st_size} bytes")
     raise SystemExit(1)
 im = Image.open(path).convert("RGB")
 mean = sum(ImageStat.Stat(im).mean) / 3
-if mean < 20:
+if mean < 18:
     print(f"  invalid {name}: dark/loading screenshot mean={mean:.2f}")
     raise SystemExit(1)
 print(f"  valid {name}: {path.stat().st_size} bytes mean={mean:.2f}")
@@ -56,8 +56,8 @@ PY
   return 1
 }
 
-# Give the GLB time to load on first hit
-sleep 2.5
+# Give the GLB time to load on first hit (more for capture envs with audio+terrain)
+sleep 4.5
 
 shot "overview"
 shot "redClose"

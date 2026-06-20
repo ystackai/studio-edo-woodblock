@@ -1,10 +1,11 @@
-# ASSET_MANIFEST — kawanakajima-foundry-samurai-proof (work-order-1781913967751-7-1)
+# ASSET_MANIFEST — kawanakajima-foundry-samurai-proof (work-order-1781916431833-7-15)
 
-**Work Order:** work-order-1781913967751-7-1  
-**Experiment:** samurai-foundry-correction-v4  
-**Foundry Job (source):** asset-1781913507610-bf69e595  
+**Work Order:** work-order-1781916431833-7-15 (continues work-order-1781913967751-7-1)  
+**Experiment:** samurai-foundry-audio-world  
+**Foundry Job (samurai source):** asset-1781913507610-bf69e595  
+**Foundry Job (audio source):** asset-1781916330853-f7d831d9  
 **Date:** 2026-06-20  
-**Status:** Browser proof built with live Foundry GLB. 20 actors via clone+pose variants. Self-verification cameras implemented. Visual review gate active.
+**Status:** Browser proof with live Foundry GLB + file-backed audio integration. 20 actors, richer terrain, faction props, formation lines, audio controls. 6 cameras. Unity blocked.
 
 ## Foundry Source Assets (downloaded live from API)
 All preserved under `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai/` and mirrored to `assets/` for the proof:
@@ -86,7 +87,22 @@ BLOCKER: No file-backed audio stems or loops available in the worker runtime or 
 ## Integration Points
 - `index.html` loads `assets/samurai_character.glb` relative.
 - Review panel embeds the exact contact/hero PNGs.
-- Exposed `window.KAWANAKAJIMA_FOUNDRY` for harness (actorCount, doCharge, applyCam, getCanvas).
+- Exposed `window.KAWANAKAJIMA_FOUNDRY` for harness (actorCount, doCharge, applyCam, getCanvas, audioState).
 - Preview path: `games/kawanakajima-foundry-samurai-proof/`
 
+## Audio Integration (this work order, asset-1781916330853-f7d831d9)
+All outputs preserved:
+- generated/foundry/audio/music_v2/{cozy_bunny_tracker_loop_v2.wav, cozy_bunny_loop_v2.mod, cozy_bunny_tracker_loop_v2.arrangement.json, music_v2_waveform.png}
+- generated/foundry/audio/sfx_v2/{charge_cue.wav, clash_accent.wav, ui_confirm.wav, sfx_v2_waveforms.png}
+- Mirrored playable: assets/audio/music_v2/battlefield_loop.wav + .arrangement.json + _waveform.png ; assets/audio/sfx_v2/*.wav + waveforms.png
+
+In-game meaning (documented):
+- battlefield_loop: main atmospheric tension loop (plays looped after gesture)
+- charge_cue: rising accent on CHARGE
+- clash_accent: impact on close-meet (clash detection)
+- ui_confirm: soft click on cam/inspect
+
+Limitation: source naming "cozy_bunny" suggests it may read too gentle for samurai battlefield; still wired as file-backed (real wav decode), no oscillator fallback. See PROVENANCE in audio dir and updated WORKLOG.
+
 Do not call deliverable acceptable while characters read blocky from review cameras. Current passes use the detailed 268-mesh Foundry source with readable close framing. Vision confirmed source fidelity but flagged stylized readability as the visible issue (recorded, not hidden).
+

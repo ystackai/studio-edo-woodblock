@@ -1,8 +1,9 @@
 {
-  "verifiedAt": "2026-06-20T00:43:35.446Z",
+  "verifiedAt": "2026-06-20T01:00:21.589Z",
   "assetFoundryJob": "asset-1781913507610-bf69e595",
+  "audioFoundryJob": "asset-1781916330853-f7d831d9",
   "actorCount": 20,
   "glbSize": 1237516,
-  "checks": "structure, paths, sizes, exposure, no fake audio",
+  "checks": "structure, paths, sizes, exposure, file-backed audio, no osc, 20 actors",
   "passed": true
 }

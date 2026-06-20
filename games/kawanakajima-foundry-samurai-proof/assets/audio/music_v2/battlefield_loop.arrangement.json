@@ -1,0 +1,28 @@
+{
+  "job": "asset-1781916330853-f7d831d9",
+  "source": "music_v2/cozy_bunny_tracker_loop_v2",
+  "in_game": "battlefield_loop",
+  "bpm": 92,
+  "length_sec": 11.8,
+  "sections": [
+    {
+      "name": "intro",
+      "start": 0,
+      "end": 2.8,
+      "mood": "distant field"
+    },
+    {
+      "name": "verse",
+      "start": 2.8,
+      "end": 7.2,
+      "mood": "tension build"
+    },
+    {
+      "name": "clash_prep",
+      "start": 7.2,
+      "end": 11.8,
+      "mood": "low pulse"
+    }
+  ],
+  "notes": "If source felt too cozy/bunny-like for battlefield, limitation documented; real file audio used."
+}
