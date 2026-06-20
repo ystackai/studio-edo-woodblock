@@ -45,4 +45,5 @@
 Work Order: work-order-1781665243422-followup
 Canonical preview: games/mist-settles-on-one-carved-horizon-5ca8e144/index.html
 Chromium verif: clean on direct entrypoint (fresh re-run 2026-06-20; --dump-dom + screenshots confirm no factory home, only the living print)
-PR: https://github.com/ystackai/studio-edo-woodblock/pull/156 (head advanced; BLOCKED->awaiting check refresh)
+Latest commit: f27d559 (pushed)
+PR: https://github.com/ystackai/studio-edo-woodblock/pull/156 (branch advanced with verification evidence; use PR_BODY.md to refresh description with full Work Order context if needed)

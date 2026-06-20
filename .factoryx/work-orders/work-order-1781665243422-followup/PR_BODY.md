@@ -119,10 +119,12 @@ Cut one living print: a single wave-form horizon in ink on paper grain, complete
 - Code diff: the single `index.html` + assets + the .factoryx/ bits above.
 
 ### Known (non-blocker)
-- Push + gh PR creation hit expired token in this worker runtime (GH_TOKEN "no longer valid"). Local commit 33f6c54 on the exact branch is the source of truth. A runner or admin with a fresh FactoryX bot token can `git push` + `gh pr create --body-file .../PR_BODY.md` (or paste this body) and the PR will carry the full context.
+- gh cli auth not available in this worker shell (no interactive login or visible GH_TOKEN for gh). `git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665243422-followup` succeeded (credential helper handles https).
+- Latest verification commit f27d559 pushed to canonical branch 2026-06-20. PR #156 (if open on this head) will auto include the new commit. To refresh PR description, paste/update from this PR_BODY.md (contains full original prompt).
+- Direct --dump-dom + chromium evidence added showing mist title/canvas vs home markers; no code change to print itself.
 
 ---
 
-**Ready for review.** The home-page bug is fixed at the source. The living print is direct, self-contained, house-style compliant, asset-contract compliant, fully verified in real browser, and attached to the same deliverable as a reviewable follow-up.
+**Ready for review.** The home-page bug is fixed at the source (direct entrypoint + .factoryx/preview-entrypoint + fresh DOM+chromium proof that the served artifact is the mist print alone, never the factory home). The living print is direct, self-contained, house-style compliant, asset-contract compliant (real jpgs + manifest), fully verified in real browser (chromium + playwright lib checks), and attached to the same deliverable as a reviewable follow-up. Branch pushed; PR #156 should be updated with this body if description is stale.
 
 (End of PR body — the original full user prompt from the work order launch is reproduced in the "Full Payload JSON" + "Original parent goal/context" sections above for traceability.)
