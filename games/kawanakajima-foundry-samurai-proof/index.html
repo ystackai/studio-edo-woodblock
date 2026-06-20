@@ -188,20 +188,32 @@
     // === Repeatable verification camera presets (per work order) ===
     const camPresets = {
       overview: () => {
-        target.set(-2.8, 1.75, -1.5);
-        yaw = -1.82; pitch = 0.36; dist = 15.2;
+        target.set(-0.6, 1.65, -4.2);
+        yaw = -1.63; pitch = 0.32; dist = 16.2;
         updateCameraFromOrbit();
       },
       redClose: () => {
         // Red/Takeda side close, large readable asset
-        target.set(-6.8, 1.85, -3.2);
-        yaw = -0.72; pitch = 0.29; dist = 6.4;
+        const a = actors[8];
+        if (a) {
+          const wp = a.mesh.getWorldPosition(new THREE.Vector3());
+          target.set(wp.x + 0.25, wp.y + 1.55, wp.z + 0.25);
+        } else {
+          target.set(-4.2, 1.85, -5.6);
+        }
+        yaw = -0.72; pitch = 0.27; dist = 5.3;
         updateCameraFromOrbit();
       },
       blueClose: () => {
         // Blue/Uesugi side close
-        target.set(6.9, 1.85, -3.4);
-        yaw = 2.48; pitch = 0.31; dist = 6.5;
+        const a = actors[12];
+        if (a) {
+          const wp = a.mesh.getWorldPosition(new THREE.Vector3());
+          target.set(wp.x - 0.25, wp.y + 1.55, wp.z + 0.25);
+        } else {
+          target.set(4.8, 1.85, -3.3);
+        }
+        yaw = -1.56; pitch = 0.28; dist = 4.9;
         updateCameraFromOrbit();
       },
       sideProfile: () => {
@@ -218,16 +230,16 @@
       assetInspect: () => {
         // Close on one large unmodified (or near) samurai for silhouette/material judgment
         if (actors.length > 0) {
-          const a = actors[4]; // stable mid-formation pick for repeatability
+          const a = actors[8]; // stable edge pick; front three-quarter, not occluded by the row
           const wp = a.mesh.getWorldPosition(new THREE.Vector3());
-          target.set(wp.x - 0.4, wp.y + 1.42, wp.z + 0.9);
-          dist = 3.55;
-          yaw = 2.28;
-          pitch = 0.38;
+          target.set(wp.x - 0.10, wp.y + 1.48, wp.z + 0.18);
+          dist = 4.35;
+          yaw = -0.72;
+          pitch = 0.31;
           updateCameraFromOrbit();
         } else {
           target.set(-5.2, 2.1, -1.8);
-          yaw = 2.05; pitch = 0.33; dist = 3.9;
+          yaw = -0.72; pitch = 0.31; dist = 4.35;
           updateCameraFromOrbit();
         }
       }
@@ -237,6 +249,7 @@
       if (camPresets[name]) {
         camPresets[name]();
         statusEl.textContent = name === 'assetInspect' ? 'INSPECT' : (chargePhase ? 'CHARGING' : 'FORMATION');
+        if (name !== 'assetInspect') reviewPanel.classList.remove('open');
         if (name === 'assetInspect') {
           setTimeout(() => {
             if (statusEl.textContent === 'INSPECT') statusEl.textContent = chargePhase ? 'CHARGING' : 'FORMATION';
@@ -388,7 +401,8 @@
       renderer.render(scene, camera);
       // expose for verification harness
       window.KAWANAKAJIMA_FOUNDRY = {
-        actorCount: () => actors.length,
+        actorCount: actors.length,
+        getActorCount: () => actors.length,
         isCharging: () => chargePhase === 1,
         doCharge: charge,
         doReform: reform,
@@ -450,10 +464,11 @@
 
     function inspectActor(actor) {
       const wp = actor.mesh.getWorldPosition(new THREE.Vector3());
-      target.set(wp.x - 0.55, wp.y + 1.48, wp.z + 0.85);
-      dist = 3.4;
-      yaw = 2.22;
-      pitch = 0.39;
+      const isTakeda = actor.team === 'takeda';
+      target.set(wp.x + (isTakeda ? -0.10 : -0.22), wp.y + 1.48, wp.z + 0.18);
+      dist = 4.35;
+      yaw = isTakeda ? -0.72 : -1.56;
+      pitch = 0.31;
       updateCameraFromOrbit();
       statusEl.textContent = 'INSPECT';
       // auto show contact for comparison
