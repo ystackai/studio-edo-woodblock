@@ -35,10 +35,10 @@
 
 ## What Is Not Done
 
-- **Unity playable build:** not created. A Unity source handoff now exists, but the worker has Unity CLI/MCP binaries only; no Unity Editor install and no Unity-side MCP listener.
-- **Unity blocker:** `/cache` only has about 2.1 GB free on the runtime host; the install helper requires at least 18 GB before attempting a Unity Editor install.
+- **Unity playable build:** not created. A Unity source handoff now exists, and the deployed Edo worker can reach the Mac-host Unity MCP listener with authenticated `ping` success.
+- **Unity remaining gap:** scene insertion and build verification still need to be run through the Mac Unity MCP listener. The Hetzner worker still should not be treated as a Unity Editor host.
 - **Autonomous completion:** not proven end-to-end. The retry loop produced useful artifacts, but the v5 repair and the later 20-samurai battlefield-pack handoff required manual intervention after earlier visuals still looked blocky/unusable.
 
 ## Current Review Verdict
 
-This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a Foundry-authored 20-samurai battlefield pack, and Unity source handoff. v5 supersedes the bad v4 single-character visual pass with a cleaner stylized samurai asset and refreshed Blender evidence; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Unity playable build not claimed: no Editor/listener available (see UNITY_BLOCKER.md). PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (only canonical used).
+This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a Foundry-authored 20-samurai battlefield pack, and Unity source handoff. v5 supersedes the bad v4 single-character visual pass with a cleaner stylized samurai asset and refreshed Blender evidence; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Unity playable build not claimed: Mac Unity MCP listener reachability is resolved, but scene/build verification remains pending. PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical asset proof) plus follow-up PR #165.

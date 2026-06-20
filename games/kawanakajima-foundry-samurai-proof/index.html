@@ -138,6 +138,20 @@
 
     scene.add(new THREE.AmbientLight(0x3f372a, 1.25));
 
+     // Ground fog — soft horizontal band at character feet
+    const fogGeo = new THREE.PlaneGeometry(100, 20, 1, 1);
+    const fogMat = new THREE.MeshBasicMaterial({
+      color: 0x6a6050,
+      transparent: true,
+      opacity: 0.06,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const groundFog = new THREE.Mesh(fogGeo, fogMat);
+    groundFog.rotation.x = -Math.PI * 0.5;
+    groundFog.position.y = 0.15;
+    scene.add(groundFog);
+
      // === TERRAIN ===
     // Rolling ground with height variation — Japanese countryside
     const groundGeo = new THREE.PlaneGeometry(110, 88, 64, 52);
@@ -272,10 +286,15 @@
       group.rotation.y = x < 0 ? -0.18 : 0.18;
       scene.add(group);
     }
+    // Field standards — front line
     addWarBanner('takeda field standard', -9.4, -7.1, 0x7d1f18, 0xd6be78);
     addWarBanner('uesugi field standard', 9.4, -4.3, 0x1e365c, 0xd8d0bd);
+    // Line standards — second line
     addWarBanner('takeda line standard', -7.8, -2.5, 0x7d1f18, 0xd6be78);
     addWarBanner('uesugi line standard', 7.8, -2.0, 0x1e365c, 0xd8d0bd);
+    // Rear standards — command position
+    addWarBanner('takeda command standard', -10.5, -9.5, 0x8b2018, 0xe0c880);
+    addWarBanner('uesugi command standard', 10.5, -6.5, 0x223d68, 0xe0d8c0);
 
     // First paint — ground + terrain visible before GLB loads
     renderer.render(scene, camera);
@@ -598,6 +617,16 @@
     // === ON ALL LOADED ===
     function onAllLoaded() {
       placeActors();
+      // Complete loading bar
+      const loadBar = document.getElementById('load-bar');
+      const loadEl = document.getElementById('load');
+      if (loadBar) loadBar.style.width = '100%';
+      if (loadEl) {
+        setTimeout(() => {
+          loadEl.classList.add('hidden');
+          frameDefault();
+        }, 400);
+      }
       frameDefault();
       loadEl.classList.add('hidden');
       statusEl.textContent = 'FORMATION';
