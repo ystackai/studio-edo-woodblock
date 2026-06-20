@@ -89,3 +89,19 @@
 - Verified zero scratch files (.bak, .tmp, .backup) remain in workspace
 - Both verifiers remain green; no browser JS syntax regressions
 - Pushed as v8.12 to origin/factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8
+
+## v8.14 — 2026-06-20 (browser polish + verification)
+
+- `node games/kawanakajima-foundry-samurai-proof/verify.js` → **PASS**
+- `node unity/kawanakajima-samurai/verify-unity-handoff.js` → **PASS**
+- Unity MCP smoke (live):
+    - JSON-RPC `initialize` with protocolVersion `2024-11-05` → **200 OK**, received `Mcp-Session-Id: QHReCVH4cByAgjmDEK1vRw`
+    - `tools/list` → 38 tools (gamedev-mcp-server 8.0.0.0)
+    - `tools/call` with `scene-list-opened` → Scene `Kawanakajima` loaded, 1 root, IsDirty=false, IsValidScene=true
+- Browser polish (v8.14):
+    - Vignette breathing animation (8s cycle)
+    - Camera orbit state synced after transitions
+    - Fog breathing (opacity + scale oscillation)
+    - Charge screen flash effect
+    - Click feedback: samurai pulses in faction color
+- All verifiers green; zero scratch files; no syntax errors
