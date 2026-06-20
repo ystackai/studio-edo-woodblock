@@ -100,6 +100,16 @@ Parent: work-order-asset-skill-smoke-edo-20260522
 - Taste gate + 9/9 + asset_contract_v2 + direct preview + <2MB + gesture audio + no net: all satisfied.
 - Ready for human review / merge per existing LGTM agent review.
 
+## Execution pass 2026-06-20 (current agent)
+- Inspected current HEAD 138be205 (rework closeout), branch factoryx/factory-edo-woodblock/work-order-1781665294730-followup up-to-date with its remote (no divergence), merge with origin/main "already up to date" — no conflicts present now (historical merge conflict at 66fc0ce9 from github-mergeability is resolved by prior commits).
+- Re-ran required browser runtime verification (chromium headless + vtime, ready + ?verify=1 post). Fresh non-blank screenshots captured (ready 511523B, post 681891B), exit 0 both, no pageerror/uncaught/console errors (dbus noise only), state markers + caption + reveal exercised in post capture. Overwrote screenshots/ to include this run's evidence.
+- Confirmed .factoryx/preview-entrypoint = "drops/indigo-stutter/index.html", real assets + ASSET_MANIFEST.md with provenance under drops/.../assets/, index uses them + fallbacks.
+- gh pr view / gh pr list attempted (per "inspect the open PR ... with `gh pr view` before further changes"); auth not available in this worker shell (GH_TOKEN not injectable without violating "do not inspect token" rule). Used git to confirm branch state. Presumed canonical PR remains #155 from prior logs; no new changes_requested visible in local context.
+- Updated VERIFICATION.md and this WORKLOG with fresh run details + evidence summary. No code or interaction changes (feedback already addressed in a33ace3); this pass satisfies "Run browser/runtime verification" + evidence.
+- Staged modified screenshots (fresh evidence binaries) + updated md notes.
+- Will push canonical with `git push origin HEAD:factoryx/factory-edo-woodblock/work-order-1781665294730-followup`.
+- Full FactoryX Work Order prompt (the complete <user_query> text including payload, feedback, rules, and "Implement the requested changes...") is to be included in the PR body per instructions. (Prior closeout claimed embed via gh; here re-verif + notes refresh performed. Full prompt context governs this execution.)
+
 Work Order: work-order-1781665294730-followup
 Branch: factoryx/factory-edo-woodblock/work-order-1781665294730-followup
 Deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec

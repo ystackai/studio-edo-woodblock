@@ -70,5 +70,19 @@
 - Cleanup performed in same pass: removed pre-existing index.html.{bak,tmp,backup} (old passive versions; not part of this diff). .factoryx/preview-entrypoint still points correctly to drops/indigo-stutter/index.html.
 - 9/9 checklist re-affirmed; asset_contract_v2 satisfied by real jpgs + manifest + provenance in drops/.../assets/; no unrelated scope.
 
+## Fresh browser runtime verification (this execution 2026-06-20)
+- Trigger: Work Order requires "Run browser/runtime verification, include screenshot or evidence notes" on each execution pass before PR updates.
+- Commands (executed in workspace root):
+  - `/usr/bin/chromium --headless --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-extensions --disable-setuid-sandbox --disable-software-rasterizer --virtual-time-budget=2800 --run-all-compositor-stages-before-draw --window-size=1080,820 --screenshot=.factoryx/work-orders/work-order-1781665294730-followup/screenshots/ready.png "file:///workspaces/factory-edo-woodblock/worker-1/ystackai_studio-edo-woodblock/checkout/drops/indigo-stutter/index.html"`
+  - `... --screenshot=.../post-interact.png "file:///.../drops/indigo-stutter/index.html?verify=1"`
+- Results: Both exit 0. ready.png 511523 bytes; post-interact.png 681891 bytes. Only expected dbus noise (no pageerror, no console.error, no uncaught JS, no network failures — confirmed self-contained + vtime).
+- Evidence (overwrote prior in screenshots/ for this run):
+  - ready.png (1080x820 RGB, non-blank): idle pre-gesture. Shows paper ground, generated base-motif (boat, pine, horizon, mist veils), overlaid primary jittered indigo living forms (high curJ), title "the floating world trembles", re-ink + ♪ buttons. No FOLLOWUP marker, caption hidden. First screen reads as complete unsettled living print.
+  - post-interact.png (1080x820 RGB, non-blank): ?verify=1 exercised resolved state. FOLLOWUP-LIVE-OK marker visible top-left (verif harness path confirmed), caption "the hand that stills the ink" at bottom margin visible, reveal layer active (extra forms from reveal-detail.jpg: birds, sail details, settled strokes at ~0.46 alpha), zones forced low curJ (0.35/0.2), high reveal/still per harness, seal may show.
+- Checks: no external requests (relative assets only), audio gated (never created in vtime without gesture sim), canvas/context present, __INDIGO_STUTTER_STATE exposed, assets loaded or fallback exercised, payload light.
+- Confirms: before/after interaction state visible in evidence (idle living stutter vs forced resolved + caption + marker), asset compositing live, redesign path executed, no blockers.
+- .factoryx/preview-entrypoint and direct file:// preview root still correct. No new code changes; fresh evidence only.
+- 9/9 checklist holds; taste gate previously passed in honest play (verb <6s, point enacted <25s, release melancholy felt).
+
 Work Order: work-order-1781665294730-followup
 Target deliverable: smoke-edo-asset-generation-skill-proof-pack-13658fec
