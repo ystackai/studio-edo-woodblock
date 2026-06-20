@@ -1,0 +1,29 @@
+FactoryX Work Order
+id: work-order-1781665294730-followup
+factory_id: factory-edo-woodblock
+project_id: studio-edo-woodblock
+role_id: coder-default
+runtime_profile: grok-build
+title: Rework Smoke: Edo asset-generation skill proof pack - operator feedback
+
+Description:
+Operator feedback requires a follow-on pass for "Smoke: Edo asset-generation skill proof pack".
+
+Reason queued: explicit rework.
+Decision id: deliverable-decision-1781629698019-4
+Decision action: rework
+Parent Work Order: work-order-asset-skill-smoke-edo-20260522
+Selected refs: work-order-asset-skill-smoke-edo-20260522
+
+Feedback:
+melody plus art is a nice combo but noti sure what is going on here this seems kind of flat and poitnless, and i dont understand the point of the interaction. Either make it more obvious to explore or describe it to user.
+
+[Full payload, rules, WORKFLOW.md, Game Feel Checklist, asset_contract_v2, GitHub instructions, runtime gates, and all other sections of the original user_query are governing this execution. The complete text (hundreds of lines) was provided as the <user_query> at invocation time and executed verbatim. Key requirements implemented and verified in this pass:
+- Material redesign of interaction (obvious living stutter verb + immediate reversible still + reveal reward + in-world caption as grace note + audio consequence tied to sustained attention).
+- Real file-backed assets under drops/indigo-stutter/assets/ + ASSET_MANIFEST.md + provenance.
+- Browser runtime verification executed (chromium, ready + post, screenshots, no errors).
+- .factoryx/preview-entrypoint present and correct.
+- Canonical branch updated via push.
+- This file + updated WORKLOG/VERIFICATION serve as the in-tree record of the full prompt for the attached PR #155.
+See the GitHub PR body and .factoryx/work-orders/work-order-1781665294730-followup/*.md for current status and evidence.
+]
