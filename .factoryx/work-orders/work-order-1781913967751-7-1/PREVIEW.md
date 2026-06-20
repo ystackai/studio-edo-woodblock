@@ -32,14 +32,14 @@
 ## Assets integrated
 - Live Foundry GLB + all 5 outputs committed with provenance URLs.
 - Contact/hero PNGs embedded for in-game review gate.
+- Live Foundry audio job `asset-1781916330853-f7d831d9` committed, mirrored to `assets/audio/`, and wired to AUDIO / CHARGE / REFORM / CLASH controls.
 - See ASSET_MANIFEST.md for full list, sizes, integration.
 
 ## Evidence captured
 Screenshots in `.factoryx/work-orders/work-order-1781913967751-7-1/screenshots/` (and game local if present) after each pass.
 
 ## Blockers noted
-- No file-backed audio (documented).
-- Unity unavailable (see UNITY_BLOCKER.md).
+- Unity Editor/listener unavailable (see UNITY_BLOCKER.md).
 - This is the browser Three.js proof pending any later Unity port.
 
 Do not approve if any review camera shows characters as blocky cubes, capsules, disks, or unreadable dark dots.

@@ -34,6 +34,8 @@ mustExist(path.join(ROOT, 'assets/audio/clash_accent.wav'), 'file-backed clash a
 mustExist(path.join(ROOT, 'assets/audio/ui_confirm.wav'), 'file-backed UI confirm');
 mustExist(path.join(ROOT, 'assets/audio/formation_step.wav'), 'file-backed formation step');
 mustExist(path.join(ROOT, 'assets/generated/foundry/audio/asset-1781916330853-f7d831d9/summary.json'), 'Foundry audio summary');
+mustExist(path.join(ROOT, 'DELIVERABLE_STATUS.md'), 'reviewable deliverable status');
+mustExist(path.join(ROOT, 'UNITY_BLOCKER.md'), 'Unity blocker note');
 
 checkContent(path.join(ROOT, 'index.html'), [
   { name: 'canvas element', test: c => /<canvas id="c"/.test(c) },
@@ -47,6 +49,13 @@ checkContent(path.join(ROOT, 'index.html'), [
   { name: 'audio controls', test: c => /btn-audio|toggleAudio|hasFileBackedAudio/.test(c) },
   { name: 'window expose', test: c => /KAWANAKAJIMA_FOUNDRY/.test(c) },
   { name: 'no oscillator claim', test: c => !/oscillator|playTone|WebAudio.*beep/i.test(c) || /BLOCKER|silent/.test(c) },
+]);
+
+checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
+  { name: 'asset Foundry job', test: c => /asset-1781913507610-bf69e595/.test(c) },
+  { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
+  { name: 'Unity blocker', test: c => /Unity playable world:\*\* not created|Unity Editor/.test(c) },
+  { name: 'autonomy not proven', test: c => /Autonomous completion:\*\* not proven/.test(c) },
 ]);
 
 // Asset sizes roughly
