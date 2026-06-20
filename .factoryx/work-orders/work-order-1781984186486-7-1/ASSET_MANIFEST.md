@@ -1,4 +1,4 @@
-# Asset Manifest — Kawanakajima Samurai v9.2
+# Asset Manifest — Kawanakajima Samurai v8.6
 
 ## Foundry-Generated Assets
 
@@ -13,7 +13,7 @@
 | Meshes | 241 MeshFilter components (72,927 vertices total) |
 | Orientation | As specified by foundry pipeline pivot notes |
 
-### Samurai Character Contact Sheet
+### Samuri Character Contact Sheet
 | Field | Value |
 |-------|-------|
 | Path | `games/kawanakajima-foundry-samurai-proof/assets/samurai_character_contact_sheet.png` |
@@ -34,7 +34,7 @@
 | Unity path | `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` |
 | Size | 6.55 MB (6,873,392 bytes) |
 | Provenance | Foundry samurai-battlefield-pack generation (2026-06-20) |
-| Content | Terrain (hills, trees, stones, stream) + 20 samurai |
+| Content | 20 additional samurai for battlefield formation/tactical views |
 
 ## Audio Assets
 
@@ -50,7 +50,7 @@
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Main proof entry point (985 lines) |
+| `index.html` | Main proof entry point (952 lines) |
 | `three.min.js` | Three.js r160+ library |
 | `GLTFLoader.js` | glTF/GLB loader for Three.js |
 | `verify.js` | Automated browser proof verifier |
@@ -59,49 +59,45 @@
 
 | File | Purpose |
 |------|---------|
-| `KawanakajimaRuntimeBootstrap.cs` | Runtime bootstrap (985 lines, GLTFast reflection + atmosphere + screen shake + UI fade) |
+| `KawanakajimaRuntimeBootstrap.cs` | Runtime bootstrap (758 lines, GLTFast reflection) |
 | `KawanakajimaUnityBuild.cs` | Build hooks for WebGL/Linux/Mac |
 | `verify-unity-handoff.js` | Unity handoff verifier |
 
-## Screenshots (30+ total)
+## Screenshots (18 total)
 
-### Browser Proof Screenshots
+### v8.6 (latest)
 | File | Description |
 |------|-------------|
-| `foundry-contact-sheet.png` | Foundry samurai multi-view |
-| `foundry-hero.png` | Hero reference |
-| `assetInspect.png` | Asset inspection |
-| `blue-close.png`, `blueClose.png` | Blue samurai close-up |
-| `inspect-asset.png` | Asset inspection |
-| `capture-overview-dark-initial.png` | Initial dark overview |
+| `screenshots/v86_wide_formation.png` | Full battlefield, 10 red vs 10 blue |
+| `screenshots/v86_takeda_close.png` | Red samurai detail |
+| `screenshots/v86_uesugi_close.png` | Blue samurai detail |
+| `screenshots/v86_hero_3q.png` | Dramatic shoulder-angle |
+| `screenshots/v86_final.png` | Full scene with UI |
 
-### v9 MCP Screenshots (latest, from Unity MCP)
+### v8.5
 | File | Description |
 |------|-------------|
-| `mcp_wide_formation_v9.png` | Full battlefield — hills, stream, bridge, samurai formations |
-| `mcp_hero_3q_v9.png` | Dramatic hero three-quarter — samurai armor, helmet, mountains |
-| `mcp_red_close_v9.png` | Takeda (red) close-up — helmet crest, armor, banner |
-| `mcp_blue_close_v9.png` | Uesugi (blue) close-up — helmet crest, armor, sword |
-| `mcp_scene_view_v9.png` | Unity editor scene view — full terrain with UI panel |
-| `mcp_game_view_v9.png` | In-game render — stream, bridge, samurai, Unity UI |
+| `screenshots/unity_mesh_retention_v8.5.png` | Mesh retention proof (authoritative) |
+| `screenshots/unity_hero_three_quarter_v8.5.png` | Hero three-quarter |
+| `screenshots/unity_takeda_close_v8.5.png` | Takeda close |
+| `screenshots/unity_uesugi_close_v8.5.png` | Uesugi close |
+| `screenshots/unity_rear_view_v8.5.png` | Rear view |
 
-### v8 MCP Screenshots
+### v8.4
 | File | Description |
 |------|-------------|
-| `mcp_game_view_v8.png` | Full scene with ready UI |
-| `mcp_hero_3q_v8.png` | Dramatic hero three-quarter |
-| `mcp_wide_formation_v8.png` | Full battlefield overview |
-| `mcp_scene_view_final.png` | Scene view final |
+| `screenshots/unity_side_v8.4.png` | Side profile |
+| `screenshots/unity_top_v8.4.png` | Top-down tactical |
+| `screenshots/unity_blue_close_v8.4.png` | Blue close-up |
+| `screenshots/unity_build_verify_v8.4.png` | Post-build check |
+| `screenshots/unity_final_v8.4.png` | Hero shot |
 
-### Unity MCP Screenshots (v8.3–v8.5)
-| Version | Count | Files |
-|---------|-------|-------|
-| v8.3 | 3 | `unity_verify_v8.3.png`, `unity_red_close_v8.3.png`, `unity_wide_formation_v8.3.png` |
-| v8.4 | 5 | `unity_side_v8.4.png`, `unity_top_v8.4.png`, `unity_blue_close_v8.4.png`, `unity_build_verify_v8.4.png`, `unity_final_v8.4.png` |
-| v8.5 | 5 | `unity_mesh_retention_v8.5.png`, `unity_hero_three_quarter_v8.5.png`, `unity_takeda_close_v8.5.png`, `unity_uesugi_close_v8.5.png`, `unity_rear_view_v8.5.png` |
-| v8.6 | 5 | `v86_wide_formation.png`, `v86_takeda_close.png`, `v86_uesugi_close.png`, `v86_hero_3q.png`, `v86_final.png` |
-| v8.8 | 3 | `v88_wide_formation.png`, `v88_hero_closeup.png`, `v88_scene_view.png` |
-| v9.2 worker | 2 | `v8_game_view.png`, `v8_scene_view.png` |
+### v8.3
+| File | Description |
+|------|-------------|
+| `screenshots/unity_verify_v8.3.png` | Overview |
+| `screenshots/unity_red_close_v8.3.png` | Red close |
+| `screenshots/unity_wide_formation_v8.3.png` | Wide formation |
 
 ## Browser Verification
 
@@ -125,26 +121,16 @@ UNITY HANDOFF STRUCTURE: PASS
 
 ## Unity MCP Probe Results
 
-- **Ping:** `{"status":"success","structured":{"result":"pong"}}` — OK at start of session
-- **Tools:** 73 tools available
-- **Scene:** KAWANAKAJIMA_UNITY_READY, 20 actors, 1 root object
+- **Ping:** `{"status":"success","structured":{"result":"pong"}}`
+- **Scene:** KAWANAKAJIMA_UNITY_READY, 20 actors, 73 root objects
 - **Mesh retention:** 241/241 non-null MeshFilters, 72,927 vertices
 - **Build:** Mac .app (112 MB) succeeded
-- **MCP status:** Became unavailable after v9.2 play mode toggle (known risk)
 
 ## Quality Assessment
 
 - ✅ Samurai GLB: Detailed character with helmet, armor, weapons, sashimono banner
-- ✅ Battlefield pack: Complete terrain with hills, trees, stream, bridge
+- ✅ Battlefield pack: Complete terrain with hills, trees, stones, 20 samurai
 - ✅ Audio: 5 WAVs for loop, charge, clash, UI, formation
 - ✅ Browser proof: All assets load, camera controls work, charge/reform/clash functional
 - ✅ Unity proof: All samurai instantiate with full mesh data, faction colors clear
-- ✅ Screenshot coverage: 30+ images across 8 camera angles and 7 quality passes
-- ⚠️ MCP availability: Editor MCP became unavailable after play mode toggle; screenshots from earlier in session capture the state
-
-## Unity Branch Status
-
-- **Branch:** `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8`
-- **PR:** #167 (open, mergeable, targeting main)
-- **Status:** All CI green, merge blocked by branch protection review requirement
-- **Latest commit:** `7e3d91a` (v9.2: bootstrap polish)
+- ✅ Screenshot coverage: 18 images across 5 camera angles and 4 quality passes

@@ -25,7 +25,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private AudioClip clashAccent;
     private AudioClip formationStep;
     private AudioClip uiConfirm;
-    private AudioClip windAmbient;
 
     private Material groundMat;
     private Material hillMat;
@@ -35,8 +34,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private Material takedaMat;
     private Material uesugiMat;
     private Material poleMat;
-    private Material grassMat;
-    private Material waterMat;
 
     private Vector3 cameraTarget;
     private float yaw = -0.68f;
@@ -44,18 +41,12 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private float distance = 14.5f;
     private bool charging;
     private bool musicEnabled;
-    private bool uiVisible = true;
-    private bool uiFadeTarget = true;
+    private bool showUi = true;
     private bool assetsReady;
     private bool foundryBattlefieldPackReady;
     private bool showingFoundryBattlefieldPack;
     private string status = "LOADING FOUNDRY SAMURAI";
     private Vector2 previousMouse;
-    private float screenShakeIntensity;
-    private float screenShakeElapsed;
-    private float ambientTime;
-    private float uiHideTimer;
-    private ParticleSystem dustParticles;
 
     private sealed class Actor
     {
@@ -66,8 +57,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         public Quaternion BaseRotation;
         public Vector3 ChargeTarget;
         public float IdlePhase;
-        public float IdleSwayOffset;
-        public float BannerWindPhase;
     }
 
     private async void Start()
@@ -75,25 +64,19 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         CreateMaterials();
         CreateCameraAndAudio();
         BuildCountryside();
-        CreateAtmosphere();
         await LoadSamuraiFormation();
         await LoadFoundryBattlefieldPack();
         ApplyCameraPreset("inspect");
         assetsReady = actors.Count == ActorCount;
-        uiHideTimer = 10f;
         status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : "UNITY HANDOFF LOAD FAILED";
         Debug.Log(status + " actors=" + actors.Count + " pack=" + foundryBattlefieldPackReady + " audio=" + (musicSource.clip != null));
     }
 
     private void Update()
     {
-        ambientTime += Time.deltaTime;
         HandleInput();
         AnimateActors(Time.deltaTime);
         UpdateCamera();
-        UpdateAtmosphere(Time.deltaTime);
-        UpdateScreenShake(Time.deltaTime);
-        UpdateUIDefault();
     }
 
     private void OnDestroy()
@@ -103,62 +86,37 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             import.Dispose();
         }
         retainedGltfImports.Clear();
-        if (dustParticles != null)
-        {
-            Destroy(dustParticles.gameObject);
-            dustParticles = null;
-        }
     }
 
-    // UI rendering
     private void OnGUI()
     {
-        if (!uiVisible) return;
-
-        float alpha = Mathf.Lerp(GUI.color.a, uiFadeTarget ? 0.85f : 0f, Time.deltaTime * 4f);
-        GUI.color = new Color(GUI.color.r, GUI.color.g, GUI.color.b, alpha);
-
         const int pad = 14;
-        int panelWidth = Mathf.Min(340, Screen.width - pad * 2);
-        int x = Mathf.Max(pad, Screen.width - panelWidth - pad);
-        GUI.Box(new Rect(x, pad, panelWidth, 130), string.Empty);
+        if (!showUi) return;
 
-        GUI.Label(new Rect(x + 12, pad + 8, panelWidth - 24, 24), "KAWANAKAJIMA \u2014 UNITY HANDOFF");
+        int panelWidth = Mathf.Min(320, Screen.width - pad * 2);
+        int x = Mathf.Max(pad, Screen.width - panelWidth - pad);
+        GUI.Box(new Rect(x, pad, panelWidth, 112), string.Empty);
+        GUI.Label(new Rect(x + 12, pad + 8, panelWidth - 24, 24), "KAWANAKAJIMA - UNITY HANDOFF");
         GUI.Label(new Rect(x + 12, pad + 30, panelWidth - 24, 22), "20 samurai: 10 Takeda / 10 Uesugi");
         GUI.Label(new Rect(x + 12, pad + 52, panelWidth - 24, 22), status);
 
         int cameraY = pad + 78;
-        int buttonWidth = 44;
-        if (GUI.Button(new Rect(x + 12, cameraY, buttonWidth, 22), "Wide")) ApplyCameraPreset("overview");
-        if (GUI.Button(new Rect(x + 60, cameraY, buttonWidth, 22), "Red")) ApplyCameraPreset("red");
-        if (GUI.Button(new Rect(x + 108, cameraY, buttonWidth, 22), "Blue")) ApplyCameraPreset("blue");
-        if (GUI.Button(new Rect(x + 156, cameraY, buttonWidth, 22), "Side")) ApplyCameraPreset("side");
-        if (GUI.Button(new Rect(x + 204, cameraY, buttonWidth, 22), "Top")) ApplyCameraPreset("top");
-        if (GUI.Button(new Rect(x + 252, cameraY, buttonWidth, 22), "Inspect")) ApplyCameraPreset("inspect");
+        int buttonWidth = 46;
+        if (GUI.Button(new Rect(x + 12, cameraY, buttonWidth, 24), "Wide")) ApplyCameraPreset("overview");
+        if (GUI.Button(new Rect(x + 62, cameraY, buttonWidth, 24), "Red")) ApplyCameraPreset("red");
+        if (GUI.Button(new Rect(x + 112, cameraY, buttonWidth, 24), "Blue")) ApplyCameraPreset("blue");
+        if (GUI.Button(new Rect(x + 162, cameraY, buttonWidth, 24), "Side")) ApplyCameraPreset("side");
+        if (GUI.Button(new Rect(x + 212, cameraY, buttonWidth, 24), "Top")) ApplyCameraPreset("top");
+        if (GUI.Button(new Rect(x + 262, cameraY, buttonWidth, 24), "Inspect")) ApplyCameraPreset("inspect");
 
-        int y = Mathf.Max(pad + 150, Screen.height - 48);
-        int btnW = 78;
-        int btnH = 28;
-        if (GUI.Button(new Rect(pad, y, btnW, btnH), "CHARGE")) Charge();
-        if (GUI.Button(new Rect(pad + 86, y, btnW, btnH), "REFORM")) Reform();
-        if (GUI.Button(new Rect(pad + 172, y, btnW, btnH), musicEnabled ? "\u25A0 AUDIO" : "\u25B6 AUDIO")) ToggleMusic();
-        if (GUI.Button(new Rect(pad + 258, y, btnW, btnH), "CLASH")) PlaySfx(clashAccent);
-        if (GUI.Button(new Rect(pad + 344, y, btnW, btnH), showingFoundryBattlefieldPack ? "PACK ON" : "PACK")) ToggleFoundryBattlefieldPack();
-        if (GUI.Button(new Rect(Screen.width - pad - btnW, y, btnW, btnH), uiFadeTarget ? "HIDE UI" : "SHOW UI"))
-        {
-            uiFadeTarget = !uiFadeTarget;
-            PlaySfx(uiConfirm);
-        }
+        int y = Mathf.Max(pad + 132, Screen.height - 44);
+        if (GUI.Button(new Rect(pad, y, 86, 30), "CHARGE")) Charge();
+        if (GUI.Button(new Rect(pad + 92, y, 86, 30), "REFORM")) Reform();
+        if (GUI.Button(new Rect(pad + 184, y, 86, 30), musicEnabled ? "AUDIO ON" : "AUDIO")) ToggleMusic();
+        if (GUI.Button(new Rect(pad + 276, y, 86, 30), "CLASH")) PlaySfx(clashAccent);
+        if (GUI.Button(new Rect(pad + 368, y, 96, 30), showingFoundryBattlefieldPack ? "PACK ON" : "PACK")) ToggleFoundryBattlefieldPack();
     }
 
-    private void UpdateUIDefault()
-     {
-        if (!uiVisible) return;
-        // Auto-hide UI after 10s of inactivity
-        if (!uiFadeTarget) { uiHideTimer = 10f; return; }
-        uiHideTimer -= Time.deltaTime;
-        if (uiHideTimer <= 0f) uiVisible = false;
-     }
     private void CreateMaterials()
     {
         groundMat = MakeMaterial("Paper earth", new Color(0.46f, 0.41f, 0.33f));
@@ -169,8 +127,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         takedaMat = MakeMaterial("Takeda standard", new Color(0.60f, 0.08f, 0.05f));
         uesugiMat = MakeMaterial("Uesugi standard", new Color(0.08f, 0.17f, 0.48f));
         poleMat = MakeMaterial("Dark pole", new Color(0.08f, 0.06f, 0.04f));
-        grassMat = MakeMaterial("Field grass", new Color(0.32f, 0.42f, 0.18f));
-        waterMat = MakeMaterial("River water", new Color(0.25f, 0.35f, 0.42f));
     }
 
     private static Material MakeMaterial(string name, Color color)
@@ -189,11 +145,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         mainCamera.nearClipPlane = 0.03f;
         mainCamera.farClipPlane = 220f;
         mainCamera.tag = "MainCamera";
-        mainCamera.enabled = true;
-        mainCamera.clearFlags = CameraClearFlags.Skybox;
-        mainCamera.useOcclusionCulling = false;
-        // Enable shadows for cinematic quality
-        mainCamera.actualRenderingPath = RenderingPath.Forward;
 
         var listener = cameraObject.AddComponent<AudioListener>();
         listener.enabled = true;
@@ -203,20 +154,13 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         RenderSettings.fogDensity = 0.018f;
         RenderSettings.ambientLight = new Color(0.42f, 0.43f, 0.39f);
 
-        // Key light \u2014 cool near-white
         var sunObject = new GameObject("Cool key light");
         var sun = sunObject.AddComponent<Light>();
         sun.type = LightType.Directional;
         sun.color = new Color(0.92f, 0.96f, 1f);
         sun.intensity = 1.22f;
         sunObject.transform.rotation = Quaternion.Euler(42f, -32f, 0f);
-        sun.shadows = LightShadows.Soft;
-        sun.shadowQuality = LightShadowQuality.High;
-        sun.shadowResolution = ShadowResolution.High;
-        sun.shadowNearPlane = 1f;
-        sun.shadowFarPlane = 60f;
 
-        // Rim/kicker light \u2014 warm, subtle
         var rimObject = new GameObject("Warm rim light");
         var rim = rimObject.AddComponent<Light>();
         rim.type = LightType.Directional;
@@ -235,18 +179,15 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         clashAccent = Resources.Load<AudioClip>("KawanakajimaAudio/clash_accent");
         formationStep = Resources.Load<AudioClip>("KawanakajimaAudio/formation_step");
         uiConfirm = Resources.Load<AudioClip>("KawanakajimaAudio/ui_confirm");
-        windAmbient = Resources.Load<AudioClip>("KawanakajimaAudio/clash_accent");
     }
 
     private void BuildCountryside()
     {
-        // Ground plane
         var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ground.name = "Japanese countryside ground";
         ground.transform.localScale = new Vector3(18f, 1f, 12f);
         ground.GetComponent<Renderer>().sharedMaterial = groundMat;
 
-        // Distant ink hills
         for (int i = 0; i < 5; i++)
         {
             var hill = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -257,47 +198,21 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             hill.GetComponent<Renderer>().sharedMaterial = hillMat;
         }
 
-        // Ink pine trees with varied positioning
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 18; i++)
         {
             float side = i % 2 == 0 ? -1f : 1f;
-            float x = side * (9.0f + (i % 5) * 1.8f);
+            float x = side * (9.0f + (i % 5) * 1.7f);
             float z = -8.5f + (i * 2.15f) % 18f;
-            float scale = 0.78f + (i % 3) * 0.16f;
-            CreatePine(new Vector3(x, 0f, z), scale);
+            CreatePine(new Vector3(x, 0f, z), 0.78f + (i % 3) * 0.16f);
         }
 
-        // Low field stones
-        for (int i = 0; i < 30; i++)
+        for (int i = 0; i < 24; i++)
         {
             var stone = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             stone.name = "Low field stone";
             stone.transform.position = new Vector3(-9f + (i * 1.91f) % 18f, 0.08f, -7.4f + (i * 2.73f) % 15f);
             stone.transform.localScale = new Vector3(0.22f + (i % 4) * 0.04f, 0.08f, 0.16f + (i % 5) * 0.03f);
             stone.GetComponent<Renderer>().sharedMaterial = stoneMat;
-        }
-
-        // Grass patches
-        for (int i = 0; i < 40; i++)
-        {
-            var grass = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            grass.name = "Grass patch";
-            grass.transform.position = new Vector3(-7f + (i * 1.3f) % 14f, 0.005f, -5f + (i * 1.7f) % 10f);
-            grass.transform.rotation = Quaternion.Euler(0f, (i * 47f), 0f);
-            float s = 0.15f + (i % 4) * 0.04f;
-            grass.transform.localScale = new Vector3(s, 1f, s * 0.6f);
-            grass.GetComponent<Renderer>().sharedMaterial = grassMat;
-        }
-
-        // Small river
-        for (int i = 0; i < 12; i++)
-        {
-            var water = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            water.name = "River segment";
-            water.transform.position = new Vector3(-4f + i * 0.7f, 0.01f, -2f + Mathf.Sin(i * 0.5f) * 1.5f);
-            water.transform.rotation = Quaternion.Euler(0f, i * 15f, 0f);
-            water.transform.localScale = new Vector3(0.6f, 1f, 1.2f);
-            water.GetComponent<Renderer>().sharedMaterial = waterMat;
         }
     }
 
@@ -322,53 +237,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             crown.transform.localScale = new Vector3((0.72f - layer * 0.14f) * scale, 0.18f * scale, (0.72f - layer * 0.14f) * scale);
             crown.GetComponent<Renderer>().sharedMaterial = treeMat;
         }
-    }
-
-    private void CreateAtmosphere()
-    {
-        var dustGo = new GameObject("Atmospheric dust");
-        var ps = dustGo.AddComponent<ParticleSystem>();
-        ps.SetShape(0, ParticleSystemShapeType.Box);
-        var boxShape = ps.shape;
-        boxShape.box = new Vector3(20f, 4f, 14f);
-        ps.startSpeed = 0.08f;
-        ps.startLifetime = 6f + Mathf.PerlinNoise(0, 0) * 4f;
-        ps.startSize = 0.04f;
-        ps.startColor = new Color(0.8f, 0.78f, 0.72f, 0.25f);
-        ps.simulationSpace = ParticleSystemSimulationSpace.World;
-        ps.velocityOverLifetime = new ParticleSystem.MinMaxCurve(0.1f, new ParticleSystem.MinMaxCurve(0.05f, new ParticleSystem.MinMaxCurve(0.15f)));
-        ps.Play();
-        dustParticles = ps;
-    }
-
-    private void UpdateAtmosphere(float dt)
-    {
-        if (dustParticles == null) return;
-        var ps = dustParticles;
-        var windSpeed = 0.1f + Mathf.Sin(ambientTime * 0.3f) * 0.05f;
-        var vel = ps.velocityOverLifetime;
-        vel.x = windSpeed;
-        ps.velocityOverLifetime = vel;
-    }
-
-    private void UpdateScreenShake(float dt)
-    {
-        if (screenShakeElapsed <= 0f || mainCamera == null) return;
-        screenShakeElapsed -= dt;
-        float shake = screenShakeIntensity * (screenShakeElapsed / 0.6f);
-        if (shake > 0.001f)
-        {
-            mainCamera.transform.position += new Vector3(
-                UnityEngine.Random.Range(-1f, 1f) * shake,
-                UnityEngine.Random.Range(-1f, 1f) * shake * 0.5f,
-                0f);
-        }
-    }
-
-    private void TriggerScreenShake(float intensity, float duration)
-    {
-        screenShakeIntensity = intensity;
-        screenShakeElapsed = duration;
     }
 
     private async Task LoadSamuraiFormation()
@@ -408,9 +276,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
                     BasePosition = root.transform.position,
                     BaseRotation = root.transform.rotation,
                     ChargeTarget = root.transform.position,
-                    IdlePhase = i * 0.47f,
-                    IdleSwayOffset = i * 1.37f,
-                    BannerWindPhase = i * 2.13f
+                    IdlePhase = i * 0.47f
                 };
                 actors.Add(actor);
             }
@@ -525,7 +391,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         var codeLogger = FindType("GLTFast.Logging.ConsoleLogger");
 
         if (downloadProviderInterface != null && deferAgentInterface != null && materialGeneratorInterface != null && codeLoggerInterface != null
-             && downloadProvider != null && deferAgent != null && materialGenerator != null && codeLogger != null)
+            && downloadProvider != null && deferAgent != null && materialGenerator != null && codeLogger != null)
         {
             var ctor = type.GetConstructor(new[] { downloadProviderInterface, deferAgentInterface, materialGeneratorInterface, codeLoggerInterface });
             if (ctor != null)
@@ -700,12 +566,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.A)) ToggleMusic();
         if (Input.GetKeyDown(KeyCode.X)) PlaySfx(clashAccent);
         if (Input.GetKeyDown(KeyCode.P)) ToggleFoundryBattlefieldPack();
-        if (Input.GetKeyDown(KeyCode.H))
-        {
-            uiFadeTarget = !uiFadeTarget;
-            uiVisible = true;
-            PlaySfx(uiConfirm);
-        }
+        if (Input.GetKeyDown(KeyCode.H)) showUi = !showUi;
 
         if (Input.GetMouseButtonDown(0)) previousMouse = Input.mousePosition;
         if (Input.GetMouseButton(0))
@@ -733,7 +594,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             Vector3 basePos = actor.BasePosition;
             Vector3 current = actor.Root.transform.position;
             current.y = basePos.y + Mathf.Sin(Time.time * 1.55f + actor.IdlePhase) * 0.015f;
-
             if (charging)
             {
                 current = Vector3.Lerp(current, actor.ChargeTarget, Mathf.Clamp01(dt * 2.8f));
@@ -745,15 +605,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
                 current.z = Mathf.Lerp(current.z, basePos.z, Mathf.Clamp01(dt * 4.2f));
                 actor.Root.transform.rotation = Quaternion.Slerp(actor.Root.transform.rotation, actor.BaseRotation, Mathf.Clamp01(dt * 4.2f));
             }
-
-            // Idle sway with per-actor variation
-            float swayX = Mathf.Sin(Time.time * 0.7f + actor.IdleSwayOffset) * 0.003f;
-            float swayZ = Mathf.Cos(Time.time * 0.5f + actor.IdleSwayOffset) * 0.002f;
-            actor.Root.transform.localEulerAngles = new Vector3(
-                actor.Root.transform.localEulerAngles.x + swayX,
-                actor.Root.transform.localEulerAngles.y,
-                actor.Root.transform.localEulerAngles.z + swayZ);
-
             actor.Root.transform.position = current;
         }
     }
@@ -769,7 +620,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             actor.ChargeTarget = actor.BasePosition + new Vector3(direction * 3.9f, 0f, ((i % 5) - 2) * 0.16f);
         }
         PlaySfx(chargeCue);
-        TriggerScreenShake(0.04f, 0.5f);
         Invoke(nameof(PlayClash), 0.72f);
     }
 
@@ -789,7 +639,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private void PlayClash()
     {
         PlaySfx(clashAccent);
-        TriggerScreenShake(0.06f, 0.35f);
     }
 
     private void ToggleMusic()

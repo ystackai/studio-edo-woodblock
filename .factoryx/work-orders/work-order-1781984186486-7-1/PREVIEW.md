@@ -1,4 +1,4 @@
-# Preview — Kawanakajima Samurai Unity Playable Proof v9.2
+# Preview — Kawanakajima Samurai Unity Playable Proof v8.7
 
 ## Preview URL
 
@@ -15,37 +15,68 @@
 
 ## What's Included
 
-- **Browser proof** (v9.2): Three.js + GLTFLoader, Foundry samurai GLB, orbit camera, 6 presets, charge/reform/clash, audio hooks, shadows, tone mapping, vignette, fog, breathing animation, dust particles, screen shake, UI fade.
-- **Unity runtime** (v9.2): KawanakajimaRuntimeBootstrap.cs (985 lines) with GLTFast reflection bootstrap, 20 samurai, terrain, hills, trees, stones, 6 camera presets, dust atmosphere, screen shake, UI fade, idle sway, cinematic camera settings.
+- **Browser proof** (v8.7): Three.js + GLTFLoader, Foundry samurai GLB, orbit camera, 6 presets, charge/reform/clash, audio hooks, shadows, tone mapping, vignette, fog, breathing animation. **JS syntax fix applied** — removed stray closing brace that caused `Unexpected token 'function'` in browser runtime checks.
+- **Unity runtime** (v8): KawanakajimaRuntimeBootstrap.cs (758 lines) with GLTFast reflection bootstrap, 20 samurai, terrain, hills, trees, stones, 6 camera presets, audio hooks
 - **Unity build:** Mac .app (112 MB) via KawanakajimaUnityBuild.BuildMac()
-- **Screenshots:** 30+ Unity proof images across 7 versions (v8.3–v9), 8 browser proof images
+- **Screenshots:** 21 Unity proof images across 5 versions (v8.3–v8.7), 8 browser proof images
 - **Assets:** Foundry samurai GLB (1.23 MB), battlefield pack GLB (6.55 MB), 5 audio WAVs (2.53 MB)
-
-## v9.2 Changes (2026-06-20 ~23:00 UTC)
-
-- **Bootstrap polish:** Added dust particle atmosphere with wind animation, screen shake on charge/clash, UI auto-hide with fade and H key toggle, per-actor idle sway for breathing feel, grass and water materials, cinematic camera (skybox, forward rendering).
-- **Documentation updated:** VERIFICATION.md, PREVIEW.md
-- **MCP screenshots:** 6 new screenshots captured before MCP became unavailable: wide formation, hero three-quarter, red close, blue close, scene view, game view.
-
-## v9.1 Changes
-
-- **Browser JS fix:** Added GLB error fallback and 15-second timeout
-- **MCP scene view screenshot** captured
-
-## v8.8 Changes
-
-- **Browser JS fix:** Closed unclosed forEach callback in tick() animation loop
-- **New Unity screenshots:** wide formation, hero close-up, scene view
 
 ## v8.7 Changes
 
-- **Browser JS fix:** Removed extra closing brace after applyPreset()
-- **New MCP screenshots:** 3 additional camera angles
+- **Browser JS fix:** Removed extra closing brace `}` after `applyPreset()` function. Bracket balance verified. Browser syntax check now passes.
+- **New MCP screenshots:** 3 additional camera angles from Unity MCP:
+   - `mcp_game_view_v8.png` — full scene with ready UI
+   - `mcp_hero_3q_v8.png` — dramatic hero three-quarter close-up
+   - `mcp_wide_formation_v8.png` — full battlefield overview
 
 ## PR
 
 - **PR #167:** `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8` → `main`
-- Status: Open, mergeable, 21+ commits, 24+ files changed
-- Latest commit: `7e3d91a` (v9.2: bootstrap polish)
-- Second latest: `be99418` (v9.2: bootstrap polish)
-- Merge blocked by branch protection requiring one approving review from a write-access reviewer
+- Status: Open, mergeable, 13 commits, 23 files changed
+- Latest commit: `565ccb5` (v8.7: update VERIFICATION.md)
+- Second latest: `70825b1` (v8.7: fix browser JS syntax + add MCP screenshots)
+
+## v8.8 Changes (2026-06-20)
+
+- **Browser JS fix:** Closed unclosed `forEach` callback in the `tick()` animation loop. Bracket balance verified at 0. Browser syntax check now passes.
+- **New Unity screenshots:**
+    - `v88_wide_formation.png` — full battlefield with 20 samurai in formation, Unity UI overlay
+    - `v88_hero_closeup.png` — dramatic hero close-up showing helmet, armor, katana
+    - `v88_scene_view.png` — editor scene view with terrain, trees, waterfall
+- **PR status:** #167, 20 commits, all CI green, merge blocked by branch protection review requirement
+
+## v9 Update (2026-06-20 22:20 UTC)
+
+- **Browser runtime fix:** Added GLB error fallback (`setTimeout(onAllLoaded, 100)`) and 15-second timeout fallback to `loadAll()`. The scene renders even if Foundry GLB fails to load via `file://` (CORS restriction).
+- **Unity MCP screenshots (5 new):**
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_game_view_v9.png` — full scene with Unity UI overlay
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_hero_3q_v9.png` — dramatic hero three-quarter close-up
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_wide_formation_v9.png` — full battlefield overview with all 20 samurai
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_red_close_v9.png` — Takeda (red) close inspection
+     - `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_blue_close_v9.png` — Uesugi (blue) close inspection
+- **Screenshot quality:** All samurai readable in close shots — helmet, armor, katana, faction coloring visible. No primitive shapes or unidentifiable silhouettes.
+- **Browser proof:** JS bracket balance at 0; loading screen no longer blocks indefinitely.
+
+## v9.1 Update (2026-06-20 22:40 UTC)
+
+- **Browser runtime timeout fix:** Reduced GLB timeout from 15s to 5s for faster fallback when assets are unavailable on `file://`.
+- **Capture marker:** Timeout fallback now marks capture readiness after the fallback render path runs.
+- **Load screen hard hide:** Added `loadEl.style.display = 'none'` alongside CSS class toggle for more reliable hiding.
+- **Unity MCP scene view:** `screenshot-scene-view` returns 1280×800 scene content screenshot (64 KB, verified non-blank via pixel variance).
+- **Browser verification:** JS syntax check passes; all asset checks pass; scene renders within 5 seconds regardless of GLB availability.
+- **Verification:** `node verify.js` → `BASIC STRUCTURE + ASSET CHECKS: PASS`
+
+## v9.1 Final (2026-06-20 22:45 UTC)
+
+- **Browser proof:** Loads quickly when GLB assets are available and uses the timeout fallback instead of hanging when unavailable. JS syntax check passes. Canvas renders non-blank content.
+- **Unity MCP:** Reachable at `http://172.21.0.1:25666`. Scene view screenshot available (1280×800, non-blank). Game view needs Play Mode to show cameras.
+- **PR #167:** Updated with v9.1 changes. Still requires approving review from write-access reviewer.
+- **Deliverable status:** Complete. Source files committed and pushed. Unity Mac build verified. Browser proof passes all checks.
+
+### Files Changed in v9.1
+- `games/kawanakajima-foundry-samurai-proof/index.html` — timeout fallback, capture marker, load screen hard hide
+- `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_scene_view_final.png` — final scene view screenshot
+- `games/kawanakajima-foundry-samurai-proof/screenshots/mcp_scene_view_v9.png` — scene view
+- `games/kawanakajima-foundry-samurai-proof/ASSET_MANIFEST.md` — v9 screenshot table updated
+- `.factoryx/work-orders/.../VERIFICATION.md` — v9 and v9.1 results documented
+- `.factoryx/work-orders/.../PREVIEW.md` — v9.1 status documented
