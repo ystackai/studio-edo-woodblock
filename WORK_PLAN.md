@@ -7,96 +7,88 @@
 ## Current State Assessment
 
 ### What is done
-- **Samurai assets:** Blender v5 source + GLB export, contact sheets, hero render. 1.23 MB GLB with kabuto, mempo, lamellar armor, sashimono banner.
-- **Battlefield pack:** 6.55 MB GLB with 20 samurai, terrain (road, river, rice paddies, cedar hills).
-- **Audio:** 5 WAV files from Asset Foundry (battlefield loop, charge cue, clash accent, formation step, UI confirm).
-- **Browser proof:** Functional WebGL game (20 samurai, 6 camera presets, charge/reform mechanics, audio toggle, click-to-inspect panel).
-- **Unity project:** Scene with bootstrap script, 38 MCP tools registered, Mac build produces 112MB `.app`.
-- **Verification:** `verify.js` passes; browser smoke test shows 20 actors, CAPTURE_READY, nonblank canvas.
+- **Samurai v6 asset:** Blender source + GLB export (612 KB, reduced from 1.23 MB v5). Key improvements: deepened mempo face mask (nose bridge, cheekbones, jawline), enhanced kuwagata crest with fukigaeshi ear guards, improved geta sandals (split toe, ankle thong, shin guard lacing), armor edge accent trims, fabric fold details. Visual review from contact sheet confirms readable samurai silhouette with helmet, armor, and proper proportions. Foundry provenance: job `asset-1782008767760-7-11`.
+- **Browser proof:** Functional Three.js WebGL game with 20 samurai (10 Takeda, 10 Uesugi), 6 camera presets, charge/reform mechanics, audio toggle, click-to-inspect panel, review panel with contact sheet and hero image. Verified with `node verify.js` — BASIC STRUCTURE + ASSET CHECKS: PASS.
+- **Audio:** 5 WAV files from Asset Foundry (battlefield loop, charge cue, clash accent, formation step, UI confirm), all file-backed and mirrored in Unity Resources.
+- **Unity handoff:** `KawanakajimaRuntimeBootstrap.cs` with GLTFast integration, 38 MCP tools registered, Mac build produces 112 MB `.app`, Editor build hooks for WebGL and Linux.
+- **Battlefield pack:** 6.55 MB GLB with 20 samurai, terrain (road, river, rice paddies, cedar hills). Foundry provenance: job `asset-1781935845583-91a9fdbe` (v3 fidelity pass).
+- **Asset Foundry:** Healthz healthy; Blender provider configured.
 
 ### What is NOT done / blockers
-1. **Samurai visual fidelity gate failed.** PR #167 automated reviewer (work-order-1782003645103-7-8) marked: *"Visual realism gate remains failed: current samurai are runtime-reviewable but still read low-poly/capsule and need a Blender fidelity pass before calling them production-realistic."* The v5 Blender source exists but has not been verified as production-quality.
-2. **Unity build artifact not committed to branch.** Build succeeds on the Mac but no `.app` is in the repo.
-3. **PR #167 merge blocked by branch protection.** GitHub requires 1 approving review from a write-access reviewer (the PR author cannot self-approve).
-4. **Unity scene root count is 1** (bootstrap only). Actors are instantiated at runtime — this is the intended design but means the scene itself doesn't visibly contain gameplay until play mode.
+1. **Samurai v6 not yet integrated into v3 branch.** The v6 asset exists on PR #174 but the v3 branch still has v5 assets. v3 needs the v6 GLB for the visual fidelity gate to pass.
+2. **No PR for the v3 branch.** PR #167 is for a different branch (`v8` Unity loop). v3 needs its own PR targeting main.
+3. **PR #174 deploy-preview failed.** The samurai v6 PR has a failing deploy-preview check — need to verify this resolves when cherry-picked onto v3 (likely environment-specific since v6 GLB is smaller than v5).
+4. **Unity build artifact not committed.** The Mac build (.app) exists on the local Mac but is not in git. This is a handoff item — the build must be produced and committed.
 
-### Asset Foundry status
-- Healthz: healthy. Blender provider configured, Blender 3.4.1 available locally.
-- Unity MCP at `host.docker.internal:27481`: reachable, 38 tools, scene loaded and verified.
+### PR Status
+- **PR #167** (`factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8`): merge blocked by branch protection (needs write-access review), all CI checks passing (facts, ci, deploy-preview), REVIEW_REQUIRED.
+- **PR #174** (`factoryx/factory-edo-woodblock/work-order-1782008767760-7-11`): samurai v6 asset, merge blocked by branch protection, deploy-preview FAILING, facts/ci passing.
+- **v3 branch**: no PR created yet.
 
 ### Verdict
-The deliverable is **not yet complete**. The samurai visual quality gate is the primary blocker. The browser proof and Unity source handoff are functional. Unity build is verified but not committed. Branch protection blocks merge.
+The deliverable is **not yet complete**. The samurai v6 asset is verified and ready for integration. The primary blocker is getting the v6 asset integrated into the v3 branch, creating a PR, and getting a human reviewer. The Unity build artifact needs to be produced and committed.
 
 ## Tickets
 
 ```yaml
 tickets:
-  - id: samurai-fidelity-v6-blender
-    title: Samurai fidelity v6 — Blender pass to pass visual quality gate
+  - id: samurai-v6-integrate-into-v3
+    title: Integrate samurai v6 asset into v3 branch (browser proof + Unity handoff)
     goal: >
-      Produce a Blender fidelity pass (v6) of the samurai character that resolves
-      the low-poly/capsule read from v5. Key improvements: believable anatomy with
-      proper head/neck/shoulder/hand/foot structure, body-following lamellar armor,
-      realistic helmet with crest (kabuto/kuwagata), cloth folds on hakama/sode,
-      visible hands/feet/sandals (tabi/geta), and faction-distinguishable sashimono
-      banners. Produce GLB export (~1 MB target), 5-angle contact sheet (front,
-      side, rear, three-quarter, top), hero render, and turntable frames 0–7.
-      Save .blend source. Visual review pass/fail must be recorded before v6 is
-      considered done.
+      Cherry-pick samurai v6 GLB (612 KB) and Blender source from commit 7728416
+      (PR #174) into this v3 branch. Replace `games/kawanakajima-foundry-samurai-proof/assets/samurai_character.glb`
+      and `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb`.
+      Copy v6 Blender source, contact sheet, hero render, and turntable frames under
+      `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai/improved-20260620-v6/`.
+      Re-run `verify.js` and confirm the browser proof still loads 20 samurai without errors.
+      Update `ASSET_MANIFEST.md` to reference v6 provenance.
     profile: qwen3.6:35b-a3b-coding-mxfp8
     depends_on: []
 
-  - id: integrate-v6-into-browser-and-unity
-    title: Integrate samurai v6 into browser proof and Unity project
+  - id: create-v3-pr-and-verify-deploy
+    title: Create PR for v3 branch and verify deploy-preview passes
     goal: >
-      Replace the current samurai_character.glb with the v6 GLB in both the
-      browser proof (games/kawanakajima-foundry-samurai-proof/) and Unity streaming
-      assets (unity/kawanakajima-samurai/Assets/StreamingAssets/). Re-run browser
-      verification (verify.js) and Unity scene inspection (MCP scene-get-data,
-      gameobject-find for samurai actors) to confirm 20 actors load without errors.
-      Capture new screenshots at all 6 camera presets.
+      Push the updated v3 branch (with samurai v6 integrated) to origin and create
+      a PR targeting `main`. Include FactoryX Work Order Context section in PR body.
+      Verify that deploy-preview check PASSES (PR #174 failed but v3 may differ since
+      it won't have the extra metadata files PR #174 added). If deploy-preview fails,
+      diagnose and fix the issue (file size, build script, path).
     profile: qwen3.6:35b-a3b-coding-mxfp8
     depends_on:
-      - samurai-fidelity-v6-blender
+      - samurai-v6-integrate-into-v3
 
   - id: unity-build-and-commit-artifact
-    title: Produce and commit Unity build artifact
+    title: Produce and commit Unity Mac build artifact
     goal: >
-      Trigger a Unity batchmode Mac build via the MCP listener (KawanakajimaUnityBuild.BuildMac)
-      and commit the resulting Build/Mac/KawanakajimaSamurai.app or its
-      archive to the branch under unity/kawanakajima-samurai/Builds/. Update
-      UNITY_BUILD_VERIFICATION.md with the new build log. Verify the build opens
-      and displays the samurai tableau.
+      Trigger Unity batchmode Mac build via the Mac-host MCP listener
+      (http://host.docker.internal:27481/mcp, tool: `KawanakajimaUnityBuild.BuildMac`)
+      and commit the resulting `.app` or archive under `unity/kawanakajima-samurai/Builds/`.
+      Update `UNITY_BUILD_VERIFICATION.md` with build log, file size, and verification
+      notes. The build should load samurai v6 assets and display the tableau.
     profile: qwen3.6:35b-a3b-coding-mxfp8
     depends_on:
-      - samurai-fidelity-v6-blender
+      - samurai-v6-integrate-into-v3
 
-  - id: update-pr-167-and-verify
-    title: Update PR #167 with v6 assets and re-verify
+  - id: update-work-order-context-files
+    title: Update FEEDBACK, PREVIEW, VERIFICATION, WORKLOG for v3
     goal: >
-      Amend PR #167 with the v6 samurai GLB, updated browser proof, updated
-      Unity build artifact, refreshed screenshots, and updated ASSET_MANIFEST.md.
-      Re-run verify.js and browser smoke test. Update PR body with v6 status.
-      The merge blocker (branch protection requiring write-access review) remains
-      and is tracked separately — this ticket ensures the PR is production-ready
-      from a content perspective.
+      Update all work order context files:
+      - `FEEDBACK.md`: record samurai v6 visual review result (pass/fail with details)
+      - `PREVIEW.md`: update preview URL and what the reviewer can interact with
+      - `VERIFICATION.md`: document verify.js results, browser smoke test results,
+        Unity handoff status, and any blockers
+      - `WORKLOG.md`: timestamped summary of v3 plan and actions taken
     profile: qwen3.6:35b-a3b-coding-mxfp8
     depends_on:
-      - integrate-v6-into-browser-and-unity
-      - unity-build-and-commit-artifact
+      - samurai-v6-integrate-into-v3
 ```
 
 ## Notes
 
-- The samurai fidelity pass (v6) is the **most important ticket**. Without it, the
-  deliverable cannot be called production-quality regardless of how many other
-  systems are working.
-- The Asset Foundry Blender provider is confirmed healthy and Blender 3.4.1 is
-  available locally. The fidelity pass should use the v5 .blend source as a
-  starting point, focusing on anatomy realism, armor detail, and material quality.
-- After v6 integration and build, the PR merge blocker (branch protection) may
-  require a human reviewer or admin merge. This is a GitHub policy issue, not a
-  content issue.
-- The Unity scene uses runtime bootstrap (1 root GameObject) — actors are
-  instantiated from the GLB at runtime. This is intentional and matches the
-  browser proof approach.
+- The samurai v6 asset is the **critical path item** — without it, the visual fidelity gate remains failed.
+- v6 GLB (612 KB) is actually **smaller** than v5 (1.23 MB), so deploy-preview should not be blocked by file size.
+- PR #174's deploy-preview failure may be environment-specific (e.g., extra metadata files or build script issues on that branch). v3's simpler diff may pass.
+- Unity build requires the Mac Editor — verify listener availability before attempting.
+- After samurai v6 integration, verify: 20 samurai load, no JS errors, canvas nonblank, verify.js passes.
+- Human reviewer needed for merge (branch protection). All CI checks can be green but merge still requires approval.
+- If deploy-preview fails on v3 PR, investigate the CI logs and fix the root cause before marking the deliverable complete.
