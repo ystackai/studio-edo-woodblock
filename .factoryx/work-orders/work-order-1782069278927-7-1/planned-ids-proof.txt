@@ -1,0 +1,35 @@
+# Planned ID Proof - v17 Full-20 Samuria Batch
+## Summary
+- Takeda (red): 10 variants
+- Uesugi (blue): 10 variants
+- Total: 20 samurai
+- Output: samurai-v17/full-20/
+
+## Per-ID Asset List
+Each samurai produces: 1 GLB + 1 .blend + 5 renders (front/side/rear/three-quarter/top) + contact sheet
+
+## Helmet Variant Distribution
+- Takeda variants 0,1 (hawk crest, spiked helm)
+- Uesugi variants 2,3 (circle mon, horned cross)
+
+## Planned IDs
+- takeda: takeda-01 (helmet variant 0)
+- takeda: takeda-02 (helmet variant 1)
+- takeda: takeda-03 (helmet variant 0)
+- takeda: takeda-04 (helmet variant 1)
+- takeda: takeda-05 (helmet variant 0)
+- takeda: takeda-06 (helmet variant 1)
+- takeda: takeda-07 (helmet variant 0)
+- takeda: takeda-08 (helmet variant 1)
+- takeda: takeda-09 (helmet variant 0)
+- takeda: takeda-10 (helmet variant 1)
+- uesugi: uesugi-01 (helmet variant 2)
+- uesugi: uesugi-02 (helmet variant 3)
+- uesugi: uesugi-03 (helmet variant 2)
+- uesugi: uesugi-04 (helmet variant 3)
+- uesugi: uesugi-05 (helmet variant 2)
+- uesugi: uesugi-06 (helmet variant 3)
+- uesugi: uesugi-07 (helmet variant 2)
+- uesugi: uesugi-08 (helmet variant 3)
+- uesugi: uesugi-09 (helmet variant 2)
+- uesugi: uesugi-10 (helmet variant 3)
