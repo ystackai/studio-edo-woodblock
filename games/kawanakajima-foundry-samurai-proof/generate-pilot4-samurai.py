@@ -411,7 +411,7 @@ def look_at(obj, target):
     obj.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 
-def configure_render(width, height, exposure=0.18):
+def configure_render(width, height, exposure=1.4):
     scene = bpy.context.scene
     scene.render.engine = "BLENDER_EEVEE"
     scene.eevee.use_gtao = True
@@ -423,35 +423,46 @@ def configure_render(width, height, exposure=0.18):
     scene.view_settings.look = "Medium High Contrast"
     scene.view_settings.exposure = exposure
     scene.view_settings.gamma = 1.0
-    world = scene.world or bpy.data.worlds.new("asset_render_world")
+    world = bpy.data.worlds.get("asset_render_world")
+    if world is None:
+        world = bpy.data.worlds.new("asset_render_world")
     scene.world = world
-    world.color = (0.035, 0.034, 0.03)
+    world.use_nodes = True
+    world.color = (0.22, 0.20, 0.18)
 
 
 def add_render_lights():
     bpy.ops.object.light_add(type="SUN", location=(-2.5, -4, 6))
     sun = bpy.context.object
     sun.name = "softbox_key"
-    sun.data.energy = 3.2
+    sun.data.energy = 18.0
     sun.rotation_euler = (math.radians(43), 0, math.radians(-22))
 
     bpy.ops.object.light_add(type="AREA", location=(2.2, -3.2, 2.8))
     fill = bpy.context.object
     fill.name = "front_fill"
-    fill.data.energy = 380
+    fill.data.energy = 1200
     fill.data.size = 4.8
 
     bpy.ops.object.light_add(type="AREA", location=(-2.6, 2.2, 2.5))
     rim = bpy.context.object
     rim.name = "rim_light"
-    rim.data.energy = 280
+    rim.data.energy = 900
     rim.data.size = 3.2
 
 
 def render_views(cam_name="asset_camera"):
     """Render 6 inspection views: front, side, rear, qtr1, qtr2, top."""
     add_render_lights()
-    configure_render(720, 900, 0.22)
+    configure_render(720, 900, 1.6)
+
+    # Add ground plane for context
+    bpy.ops.mesh.primitive_plane_add(size=10, location=(0, 0, -1.0))
+    ground = bpy.context.object
+    ground.name = "render_ground"
+    ground_mat = make_mat("ground_mat", (0.15, 0.14, 0.12, 1.0), 0.9)
+    ground.data.materials.append(ground_mat)
+    ground.scale = (4, 4, 1)
 
     cam_data = bpy.data.cameras.new(cam_name)
     cam = bpy.data.objects.new(cam_name, cam_data)
@@ -495,7 +506,7 @@ def render_views(cam_name="asset_camera"):
         print(f"  Contact sheet compose skipped: {exc}")
 
     # Hero shot (slightly angled, dramatic)
-    configure_render(820, 1024, 0.22)
+    configure_render(820, 1024, 1.6)
     cam.location = (-1.45, -2.85, 1.2)
     cam.data.lens = 45
     look_at(cam, (0, 0, 0.98))
