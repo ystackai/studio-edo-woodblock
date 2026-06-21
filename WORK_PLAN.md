@@ -3,7 +3,7 @@
 **Deliverable:** `kawanakajima-samurai-autonomous-validation-20260621-v17`
 **Branch:** `factoryx/kawanakajima-samurai-autonomous-validation-20260621-v17`
 **Updated:** 2026-06-21
-**HEAD:** `5cbc235` — v17 consolidate pilot evidence, schedule full-20
+**HEAD:** `49dc726` — v17 refresh HEAD reference
 
 ## Assessment
 
