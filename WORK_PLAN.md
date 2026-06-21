@@ -2,7 +2,7 @@
 
 **Deliverable:** `kawanakajima-samurai-autonomous-validation-20260621-v2`
 **Branch:** `factoryx/kawanakajima-samurai-autonomous-validation-20260621-v2`
-**Status:** Not complete — Unity build blocked, no non-planner work orders on this deliverable.
+**Status:** Unity build attempt BLOCKED (MCP listener unreachable); remaining: browser-proof-polish, asset-quality-improvement, open-pr
 
 ## Current State Assessment
 
