@@ -3,7 +3,7 @@
 **Deliverable:** `kawanakajima-samurai-autonomous-validation-20260621`
 **Branch:** `factoryx/kawanakajima-samurai-autonomous-validation-20260621`
 **Date:** 2026-06-21
-**Planner:** work-order-1782016776466-6-103 (planner)
+**Planner:** work-order-1782017872711-7-1 (planner)
 
 ## Assessment
 
@@ -17,7 +17,7 @@ The deliverable is **functionally complete**. All core requirements from the des
 - **Audio** — File-backed WAVs from Foundry (`asset-1781916330853-f7d831d9`): loop, charge, clash, step, confirm. User-gesture gated.
 - **Documentation** — `ASSET_MANIFEST.md`, `VERIFICATION.json`, `DELIVERABLE_STATUS.md`, `UNITY_BLOCKER.md`, `WORKLOG.md`, `PREVIEW.md`, `WORK_PLAN.md` all present.
 
-**PR #167** — OPEN, CI green (facts, ci, deploy-preview all pass). Blocked only by branch protection requiring one approving review from a write-access reviewer.
+**PR #167** — OPEN, mergeable. All CI checks passing: `facts` pass, `ci` pass, `deploy-preview` pass. No approving review yet; blocked only by branch protection requiring one approving review from a write-access reviewer.
 
 **Known limitations (non-blocking):**
 - Visual fidelity: samurai are stylized low-poly/capsule figures, not photorealistic. Blender fidelity pass is a future enhancement.
@@ -37,6 +37,7 @@ tickets: []
 
 ## Notes
 
-- This is a planner assessment v11 (2026-06-21). Previous planner versions: v5 through v10.
+- This is a planner assessment v12 (2026-06-21). Previous planner versions: v5 through v11.
 - v6 samurai asset supersedes v5; Unity Mac build evidence updated.
+- All CI checks are green on PR #167. No new implementation work needed.
 - If the team wants a committed Unity build artifact or a higher-fidelity visual pass, those should be planned as separate follow-up tickets.
