@@ -23,9 +23,9 @@ The Kawanakajima Samurai Unity project now opens and builds on the local Mac Stu
 
 - CLI/server tools installed under `/Users/marcus/codex-work/local-unity-tools`
 - Unity project package: `com.ivanmurzak.unity.mcp` 0.81.1
-- Listener URL: `http://localhost:25666`
-- Worker routed URL: `http://172.21.0.1:25666`
-- Worker preflight: passed
-- MCP tool calls were verified against the running editor.
+- Listener URL: `http://localhost:27481/mcp` (Mac host)
+- Worker routed URL: `http://host.docker.internal:27481/mcp`
+- Worker preflight: passed via JSON-RPC `initialize`, `tools/list`, and `tools/call`
+- MCP tool calls were verified against the running editor. `scene-list-opened` returned loaded scene `Kawanakajima`, `RootCount=73`, `IsLoaded=true`, `IsDirty=false`.
 
 Remote worker capacity notes from the earlier Hetzner attempt remain in the work-order history.

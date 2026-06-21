@@ -20,15 +20,11 @@ The Mac target uses `BurstAotSettings_StandaloneOSX.json` with Burst compilation
 ## MCP
 
 - Unity-MCP plugin: `com.ivanmurzak.unity.mcp` 0.81.1
-- Local listener: `http://localhost:25666`
-- Worker routed listener: `http://172.21.0.1:25666`
+- Local listener: `http://localhost:27481/mcp`
+- Worker routed listener: `http://host.docker.internal:27481/mcp`
 - Worker preflight: success
 - MCP protocol discovery: success, 38 tools reported
-- `unity-mcp-cli wait-for-ready`: success
-- `unity-mcp-cli status`: success
-- Authenticated tool calls completed:
-  - `editor-application-get-state`
+- Standard MCP JSON-RPC `tools/call` completed:
   - `scene-list-opened`
-  - `assets-find` for `t:Scene`
 
-`assets-find` returned `Assets/Kawanakajima/Scenes/Kawanakajima.unity`.
+`scene-list-opened` returned `Assets/Kawanakajima/Scenes/Kawanakajima.unity`, `RootCount=73`, `IsLoaded=true`, and `IsDirty=false`.

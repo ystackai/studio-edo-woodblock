@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
-using GLTFast;
 using UnityEngine;
 
 public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
@@ -14,6 +14,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     public string battlefieldPackGlbStreamingAssetsPath = "Kawanakajima/samurai_battlefield_pack.glb";
 
     private readonly List<Actor> actors = new List<Actor>();
+    private readonly List<IDisposable> retainedGltfImports = new List<IDisposable>();
     private readonly Vector3 cameraDefaultTarget = new Vector3(0f, 1.7f, -2.2f);
 
     private Camera mainCamera;
@@ -40,6 +41,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private float distance = 14.5f;
     private bool charging;
     private bool musicEnabled;
+    private bool showUi = true;
     private bool assetsReady;
     private bool foundryBattlefieldPackReady;
     private bool showingFoundryBattlefieldPack;
@@ -64,7 +66,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         BuildCountryside();
         await LoadSamuraiFormation();
         await LoadFoundryBattlefieldPack();
-        ApplyCameraPreset("overview");
+        ApplyCameraPreset("inspect");
         assetsReady = actors.Count == ActorCount;
         status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : "UNITY HANDOFF LOAD FAILED";
         Debug.Log(status + " actors=" + actors.Count + " pack=" + foundryBattlefieldPackReady + " audio=" + (musicSource.clip != null));
@@ -77,22 +79,37 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         UpdateCamera();
     }
 
+    private void OnDestroy()
+    {
+        foreach (var import in retainedGltfImports)
+        {
+            import.Dispose();
+        }
+        retainedGltfImports.Clear();
+    }
+
     private void OnGUI()
     {
         const int pad = 14;
-        GUI.Box(new Rect(pad, pad, 490, 118), string.Empty);
-        GUI.Label(new Rect(pad + 12, pad + 8, 360, 24), "KAWANAKAJIMA - UNITY HANDOFF");
-        GUI.Label(new Rect(pad + 12, pad + 30, 360, 22), "20 samurai: 10 Takeda / 10 Uesugi");
-        GUI.Label(new Rect(pad + 12, pad + 52, 360, 22), status);
+        if (!showUi) return;
 
-        if (GUI.Button(new Rect(pad + 12, pad + 80, 58, 26), "1 Wide")) ApplyCameraPreset("overview");
-        if (GUI.Button(new Rect(pad + 74, pad + 80, 58, 26), "2 Red")) ApplyCameraPreset("red");
-        if (GUI.Button(new Rect(pad + 136, pad + 80, 58, 26), "3 Blue")) ApplyCameraPreset("blue");
-        if (GUI.Button(new Rect(pad + 198, pad + 80, 58, 26), "4 Side")) ApplyCameraPreset("side");
-        if (GUI.Button(new Rect(pad + 260, pad + 80, 58, 26), "5 Top")) ApplyCameraPreset("top");
-        if (GUI.Button(new Rect(pad + 322, pad + 80, 58, 26), "6 Inspect")) ApplyCameraPreset("inspect");
+        int panelWidth = Mathf.Min(320, Screen.width - pad * 2);
+        int x = Mathf.Max(pad, Screen.width - panelWidth - pad);
+        GUI.Box(new Rect(x, pad, panelWidth, 112), string.Empty);
+        GUI.Label(new Rect(x + 12, pad + 8, panelWidth - 24, 24), "KAWANAKAJIMA - UNITY HANDOFF");
+        GUI.Label(new Rect(x + 12, pad + 30, panelWidth - 24, 22), "20 samurai: 10 Takeda / 10 Uesugi");
+        GUI.Label(new Rect(x + 12, pad + 52, panelWidth - 24, 22), status);
 
-        int y = pad + 132;
+        int cameraY = pad + 78;
+        int buttonWidth = 46;
+        if (GUI.Button(new Rect(x + 12, cameraY, buttonWidth, 24), "Wide")) ApplyCameraPreset("overview");
+        if (GUI.Button(new Rect(x + 62, cameraY, buttonWidth, 24), "Red")) ApplyCameraPreset("red");
+        if (GUI.Button(new Rect(x + 112, cameraY, buttonWidth, 24), "Blue")) ApplyCameraPreset("blue");
+        if (GUI.Button(new Rect(x + 162, cameraY, buttonWidth, 24), "Side")) ApplyCameraPreset("side");
+        if (GUI.Button(new Rect(x + 212, cameraY, buttonWidth, 24), "Top")) ApplyCameraPreset("top");
+        if (GUI.Button(new Rect(x + 262, cameraY, buttonWidth, 24), "Inspect")) ApplyCameraPreset("inspect");
+
+        int y = Mathf.Max(pad + 132, Screen.height - 44);
         if (GUI.Button(new Rect(pad, y, 86, 30), "CHARGE")) Charge();
         if (GUI.Button(new Rect(pad + 92, y, 86, 30), "REFORM")) Reform();
         if (GUI.Button(new Rect(pad + 184, y, 86, 30), musicEnabled ? "AUDIO ON" : "AUDIO")) ToggleMusic();
@@ -225,75 +242,240 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private async Task LoadSamuraiFormation()
     {
         var url = StreamingAssetUrl(samuraiGlbStreamingAssetsPath);
-        var gltf = new GltfImport();
-        var loaded = await gltf.Load(url);
-        if (!loaded)
+        var gltf = await LoadGltf(url);
+        if (gltf == null)
         {
             Debug.LogError("Failed to load Foundry GLB from " + url);
             return;
         }
 
-        for (int i = 0; i < ActorCount; i++)
+        bool retained = false;
+        try
         {
-            bool takeda = i < 10;
-            var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_Samurai_" + (i % 10 + 1).ToString("00"));
-            var success = await gltf.InstantiateMainSceneAsync(root.transform);
-            if (!success)
+            for (int i = 0; i < ActorCount; i++)
             {
-                Debug.LogError("Failed to instantiate Foundry Samurai " + i);
-                UnityEngine.Object.Destroy(root);
-                continue;
+                bool takeda = i < 10;
+                var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_Samurai_" + (i % 10 + 1).ToString("00"));
+                var success = await InstantiateGltfMainScene(gltf, root.transform);
+                if (!success)
+                {
+                    Debug.LogError("Failed to instantiate Foundry Samurai " + i);
+                    UnityEngine.Object.Destroy(root);
+                    continue;
+                }
+
+                ConfigureActorRoot(root, i, takeda);
+                AddFactionStandard(root.transform, takeda, i);
+                if (i % 3 == 0) AddYari(root.transform, takeda, i);
+
+                var actor = new Actor
+                {
+                    Root = root,
+                    Takeda = takeda,
+                    Index = i,
+                    BasePosition = root.transform.position,
+                    BaseRotation = root.transform.rotation,
+                    ChargeTarget = root.transform.position,
+                    IdlePhase = i * 0.47f
+                };
+                actors.Add(actor);
             }
 
-            ConfigureActorRoot(root, i, takeda);
-            AddFactionStandard(root.transform, takeda, i);
-            if (i % 3 == 0) AddYari(root.transform, takeda, i);
-
-            var actor = new Actor
+            if (gltf is IDisposable disposable)
             {
-                Root = root,
-                Takeda = takeda,
-                Index = i,
-                BasePosition = root.transform.position,
-                BaseRotation = root.transform.rotation,
-                ChargeTarget = root.transform.position,
-                IdlePhase = i * 0.47f
-            };
-            actors.Add(actor);
+                retainedGltfImports.Add(disposable);
+                retained = true;
+            }
+        }
+        finally
+        {
+            if (!retained) (gltf as IDisposable)?.Dispose();
         }
     }
 
     private async Task LoadFoundryBattlefieldPack()
     {
         var url = StreamingAssetUrl(battlefieldPackGlbStreamingAssetsPath);
-        var gltf = new GltfImport();
-        var loaded = await gltf.Load(url);
-        if (!loaded)
+        var gltf = await LoadGltf(url);
+        if (gltf == null)
         {
             Debug.LogWarning("Optional 20-samurai Foundry battlefield pack was not loaded from " + url);
             return;
         }
 
-        foundryBattlefieldPackRoot = new GameObject("Foundry_20_Samurai_Battlefield_Pack");
-        var instantiated = await gltf.InstantiateMainSceneAsync(foundryBattlefieldPackRoot.transform);
-        if (!instantiated)
+        bool retained = false;
+        try
         {
-            Debug.LogWarning("Optional 20-samurai Foundry battlefield pack failed to instantiate");
-            UnityEngine.Object.Destroy(foundryBattlefieldPackRoot);
-            foundryBattlefieldPackRoot = null;
-            return;
-        }
+            foundryBattlefieldPackRoot = new GameObject("Foundry_20_Samurai_Battlefield_Pack");
+            var instantiated = await InstantiateGltfMainScene(gltf, foundryBattlefieldPackRoot.transform);
+            if (!instantiated)
+            {
+                Debug.LogWarning("Optional 20-samurai Foundry battlefield pack failed to instantiate");
+                UnityEngine.Object.Destroy(foundryBattlefieldPackRoot);
+                foundryBattlefieldPackRoot = null;
+                return;
+            }
 
-        foundryBattlefieldPackRoot.transform.position = new Vector3(0f, 0.02f, -1.2f);
-        foundryBattlefieldPackRoot.transform.localScale = Vector3.one * 1.15f;
-        foundryBattlefieldPackRoot.SetActive(false);
-        foundryBattlefieldPackReady = true;
+            foundryBattlefieldPackRoot.transform.position = new Vector3(0f, 0.02f, -1.2f);
+            foundryBattlefieldPackRoot.transform.localScale = Vector3.one * 1.15f;
+            foundryBattlefieldPackRoot.SetActive(false);
+            foundryBattlefieldPackReady = true;
+            if (gltf is IDisposable disposable)
+            {
+                retainedGltfImports.Add(disposable);
+                retained = true;
+            }
+        }
+        finally
+        {
+            if (!retained) (gltf as IDisposable)?.Dispose();
+        }
     }
 
     private static string StreamingAssetUrl(string relativePath)
     {
         string path = Path.Combine(Application.streamingAssetsPath, relativePath);
         return path.Contains("://") ? path : "file://" + path;
+    }
+
+    private static async Task<object> LoadGltf(string url)
+    {
+        var type = FindType("GLTFast.GltfImport");
+        if (type == null)
+        {
+            Debug.LogWarning("glTFast is not compiled yet; GLB loading is unavailable for " + url);
+            return null;
+        }
+
+        var gltf = CreateGltfImport(type);
+        if (gltf == null)
+        {
+            Debug.LogWarning("glTFast GltfImport constructor API was not found.");
+            return null;
+        }
+
+        var load = FindMethod(type, "Load", parameters => parameters.Length > 0 && parameters[0].ParameterType == typeof(string));
+        if (load == null)
+        {
+            Debug.LogWarning("glTFast Load(string) API was not found.");
+            return null;
+        }
+
+        var loaded = await AwaitBooleanTask(load.Invoke(gltf, BuildArgs(load.GetParameters(), url)));
+        return loaded ? gltf : null;
+    }
+
+    private static async Task<bool> InstantiateGltfMainScene(object gltf, Transform parent)
+    {
+        var method = FindMethod(gltf.GetType(), "InstantiateMainSceneAsync", parameters => parameters.Length > 0 && parameters[0].ParameterType == typeof(Transform));
+        if (method == null)
+        {
+            Debug.LogWarning("glTFast InstantiateMainSceneAsync(Transform) API was not found.");
+            return false;
+        }
+
+        return await AwaitBooleanTask(method.Invoke(gltf, BuildArgs(method.GetParameters(), parent)));
+    }
+
+    private static object CreateGltfImport(Type type)
+    {
+        // GLTFast.GltfImport expects service interfaces; pass concrete services without hard-linking the assembly.
+        var downloadProviderInterface = FindType("GLTFast.Loading.IDownloadProvider");
+        var deferAgentInterface = FindType("GLTFast.IDeferAgent");
+        var materialGeneratorInterface = FindType("GLTFast.Materials.IMaterialGenerator");
+        var codeLoggerInterface = FindType("GLTFast.Logging.ICodeLogger");
+
+        var downloadProvider = FindType("GLTFast.Loading.DefaultDownloadProvider");
+        var deferAgent = FindType("GLTFast.UninterruptedDeferAgent");
+        var materialGenerator = FindType("GLTFast.Materials.BuiltInMaterialGenerator");
+        var codeLogger = FindType("GLTFast.Logging.ConsoleLogger");
+
+        if (downloadProviderInterface != null && deferAgentInterface != null && materialGeneratorInterface != null && codeLoggerInterface != null
+            && downloadProvider != null && deferAgent != null && materialGenerator != null && codeLogger != null)
+        {
+            var ctor = type.GetConstructor(new[] { downloadProviderInterface, deferAgentInterface, materialGeneratorInterface, codeLoggerInterface });
+            if (ctor != null)
+            {
+                object dp = Activator.CreateInstance(downloadProvider);
+                object da = Activator.CreateInstance(deferAgent);
+                object mg = Activator.CreateInstance(materialGenerator);
+                object cl = Activator.CreateInstance(codeLogger);
+                return ctor.Invoke(new object[] { dp, da, mg, cl });
+            }
+        }
+
+        foreach (var constructor in type.GetConstructors(BindingFlags.Instance | BindingFlags.Public))
+        {
+            try
+            {
+                return constructor.Invoke(BuildArgs(constructor.GetParameters()));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"glTFast GltfImport constructor fallback failed: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    private static System.Reflection.MethodInfo FindMethod(Type type, string name, Func<System.Reflection.ParameterInfo[], bool> predicate)
+    {
+        foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (method.Name != name) continue;
+            var parameters = method.GetParameters();
+            if (predicate(parameters)) return method;
+        }
+
+        return null;
+    }
+
+    private static object[] BuildArgs(System.Reflection.ParameterInfo[] parameters, params object[] provided)
+    {
+        var args = new object[parameters.Length];
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (i < provided.Length)
+            {
+                args[i] = provided[i];
+                continue;
+            }
+
+            var parameterType = parameters[i].ParameterType;
+            var defaultValue = parameters[i].HasDefaultValue ? parameters[i].DefaultValue : null;
+            if (defaultValue != null && defaultValue != DBNull.Value && defaultValue != Type.Missing)
+            {
+                args[i] = defaultValue;
+                continue;
+            }
+
+            args[i] = parameterType.IsValueType ? Activator.CreateInstance(parameterType) : null;
+        }
+
+        return args;
+    }
+
+    private static Type FindType(string fullName)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var type = assembly.GetType(fullName, false);
+            if (type != null) return type;
+        }
+        return null;
+    }
+
+    private static async Task<bool> AwaitBooleanTask(object value)
+    {
+        if (value is Task<bool> booleanTask) return await booleanTask;
+        if (value is Task task)
+        {
+            await task;
+            var resultProperty = task.GetType().GetProperty("Result");
+            return resultProperty == null || resultProperty.GetValue(task) is true;
+        }
+        return value is true;
     }
 
     private void ConfigureActorRoot(GameObject root, int index, bool takeda)
@@ -384,6 +566,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.A)) ToggleMusic();
         if (Input.GetKeyDown(KeyCode.X)) PlaySfx(clashAccent);
         if (Input.GetKeyDown(KeyCode.P)) ToggleFoundryBattlefieldPack();
+        if (Input.GetKeyDown(KeyCode.H)) showUi = !showUi;
 
         if (Input.GetMouseButtonDown(0)) previousMouse = Input.mousePosition;
         if (Input.GetMouseButton(0))
@@ -499,13 +682,13 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         switch (preset)
         {
             case "red":
-                cameraTarget = actors.Count > 3 ? actors[3].Root.transform.position + new Vector3(0f, 1.55f, 0.15f) : new Vector3(-5f, 1.7f, -5f);
-                yaw = -0.72f; pitch = 0.30f; distance = 5.3f;
+                cameraTarget = ActorLookTarget(3, new Vector3(-5f, 1.7f, -5f));
+                yaw = -0.72f; pitch = 0.25f; distance = 3.2f;
                 status = "RED CLOSE";
                 break;
             case "blue":
-                cameraTarget = actors.Count > 13 ? actors[13].Root.transform.position + new Vector3(0f, 1.55f, 0.15f) : new Vector3(5f, 1.7f, -5f);
-                yaw = -1.58f; pitch = 0.30f; distance = 5.0f;
+                cameraTarget = ActorLookTarget(13, new Vector3(5f, 1.7f, -5f));
+                yaw = -1.58f; pitch = 0.25f; distance = 3.15f;
                 status = "BLUE CLOSE";
                 break;
             case "side":
@@ -519,8 +702,8 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
                 status = "TOP FORMATION";
                 break;
             case "inspect":
-                cameraTarget = actors.Count > 8 ? actors[8].Root.transform.position + new Vector3(0f, 1.48f, 0.18f) : new Vector3(-5f, 1.8f, -5f);
-                yaw = -0.72f; pitch = 0.31f; distance = 4.35f;
+                cameraTarget = ActorLookTarget(8, new Vector3(-5f, 1.8f, -5f));
+                yaw = -0.72f; pitch = 0.22f; distance = 2.85f;
                 status = "INSPECT ASSET";
                 break;
             default:
@@ -529,6 +712,35 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
                 status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : status;
                 break;
         }
+    }
+
+    private Vector3 ActorLookTarget(int actorIndex, Vector3 fallback)
+    {
+        if (actorIndex < actors.Count && actors[actorIndex].Root != null && TryRendererBounds(actors[actorIndex].Root, out var bounds))
+        {
+            return bounds.center + new Vector3(0f, 0.18f, 0f);
+        }
+        return fallback;
+    }
+
+    private static bool TryRendererBounds(GameObject root, out Bounds bounds)
+    {
+        bounds = default;
+        bool hasBounds = false;
+        foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+        {
+            if (!renderer.enabled) continue;
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+        return hasBounds;
     }
 
     private void UpdateCamera()
