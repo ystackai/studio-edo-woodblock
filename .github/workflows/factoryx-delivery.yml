@@ -186,6 +186,25 @@ jobs:
           )
           PY
           echo "FactoryX preview root redirects to $entry_url"
+        - name: Free disk space on preview server
+          shell: bash
+          env:
+            FACTORYX_PREVIEW_SSH_KEY: ${{ secrets.FACTORYX_PREVIEW_SSH_KEY }}
+            FACTORYX_PREVIEW_HOST: ${{ secrets.FACTORYX_PREVIEW_HOST }}
+            FACTORYX_PREVIEW_USER: ${{ secrets.FACTORYX_PREVIEW_USER }}
+            FACTORYX_PREVIEW_ROOT: ${{ secrets.FACTORYX_PREVIEW_ROOT }}
+          run: |
+            mkdir -p ~/.ssh
+            printf '%s\n' "$FACTORYX_PREVIEW_SSH_KEY" > ~/.ssh/factoryx_preview
+            chmod 600 ~/.ssh/factoryx_preview
+            SSH_CMD="ssh -i ~/.ssh/factoryx_preview -o StrictHostKeyChecking=accept-new"
+            echo "=== Disk usage BEFORE cleanup ==="
+            $SSH_CMD "$FACTORYX_PREVIEW_USER@$FACTORYX_PREVIEW_HOST" "df -h /"
+            $SSH_CMD "$FACTORYX_PREVIEW_USER@$FACTORYX_PREVIEW_HOST" "apt-get clean 2>/dev/null; rm -rf /tmp/*; find /var/log -name '*.log' -mtime +7 -delete 2>/dev/null; find /var/log -name '*.gz' -delete 2>/dev/null; true"
+            # Docker prune if Docker is installed
+            $SSH_CMD "$FACTORYX_PREVIEW_USER@$FACTORYX_PREVIEW_HOST" "docker system prune -af --volumes 2>/dev/null || true"
+            echo "=== Disk usage AFTER cleanup ==="
+            $SSH_CMD "$FACTORYX_PREVIEW_USER@$FACTORYX_PREVIEW_HOST" "df -h /"
       - name: Deploy preview to Hetzner
         shell: bash
         env:
