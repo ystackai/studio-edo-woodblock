@@ -4,7 +4,7 @@
 **Branch:** `factoryx/samurai-country-battle-20-20260621`
 **Status:** Core deliverable complete; remaining items are post-merge polish and external dependencies
 **Related PR:** https://github.com/ystackai/studio-edo-woodblock/pull/175 (OPEN, mergeable, deploy-preview ❌, merge blocked by branch protection)
-**Last updated:** 2026-06-21T07:00Z
+**Last updated:** 2026-06-21T07:15Z
 
 ---
 
@@ -33,7 +33,7 @@
 
 - **Unity source code:** `KawanakajimaRuntimeBootstrap.cs` present, Unity scene with 20 samurai placed in opposing formations.
 
-### CI Status (current, 2026-06-21T07:00Z)
+### CI Status (current, 2026-06-21T07:15Z)
 
 | Check | Status | Notes |
 |-------|--------|-------|
@@ -42,7 +42,7 @@
 | deploy-preview | ❌ fail | SSH/rsync to preview server failing in CI; actual preview URL returns 200 OK (transient infra issue) |
 | deploy-production | ⏭ skip | PR branch, not main |
 
-### PR #175 Status (2026-06-21T07:00Z)
+### PR #175 Status (2026-06-21T07:15Z)
 
 - State: OPEN
 - Mergeable: YES
