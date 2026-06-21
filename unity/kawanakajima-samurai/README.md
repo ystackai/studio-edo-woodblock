@@ -16,7 +16,7 @@ unity/kawanakajima-samurai/
 ├── Assets/
 │   ├── StreamingAssets/
 │   │   └── Kawanakajima/
-│   │       ├── samurai_character.glb          (1.23 MB, v5 Blender repair)
+│   │       ├── samurai_character.glb          (599 KB, v6 Blender repair)
 │   │       ├── samurai_battlefield_pack.glb   (6.55 MB, v3 battlefield pack)
 │   │       └── samurai_battlefield_manifest.json (20 warriors, 10/10 split)
 │   ├── Resources/
@@ -51,7 +51,7 @@ unity/kawanakajima-samurai/
 
 | Asset | Job ID | Size | Description |
 |-------|--------|------|-------------|
-| `samurai_character.glb` | `asset-1781913507610-bf69e595` | 1.23 MB | v5 Blender repair — kabuto, mempo, lamellar, sode, kote, hakama, tabi/geta, katana, sashimono |
+| `samurai_character.glb` | `asset-1781913507610-bf69e595` | 599 KB | v6 Blender repair — kabuto, deeper mempo, larger crest, lamellar, sode, kote, hakama, split-toe tabi/geta, katana, sashimono |
 | `samurai_battlefield_pack.glb` | `asset-1781935845583-91a9fdbe` | 6.55 MB | v3 pack — 20 named warriors with terrain, banners, formation |
 | Audio stems | `asset-1781916330853-f7d831d9` | ~2.7 MB | Battlefield loop, charge/clash/confirm/step SFX |
 
