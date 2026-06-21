@@ -15,11 +15,12 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 
 ### 1. Samurai Character Asset
 - **File:** `assets/samurai_character.glb`
-- **Size:** 1.23 MB
-- **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v5 repair pass (2026-06-20)
-- **Source:** `http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source_v5.blend`
+- **Size:** 599 KB
+- **Structure:** 222 nodes, 221 meshes, 21 materials, 11,765 position vertices
+- **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v6 repair pass (2026-06-21)
+- **Source:** `assets/generated/foundry/samurai/improved-20260620-v6/samurai_character_source_v6.blend`
 - **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. No Unity build artifact was produced in this PR.
-- **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
+- **Visual gate:** v4 was blocky/slab-like; v6 improves the v5 anatomy with a deeper mempo face, larger helmet crest, split-toe tabi/geta detail, armor trim, lacing, and richer silhouette evidence. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
 - **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb`
@@ -38,7 +39,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 - **Provenance:** All file-backed WAVs from Foundry, mirrored from `assets/generated/foundry/audio/asset-1781916330853-f7d831d9/`
 
 ### 4. Evidence Images
-- `assets/samurai_character_contact_sheet.png` — 1.12 MB, v5 contact sheet
+- `assets/samurai_character_contact_sheet.png` — 4.9 MB, v6 contact sheet
 - `assets/samurai_character_hero.png` — 669 KB, hero reference
 - `screenshots/` — 6 repeatable camera PNGs:
   - `overview.png` — wide battlefield overview
@@ -50,7 +51,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 
 ## Unity Handoff Assets
 
-- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` — 1.23 MB
+- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` — 599 KB, v6
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` — 6.55 MB
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` — 20 warriors manifest
 - `unity/kawanakajima-samurai/Assets/Resources/KawanakajimaAudio/` — all WAV files
@@ -81,7 +82,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 ## Known Limitations
 
 - **Unity playable build:** Not created in this PR. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac-host Unity MCP listener is reachable from the deployed Edo worker at `http://172.21.0.1:25666` and authenticated `POST /api/system-tools/ping` returns `pong`. The next pass should use that listener for scene insertion and build verification.
-- **Asset fidelity:** Stylized, not photoreal. v5 improved over v4 (no more slab/blocky reads).
+- **Asset fidelity:** Stylized, not photoreal. v6 improves over v5 with clearer face mask depth, helmet crest, armor trim, lacing, and footwear detail.
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.
 
@@ -95,5 +96,5 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 | Side profile | sideProfile | screenshots/sideProfile.png | 744 KB |
 | Top formation | topFormation | screenshots/topFormation.png | 796 KB |
 | Asset inspect | assetInspect | screenshots/assetInspect.png | 779 KB |
-| Contact sheet | v5 contact | assets/samurai_character_contact_sheet.png | 1.12 MB |
+| Contact sheet | v6 contact | assets/samurai_character_contact_sheet.png | 4.9 MB |
 | Hero reference | v5 hero | assets/samurai_character_hero.png | 669 KB |

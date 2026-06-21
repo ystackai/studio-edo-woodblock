@@ -8,10 +8,10 @@
 
 ## What Exists
 
-- **Samurai asset:** live Asset Foundry provenance + Blender v5 repair pass after the v4 block/slab visual failure. Base job asset-1781913507610-bf69e595, v5 20260620.
-  - Primary runtime asset: `assets/samurai_character.glb` (1.23 MB).
-  - Source/evidence retained under `assets/generated/foundry/samurai/improved-20260620-v5/`.
-  - Contact sheet and hero render (v5) embedded in the in-game inspection panel.
+- **Samurai asset:** live Asset Foundry provenance + Blender v6 repair pass after the v4 block/slab visual failure. Base job asset-1781913507610-bf69e595, v6 20260621.
+  - Primary runtime asset: `assets/samurai_character.glb` (599 KB compressed GLB; 222 nodes, 221 meshes, 21 materials, 11,765 position vertices).
+  - Source/evidence retained under `assets/generated/foundry/samurai/improved-20260620-v6/`.
+  - Contact sheet and hero render evidence embedded in the in-game inspection panel.
 - **20-samurai battlefield pack:** live Asset Foundry Blender/GLB job `asset-1781935845583-91a9fdbe` (v3 fidelity pass; supersedes earlier `asset-1781933644954-6853e6a2` pack while preserving it in history).
   - Preserved under `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/`.
   - Contains `samurai_battlefield_pack.glb`, source `.blend`, manifest, contact sheet, and five stable evidence camera renders.
@@ -41,4 +41,4 @@
 
 ## Current Review Verdict
 
-This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a Foundry-authored 20-samurai battlefield pack, and Unity source handoff. v5 supersedes the bad v4 single-character visual pass with a cleaner stylized samurai asset and refreshed Blender evidence; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Unity playable build not claimed: Mac Unity MCP listener reachability is resolved, but scene/build verification remains pending. PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical asset proof) plus follow-up PR #165.
+This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a Foundry-authored 20-samurai battlefield pack, and Unity source handoff. v6 supersedes the bad v4 single-character visual pass and improves over v5 with a deeper mempo face, larger helmet crest, geta/tabi detail, armor trim, and lacing while keeping the GLB compressed; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Unity playable build not claimed: Mac Unity MCP listener reachability is resolved, but scene/build verification remains pending. PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical asset proof) plus follow-up PR #165.

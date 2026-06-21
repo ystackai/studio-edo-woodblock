@@ -26,6 +26,48 @@ function checkContent(p, tests) {
   });
 }
 
+function readGlbStats(p) {
+  const buffer = fs.readFileSync(p);
+  if (buffer.toString('ascii', 0, 4) !== 'glTF') {
+    throw new Error('invalid GLB magic');
+  }
+  let offset = 12;
+  let json = null;
+  while (offset + 8 <= buffer.length) {
+    const chunkLength = buffer.readUInt32LE(offset);
+    const chunkType = buffer.toString('ascii', offset + 4, offset + 8);
+    offset += 8;
+    if (chunkType === 'JSON') {
+      json = JSON.parse(buffer.slice(offset, offset + chunkLength).toString('utf8').trim());
+    }
+    offset += chunkLength;
+  }
+  if (!json) throw new Error('missing GLB JSON chunk');
+
+  let primitiveCount = 0;
+  let vertexCount = 0;
+  for (const mesh of json.meshes || []) {
+    for (const primitive of mesh.primitives || []) {
+      primitiveCount += 1;
+      const positionAccessor = primitive.attributes && primitive.attributes.POSITION;
+      if (Number.isInteger(positionAccessor) && json.accessors && json.accessors[positionAccessor]) {
+        vertexCount += json.accessors[positionAccessor].count || 0;
+      }
+    }
+  }
+
+  return {
+    bytes: buffer.length,
+    nodes: (json.nodes || []).length,
+    meshes: (json.meshes || []).length,
+    materials: (json.materials || []).length,
+    accessors: (json.accessors || []).length,
+    primitiveCount,
+    vertexCount,
+    materialNames: (json.materials || []).map(material => material.name || ''),
+  };
+}
+
 console.log('=== Kawanakajima Foundry Proof verification ===');
 
 mustExist(path.join(ROOT, 'index.html'), 'index.html');
@@ -84,9 +126,24 @@ checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), [
   { name: 'Unity handoff documents local build', test: c => /Verified Local Build[\s\S]*KawanakajimaUnityBuild\.BuildMac[\s\S]*Exit code 0/.test(c) },
 ]);
 
-// Asset sizes roughly
+// Asset structure and sizes.
 const glb = fs.statSync(path.join(ROOT, 'assets/samurai_character.glb'));
-if (glb.size < 800000) errors.push('GLB too small for detailed Foundry asset');
+let samuraiGlbStats = null;
+try {
+  samuraiGlbStats = readGlbStats(path.join(ROOT, 'assets/samurai_character.glb'));
+  if (samuraiGlbStats.bytes < 500000) errors.push('GLB too small for compressed v6 Foundry asset');
+  if (samuraiGlbStats.nodes < 150) errors.push('GLB node count too low for v6 samurai asset');
+  if (samuraiGlbStats.meshes < 120) errors.push('GLB mesh count too low for v6 samurai asset');
+  if (samuraiGlbStats.materials < 13) errors.push('GLB material count too low for v6 samurai asset');
+  if (samuraiGlbStats.vertexCount < 10000) errors.push('GLB vertex count too low for v6 samurai asset');
+  for (const requiredMaterial of ['russet_mempo_mask', 'brushed_steel_blade', 'aged_crimson_sashimono']) {
+    if (!samuraiGlbStats.materialNames.some(name => name.startsWith(requiredMaterial))) {
+      errors.push(`GLB missing expected material ${requiredMaterial}`);
+    }
+  }
+} catch (error) {
+  errors.push('GLB structure parse failed: ' + error.message);
+}
 
 const contact = fs.statSync(path.join(ROOT, 'assets/samurai_character_contact_sheet.png'));
 if (contact.size < 300000) errors.push('contact sheet missing or truncated');
@@ -124,6 +181,15 @@ try {
 }
 
 console.log('GLB size:', (glb.size/1024/1024).toFixed(2), 'MB');
+if (samuraiGlbStats) {
+  console.log(
+    'Samurai GLB stats:',
+    `${samuraiGlbStats.nodes} nodes,`,
+    `${samuraiGlbStats.meshes} meshes,`,
+    `${samuraiGlbStats.materials} materials,`,
+    `${samuraiGlbStats.vertexCount} vertices`
+  );
+}
 console.log('Contact size:', (contact.size/1024).toFixed(0), 'KB');
 console.log('Audio loop size:', (loop.size/1024/1024).toFixed(2), 'MB');
 console.log('Battlefield pack size:', (battlefieldGlb.size/1024/1024).toFixed(2), 'MB');
@@ -140,6 +206,7 @@ if (errors.length) {
     assetFoundryJob: 'asset-1781913507610-bf69e595',
     actorCount: 20,
     glbSize: glb.size,
+    samuraiGlbStats,
     battlefieldPack: battlefield,
     audioFoundryJob: 'asset-1781916330853-f7d831d9',
     audioLoopSize: loop.size,

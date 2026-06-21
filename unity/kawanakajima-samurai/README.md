@@ -2,7 +2,7 @@
 
 **Work Order:** work-order-1781967391303-7-1  
 **Deliverable:** Kawanakajima 20 Samurai Countryside Unity Game  
-**Status:** Unity source handoff plus verified local Mac build and Unity MCP routing.
+**Status:** Unity source handoff plus verified local Mac v6 build and Unity MCP routing.
 **Playables:** Browser proof at `games/kawanakajima-foundry-samurai-proof/`
 
 ## Overview
@@ -16,7 +16,7 @@ unity/kawanakajima-samurai/
 ├── Assets/
 │   ├── StreamingAssets/
 │   │   └── Kawanakajima/
-│   │       ├── samurai_character.glb          (1.23 MB, v5 Blender repair)
+│   │       ├── samurai_character.glb          (599 KB, v6 Blender repair)
 │   │       ├── samurai_battlefield_pack.glb   (6.55 MB, v3 battlefield pack)
 │   │       └── samurai_battlefield_manifest.json (20 warriors, 10/10 split)
 │   ├── Resources/
@@ -51,7 +51,7 @@ unity/kawanakajima-samurai/
 
 | Asset | Job ID | Size | Description |
 |-------|--------|------|-------------|
-| `samurai_character.glb` | `asset-1781913507610-bf69e595` | 1.23 MB | v5 Blender repair — kabuto, mempo, lamellar, sode, kote, hakama, tabi/geta, katana, sashimono |
+| `samurai_character.glb` | `asset-1781913507610-bf69e595` | 599 KB | v6 Blender repair — kabuto, deeper mempo, larger crest, lamellar, sode, kote, hakama, split-toe tabi/geta, katana, sashimono |
 | `samurai_battlefield_pack.glb` | `asset-1781935845583-91a9fdbe` | 6.55 MB | v3 pack — 20 named warriors with terrain, banners, formation |
 | Audio stems | `asset-1781916330853-f7d831d9` | ~2.7 MB | Battlefield loop, charge/clash/confirm/step SFX |
 
@@ -59,18 +59,22 @@ All assets verified via `node verify-unity-handoff.js` → **PASS**
 
 ## Verified Local Build
 
-Recorded on 2026-06-20 from the local Mac Studio:
+Recorded on 2026-06-21 from the local Mac Studio:
 
 ```bash
-Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
+/Users/marcus/Applications/Unity/Hub/Editor/2023.2.20f1/Unity.app/Contents/MacOS/Unity \
+  -batchmode -quit \
+  -projectPath /Users/marcus/codex-work/studio-edo-woodblock-samurai-country-battle-20-20260621/unity/kawanakajima-samurai \
   -executeMethod KawanakajimaUnityBuild.BuildMac \
-  -logFile /tmp/kawanakajima-batch-build.log
+  -logFile /tmp/kawanakajima-v6-build.log
 ```
 
 Result:
 - Exit code 0
-- Output: `Builds/Mac/KawanakajimaSamurai.app`
-- Bundle size: 112 MB
+- Output: `/Users/marcus/codex-work/studio-edo-woodblock-samurai-country-battle-20-20260621/unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
+- Bundle size: 110 MB
+- Player launch check: exit 0, `KAWANAKAJIMA_UNITY_READY actors=20 pack=False audio=True`
+- Embedded samurai GLB: v6, 599 KB, 222 nodes, 221 meshes, 21 materials, 11,765 vertices
 - Unity Editor: 2023.2.20f1
 
 ## Quick Start
