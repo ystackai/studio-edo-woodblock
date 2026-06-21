@@ -3,7 +3,7 @@
 **Deliverable:** `kawanakajima-samurai-autonomous-validation-20260621-v17`
 **Branch:** `factoryx/kawanakajima-samurai-autonomous-validation-20260621-v17`
 **Updated:** 2026-06-21
-**HEAD:** `5a22a75` — v17 integrate pilot-5 evidence and plan full 20
+**HEAD:** `f193ca3` — v17 consolidate pilot evidence, schedule full-20
 
 ## Assessment
 
@@ -33,38 +33,38 @@ Pilot-4 and pilot-5 evidence is consolidated on this canonical validation branch
 
 ```yaml
 tickets:
-   - id: v17-full-20-samurai-gen-v2
-    title: Generate full 20-samurai asset set from approved pilot pipeline
-    goal: >
-      Generate the full v17 set of 20 samurai assets: 10 Takeda/red-side
-      variants and 10 Uesugi/blue-side variants under
-      games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/
-      samurai-v17/full-20/. Start from the approved repo-based Blender
-      pilot scripts (generate-pilot4-samurai.py, generate-pilot5-samurai.py),
-      extend the spec list to takeda-01…takeda-10 and uesugi-01…uesugi-10.
-      Before launching Blender, run a cheap planned-ID check proving the script
-      will produce exactly those 20 IDs with no stale pilot-only output paths.
-      Produce GLB exports, .blend sources, repeatable front/side/rear/
-      three-quarter/top renders, contact sheets, hero render,
-      ASSET_MANIFEST.md, and work-order evidence. Prefer materially distinct
-      body silhouettes between variants over shared-body-geometry. Record
-      observed limitations in ASSET_MANIFEST.md but do not self-approve the
-      visual gate.
-    profile: qwen3.6:35b-a3b-coding-mxfp8
-    depends_on: []
-   - id: v17-full-20-visual-gate-v1
-    title: Independent final visual gate for all 20 samurai
-    goal: >
-      Independently inspect the full-20 samurai contact sheets and individual
-      renders from v17-full-20-samurai-gen-v2. Verify all 20 requested IDs are
-      present, upright, grounded, anatomically readable, clothed/armored as
-      samurai, free of detached limbs or props, not Minecraft/capsule-like, not
-      grey placeholders, and materially distinct enough for the validation
-      scope. Save a per-samurai pass/fail table, observed flaws, and promotion
-      recommendation to VERIFICATION.md. If any fail, stop with specific fixes
-      instead of promoting to Unity/browser work.
-    profile: qwen3.6:35b-a3b-coding-mxfp8
-    depends_on: [v17-full-20-samurai-gen-v2]
+    - id: v17-full-20-samurai-gen-v2
+      title: Generate full 20-samurai asset set from approved pilot pipeline
+      goal: >
+        Generate the full v17 set of 20 samurai assets: 10 Takeda/red-side
+        variants and 10 Uesugi/blue-side variants under
+        games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/
+        samurai-v17/full-20/. Start from the approved repo-based Blender
+        pilot scripts (generate-pilot4-samurai.py, generate-pilot5-samurai.py),
+        extend the spec list to takeda-01..takeda-10 and uesugi-01..uesugi-10.
+        Before launching Blender, run a cheap planned-ID check proving the script
+        will produce exactly those 20 IDs with no stale pilot-only output paths.
+        Produce GLB exports, .blend sources, repeatable front/side/rear/
+        three-quarter/top renders, contact sheets, hero render,
+        ASSET_MANIFEST.md, and work-order evidence. Prefer materially distinct
+        body silhouettes between variants over shared-body-geometry. Record
+        observed limitations in ASSET_MANIFEST.md but do not self-approve the
+        visual gate.
+      profile: qwen3.6:35b-a3b-coding-mxfp8
+      depends_on: []
+    - id: v17-full-20-visual-gate-v1
+      title: Independent final visual gate for all 20 samurai
+      goal: >
+        Independently inspect the full-20 samurai contact sheets and individual
+        renders from v17-full-20-samurai-gen-v2. Verify all 20 requested IDs are
+        present, upright, grounded, anatomically readable, clothed/armored as
+        samurai, free of detached limbs or props, not Minecraft/capsule-like, not
+        grey placeholders, and materially distinct enough for the validation
+        scope. Save a per-samurai pass/fail table, observed flaws, and promotion
+        recommendation to VERIFICATION.md. If any fail, stop with specific fixes
+        instead of promoting to Unity/browser work.
+      profile: qwen3.6:35b-a3b-coding-mxfp8
+      depends_on: [v17-full-20-samurai-gen-v2]
 ```
 
 ## Future Tickets Not Yet Ready
