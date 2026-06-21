@@ -1,9 +1,9 @@
-# DELIVERABLE STATUS — Kawanakajima Samurai Unity Playable Proof v9.3
+# DELIVERABLE STATUS — Kawanakajima Samurai Unity Playable Proof v9.4
 
 **Work Order:** work-order-1781984186486-7-1  
 **Branch:** `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8`  
 **PR:** [#167](https://github.com/ystackai/studio-edo-woodblock/pull/167)  
-**Last Update:** 2026-06-20 23:14 UTC
+**Last Update:** 2026-06-21 00:50 UTC
 
 ## Status Summary
 
@@ -16,17 +16,29 @@
 | Unity MCP scene call | ✅ PASS — `tools/call` → `scene-list-opened` returns loaded `Kawanakajima` scene |
 | Unity Play Mode | ✅ PASS — 20 samurai loaded, `KAWANAKAJIMA_UNITY_READY` |
 | Unity mesh retention | ✅ PASS — 241/241 non-null meshes, 72,927 vertices |
+| Unity samurai GLB v5 swap | ✅ PASS — Unity StreamingAssets `samurai_character.glb` now matches Foundry v5 export byte-for-byte (`1,285,892` bytes) |
 | Unity Mac build | ✅ PASS — `KawanakajimaSamurai.app` (112 MB) |
 | GLTFast reflection bootstrap | ✅ PASS — reflection-based, no hard-link dependency |
 | Screenshot coverage | ✅ PASS — 21 Unity images, 8 browser images across v8.3–v8.7 |
 | Realistic/high-quality visual gate | ❌ FAIL — wide formation still reads as stylized low-poly/capsule figures with simple block terrain; needs a Blender fidelity pass before calling the samurai production-realistic |
-| PR #167 | ✅ OPEN, mergeable, 13 commits |
+| PR #167 | ✅ OPEN, mergeable, 48 commits, checks green; still gated by `REVIEW_REQUIRED` |
 
 ## Foundry Provenance
 
 - Samurai character: Asset Foundry Blender job `asset-1781913507610-bf69e595`
 - 20-samurai battlefield pack: Asset Foundry Blender job `asset-1781935845583-91a9fdbe`
 - Audio loop and SFX: Asset Foundry job `asset-1781916330853-f7d831d9`
+
+## Foundry v5 Samurai Provenance
+
+- Source folder: `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai/improved-20260620-v5/`
+- Source model: `samurai_character_source_v5.blend`
+- Unity export: `samurai_character_v5.glb` (`1,285,892` bytes)
+- Unity integration target: `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb`
+- Review renders: `samurai_character_contact_sheet_v5.png`, `samurai_character_hero_v5.png`, `cs_front.png`, `cs_qtr.png`, `cs_side.png`, `cs_top.png`
+- Integration PR: [#170](https://github.com/ystackai/studio-edo-woodblock/pull/170), merged into this plan branch at `793b38f`
+
+The v5 samurai is a visible upgrade over the earlier capsule/block read: the contact sheet shows a more legible armored silhouette, helmet mass, lamellar plate structure, and katana prop. This improves reviewability, but it is still not a photorealistic production character; the realism gate remains open until close-up Unity screenshots prove anatomy, armor, materials, and face/helmet detail hold up in-engine.
 
 ## v8.7 Changes
 
