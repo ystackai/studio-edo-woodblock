@@ -26,9 +26,37 @@ function checkContent(p, tests) {
   });
 }
 
+function extractInlineScripts(html) {
+  return [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+    .filter(match => !/\bsrc\s*=/i.test(match[1]))
+    .map(match => match[2].trim())
+    .filter(Boolean);
+}
+
+function checkBrowserScriptSyntax(p) {
+  if (!mustExist(p, 'browser html')) return;
+  const html = fs.readFileSync(p, 'utf8');
+  const scripts = extractInlineScripts(html);
+  if (!scripts.length) {
+    errors.push('FAIL inline browser script missing in ' + path.basename(p));
+    return;
+  }
+  scripts.forEach((script, index) => {
+    try {
+      new Function(script);
+    } catch (error) {
+      errors.push('FAIL browser script syntax in ' + path.basename(p) + ' inline script #' + (index + 1) + ': ' + error.message);
+    }
+  });
+}
+
 console.log('=== Kawanakajima Foundry Proof verification ===');
 
 mustExist(path.join(ROOT, 'index.html'), 'index.html');
+if (fs.existsSync(path.join(ROOT, 'index.html.bak'))) {
+  errors.push('temporary backup file index.html.bak must not be committed');
+}
+mustExist(path.join(ROOT, 'browser-smoke-chromium.mjs'), 'dependency-free Chromium browser smoke harness');
 mustExist(path.join(ROOT, 'three.min.js'), 'three');
 mustExist(path.join(ROOT, 'GLTFLoader.js'), 'GLTFLoader');
 mustExist(path.join(ROOT, 'assets/samurai_character.glb'), 'Foundry GLB');
@@ -66,13 +94,14 @@ checkContent(path.join(ROOT, 'index.html'), [
   { name: 'window expose', test: c => /KAWANAKAJIMA_FOUNDRY/.test(c) },
   { name: 'no oscillator claim', test: c => !/oscillator|playTone|WebAudio.*beep/i.test(c) || /BLOCKER|silent/.test(c) },
 ]);
+checkBrowserScriptSyntax(path.join(ROOT, 'index.html'));
 
 checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'asset Foundry job', test: c => /asset-1781913507610-bf69e595/.test(c) },
   { name: 'battlefield Foundry job', test: c => new RegExp(BATTLEFIELD_JOB).test(c) },
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
-  { name: 'Unity blocker', test: c => /Unity playable world:\*\* not created|Unity Editor/.test(c) },
-  { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
+  { name: 'Unity MCP standard route', test: c => /host\.docker\.internal:27481\/mcp[\s\S]*tools\/call/.test(c) },
+  { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not yet proven end-to-end|manual intervention/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
@@ -144,7 +173,7 @@ if (errors.length) {
     audioFoundryJob: 'asset-1781916330853-f7d831d9',
     audioLoopSize: loop.size,
     unityHandoff: true,
-    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff',
+    checks: 'structure, paths, sizes, exposure, browser script syntax, Chromium smoke harness, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff',
     passed: true
   }, null, 2));
   console.log('Wrote VERIFICATION.json');
