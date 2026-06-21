@@ -12,18 +12,19 @@
      .ui.top { top:10px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; }
      .ui.bottom { bottom:8px; left:12px; right:12px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
      .badge { pointer-events:auto; padding:3px 9px; border:1px solid rgba(200,184,160,0.35); background:rgba(10,8,6,0.72); color:#c8b8a0; border-radius:1px; text-transform:uppercase; }
-     button { pointer-events:auto; font-size:10px; letter-spacing:0.08em; padding:4px 9px; border:1px solid rgba(200,184,160,0.35); background:rgba(10,8,6,0.72); color:#c8b8a0; cursor:pointer; border-radius:1px; }
+     button { pointer-events:auto; font-size:10px; letter-spacing:0.08em; min-height:44px; padding:10px 14px; border:1px solid rgba(200,184,160,0.35); background:rgba(10,8,6,0.72); color:#c8b8a0; cursor:pointer; border-radius:1px; }
      button:hover { background:#c8b8a0; color:#0a0806; }
      button.active { background:rgba(200,184,160,0.3); color:#e8e4d8; }
      .label { font-size:9px; opacity:0.6; margin:0 4px; }
      .state { min-width:78px; text-align:center; }
      #load { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(10,8,6,0.82); z-index:20; font-size:12px; letter-spacing:0.1em; }
      .hidden { display:none !important; }
+      #flash-overlay { position:absolute; inset:0; background:radial-gradient(circle, rgba(255,200,100,0.25), rgba(10,8,6,0)); z-index:5; pointer-events:none; opacity:0; transition:opacity 0.08s ease-out; }
      .review-panel { position:absolute; right:12px; top:52px; width:340px; max-height:480px; background:rgba(10,8,6,0.92); border:1px solid rgba(200,184,160,0.3); padding:8px; z-index:30; display:none; overflow-y:auto; }
      .review-panel.open { display:block; }
      .review-panel img { width:100%; height:auto; display:block; border:1px solid rgba(200,184,160,0.2); }
      .review-label { font-size:9px; opacity:0.7; margin:4px 2px 2px; }
-     .cam-btn { font-size:9px; padding:3px 6px; }
+     .cam-btn { font-size:9px; min-height:44px; padding:10px 12px; }
      .info-row { display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid rgba(200,184,160,0.1); font-size:10px; }
      .info-row .k { opacity:0.5; }
      .takeda { color:#c46050; }
@@ -33,6 +34,7 @@
 </head>
 <body>
    <canvas id="c"></canvas>
+    <div id="flash-overlay"></div>
 
    <div class="ui top">
      <div>
@@ -377,8 +379,12 @@
       }
     };
 
+    let camPrevTarget = null;
+    let camAnimT = 0;
     function applyPreset(name) {
       if (camPresets[name]) {
+        camPrevTarget = target.clone();
+        camAnimT = 0;
         camPresets[name]();
         statusEl.textContent = name === 'assetInspect' ? 'INSPECT' : (chargePhase ? 'CHARGING' : 'FORMATION');
         if (name !== 'assetInspect') reviewPanel.classList.remove('open');
@@ -390,7 +396,24 @@
       }
     }
 
-    function frameDefault() { camPresets.overview(); }
+    function frameDefault() {
+      if (camPresets && camPresets.overview) camPresets.overview();
+    }
+
+     function flashScreen(duration, color) {
+      const el = document.getElementById('flash-overlay');
+      if (!el) return;
+      el.style.transition = 'none';
+      el.style.background = color || 'radial-gradient(circle, rgba(255,200,100,0.25), rgba(10,8,6,0))';
+      el.style.opacity = '1';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.transition = 'opacity 0.12s ease-out';
+          el.style.opacity = '0';
+        });
+      });
+      setTimeout(() => { el.style.opacity = '0'; }, Math.max(duration || 120, 120));
+     }
 
     // === AUDIO ===
     function initAudio() {
@@ -592,11 +615,13 @@
         dest.x += dir * 3.9;
         dest.z += (Math.random() - 0.5) * 0.7;
         a.chargeDest = dest;
+        a.mesh.scale.multiplyScalar(1.04);
       });
       if (audio.enabled) {
         playSfx('charge');
         setTimeout(() => playSfx('clash'), 720);
       }
+      flashScreen(180);
     }
 
     function reform() {
@@ -611,6 +636,7 @@
         }
       });
       if (audio.enabled) playSfx('step');
+      flashScreen(120, 'radial-gradient(circle, rgba(100,180,255,0.18), rgba(10,8,6,0))');
       setTimeout(() => { statusEl.textContent = 'FORMATION'; }, 220);
     }
 
@@ -721,7 +747,7 @@
           found = actors.find(a => a.mesh === obj || a.mesh.children.includes(obj) || obj.parent === a.mesh);
           obj = obj.parent;
         }
-        if (found) inspectActor(found);
+        if (found) { flashScreen(100); found.mesh.scale.multiplyScalar(1.08); setTimeout(() => { found.mesh.scale.multiplyScalar(1 / 1.08); }, 200); inspectActor(found); }
       }
     });
 
@@ -735,7 +761,7 @@
     document.getElementById('btn-charge').addEventListener('click', charge);
     document.getElementById('btn-reform').addEventListener('click', reform);
     document.getElementById('btn-audio').addEventListener('click', toggleAudio);
-    document.getElementById('btn-clash').addEventListener('click', () => playSfx('clash'));
+    document.getElementById('btn-clash').addEventListener('click', () => { playSfx('clash'); flashScreen(150, 'radial-gradient(circle, rgba(255,100,80,0.22), rgba(10,8,6,0))'); });
     document.getElementById('btn-contact').addEventListener('click', () => reviewPanel.classList.toggle('open'));
 
     // === KEYBOARD ===
@@ -761,6 +787,14 @@
     function tick() {
       requestAnimationFrame(tick);
       t += 0.016;
+
+       // Smooth camera transition easing
+      if (camPrevTarget && camAnimT < 1) {
+        camAnimT = Math.min(1, camAnimT + 0.045);
+        const ease = 1 - Math.pow(1 - camAnimT, 3);
+        target.lerp(camPrevTarget, ease * 0.08);
+        if (camAnimT >= 1) camPrevTarget = null;
+      }
 
       // Animate dust particles — gentle drift
       const pos = dustParticles.geometry.attributes.position;
@@ -790,8 +824,8 @@
 
         if (chargePhase && a.chargeDest) {
           const p = a.mesh.position;
-          p.x = p.x * 0.90 + a.chargeDest.x * 0.10;
-          p.z = p.z * 0.90 + a.chargeDest.z * 0.10;
+          p.x = p.x * 0.93 + a.chargeDest.x * 0.07;
+          p.z = p.z * 0.93 + a.chargeDest.z * 0.07;
           a.mesh.rotation.x = (a.team === 'takeda' ? 0.11 : -0.11) * 0.8;
           a.mesh.rotation.z = (a.team === 'takeda' ? 0.02 : -0.02);
         } else {
