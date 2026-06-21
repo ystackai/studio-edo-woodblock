@@ -2,89 +2,111 @@
 
 **Deliverable:** `samurai-country-battle-20-20260621`
 **Branch:** `factoryx/samurai-country-battle-20-20260621`
-**Status:** In progress — Unity build evidence pending, samurai v6 not yet integrated
-**Related PR:** https://github.com/ystackai/studio-edo-woodblock/pull/167 (OPEN, APPROVED with notes, merge blocked by branch protection)
+**Status:** In progress — Unity Mac build artifact not committed; deliverable blocked on external build
+**Related PR:** https://github.com/ystackai/studio-edo-woodblock/pull/167 (OPEN, APPROVED, merge blocked by branch protection — needs human reviewer)
 **Last updated:** 2026-06-21
 
 ## Current State Assessment
 
-### What is present and working
-- **Samurai assets (v5 on deliverable branch, v6 available):**
-  - Foundry samurai GLB (`samurai_character.glb`, 612 KB at v6, down from 1.3 MB at v5).
-  - Blender source `.blend`, contact sheet (6 views), turntable (8 frames), and `ASSET_MANIFEST.md` at `games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai/improved-20260620-v6/`.
-  - v5 was previously integrated into Unity and browser proof; v6 has not been integrated into this branch yet.
-- **20-samurai battlefield pack (Foundry, v3):**
-  - `samurai_battlefield_pack.glb` (6.87 MB), manifest with 20 named warriors (10 Takeda / 10 Uesugi), contact sheet, 5 stable camera renders.
-- **Browser proof:**
-  - `games/kawanakajima-foundry-samurai-proof/index.html` — Three.js WebGL scene, 20 samurai, 6 camera presets, charge/reform/clash interaction, file-backed audio (5 WAV), review panel with contact sheet + hero render.
-  - `node verify.js` passes all structure/asset/size checks.
-  - `node browser-smoke-chromium.mjs` passes: CAPTURE_READY, 20 actors, nonblank canvas, no console errors.
+### What is present and working on this branch
+
+- **Samurai character asset (v5):**
+   - `games/kawanakajima-foundry-samurai-proof/assets/samurai_character.glb` (1.29 MB, Foundry Blender v5 with lamellar armor, kabuto helmet, katana)
+   - Unity StreamingAssets copy: `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` (2.74 MB)
+   - Contact sheet and hero render: `games/kawanakajima-foundry-samurai-proof/assets/samurai_character_contact_sheet.png`, `samurai_character_hero.png`
+
+- **20-samurai battlefield pack (v3, Foundry):**
+   - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` (6.87 MB)
+   - Manifest with 20 named warriors (10 Takeda / 10 Uesugi)
+
+- **Browser proof (Three.js WebGL):**
+   - `games/kawanakajima-foundry-samurai-proof/index.html` — 20 samurai, 6 camera presets, charge/reform/clash interaction, 5 WAV audio tracks, review panel with contact sheet + hero render
+   - `node verify.js` passes all structure/asset/size checks
+   - `node browser-smoke-chromium.mjs` passes: CAPTURE_READY, 20 actors, nonblank canvas, no console errors
+
 - **Audio:**
-  - Foundry WAVs (battlefield loop, charge, clash, formation step, UI confirm) under `assets/audio/` and `Resources/KawanakajimaAudio/` in Unity.
+   - 5 Foundry WAVs: `battlefield_loop.wav` (2.53 MB), `charge_cue.wav`, `clash_accent.wav`, `formation_step.wav`, `ui_confirm.wav`
+   - Integrated in browser proof and Unity `Resources/KawanakajimaAudio/`
+
 - **Unity handoff project:**
-  - `unity/kawanakajima-samurai/` — complete project with glTFast, `KawanakajimaRuntimeBootstrap.cs` (builds world at Play Mode start), `KawanakajimaUnityBuild.cs` (Editor build hooks for WebGL/Linux/Mac).
-  - `Kawanakajima.unity` scene registered in `EditorBuildSettings`.
-- **Documentation:**
-  - `ASSET_MANIFEST.md`, `DELIVERABLE_STATUS.md`, `VERIFICATION.json`, `UNITY_BLOCKER.md`, `WORKLOG.md`, `PREVIEW.md` all present in related work orders.
+   - `unity/kawanakajima-samurai/` — complete project with glTFast, `KawanakajimaRuntimeBootstrap.cs` (builds world at Play Mode start, 20 actors, charge/reform/clash mechanics, 6 camera presets, audio toggle), `KawanakajimaUnityBuild.cs` (Editor build hooks)
+   - `Kawanakajima.unity` scene registered in `EditorBuildSettings`
+
+- **Mac build evidence (local Mac only):**
+   - `UNITY_BUILD_VERIFICATION.md` documents a successful Mac build (112 MB `.app`) produced on local Mac Studio with Unity 2023.2.20f1
+   - Unity MCP plugin verified, scene load verified, 38 MCP tools available
+   - **Build artifact NOT committed to this branch** — only documentation evidence exists
 
 ### What is missing / blocking completion
-1. **Unity Mac build not committed or verified on this branch:**
-   - The Mac worker produced a 112 MB `KawanakajimaSamurai.app` on a related branch, but it is not on `factoryx/samurai-country-battle-20-20260621`. The Unity MCP listener (`host.docker.internal:27481`) was reachable during the Mac-local run, but no build artifact exists on this branch.
-2. **Samurai v6 not yet integrated:**
-   - v6 (599 KB GLB, improved mempo face, helmet crest, geta sandals, armor details) exists on the worker branch (`factoryx/factory-edo-woodblock/work-order-1782008767760-7-11`) but needs to be integrated here: replace `samurai_character.glb`, update contact sheet, update Unity StreamingAssets, update `ASSET_MANIFEST.md`.
-3. **PR #167 merge blocked by branch protection:**
-   - Automated reviewer APPROVED. CI checks all green. Merge blocked by GitHub policy requiring 1 approving review from a write-access reviewer. This is external to the deliverable.
 
-### Decision
-The deliverable is **NOT complete** on this branch. The samurai v6 asset is a significant quality improvement over v5 and should be integrated. The Unity Mac build needs to be either produced on this branch or documented as blocked. Until those two items are addressed, the deliverable cannot be marked done.
+1. **Unity Mac build artifact not committed:** The 112 MB `KawanakajimaSamurai.app` exists on the Mac worker's local filesystem but was never pushed to this branch. Without a build artifact, the deliverable cannot be verified as truly complete. This requires either:
+   - An agent with Mac access to commit the build artifact (via git LFS or subrepo), or
+   - Re-producing the build on the Mac worker and committing it
+
+2. **Samurai v6 not integrated:** A v6 Blender export was planned with improved details (mempo face, helmet crest, geta sandals), but v6 GLB was never produced on this branch. The v5 asset remains the integrated version. The worker's Foundry instance would need to be called again for a fidelity pass.
+
+3. **PR #167 merge blocked:** The PR has automated APPROVED status and all CI checks green, but merge requires 1 approving review from a write-access reviewer. This is external to the deliverable but prevents final landing.
+
+## Decision
+
+The deliverable is **NOT complete** on this branch. The browser proof and Unity source handoff are coherent and reviewable, but the Unity Mac build artifact — the primary "playable game" evidence — is not committed. The samurai v6 fidelity pass is a quality enhancement but not blocking. Until the build artifact lands on this branch (or an equivalent verified build), the deliverable should remain in progress.
 
 ## Tickets
 
 ```yaml
 tickets:
-  - id: integrate-samurai-v6-asset
-    title: Integrate samurai v6 GLB into browser proof and Unity handoff
+  - id: commit-unity-mac-build
+    title: Commit Unity Mac build artifact to this branch
     goal: >
-      Replace samurai_character.glb on this branch with the v6 export
-      (599 KB, improved mempo, helmet crest, geta sandals, armor detail) from
-      games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai/improved-20260620-v6/.
-      Also replace samurai_character_contact_sheet.png with the v6 contact sheet.
-      Update Unity StreamingAssets/Kawanakajima/samurai_character.glb.
-      Update ASSET_MANIFEST.md with v6 provenance and verify the browser proof
-      still loads correctly.
+      On the Mac worker, copy the 112 MB
+      `Builds/Mac/KawanakajimaSamurai.app` from the Unity project workspace
+      into this branch's repo (add to git, respecting LFS for large files).
+      Verify the .app runs without crash and includes all 20 samurai.
+      If the build artifact no longer exists, re-run `KawanakajimaUnityBuild.BuildMac`
+      and commit the fresh output.
     profile: qwen3.6:35b-a3b-coding-mxfp8
     depends_on: []
 
-  - id: unity-build-verification
-    title: Produce or re-verify Unity Mac build with samurai v6
-    goal: >
-      Using the Mac Unity MCP listener at
-      http://host.docker.internal:27481/mcp, integrate the v6 samurai GLB into
-      the Unity project, run the scene in Play Mode to verify all 20 samurai
-      load with correct meshes, and produce a new Mac build
-      (Builds/Mac/KawanakajimaSamurai.app). Capture screenshots from multiple
-      camera angles as evidence. If the listener is unreachable, document the
-      blocker in UNITY_BLOCKER.md with exact error output.
-    profile: qwen3.6:35b-a3b-coding-mxfp8
-    depends_on:
-      - integrate-samurai-v6-asset
-
   - id: update-pr-167
-    title: Update PR #167 with v6 assets and Unity build evidence
+    title: Update PR #167 body with current status and build evidence
     goal: >
-      After v6 integration and Unity build verification, push commits to this
-      branch and update PR #167's body with: samurai v6 quality improvements,
-      new Unity build artifact or blocker documentation, updated verification
-      evidence, and current preview path. Ensure all CI checks still pass.
+      Push commits to this branch (Unity build artifact + any documentation),
+      then update PR #167's body with: current samurai asset version, Unity build
+      evidence (or blocker documentation if build fails), updated verification
+      status, and correct preview path. Verify all CI checks still pass.
     profile: qwen3.6:35b-a3b-coding-mxfp8
     depends_on:
-      - unity-build-verification
+      - commit-unity-mac-build
+
+  - id: samurai-fidelity-v6-patch
+    title: Integrate samurai v6 GLB quality pass (optional enhancement)
+    goal: >
+      If Foundry is reachable and responsive, produce a v6 samurai GLB with
+      improved mempo face, helmet crest, geta sandals, and armor detail.
+      Replace samurai_character.glb in both browser proof and Unity StreamingAssets.
+      Update ASSET_MANIFEST.md and WORK_PLAN.md. If Foundry is unavailable or
+      v5 quality is acceptable, mark this ticket as not-needed and document why.
+    profile: qwen3.6:35b-a3b-coding-mxfp8
+    depends_on: []
 ```
 
 ## Remaining Blockers
 
 | Blocker | Status | Impact |
 |---------|--------|--------|
-| Unity Mac build not on this branch | Needs production | Blocks deliverable completion |
-| PR #167 merge blocked by branch protection | External | Blocks merge to main; doesn't block deliverable completion |
-| Samuria v6 not yet integrated on this branch | Next ticket | Blocks quality bar for visual fidelity |
+| Unity Mac build artifact not committed to branch | Needs Mac worker action | Blocks deliverable completion |
+| PR #167 merge blocked by branch protection | External (needs human reviewer) | Blocks merge to main; doesn't block deliverable completion |
+| Samurai v6 fidelity pass | Not yet attempted | Quality enhancement, not blocking |
+| VERIFICATION.md, PREVIEW.md, WORKLOG.md at deliverable level | Empty placeholders | Needs population with current evidence |
+
+## Asset Quality Summary
+
+| Asset | Version | Size | Location | Status |
+|-------|---------|------|----------|--------|
+| Samurai character GLB | v5 | 1.29 MB | `games/kawanakajima-foundry-samurai-proof/assets/samurai_character.glb` | Integrated, reviewable |
+| Battlefield pack GLB | v3 | 6.87 MB | `unity/.../StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` | Integrated, reviewable |
+| Samurai contact sheet | v5 | 1.12 MB | `games/.../samurai_character_contact_sheet.png` | Present |
+| Samurai hero render | v5 | 669 KB | `games/.../samurai_character_hero.png` | Present |
+| Audio loop | Foundry | 2.53 MB | `games/.../audio/battlefield_loop.wav` + Unity | Integrated |
+| Audio SFX (4x) | Foundry | <100 KB total | `games/.../audio/` + Unity | Integrated |
+| Mac build (.app) | v1 | 112 MB | `unity/Builds/Mac/KawanakajimaSamurai.app` | **Not on branch** |
