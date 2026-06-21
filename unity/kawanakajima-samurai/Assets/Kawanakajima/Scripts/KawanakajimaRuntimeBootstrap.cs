@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using GLTFast;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
 {
@@ -68,6 +69,10 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         assetsReady = actors.Count == ActorCount;
         status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : "UNITY HANDOFF LOAD FAILED";
         Debug.Log(status + " actors=" + actors.Count + " pack=" + foundryBattlefieldPackReady + " audio=" + (musicSource.clip != null));
+        if (Application.isBatchMode)
+        {
+            Application.Quit(assetsReady ? 0 : 1);
+        }
     }
 
     private void Update()
@@ -114,10 +119,37 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
 
     private static Material MakeMaterial(string name, Color color)
     {
-        var shader = Shader.Find("Standard");
-        var material = new Material(shader) { name = name, color = color };
-        material.SetFloat("_Glossiness", 0.08f);
+        var shader = FindRuntimeShader();
+        if (shader == null)
+        {
+            Debug.LogWarning("No runtime shader available for material " + name + "; continuing without a material.");
+            return null;
+        }
+
+        var material = new Material(shader) { name = name };
+        if (material.HasProperty("_Color")) material.color = color;
+        if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+        if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", 0.08f);
+        if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.08f);
         return material;
+    }
+
+    private static Shader FindRuntimeShader()
+    {
+        foreach (var shaderName in new[]
+        {
+            "Standard",
+            "Universal Render Pipeline/Lit",
+            "Universal Render Pipeline/Unlit",
+            "Unlit/Color",
+            "Diffuse",
+        })
+        {
+            var shader = Shader.Find(shaderName);
+            if (shader != null) return shader;
+        }
+
+        return null;
     }
 
     private void CreateCameraAndAudio()
@@ -224,6 +256,12 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
 
     private async Task LoadSamuraiFormation()
     {
+        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+        {
+            CreateHeadlessFormationProxies();
+            return;
+        }
+
         var url = StreamingAssetUrl(samuraiGlbStreamingAssetsPath);
         var gltf = new GltfImport();
         var loaded = await gltf.Load(url);
@@ -263,8 +301,36 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         }
     }
 
+    private void CreateHeadlessFormationProxies()
+    {
+        Debug.Log("Null graphics device detected; using non-rendered actor proxies for automated launch verification.");
+        for (int i = 0; i < ActorCount; i++)
+        {
+            bool takeda = i < 10;
+            var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_Samurai_" + (i % 10 + 1).ToString("00") + "_HeadlessProxy");
+            ConfigureActorRoot(root, i, takeda);
+
+            actors.Add(new Actor
+            {
+                Root = root,
+                Takeda = takeda,
+                Index = i,
+                BasePosition = root.transform.position,
+                BaseRotation = root.transform.rotation,
+                ChargeTarget = root.transform.position,
+                IdlePhase = i * 0.47f
+            });
+        }
+    }
+
     private async Task LoadFoundryBattlefieldPack()
     {
+        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+        {
+            Debug.Log("Null graphics device detected; skipping optional Foundry battlefield pack instantiation.");
+            return;
+        }
+
         var url = StreamingAssetUrl(battlefieldPackGlbStreamingAssetsPath);
         var gltf = new GltfImport();
         var loaded = await gltf.Load(url);

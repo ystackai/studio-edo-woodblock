@@ -2,7 +2,7 @@
 
 **Deliverable:** `samurai-country-battle-20-20260621`
 **Branch:** `factoryx/samurai-country-battle-20-20260621`
-**Status:** In progress — samurai v6 integrated, Unity Mac build artifact/evidence still pending on this branch
+**Status:** In progress — v6 integrated, Unity Mac build evidence recorded, PR update/review still pending
 **Related PR:** https://github.com/ystackai/studio-edo-woodblock/pull/167 (OPEN, approved by automation, merge blocked by branch protection requiring a write-access reviewer)
 **Last updated:** 2026-06-21
 
@@ -32,58 +32,42 @@
   - `unity/kawanakajima-samurai/` contains the glTFast project, runtime bootstrap, editor build hooks, scene, audio, StreamingAssets, and verification docs.
   - `node unity/kawanakajima-samurai/verify-unity-handoff.js` passes with the v6 GLB.
 
-- **Mac build documentation:**
-  - Existing docs record a successful Mac build on a related branch/workspace, but the actual `.app` artifact is not present on this branch.
+- **Mac build evidence:**
+  - `UNITY_BUILD_VERIFICATION.md` records a fresh v6 Mac build from this branch.
+  - Local artifact: `/Users/marcus/codex-work/studio-edo-woodblock-samurai-country-battle-20-20260621/unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app`
+  - Bundle: 110 MB, 191 files.
+  - Batch player check exits 0 and logs `KAWANAKAJIMA_UNITY_READY actors=20 pack=False audio=True`.
 
 ### What is missing / blocking completion
 
-1. **Unity Mac build artifact or fresh build evidence on this branch:**
-   - The deliverable still needs a current Mac build produced from this branch after v6 integration, or exact blocker documentation if the Mac Unity MCP listener/build path fails.
-   - If committing the `.app`, respect GitHub/LFS constraints. If committing the artifact is impractical, record a reproducible build command, logs, screenshots, and a reviewable artifact location.
-
-2. **PR/merge path:**
+1. **PR/merge path:**
    - Existing PRs are blocked by GitHub branch protection requiring a write-access human review. Automation cannot self-approve or bypass this.
 
 ### Decision
 
-The deliverable is **not complete** yet. The v6 samurai asset integration is done and verified in browser plus Unity handoff structure. The remaining blocker is a current Unity Mac build artifact/evidence from this branch, followed by PR status updates.
+The v6 samurai asset integration and fresh Mac build evidence are recorded. The remaining internal task is to update the active PR/review status with that evidence. Final merge remains externally blocked by branch protection requiring a write-access human reviewer.
 
 ## Tickets
 
 ```yaml
 tickets:
-  - id: commit-unity-mac-build
-    title: Produce and record Unity Mac build evidence for v6 branch
-    goal: >
-      On the Mac worker, run the Unity build from
-      `factoryx/samurai-country-battle-20-20260621` after the v6 asset
-      integration. Verify the built game starts, loads all 20 samurai, and
-      uses the v6 samurai GLB. Commit lightweight build evidence: logs,
-      screenshots, verification notes, and artifact location. Commit the
-      `.app` itself only if repository/LFS constraints allow it. If Unity MCP
-      or the local Editor is unreachable, update `UNITY_BLOCKER.md` and
-      `UNITY_BUILD_VERIFICATION.md` with exact commands and errors.
-    profile: qwen3.6:35b-a3b-coding-mxfp8
-    depends_on: []
-
-  - id: update-pr-167
+  - id: update-pr-175
     title: Update PR/review status with v6 and Unity build evidence
     goal: >
-      After Unity build evidence is recorded, update the relevant PR body with:
-      v6 samurai asset stats, browser smoke result, Unity handoff verification,
-      Mac build evidence or blocker, and the current preview path. Verify CI
-      and deploy-preview are green. Note that final merge still requires a
+      Update PR #175 with: v6 samurai asset stats, browser smoke result,
+      Unity handoff verification, Mac build command/result, local app artifact
+      path, checksums, and the current preview path. Verify CI and
+      deploy-preview are green. Note that final merge still requires a
       write-access human reviewer.
     profile: qwen3.6:35b-a3b-coding-mxfp8
-    depends_on:
-      - commit-unity-mac-build
+    depends_on: []
 ```
 
 ## Remaining Blockers
 
 | Blocker | Status | Impact |
 |---------|--------|--------|
-| Unity Mac build artifact/evidence from this branch | Needs Mac worker action | Blocks deliverable completion |
+| Unity Mac build evidence from this branch | Recorded | Local artifact path and checksums in `UNITY_BUILD_VERIFICATION.md` |
 | PR merge blocked by branch protection | External, needs human reviewer | Blocks merge to main |
 | Samurai v6 integration | Done on branch | Browser and Unity handoff verifiers pass |
 
@@ -96,4 +80,4 @@ tickets:
 | Battlefield pack GLB | v3 | 6.55 MB | `unity/.../StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` | Integrated, reviewable |
 | Samurai contact sheet | v6 | 4.9 MB | `games/.../samurai_character_contact_sheet.png` | Present |
 | Audio loop and SFX | Foundry | 5 WAV files | `games/.../audio/` and Unity `Resources/` | Integrated |
-| Mac build evidence | pending | needs current branch run | Unity build docs/artifact location | Blocking |
+| Mac build evidence | v6 branch | 110 MB app, 191 files; player check exit 0 | `UNITY_BUILD_VERIFICATION.md` | Recorded |
