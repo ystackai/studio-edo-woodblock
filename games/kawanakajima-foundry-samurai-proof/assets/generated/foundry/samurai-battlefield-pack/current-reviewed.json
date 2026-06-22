@@ -1,7 +1,7 @@
 {
-  "jobId": "asset-1782107223688-2e52241b",
-  "ingestedAt": "2026-06-22T05:48:30.625Z",
-  "sourceJobDir": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b",
+  "jobId": "asset-1782107707041-b4b1de77",
+  "ingestedAt": "2026-06-22T05:56:02.826Z",
+  "sourceJobDir": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107707041-b4b1de77",
   "reviewState": "passed",
   "stats": {
     "inspection_views": [
@@ -20,6 +20,6 @@
     "uesugi_count": 10,
     "warrior_count": 20
   },
-  "browserPackUrl": "assets/generated/foundry/samurai-battlefield-pack/asset-1782107223688-2e52241b/samurai_battlefield_pack.glb",
+  "browserPackUrl": "assets/generated/foundry/samurai-battlefield-pack/asset-1782107707041-b4b1de77/samurai_battlefield_pack.glb",
   "unityStreamingAssets": "unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb"
 }
