@@ -1,0 +1,65 @@
+{
+  "asset_name": "kawanakajima-camera-fixed-battlefield-pack",
+  "notes": [
+    "Generated through Asset Foundry using a /goal-style prompt.",
+    "Scene contains 20 named samurai: 10 Takeda and 10 Uesugi, staged in opposing ranks on a Japanese countryside battlefield.",
+    "Outputs include a single scene GLB, source blend, warrior manifest, and repeatable review camera contact sheet.",
+    "Review contract is copied from the recipe manifest so callers can reject missing identities, missing cameras, or blocky/Minecraft-like visual results."
+  ],
+  "outputs": {
+    "blender_script": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b/samurai_battlefield_pack_blender.py",
+    "blender_stderr": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b/blender_stderr.log",
+    "blender_stdout": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b/blender_stdout.log",
+    "contact_sheet": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b/samurai_battlefield_contact_sheet.png",
+    "glb": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b/samurai_battlefield_pack.glb",
+    "manifest": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b/samurai_battlefield_manifest.json",
+    "poster": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b/samurai_battlefield_wide_clash.png",
+    "source_blend": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782107223688-2e52241b/samurai_battlefield_pack_source.blend"
+  },
+  "recipe": "samurai_battlefield_pack",
+  "review_contract": {
+    "identity_acceptance": [
+      "manifest contains exactly takeda-01 through takeda-10 and uesugi-01 through uesugi-10, or an explicitly documented equivalent stable ID set",
+      "all 20 warriors have faction, pose, position, and yaw metadata",
+      "Takeda and Uesugi lines are visibly distinguishable by armor/banner palette and formation"
+    ],
+    "iteration_policy": "Render the same five battlefield cameras after every significant change; compare against the previous best contact sheet; repair the least realistic visible issue before declaring the pack review-ready.",
+    "prompt_format": "/goal",
+    "required_outputs": [
+      "samurai_battlefield_pack.glb",
+      "samurai_battlefield_pack_source.blend",
+      "samurai_battlefield_manifest.json",
+      "samurai_battlefield_contact_sheet.png",
+      "wide_clash/overhead_layout/takeda_line/uesugi_line/center_meeting stable renders"
+    ],
+    "stable_cameras": [
+      "wide_clash",
+      "overhead_layout",
+      "takeda_line",
+      "uesugi_line",
+      "center_meeting"
+    ],
+    "visual_acceptance": [
+      "scene reads as Japanese countryside battlefield with terrain variation, road, paddies/river, hills/cedars, banners, and dawn lighting",
+      "warriors are not blocky/Minecraft-like and do not collapse into indistinguishable low-detail cubes at line cameras",
+      "armor silhouettes show helmet, mask, shoulder plates, lamellar rows, weapons, and sashimono banners"
+    ]
+  },
+  "stats": {
+    "inspection_views": [
+      "wide_clash",
+      "overhead_layout",
+      "takeda_line",
+      "uesugi_line",
+      "center_meeting"
+    ],
+    "material_count": 29,
+    "mesh_count": 1745,
+    "object_count": 2622,
+    "prompt_format": "/goal",
+    "stable_camera_views": 5,
+    "takeda_count": 10,
+    "uesugi_count": 10,
+    "warrior_count": 20
+  }
+}
