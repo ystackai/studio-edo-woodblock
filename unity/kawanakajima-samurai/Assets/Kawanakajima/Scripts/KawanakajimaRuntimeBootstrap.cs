@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using GLTFast;
+using GLTFast.Materials;
 using UnityEngine;
 
 public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
@@ -48,6 +49,8 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private string status = "LOADING FOUNDRY SAMURAI";
     private Vector2 previousMouse;
 
+    private static readonly IMaterialGenerator GltfMaterialGenerator = new ShaderSafeGltfMaterialGenerator();
+
     private sealed class Actor
     {
         public GameObject Root;
@@ -57,6 +60,23 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         public Quaternion BaseRotation;
         public Vector3 ChargeTarget;
         public float IdlePhase;
+    }
+
+    private sealed class ShaderSafeGltfMaterialGenerator : IMaterialGenerator
+    {
+        public UnityEngine.Material GetDefaultMaterial(bool pointsSupport = false)
+        {
+            return null;
+        }
+
+        public UnityEngine.Material GenerateMaterial(GLTFast.Schema.MaterialBase gltfMaterial, IGltfReadable gltf, bool pointsSupport = false)
+        {
+            return null;
+        }
+
+        public void SetLogger(GLTFast.Logging.ICodeLogger logger)
+        {
+        }
     }
 
     private async void Start()
@@ -240,7 +260,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private async Task LoadSamuraiFormation()
     {
         var url = StreamingAssetUrl(samuraiGlbStreamingAssetsPath);
-        var gltf = new GltfImport();
+        var gltf = new GltfImport(null, null, GltfMaterialGenerator, null);
         var loaded = await gltf.Load(url);
         if (!loaded)
         {
@@ -291,7 +311,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private async Task LoadFoundryBattlefieldPack()
     {
         var url = StreamingAssetUrl(battlefieldPackGlbStreamingAssetsPath);
-        var gltf = new GltfImport();
+        var gltf = new GltfImport(null, null, GltfMaterialGenerator, null);
         var loaded = await gltf.Load(url);
         if (!loaded)
         {

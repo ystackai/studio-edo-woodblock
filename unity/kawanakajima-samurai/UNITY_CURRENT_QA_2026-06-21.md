@@ -170,3 +170,27 @@ KAWANAKAJIMA_UNITY_READY_FALLBACK actors=20 pack=True audio=True fallbackActors=
 ```
 
 This proves the Unity runtime can reach a playable/control-ready 20-actor world after the source fix, even when the stale player lacks the shaders needed for glTFast material instantiation. It is not the final deliverable because the loaded samurai GLB and battlefield pack are replaced by runtime fallback actors in this patched smoke test. The final gate still requires a licensed Unity rebuild and a smoke result without `fallbackActors=True` or `fallbackPack=True`.
+
+## Managed Patch GLB Smoke
+
+A second managed patch removed the stale player's glTF material-generator crash path by passing a shader-safe `IMaterialGenerator` into both runtime `GltfImport` instances. The generator returns null materials instead of asking glTFast's built-in material generator to construct materials from unavailable player shaders. Unity can still instantiate the GLB meshes; runtime materials fall back to Unity defaults.
+
+Repeatable command:
+
+```bash
+unity/kawanakajima-samurai/patch-existing-mac-player-managed.sh
+APP=/tmp/KawanakajimaSamurai-patched.app/Contents/MacOS/kawanakajima-samurai \
+  LOG=/tmp/kawanakajima-gltf-safe-smoke.log \
+  unity/kawanakajima-samurai/smoke-built-player.sh
+```
+
+Result:
+
+```text
+Built player smoke: PASS
+KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
+```
+
+This is the strongest Unity proof so far: the existing Mac player, patched with current managed source, can reach a 20-actor Kawanakajima world using the real samurai GLB and real 20-samurai battlefield pack GLB without runtime actor or pack fallbacks.
+
+The full active goal remains incomplete because a fresh Unity Editor rebuild is still blocked by the local license state, and the current asset pack remains stylized rather than the final desired realistic game-world quality.
