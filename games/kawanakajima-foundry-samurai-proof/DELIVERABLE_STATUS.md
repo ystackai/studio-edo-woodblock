@@ -12,10 +12,10 @@
   - Primary runtime asset: `assets/samurai_character.glb` (1.15 MB).
   - Source/evidence retained under `assets/generated/foundry/samurai/improved-20260622-v29/`; older v5 evidence remains preserved in history.
   - Contact sheet and hero render (v29) embedded in the in-game inspection panel.
-- **20-samurai battlefield pack:** live Asset Foundry Blender/GLB job `asset-1782107707041-b4b1de77` (review-gated API handoff; supersedes earlier `asset-1782103724605-0d84b27a` / `asset-1781933644954-6853e6a2` packs while preserving them in history).
-  - Preserved under `assets/generated/foundry/samurai-battlefield-pack/asset-1782107707041-b4b1de77/`.
+- **20-samurai battlefield pack:** live Asset Foundry Blender/GLB job `asset-1782108163124-4d8309bd` (review-gated API handoff; supersedes earlier `asset-1782103724605-0d84b27a` / `asset-1781933644954-6853e6a2` packs while preserving them in history).
+  - Preserved under `assets/generated/foundry/samurai-battlefield-pack/asset-1782108163124-4d8309bd/`.
   - Contains `samurai_battlefield_pack.glb`, source `.blend`, manifest, contact sheet, and five stable evidence camera renders.
-  - `review.json` is `state=passed`, proving the Asset Foundry review contract accepted required outputs, stable camera renders, 20-warrior 10/10 identity metadata, and minimum geometry/detail gates before handoff.
+  - `review.json` is `state=passed`, proving the Asset Foundry review contract accepted required outputs, stable camera renders, 20-warrior 10/10 identity metadata, minimum geometry/detail gates, and `center_gap=2.6` meeting-composition gate before handoff.
 - **20-warrior game proof:** browser/Three.js scene with 10 Takeda and 10 Uesugi samurai in a Japanese countryside battle tableau.
   - Uses the Foundry GLB as the visible character base.
   - Variants come from pose transforms, scale, formation, faction standards, and small additive props.

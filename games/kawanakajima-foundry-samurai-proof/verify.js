@@ -11,7 +11,7 @@ const SAMURAI_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai/improved-20260622-v29'
 );
-const BATTLEFIELD_JOB = 'asset-1782107707041-b4b1de77';
+const BATTLEFIELD_JOB = 'asset-1782108163124-4d8309bd';
 const BATTLEFIELD_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai-battlefield-pack',
