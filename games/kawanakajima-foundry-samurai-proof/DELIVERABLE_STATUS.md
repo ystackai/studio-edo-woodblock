@@ -1,8 +1,8 @@
 # DELIVERABLE_STATUS - Kawanakajima Foundry Samurai Proof
 
-**Updated:** 2026-06-20
+**Updated:** 2026-06-22
 **Work Order:** work-order-1781920715097-7-1 (retry on canonical 1781913967751-7-1)
-**PR:** https://github.com/ystackai/studio-edo-woodblock/pull/161
+**PR:** https://github.com/ystackai/studio-edo-woodblock/pull/161; current Unity QA follow-up: https://github.com/ystackai/studio-edo-woodblock/pull/180
 **Public preview:** https://www.ystackai.com/factoryx/previews/edo-woodblock/work-order-1781913967751-7-1/games/kawanakajima-foundry-samurai-proof/
 **Preview entrypoint:** `games/kawanakajima-foundry-samurai-proof/index.html`
 
@@ -30,15 +30,20 @@
   - Copies the Foundry WAVs into Unity `Resources`.
   - Includes a runtime bootstrap that builds the countryside tableau, loads the GLB with Unity glTFast, creates 20 actors, and wires camera/audio/charge/reform controls.
   - Includes a `P`/PACK toggle for loading and inspecting the Foundry-authored 20-samurai battlefield scene pack when Unity is available.
-  - Includes Editor build hooks for WebGL and Linux.
+  - Includes Editor build hooks for Mac, WebGL, and Linux.
+- **Unity managed-patched player smoke:** because the local Unity Editor batch build is currently license-blocked, the current managed source was compiled into the existing Mac player for smoke verification.
+  - Repeatable helper: `unity/kawanakajima-samurai/patch-existing-mac-player-managed.sh`.
+  - Smoke gate: `unity/kawanakajima-samurai/smoke-built-player.sh`.
+  - Passing readiness marker: `KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False`.
+  - This proves the patched player can load the real samurai GLB and real 20-samurai battlefield pack GLB without runtime actor or pack fallbacks.
 - **Verification evidence:** `VERIFICATION.json`, `verify.js`, `ASSET_MANIFEST.md`, six committed review screenshots under `screenshots/`, and hosted preview runtime checks.
 
 ## What Is Not Done
 
-- **Unity playable build:** not created. A Unity source handoff now exists, and the deployed Edo worker can reach the Mac-host Unity MCP listener with authenticated `ping` success.
-- **Unity remaining gap:** scene insertion and build verification still need to be run through the Mac Unity MCP listener. The Hetzner worker still should not be treated as a Unity Editor host.
+- **Fresh Unity build:** not produced from the current source because the local Unity Editor batch run fails license activation before import/build.
+- **Unity remaining gap:** activate the Mac Unity Editor license, run `unity/kawanakajima-samurai/run-local-unity-build.sh`, and inspect a freshly built player. The managed-patched existing player smoke is strong runtime evidence, but it is not a substitute for a fresh licensed Unity build.
 - **Autonomous completion:** not proven end-to-end. The retry loop produced useful artifacts, but the v5 repair and the later 20-samurai battlefield-pack handoff required manual intervention after earlier visuals still looked blocky/unusable.
 
 ## Current Review Verdict
 
-This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a Foundry-authored 20-samurai battlefield pack, and Unity source handoff. v5 supersedes the bad v4 single-character visual pass with a cleaner stylized samurai asset and refreshed Blender evidence; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Unity playable build not claimed: Mac Unity MCP listener reachability is resolved, but scene/build verification remains pending. PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical asset proof) plus follow-up PR #165.
+This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a Foundry-authored 20-samurai battlefield pack, Unity source handoff, and a managed-patched Mac player smoke that reaches `KAWANAKAJIMA_UNITY_READY` using the real GLBs with `fallbackActors=False fallbackPack=False`. v5 supersedes the bad v4 single-character visual pass with a cleaner stylized samurai asset and refreshed Blender evidence; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Final Unity completion is still not claimed: the fresh Unity Editor rebuild remains blocked by local license activation, and the current asset set remains stylized rather than final realistic game-world quality. PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical asset proof), follow-up PR #165, and current Unity QA PR #180.

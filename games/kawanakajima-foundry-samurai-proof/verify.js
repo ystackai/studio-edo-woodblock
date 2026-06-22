@@ -42,6 +42,7 @@ mustExist(path.join(ROOT, 'assets/audio/formation_step.wav'), 'file-backed forma
 mustExist(path.join(ROOT, 'assets/generated/foundry/audio/asset-1781916330853-f7d831d9/summary.json'), 'Foundry audio summary');
 mustExist(path.join(ROOT, 'DELIVERABLE_STATUS.md'), 'reviewable deliverable status');
 mustExist(path.join(ROOT, 'UNITY_BLOCKER.md'), 'Unity blocker note');
+mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md'), 'Unity current QA note');
 mustExist(path.join(ROOT, '../../.factoryx/preview-entrypoint'), 'FactoryX preview entrypoint');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), 'Unity handoff README');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/verify-unity-handoff.js'), 'Unity handoff verifier');
@@ -71,8 +72,19 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'asset Foundry job', test: c => /asset-1781913507610-bf69e595/.test(c) },
   { name: 'battlefield Foundry job', test: c => new RegExp(BATTLEFIELD_JOB).test(c) },
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
-  { name: 'Unity blocker', test: c => /Unity playable world:\*\* not created|Unity Editor/.test(c) },
+  { name: 'Unity managed patch GLB smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
+  { name: 'fresh Unity build caveat', test: c => /Fresh Unity build:\*\* not produced|fresh Unity Editor rebuild remains blocked/.test(c) },
   { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
+]);
+
+checkContent(path.join(ROOT, 'ASSET_MANIFEST.md'), [
+  { name: 'asset manifest Unity managed patch smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
+  { name: 'asset manifest fresh Unity build caveat', test: c => /Fresh Unity playable build:\*\* Not created yet|fresh build\/inspection/.test(c) },
+]);
+
+checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md'), [
+  { name: 'Unity QA real GLB managed patch smoke', test: c => /Managed Patch GLB Smoke[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
+  { name: 'Unity QA license caveat', test: c => /No valid Unity Editor license found|license state/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
@@ -144,8 +156,13 @@ if (errors.length) {
     audioFoundryJob: 'asset-1781916330853-f7d831d9',
     audioLoopSize: loop.size,
     unityHandoff: true,
-    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff',
+    unityManagedPatchSmoke: {
+      passed: true,
+      readiness: 'KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False',
+      note: 'Existing Mac player patched with current managed source loads real samurai and battlefield GLBs; fresh Unity Editor rebuild remains license-blocked.'
+    },
+    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff, managed-patched Unity player real-GLB smoke',
     passed: true
-  }, null, 2));
+  }, null, 2) + '\n');
   console.log('Wrote VERIFICATION.json');
 }

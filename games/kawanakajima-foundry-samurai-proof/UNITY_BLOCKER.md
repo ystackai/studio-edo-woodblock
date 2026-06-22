@@ -2,6 +2,14 @@
 
 **Work Order:** work-order-1781940455825-6-1 (guarded Unity retry) — prior: work-order-1781920715097-7-1 (retry; canonical branch work-order-1781913967751-7-1)
 
+**Current note, 2026-06-22:** this historical blocker is partly superseded by `unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md`. The fresh Unity Editor build is still blocked by license activation, but the current managed source has been compiled into the existing Mac player and smoked successfully with real GLBs:
+
+```text
+KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
+```
+
+So the remaining blocker is a fresh licensed Unity rebuild and inspection, not basic Unity runtime loading of the samurai/battlefield GLBs.
+
 Unity Editor is not available in the Hetzner worker container runtime. The Unity MCP listener is now available through the Mac host bridge and is reachable from the deployed Edo worker.
 
 - `unity --version` returns `0.1.0-beta.7` (standalone Unity CLI is present).

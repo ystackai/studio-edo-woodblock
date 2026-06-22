@@ -2,14 +2,20 @@
 
 **Work Order:** work-order-1781972094624-7-9
 **Title:** Autonomous Kawanakajima 20 Samurai Unity proof after gateway fix
-**Date:** 2026-06-20
+**Date:** 2026-06-22
 **Completion mode:** polish_until_deadline
 **Branch:** `factoryx/kawanakajima-autonomous-unity-proof-20260620-gatewayfix-1614`
 **Preview:** `games/kawanakajima-foundry-samurai-proof/index.html`
 
 ## Status
 
-Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity playable build is **not included in this PR**. The Unity source handoff is present, and the deployed Edo worker can now reach the Mac-host Unity MCP listener with authenticated `ping` success; scene insertion/build verification still needs to be run against that listener.
+Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity source handoff is present. A managed-code patch of the existing Mac player now smokes successfully with the current runtime source and real GLBs:
+
+```text
+KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
+```
+
+That proves the current Unity runtime can load the samurai GLB and 20-samurai battlefield pack GLB without runtime actor or pack fallback. Fresh Unity Editor rebuild is still not included because the local Unity Editor batch build is blocked by license activation.
 
 ## Generated Assets (Asset Foundry provenance)
 
@@ -18,7 +24,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 - **Size:** 1.23 MB
 - **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v5 repair pass (2026-06-20)
 - **Source:** `http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source_v5.blend`
-- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. No Unity build artifact was produced in this PR.
+- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. Current Unity managed-patched player smoke proves this GLB can load in the existing Mac player; a fresh Unity Editor rebuild is still pending license activation.
 - **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
@@ -58,6 +64,20 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 - `unity/kawanakajima-samurai/Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs` — build hooks
 - `unity/kawanakajima-samurai/Assets/Kawanakajima/Scenes/Kawanakajima.unity` — scene file
 
+## Unity Runtime Verification
+
+- `unity/kawanakajima-samurai/verify-unity-handoff.js` — structure verifier for GLBs, audio, review images, runtime controls, shader-safe glTF material generation, and build hooks.
+- `unity/kawanakajima-samurai/patch-existing-mac-player-managed.sh` — compiles current managed source into the existing Mac player when Unity Editor batch build is license-blocked.
+- `unity/kawanakajima-samurai/smoke-built-player.sh` — repeatable built-player readiness gate.
+- Passing managed-patched smoke:
+
+```text
+Built player smoke: PASS
+KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
+```
+
+This is runtime evidence, not a fresh build artifact. The final Unity gate still requires a licensed Editor rebuild and visual/playable inspection of that fresh build.
+
 ## Integration Points
 
 - `index.html` loads `assets/samurai_character.glb` via THREE.GLTFLoader
@@ -80,7 +100,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 
 ## Known Limitations
 
-- **Unity playable build:** Not created in this PR. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac-host Unity MCP listener is reachable from the deployed Edo worker at `http://172.21.0.1:25666` and authenticated `POST /api/system-tools/ping` returns `pong`. The next pass should use that listener for scene insertion and build verification.
+- **Fresh Unity playable build:** Not created yet. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac host has Unity Editor 2023.2.20f1, but batch build currently fails with `No valid Unity Editor license found`. The managed-patched existing Mac player smoke passes with real GLBs, but the next pass still needs license activation and a fresh build/inspection.
 - **Asset fidelity:** Stylized, not photoreal. v5 improved over v4 (no more slab/blocky reads).
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.
