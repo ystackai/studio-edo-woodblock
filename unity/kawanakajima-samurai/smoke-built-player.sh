@@ -48,7 +48,7 @@ fi
 
 if grep -E "KAWANAKAJIMA_UNITY_READY.*actors=20.*pack=True.*audio=True|KAWANAKAJIMA_UNITY_READY.*actors=20.*pack=true.*audio=true" "$LOG" >/dev/null; then
   echo "Built player smoke: PASS"
-  grep -E "KAWANAKAJIMA_UNITY_READY|actors=|pack=|audio=" "$LOG"
+  grep -E "KAWANAKAJIMA_UNITY_READY|actors=|pack=|audio=|fallbackActors=|fallbackPack=" "$LOG"
   exit 0
 fi
 

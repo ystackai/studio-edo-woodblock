@@ -49,11 +49,13 @@ mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', '20-s
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'playable controls', /KeyCode\.C|KeyCode\.R|ToggleMusic|ApplyCameraPreset/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'readiness marker', /KAWANAKAJIMA_UNITY_READY/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'headless shader fallback', /KAWANAKAJIMA_SHADER_FALLBACK[\s\S]*ApplySharedMaterial/);
+mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'runtime actor fallback marker', /KAWANAKAJIMA_UNITY_READY_FALLBACK[\s\S]*KAWANAKAJIMA_GLTF_ACTOR_FALLBACK[\s\S]*KAWANAKAJIMA_GLTF_PACK_FALLBACK/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'scene creation menu', /Create Or Refresh Scene/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'WebGL build hook', /BuildTarget\.WebGL/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Linux build hook', /BuildTarget\.StandaloneLinux64/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Mac build hook', /BuildTarget\.StandaloneOSX/);
 mustContain('smoke-built-player.sh', 'built player readiness smoke test', /KAWANAKAJIMA_UNITY_READY[\s\S]*actors=20[\s\S]*Built player smoke: PASS/);
+mustContain('patch-existing-mac-player-managed.sh', 'managed patch smoke helper', /Assembly-CSharp\.dll[\s\S]*Roslyn[\s\S]*smoke-built-player\.sh/);
 mustContain('README.md', 'verified local Unity build documented', /Verified Local Build[\s\S]*KawanakajimaUnityBuild\.BuildMac[\s\S]*Exit code 0/);
 mustContain('UNITY_BUILD_VERIFICATION.md', 'Mac build success documented', /Build result: succeeded[\s\S]*Builds\/Mac\/KawanakajimaSamurai\.app/);
 mustContain('UNITY_LOCAL_STATUS.md', 'Mac Unity MCP routing documented', /Worker routed URL:\s*`http:\/\/172\.21\.0\.1:25666`[\s\S]*Worker preflight: passed/);

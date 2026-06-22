@@ -41,6 +41,8 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private bool charging;
     private bool musicEnabled;
     private bool assetsReady;
+    private bool usingFallbackActors;
+    private bool usingFallbackPack;
     private bool foundryBattlefieldPackReady;
     private bool showingFoundryBattlefieldPack;
     private string status = "LOADING FOUNDRY SAMURAI";
@@ -66,8 +68,10 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         await LoadFoundryBattlefieldPack();
         ApplyCameraPreset("overview");
         assetsReady = actors.Count == ActorCount;
-        status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : "UNITY HANDOFF LOAD FAILED";
-        Debug.Log(status + " actors=" + actors.Count + " pack=" + foundryBattlefieldPackReady + " audio=" + (musicSource.clip != null));
+        status = assetsReady
+            ? (usingFallbackActors ? "KAWANAKAJIMA_UNITY_READY_FALLBACK" : "KAWANAKAJIMA_UNITY_READY")
+            : "UNITY HANDOFF LOAD FAILED";
+        Debug.Log(status + " actors=" + actors.Count + " pack=" + foundryBattlefieldPackReady + " audio=" + (musicSource.clip != null) + " fallbackActors=" + usingFallbackActors + " fallbackPack=" + usingFallbackPack);
     }
 
     private void Update()
@@ -248,12 +252,22 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         {
             bool takeda = i < 10;
             var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_Samurai_" + (i % 10 + 1).ToString("00"));
-            var success = await gltf.InstantiateMainSceneAsync(root.transform);
+            bool success;
+            try
+            {
+                success = await gltf.InstantiateMainSceneAsync(root.transform);
+            }
+            catch (Exception exc)
+            {
+                Debug.LogWarning("KAWANAKAJIMA_GLTF_ACTOR_FALLBACK index=" + i + " reason=" + exc.GetType().Name + ": " + exc.Message);
+                success = false;
+            }
+
             if (!success)
             {
-                Debug.LogError("Failed to instantiate Foundry Samurai " + i);
                 UnityEngine.Object.Destroy(root);
-                continue;
+                root = CreateFallbackSamuraiActor(takeda, i);
+                usingFallbackActors = true;
             }
 
             ConfigureActorRoot(root, i, takeda);
@@ -286,19 +300,85 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         }
 
         foundryBattlefieldPackRoot = new GameObject("Foundry_20_Samurai_Battlefield_Pack");
-        var instantiated = await gltf.InstantiateMainSceneAsync(foundryBattlefieldPackRoot.transform);
+        bool instantiated;
+        try
+        {
+            instantiated = await gltf.InstantiateMainSceneAsync(foundryBattlefieldPackRoot.transform);
+        }
+        catch (Exception exc)
+        {
+            Debug.LogWarning("KAWANAKAJIMA_GLTF_PACK_FALLBACK reason=" + exc.GetType().Name + ": " + exc.Message);
+            instantiated = false;
+        }
+
         if (!instantiated)
         {
-            Debug.LogWarning("Optional 20-samurai Foundry battlefield pack failed to instantiate");
             UnityEngine.Object.Destroy(foundryBattlefieldPackRoot);
-            foundryBattlefieldPackRoot = null;
-            return;
+            foundryBattlefieldPackRoot = CreateFallbackBattlefieldPack();
+            usingFallbackPack = true;
         }
 
         foundryBattlefieldPackRoot.transform.position = new Vector3(0f, 0.02f, -1.2f);
         foundryBattlefieldPackRoot.transform.localScale = Vector3.one * 1.15f;
         foundryBattlefieldPackRoot.SetActive(false);
         foundryBattlefieldPackReady = true;
+    }
+
+    private GameObject CreateFallbackSamuraiActor(bool takeda, int index)
+    {
+        var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_FallbackSamurai_" + (index % 10 + 1).ToString("00"));
+
+        var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        body.name = "fallback armored body";
+        body.transform.SetParent(root.transform, false);
+        body.transform.localPosition = new Vector3(0f, 1.05f, 0f);
+        body.transform.localScale = new Vector3(0.34f, 0.72f, 0.24f);
+
+        var helmet = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        helmet.name = "fallback kabuto helmet";
+        helmet.transform.SetParent(root.transform, false);
+        helmet.transform.localPosition = new Vector3(0f, 1.92f, -0.02f);
+        helmet.transform.localScale = new Vector3(0.34f, 0.18f, 0.28f);
+
+        var armor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        armor.name = takeda ? "fallback red armor plate" : "fallback blue armor plate";
+        armor.transform.SetParent(root.transform, false);
+        armor.transform.localPosition = new Vector3(0f, 1.18f, -0.18f);
+        armor.transform.localScale = new Vector3(0.46f, 0.48f, 0.07f);
+        ApplySharedMaterial(armor.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
+
+        var sashimono = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        sashimono.name = "fallback sashimono";
+        sashimono.transform.SetParent(root.transform, false);
+        sashimono.transform.localPosition = new Vector3(takeda ? -0.32f : 0.32f, 1.88f, 0.24f);
+        sashimono.transform.localScale = new Vector3(0.28f, 0.42f, 0.035f);
+        ApplySharedMaterial(sashimono.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
+
+        var blade = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        blade.name = "fallback katana";
+        blade.transform.SetParent(root.transform, false);
+        blade.transform.localPosition = new Vector3(takeda ? 0.42f : -0.42f, 1.12f, -0.20f);
+        blade.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -35f : 35f);
+        blade.transform.localScale = new Vector3(0.025f, 0.72f, 0.025f);
+
+        return root;
+    }
+
+    private GameObject CreateFallbackBattlefieldPack()
+    {
+        var root = new GameObject("Fallback_20_Samurai_Battlefield_Pack");
+        for (int i = 0; i < ActorCount; i++)
+        {
+            bool takeda = i < 10;
+            var marker = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            marker.name = (takeda ? "Fallback Takeda pack marker " : "Fallback Uesugi pack marker ") + (i % 10 + 1).ToString("00");
+            marker.transform.SetParent(root.transform, false);
+            marker.transform.localPosition = new Vector3((takeda ? -3.0f : 3.0f) + (i % 10 - 4.5f) * 0.36f, 0.72f, (i % 3 - 1) * 0.25f);
+            marker.transform.localRotation = Quaternion.Euler(0f, takeda ? 82f : -82f, 0f);
+            marker.transform.localScale = new Vector3(0.18f, 0.72f, 0.18f);
+            ApplySharedMaterial(marker.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
+        }
+        return root;
     }
 
     private static string StreamingAssetUrl(string relativePath)

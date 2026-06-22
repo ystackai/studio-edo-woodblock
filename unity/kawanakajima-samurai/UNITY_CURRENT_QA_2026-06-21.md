@@ -145,3 +145,28 @@ KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True
 ```
 
 The currently existing Mac build fails this smoke test because it was built before the material fallback source fix.
+
+## Managed Patch Smoke
+
+Because the Unity Editor currently cannot run a licensed fresh build, a managed-code patch path was tested against the existing Mac app:
+
+```bash
+unity/kawanakajima-samurai/patch-existing-mac-player-managed.sh
+APP=/tmp/KawanakajimaSamurai-patched.app/Contents/MacOS/kawanakajima-samurai \
+  unity/kawanakajima-samurai/smoke-built-player.sh
+```
+
+The patch script compiles `KawanakajimaRuntimeBootstrap.cs` into a replacement `Assembly-CSharp.dll` using Unity's bundled Roslyn compiler and the existing player's managed references, then copies the existing app to `/tmp/KawanakajimaSamurai-patched.app` and replaces only the managed game assembly.
+
+Result:
+
+```text
+KAWANAKAJIMA_SHADER_FALLBACK material=Paper earth Standard shader unavailable; using Unity primitive default material
+KAWANAKAJIMA_GLTF_ACTOR_FALLBACK index=0 reason=NullReferenceException: Object reference not set to an instance of an object
+...
+KAWANAKAJIMA_GLTF_ACTOR_FALLBACK index=19 reason=NullReferenceException: Object reference not set to an instance of an object
+KAWANAKAJIMA_GLTF_PACK_FALLBACK reason=NullReferenceException: Object reference not set to an instance of an object
+KAWANAKAJIMA_UNITY_READY_FALLBACK actors=20 pack=True audio=True fallbackActors=True fallbackPack=True
+```
+
+This proves the Unity runtime can reach a playable/control-ready 20-actor world after the source fix, even when the stale player lacks the shaders needed for glTFast material instantiation. It is not the final deliverable because the loaded samurai GLB and battlefield pack are replaced by runtime fallback actors in this patched smoke test. The final gate still requires a licensed Unity rebuild and a smoke result without `fallbackActors=True` or `fallbackPack=True`.
