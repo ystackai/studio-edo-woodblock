@@ -68,3 +68,50 @@ Fresh local Unity build gate: fail due to missing/expired Unity Editor license.
 This is not an asset or project-code failure. The next run needs an activated Unity Editor license for batch mode on this Mac, then `./run-local-unity-build.sh` should be run from `unity/kawanakajima-samurai/`.
 
 The full active goal remains incomplete until a fresh playable Unity build is produced and inspected.
+
+## Existing Built Player Smoke
+
+An older local Mac build exists at:
+
+```text
+/Users/marcus/Documents/Github/studio-edo-woodblock/unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app
+```
+
+Bundle inspection:
+
+```text
+Size: 116 MB
+Executable: Contents/MacOS/kawanakajima-samurai
+UnityBuildNumber: 0e25a174756c
+Unity player version: 2023.2.20f1
+Architectures: x86_64 and arm64
+```
+
+Headless smoke command attempted against that existing build:
+
+```bash
+/Users/marcus/Documents/Github/studio-edo-woodblock/unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app/Contents/MacOS/kawanakajima-samurai \
+  -batchmode -nographics \
+  -logFile /tmp/kawanakajima-built-player-smoke.log
+```
+
+Result: the old build starts, but fails before the Kawanakajima readiness marker because `Shader.Find("Standard")` returns null under the null graphics device and the runtime constructed `new Material(null)`.
+
+Relevant log excerpt:
+
+```text
+Forcing GfxDevice: Null
+ArgumentNullException: Value cannot be null.
+Parameter name: shader
+  at UnityEngine.Material..ctor (UnityEngine.Shader shader)
+  at KawanakajimaRuntimeBootstrap.MakeMaterial (...)
+  at KawanakajimaRuntimeBootstrap.CreateMaterials ()
+```
+
+Source fix added after this smoke test:
+
+- `MakeMaterial` now logs `KAWANAKAJIMA_SHADER_FALLBACK` and returns null if `Shader.Find("Standard")` is unavailable.
+- Primitive material assignment now goes through `ApplySharedMaterial`, which leaves Unity's default primitive material in place when a custom material is unavailable.
+- `verify-unity-handoff.js` now checks for this fallback path.
+
+This source fix still needs a fresh Unity build after the Unity license issue is resolved.

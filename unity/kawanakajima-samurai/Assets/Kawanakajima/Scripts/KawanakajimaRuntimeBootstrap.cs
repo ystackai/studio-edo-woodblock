@@ -115,9 +115,20 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private static Material MakeMaterial(string name, Color color)
     {
         var shader = Shader.Find("Standard");
+        if (shader == null)
+        {
+            Debug.LogWarning("KAWANAKAJIMA_SHADER_FALLBACK material=" + name + " Standard shader unavailable; using Unity primitive default material");
+            return null;
+        }
+
         var material = new Material(shader) { name = name, color = color };
-        material.SetFloat("_Glossiness", 0.08f);
+        if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", 0.08f);
         return material;
+    }
+
+    private static void ApplySharedMaterial(Renderer renderer, Material material)
+    {
+        if (renderer != null && material != null) renderer.sharedMaterial = material;
     }
 
     private void CreateCameraAndAudio()
@@ -169,7 +180,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ground.name = "Japanese countryside ground";
         ground.transform.localScale = new Vector3(18f, 1f, 12f);
-        ground.GetComponent<Renderer>().sharedMaterial = groundMat;
+        ApplySharedMaterial(ground.GetComponent<Renderer>(), groundMat);
 
         for (int i = 0; i < 5; i++)
         {
@@ -178,7 +189,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             hill.transform.position = new Vector3(-18f + i * 9f, 0.35f, 14f + (i % 2) * 3f);
             hill.transform.rotation = Quaternion.Euler(0f, -8f + i * 4f, 0f);
             hill.transform.localScale = new Vector3(8f, 0.7f + i * 0.08f, 3.1f);
-            hill.GetComponent<Renderer>().sharedMaterial = hillMat;
+            ApplySharedMaterial(hill.GetComponent<Renderer>(), hillMat);
         }
 
         for (int i = 0; i < 18; i++)
@@ -195,7 +206,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             stone.name = "Low field stone";
             stone.transform.position = new Vector3(-9f + (i * 1.91f) % 18f, 0.08f, -7.4f + (i * 2.73f) % 15f);
             stone.transform.localScale = new Vector3(0.22f + (i % 4) * 0.04f, 0.08f, 0.16f + (i % 5) * 0.03f);
-            stone.GetComponent<Renderer>().sharedMaterial = stoneMat;
+            ApplySharedMaterial(stone.GetComponent<Renderer>(), stoneMat);
         }
     }
 
@@ -209,7 +220,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         trunk.transform.SetParent(root.transform, false);
         trunk.transform.localPosition = new Vector3(0f, 0.52f * scale, 0f);
         trunk.transform.localScale = new Vector3(0.12f * scale, 0.52f * scale, 0.12f * scale);
-        trunk.GetComponent<Renderer>().sharedMaterial = trunkMat;
+        ApplySharedMaterial(trunk.GetComponent<Renderer>(), trunkMat);
 
         for (int layer = 0; layer < 3; layer++)
         {
@@ -218,7 +229,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             crown.transform.SetParent(root.transform, false);
             crown.transform.localPosition = new Vector3(0f, (1.08f + layer * 0.38f) * scale, 0f);
             crown.transform.localScale = new Vector3((0.72f - layer * 0.14f) * scale, 0.18f * scale, (0.72f - layer * 0.14f) * scale);
-            crown.GetComponent<Renderer>().sharedMaterial = treeMat;
+            ApplySharedMaterial(crown.GetComponent<Renderer>(), treeMat);
         }
     }
 
@@ -341,7 +352,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         pole.transform.localPosition = new Vector3(takeda ? -0.28f : 0.28f, 1.95f, -0.36f);
         pole.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -5f : 5f);
         pole.transform.localScale = new Vector3(0.025f, 0.78f, 0.025f);
-        pole.GetComponent<Renderer>().sharedMaterial = poleMat;
+        ApplySharedMaterial(pole.GetComponent<Renderer>(), poleMat);
 
         var cloth = GameObject.CreatePrimitive(PrimitiveType.Cube);
         cloth.name = takeda ? "Takeda red standard" : "Uesugi blue standard";
@@ -349,7 +360,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         cloth.transform.localPosition = new Vector3(takeda ? -0.28f : 0.28f, 2.45f, -0.36f);
         cloth.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -5f : 5f);
         cloth.transform.localScale = new Vector3(0.36f, 0.48f, 0.018f);
-        cloth.GetComponent<Renderer>().sharedMaterial = takeda ? takedaMat : uesugiMat;
+        ApplySharedMaterial(cloth.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
     }
 
     private void AddYari(Transform parent, bool takeda, int index)
@@ -360,7 +371,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         shaft.transform.localPosition = new Vector3(takeda ? 0.58f : -0.58f, 1.38f, 0.03f);
         shaft.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -22f : 22f);
         shaft.transform.localScale = new Vector3(0.018f, 1.35f, 0.018f);
-        shaft.GetComponent<Renderer>().sharedMaterial = poleMat;
+        ApplySharedMaterial(shaft.GetComponent<Renderer>(), poleMat);
 
         var tip = GameObject.CreatePrimitive(PrimitiveType.Capsule);
         tip.name = "Additive yari blade";
@@ -368,7 +379,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         tip.transform.localPosition = new Vector3(takeda ? 0.98f : -0.98f, 2.64f, 0.03f);
         tip.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -22f : 22f);
         tip.transform.localScale = new Vector3(0.045f, 0.18f, 0.045f);
-        tip.GetComponent<Renderer>().sharedMaterial = stoneMat;
+        ApplySharedMaterial(tip.GetComponent<Renderer>(), stoneMat);
     }
 
     private void HandleInput()
