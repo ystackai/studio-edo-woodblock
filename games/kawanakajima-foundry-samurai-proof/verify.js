@@ -17,6 +17,11 @@ const BATTLEFIELD_ROOT = path.join(
   'assets/generated/foundry/samurai-battlefield-pack',
   BATTLEFIELD_JOB
 );
+const BATTLEFIELD_MIN_OBJECTS = 2500;
+const BATTLEFIELD_MIN_MESHES = 1700;
+const BATTLEFIELD_MIN_MATERIALS = 25;
+const BATTLEFIELD_MAX_CENTER_GAP = 2.8;
+const BATTLEFIELD_MIN_GLB_BYTES = 7000000;
 
 function mustExist(p, desc) {
   if (!fs.existsSync(p)) { errors.push('MISSING ' + desc + ': ' + p); return false; }
@@ -91,12 +96,14 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'Unity managed patch GLB smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
   { name: 'fresh Unity build caveat', test: c => /Fresh Unity build:\*\* not produced|fresh Unity Editor rebuild remains blocked/.test(c) },
   { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not fully proven end-to-end|Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
+  { name: 'meeting composition gate documented', test: c => /center_gap=2\.6/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, 'ASSET_MANIFEST.md'), [
   { name: 'asset manifest Unity managed patch smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
   { name: 'asset manifest fresh Unity build caveat', test: c => /Fresh Unity playable build:\*\* Not created yet|fresh build\/inspection/.test(c) },
   { name: 'asset manifest browser pack smoke', test: c => /smoke-browser-pack\.sh[\s\S]*Browser battlefield pack smoke: PASS/.test(c) },
+  { name: 'asset manifest meeting gate', test: c => /center_gap=2\.6[\s\S]*maximum of `2\.8`/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, 'smoke-browser-pack.sh'), [
@@ -110,6 +117,12 @@ checkContent(path.join(ROOT, 'run-reviewed-foundry-handoff.sh'), [
   { name: 'handoff loop verifies Unity handoff', test: c => /verify-unity-handoff\.js/.test(c) },
   { name: 'handoff loop supports browser smoke', test: c => /--browser-smoke[\s\S]*smoke-browser-pack\.sh/.test(c) },
   { name: 'handoff loop supports managed Unity smoke', test: c => /--managed-unity-smoke[\s\S]*smoke-built-player\.sh/.test(c) },
+]);
+
+checkContent(path.join(ROOT, 'ingest-reviewed-foundry-job.js'), [
+  { name: 'ingest refuses under-detailed packs', test: c => /MIN_OBJECT_COUNT[\s\S]*MIN_MESH_COUNT[\s\S]*MIN_MATERIAL_COUNT/.test(c) },
+  { name: 'ingest refuses wide meeting gap', test: c => /MAX_CENTER_GAP[\s\S]*center_gap/.test(c) },
+  { name: 'ingest validates review contract floors', test: c => /minimum_stats[\s\S]*maximum_stats[\s\S]*minimum_file_bytes/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md'), [
@@ -163,7 +176,7 @@ try {
 
 const battlefieldGlb = fs.statSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_pack.glb'));
 const unityBattlefieldGlb = fs.statSync(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb'));
-if (battlefieldGlb.size < 6000000) errors.push('battlefield pack GLB too small for reviewed generated pack');
+if (battlefieldGlb.size < BATTLEFIELD_MIN_GLB_BYTES) errors.push('battlefield pack GLB too small for strict reviewed generated pack');
 if (unityBattlefieldGlb.size !== battlefieldGlb.size) errors.push('Unity mirrored battlefield GLB size does not match Foundry output');
 try {
   const manifest = JSON.parse(fs.readFileSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_manifest.json'), 'utf8'));
@@ -181,15 +194,33 @@ try {
     contactSheet: `assets/generated/foundry/samurai-battlefield-pack/${BATTLEFIELD_JOB}/samurai_battlefield_contact_sheet.png`,
     objectCount: summary.stats && summary.stats.object_count,
     meshCount: summary.stats && summary.stats.mesh_count,
+    materialCount: summary.stats && summary.stats.material_count,
+    centerGap: summary.stats && summary.stats.center_gap,
     stableCameraViews: summary.stats && summary.stats.stable_camera_views,
     unityMirror: true
   };
+  const contract = review.contract || {};
+  const minimumStats = contract.minimum_stats || {};
+  const maximumStats = contract.maximum_stats || {};
+  const minimumBytes = contract.minimum_file_bytes || {};
   if (review.state !== 'passed') errors.push('battlefield review gate did not pass');
   if (current.jobId !== BATTLEFIELD_JOB) errors.push('current reviewed battlefield pointer does not match BATTLEFIELD_JOB');
+  if (!current.stats || current.stats.center_gap !== battlefield.centerGap) errors.push('current reviewed pointer missing battlefield center_gap');
   if (battlefield.warriorCount !== 20) errors.push('battlefield manifest warrior count is not 20');
   if (battlefield.takedaCount !== 10) errors.push('battlefield manifest Takeda count is not 10');
   if (battlefield.uesugiCount !== 10) errors.push('battlefield manifest Uesugi count is not 10');
   if (battlefield.stableCameraViews !== 5) errors.push('battlefield summary stable camera count is not 5');
+  if (battlefield.objectCount < BATTLEFIELD_MIN_OBJECTS) errors.push('battlefield object count below strict detail floor');
+  if (battlefield.meshCount < BATTLEFIELD_MIN_MESHES) errors.push('battlefield mesh count below strict detail floor');
+  if (battlefield.materialCount < BATTLEFIELD_MIN_MATERIALS) errors.push('battlefield material count below strict detail floor');
+  if (typeof battlefield.centerGap !== 'number' || battlefield.centerGap <= 0 || battlefield.centerGap > BATTLEFIELD_MAX_CENTER_GAP) {
+    errors.push('battlefield center gap does not prove close meeting composition');
+  }
+  if (typeof minimumStats.object_count !== 'number' || minimumStats.object_count < BATTLEFIELD_MIN_OBJECTS) errors.push('battlefield review missing object-count floor');
+  if (typeof minimumStats.mesh_count !== 'number' || minimumStats.mesh_count < BATTLEFIELD_MIN_MESHES) errors.push('battlefield review missing mesh-count floor');
+  if (typeof minimumStats.material_count !== 'number' || minimumStats.material_count < BATTLEFIELD_MIN_MATERIALS) errors.push('battlefield review missing material-count floor');
+  if (typeof maximumStats.center_gap !== 'number' || maximumStats.center_gap > BATTLEFIELD_MAX_CENTER_GAP) errors.push('battlefield review missing center-gap ceiling');
+  if (typeof minimumBytes['samurai_battlefield_pack.glb'] !== 'number' || minimumBytes['samurai_battlefield_pack.glb'] < BATTLEFIELD_MIN_GLB_BYTES) errors.push('battlefield review missing GLB byte floor');
 } catch (error) {
   errors.push('battlefield manifest/summary parse failed: ' + error.message);
 }

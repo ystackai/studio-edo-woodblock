@@ -7,6 +7,10 @@ const GAME_DIR = __dirname;
 const ROOT = path.resolve(GAME_DIR, '../..');
 const UNITY_DIR = path.join(ROOT, 'unity/kawanakajima-samurai');
 const BATTLEFIELD_DIR = path.join(GAME_DIR, 'assets/generated/foundry/samurai-battlefield-pack');
+const MIN_OBJECT_COUNT = 2500;
+const MIN_MESH_COUNT = 1700;
+const MIN_MATERIAL_COUNT = 25;
+const MAX_CENTER_GAP = 2.8;
 
 function fail(message) {
   console.error(message);
@@ -77,6 +81,31 @@ function main() {
   }
   if (stats.stable_camera_views !== 5) {
     fail(`Refusing battlefield job without 5 stable camera views: ${JSON.stringify(stats)}`);
+  }
+  if (stats.object_count < MIN_OBJECT_COUNT || stats.mesh_count < MIN_MESH_COUNT || stats.material_count < MIN_MATERIAL_COUNT) {
+    fail(`Refusing under-detailed battlefield job: ${JSON.stringify(stats)}`);
+  }
+  if (typeof stats.center_gap !== 'number' || stats.center_gap <= 0 || stats.center_gap > MAX_CENTER_GAP) {
+    fail(`Refusing battlefield job without close meeting composition: ${JSON.stringify(stats)}`);
+  }
+  const contract = review.contract || {};
+  const minimumStats = contract.minimum_stats || {};
+  const maximumStats = contract.maximum_stats || {};
+  const minimumBytes = contract.minimum_file_bytes || {};
+  if (
+    typeof minimumStats.object_count !== 'number' ||
+    minimumStats.object_count < MIN_OBJECT_COUNT ||
+    typeof minimumStats.mesh_count !== 'number' ||
+    minimumStats.mesh_count < MIN_MESH_COUNT ||
+    typeof minimumStats.material_count !== 'number' ||
+    minimumStats.material_count < MIN_MATERIAL_COUNT ||
+    typeof maximumStats.center_gap !== 'number' ||
+    maximumStats.center_gap > MAX_CENTER_GAP
+  ) {
+    fail(`Review contract is missing current detail/composition gates: ${JSON.stringify(contract)}`);
+  }
+  if (typeof minimumBytes['samurai_battlefield_pack.glb'] !== 'number' || minimumBytes['samurai_battlefield_pack.glb'] < 7000000) {
+    fail(`Review contract is missing GLB byte floor: ${JSON.stringify(contract)}`);
   }
 
   const required = [

@@ -24,6 +24,8 @@
     "contactSheet": "assets/generated/foundry/samurai-battlefield-pack/asset-1782108163124-4d8309bd/samurai_battlefield_contact_sheet.png",
     "objectCount": 2622,
     "meshCount": 1745,
+    "materialCount": 29,
+    "centerGap": 2.6,
     "stableCameraViews": 5,
     "unityMirror": true
   },
