@@ -36,7 +36,7 @@ The historical listener result above is not current proof. A fresh check from th
 worktree added `check-unity-mcp.sh` and found:
 
 - No real Unity Editor process was running for `unity/kawanakajima-samurai`.
-- Unity-MCP CLI status can mistake a Unity Hub helper process for the Editor; the helper does not expose MCP tools.
+- Unity-MCP CLI status can mistake a Unity Hub helper or transient batchmode `-batchmode -quit` process for the Editor; neither exposes interactive MCP tools.
 - `http://localhost:21560` refused connections for this project.
 - A stale `gamedev-mcp-server` process was listening on `27481`, but readiness and system-tool pings timed out without a connected Editor.
 - Launching the Editor through Unity-MCP with `--open` reached the same missing-license state as batchmode: no ULF license and no cached token.

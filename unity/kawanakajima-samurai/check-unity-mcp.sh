@@ -31,8 +31,12 @@ fi
 
   echo
   echo "=== Process diagnostics ==="
-  if pgrep -fl "Unity.app/Contents/MacOS/Unity .*${ROOT}" >/dev/null; then
-    pgrep -fl "Unity.app/Contents/MacOS/Unity .*${ROOT}" || true
+  unity_processes="$(pgrep -fl "Unity.app/Contents/MacOS/Unity .*${ROOT}" || true)"
+  if [[ -n "$unity_processes" ]]; then
+    printf '%s\n' "$unity_processes"
+    if printf '%s\n' "$unity_processes" | grep -E -- '-batchmode|-quit' >/dev/null; then
+      echo "Unity process is batch/headless, not an interactive Editor session; MCP tools will not be available from it."
+    fi
   else
     echo "No Unity Editor process found for this project path."
   fi
