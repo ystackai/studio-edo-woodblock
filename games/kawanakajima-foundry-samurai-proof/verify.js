@@ -11,7 +11,7 @@ const SAMURAI_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai/improved-20260622-v29'
 );
-const BATTLEFIELD_JOB = 'asset-1782108163124-4d8309bd';
+const BATTLEFIELD_JOB = 'asset-1782109538597-6f912b73';
 const BATTLEFIELD_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai-battlefield-pack',
@@ -20,6 +20,8 @@ const BATTLEFIELD_ROOT = path.join(
 const BATTLEFIELD_MIN_OBJECTS = 2500;
 const BATTLEFIELD_MIN_MESHES = 1700;
 const BATTLEFIELD_MIN_MATERIALS = 25;
+const BATTLEFIELD_MIN_ENVIRONMENT_FEATURES = 100;
+const BATTLEFIELD_MIN_SKY_BACKDROPS = 1;
 const BATTLEFIELD_MAX_CENTER_GAP = 2.8;
 const BATTLEFIELD_MIN_GLB_BYTES = 7000000;
 
@@ -97,6 +99,7 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'fresh Unity build caveat', test: c => /Fresh Unity build:\*\* not produced|fresh Unity Editor rebuild remains blocked/.test(c) },
   { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not fully proven end-to-end|Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
   { name: 'meeting composition gate documented', test: c => /center_gap=2\.6/.test(c) },
+  { name: 'countryside environment gate documented', test: c => /environment_feature_count=125/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, 'ASSET_MANIFEST.md'), [
@@ -104,6 +107,7 @@ checkContent(path.join(ROOT, 'ASSET_MANIFEST.md'), [
   { name: 'asset manifest fresh Unity build caveat', test: c => /Fresh Unity playable build:\*\* Not created yet|fresh build\/inspection/.test(c) },
   { name: 'asset manifest browser pack smoke', test: c => /smoke-browser-pack\.sh[\s\S]*Browser battlefield pack smoke: PASS/.test(c) },
   { name: 'asset manifest meeting gate', test: c => /center_gap=2\.6[\s\S]*maximum of `2\.8`/.test(c) },
+  { name: 'asset manifest environment gate', test: c => /environment_feature_count=125[\s\S]*sky_backdrop_count=1/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, 'smoke-browser-pack.sh'), [
@@ -121,6 +125,7 @@ checkContent(path.join(ROOT, 'run-reviewed-foundry-handoff.sh'), [
 
 checkContent(path.join(ROOT, 'ingest-reviewed-foundry-job.js'), [
   { name: 'ingest refuses under-detailed packs', test: c => /MIN_OBJECT_COUNT[\s\S]*MIN_MESH_COUNT[\s\S]*MIN_MATERIAL_COUNT/.test(c) },
+  { name: 'ingest refuses missing countryside environment', test: c => /MIN_ENVIRONMENT_FEATURE_COUNT[\s\S]*MIN_SKY_BACKDROP_COUNT/.test(c) },
   { name: 'ingest refuses wide meeting gap', test: c => /MAX_CENTER_GAP[\s\S]*center_gap/.test(c) },
   { name: 'ingest validates review contract floors', test: c => /minimum_stats[\s\S]*maximum_stats[\s\S]*minimum_file_bytes/.test(c) },
 ]);
@@ -196,6 +201,8 @@ try {
     meshCount: summary.stats && summary.stats.mesh_count,
     materialCount: summary.stats && summary.stats.material_count,
     centerGap: summary.stats && summary.stats.center_gap,
+    environmentFeatureCount: summary.stats && summary.stats.environment_feature_count,
+    skyBackdropCount: summary.stats && summary.stats.sky_backdrop_count,
     stableCameraViews: summary.stats && summary.stats.stable_camera_views,
     unityMirror: true
   };
@@ -213,12 +220,16 @@ try {
   if (battlefield.objectCount < BATTLEFIELD_MIN_OBJECTS) errors.push('battlefield object count below strict detail floor');
   if (battlefield.meshCount < BATTLEFIELD_MIN_MESHES) errors.push('battlefield mesh count below strict detail floor');
   if (battlefield.materialCount < BATTLEFIELD_MIN_MATERIALS) errors.push('battlefield material count below strict detail floor');
+  if (battlefield.environmentFeatureCount < BATTLEFIELD_MIN_ENVIRONMENT_FEATURES) errors.push('battlefield environment feature count below countryside floor');
+  if (battlefield.skyBackdropCount < BATTLEFIELD_MIN_SKY_BACKDROPS) errors.push('battlefield missing sky backdrop evidence');
   if (typeof battlefield.centerGap !== 'number' || battlefield.centerGap <= 0 || battlefield.centerGap > BATTLEFIELD_MAX_CENTER_GAP) {
     errors.push('battlefield center gap does not prove close meeting composition');
   }
   if (typeof minimumStats.object_count !== 'number' || minimumStats.object_count < BATTLEFIELD_MIN_OBJECTS) errors.push('battlefield review missing object-count floor');
   if (typeof minimumStats.mesh_count !== 'number' || minimumStats.mesh_count < BATTLEFIELD_MIN_MESHES) errors.push('battlefield review missing mesh-count floor');
   if (typeof minimumStats.material_count !== 'number' || minimumStats.material_count < BATTLEFIELD_MIN_MATERIALS) errors.push('battlefield review missing material-count floor');
+  if (typeof minimumStats.environment_feature_count !== 'number' || minimumStats.environment_feature_count < BATTLEFIELD_MIN_ENVIRONMENT_FEATURES) errors.push('battlefield review missing environment-feature floor');
+  if (typeof minimumStats.sky_backdrop_count !== 'number' || minimumStats.sky_backdrop_count < BATTLEFIELD_MIN_SKY_BACKDROPS) errors.push('battlefield review missing sky-backdrop floor');
   if (typeof maximumStats.center_gap !== 'number' || maximumStats.center_gap > BATTLEFIELD_MAX_CENTER_GAP) errors.push('battlefield review missing center-gap ceiling');
   if (typeof minimumBytes['samurai_battlefield_pack.glb'] !== 'number' || minimumBytes['samurai_battlefield_pack.glb'] < BATTLEFIELD_MIN_GLB_BYTES) errors.push('battlefield review missing GLB byte floor');
 } catch (error) {

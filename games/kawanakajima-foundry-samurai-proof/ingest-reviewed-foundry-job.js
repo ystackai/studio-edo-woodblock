@@ -10,6 +10,8 @@ const BATTLEFIELD_DIR = path.join(GAME_DIR, 'assets/generated/foundry/samurai-ba
 const MIN_OBJECT_COUNT = 2500;
 const MIN_MESH_COUNT = 1700;
 const MIN_MATERIAL_COUNT = 25;
+const MIN_ENVIRONMENT_FEATURE_COUNT = 100;
+const MIN_SKY_BACKDROP_COUNT = 1;
 const MAX_CENTER_GAP = 2.8;
 
 function fail(message) {
@@ -82,7 +84,13 @@ function main() {
   if (stats.stable_camera_views !== 5) {
     fail(`Refusing battlefield job without 5 stable camera views: ${JSON.stringify(stats)}`);
   }
-  if (stats.object_count < MIN_OBJECT_COUNT || stats.mesh_count < MIN_MESH_COUNT || stats.material_count < MIN_MATERIAL_COUNT) {
+  if (
+    stats.object_count < MIN_OBJECT_COUNT ||
+    stats.mesh_count < MIN_MESH_COUNT ||
+    stats.material_count < MIN_MATERIAL_COUNT ||
+    stats.environment_feature_count < MIN_ENVIRONMENT_FEATURE_COUNT ||
+    stats.sky_backdrop_count < MIN_SKY_BACKDROP_COUNT
+  ) {
     fail(`Refusing under-detailed battlefield job: ${JSON.stringify(stats)}`);
   }
   if (typeof stats.center_gap !== 'number' || stats.center_gap <= 0 || stats.center_gap > MAX_CENTER_GAP) {
@@ -99,6 +107,10 @@ function main() {
     minimumStats.mesh_count < MIN_MESH_COUNT ||
     typeof minimumStats.material_count !== 'number' ||
     minimumStats.material_count < MIN_MATERIAL_COUNT ||
+    typeof minimumStats.environment_feature_count !== 'number' ||
+    minimumStats.environment_feature_count < MIN_ENVIRONMENT_FEATURE_COUNT ||
+    typeof minimumStats.sky_backdrop_count !== 'number' ||
+    minimumStats.sky_backdrop_count < MIN_SKY_BACKDROP_COUNT ||
     typeof maximumStats.center_gap !== 'number' ||
     maximumStats.center_gap > MAX_CENTER_GAP
   ) {

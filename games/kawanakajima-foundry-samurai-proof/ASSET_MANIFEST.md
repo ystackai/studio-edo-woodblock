@@ -28,14 +28,15 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 - **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy; v29 narrows the armor underframe so the default playable asset reads less like a red ball torso. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
-- **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1782108163124-4d8309bd/samurai_battlefield_pack.glb`
-- **Size:** 7.05 MB
-- **Provenance:** Asset Foundry Blender job `asset-1782108163124-4d8309bd` (review-gated API handoff after Asset Foundry `review_contract` validation)
+- **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1782109538597-6f912b73/samurai_battlefield_pack.glb`
+- **Size:** 7.08 MB
+- **Provenance:** Asset Foundry Blender job `asset-1782109538597-6f912b73` (review-gated API handoff after Asset Foundry `review_contract` validation)
 - **Contents:** One GLB scene with 20 named samurai, 10 Takeda + 10 Uesugi, on countryside battlefield with road, river, rice paddies, cedar hills, banners, weapons.
 - **Manifest:** `samurai_battlefield_manifest.json` — warrior_count=20, 10/10 faction split, per-warrior ID/pose/position/yaw.
 - **Evidence:** `samurai_battlefield_contact_sheet.png` — 5 stable camera views.
 - **Meeting composition gate:** `center_gap=2.6`, below the Asset Foundry review maximum of `2.8`, so the opposing lines read as a meeting instead of separated edge groups.
-- **Review gate:** `review.json` — `state=passed`; validates required outputs, 20-warrior identity, 10/10 faction split, stable camera evidence, minimum geometry/detail floors, and meeting composition before Unity/browser handoff.
+- **Countryside environment gate:** `environment_feature_count=125` and `sky_backdrop_count=1`, proving the pack includes terrain, paddies/river, reeds, cedars, hills, and a dawn backdrop before Unity/browser handoff.
+- **Review gate:** `review.json` — `state=passed`; validates required outputs, 20-warrior identity, 10/10 faction split, stable camera evidence, minimum geometry/detail floors, countryside environment evidence, and meeting composition before Unity/browser handoff.
 
 ### 3. Audio Assets
 - **Loop:** `assets/audio/battlefield_loop.wav` — 2.53 MB, low-rumble battlefield ambience from Asset Foundry job `asset-1781916330853-f7d831d9`
@@ -84,7 +85,7 @@ This is runtime evidence, not a fresh build artifact. The final Unity gate still
 
 - `index.html` loads `assets/samurai_character.glb` via THREE.GLTFLoader
 - 20 actors created (10 Takeda, 10 Uesugi) with pose/scale/variant transforms
-- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1782108163124-4d8309bd/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
+- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1782109538597-6f912b73/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
 - Camera presets: overview, redClose, blueClose, sideProfile, topFormation, assetInspect
 - Audio: loop toggle, charge/clash/step/confirm sound effects
 - Charge/reform gameplay mechanics
@@ -120,7 +121,7 @@ Browser battlefield pack smoke: PASS
 
 ```bash
 games/kawanakajima-foundry-samurai-proof/run-reviewed-foundry-handoff.sh \
-  --job-dir games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai-battlefield-pack/asset-1782108163124-4d8309bd \
+  --job-dir games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai-battlefield-pack/asset-1782109538597-6f912b73 \
   --browser-smoke \
   --managed-unity-smoke
 ```
