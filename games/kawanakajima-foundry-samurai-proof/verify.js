@@ -11,7 +11,7 @@ const SAMURAI_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai/improved-20260622-v29'
 );
-const BATTLEFIELD_JOB = 'asset-1782103724605-0d84b27a';
+const BATTLEFIELD_JOB = 'asset-1782104876865-071b076d';
 const BATTLEFIELD_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai-battlefield-pack',
@@ -62,6 +62,8 @@ mustExist(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_pack_source.blend'), 
 mustExist(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_manifest.json'), 'Foundry 20-samurai battlefield manifest');
 mustExist(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_contact_sheet.png'), 'Foundry 20-samurai battlefield contact sheet');
 mustExist(path.join(BATTLEFIELD_ROOT, 'summary.json'), 'Foundry 20-samurai battlefield summary');
+mustExist(path.join(BATTLEFIELD_ROOT, 'review.json'), 'Foundry 20-samurai battlefield review gate');
+mustExist(path.join(ROOT, 'assets/generated/foundry/samurai-battlefield-pack/current-reviewed.json'), 'current reviewed battlefield pack pointer');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb'), 'Unity mirrored battlefield pack GLB');
 
 checkContent(path.join(ROOT, 'index.html'), [
@@ -87,7 +89,7 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
   { name: 'Unity managed patch GLB smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
   { name: 'fresh Unity build caveat', test: c => /Fresh Unity build:\*\* not produced|fresh Unity Editor rebuild remains blocked/.test(c) },
-  { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
+  { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not fully proven end-to-end|Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, 'ASSET_MANIFEST.md'), [
@@ -152,13 +154,16 @@ try {
 
 const battlefieldGlb = fs.statSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_pack.glb'));
 const unityBattlefieldGlb = fs.statSync(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb'));
-if (battlefieldGlb.size < 6000000) errors.push('battlefield pack GLB too small for v26 generated pack');
+if (battlefieldGlb.size < 6000000) errors.push('battlefield pack GLB too small for reviewed generated pack');
 if (unityBattlefieldGlb.size !== battlefieldGlb.size) errors.push('Unity mirrored battlefield GLB size does not match Foundry output');
 try {
   const manifest = JSON.parse(fs.readFileSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_manifest.json'), 'utf8'));
   const summary = JSON.parse(fs.readFileSync(path.join(BATTLEFIELD_ROOT, 'summary.json'), 'utf8'));
+  const review = JSON.parse(fs.readFileSync(path.join(BATTLEFIELD_ROOT, 'review.json'), 'utf8'));
+  const current = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/generated/foundry/samurai-battlefield-pack/current-reviewed.json'), 'utf8'));
   battlefield = {
     assetFoundryJob: BATTLEFIELD_JOB,
+    reviewState: review.state,
     warriorCount: manifest.warrior_count,
     takedaCount: (manifest.factions && manifest.factions.takeda || []).length,
     uesugiCount: (manifest.factions && manifest.factions.uesugi || []).length,
@@ -170,6 +175,8 @@ try {
     stableCameraViews: summary.stats && summary.stats.stable_camera_views,
     unityMirror: true
   };
+  if (review.state !== 'passed') errors.push('battlefield review gate did not pass');
+  if (current.jobId !== BATTLEFIELD_JOB) errors.push('current reviewed battlefield pointer does not match BATTLEFIELD_JOB');
   if (battlefield.warriorCount !== 20) errors.push('battlefield manifest warrior count is not 20');
   if (battlefield.takedaCount !== 10) errors.push('battlefield manifest Takeda count is not 10');
   if (battlefield.uesugiCount !== 10) errors.push('battlefield manifest Uesugi count is not 10');

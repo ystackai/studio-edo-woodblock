@@ -28,12 +28,13 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 - **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy; v29 narrows the armor underframe so the default playable asset reads less like a red ball torso. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
-- **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1782103724605-0d84b27a/samurai_battlefield_pack.glb`
+- **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1782104876865-071b076d/samurai_battlefield_pack.glb`
 - **Size:** 6.27 MB
-- **Provenance:** Asset Foundry Blender job `asset-1782103724605-0d84b27a` (v26 Blender 5 API pass)
+- **Provenance:** Asset Foundry Blender job `asset-1782104876865-071b076d` (review-gated API handoff after Asset Foundry `review_contract` validation)
 - **Contents:** One GLB scene with 20 named samurai, 10 Takeda + 10 Uesugi, on countryside battlefield with road, river, rice paddies, cedar hills, banners, weapons.
 - **Manifest:** `samurai_battlefield_manifest.json` — warrior_count=20, 10/10 faction split, per-warrior ID/pose/position/yaw.
 - **Evidence:** `samurai_battlefield_contact_sheet.png` — 5 stable camera views.
+- **Review gate:** `review.json` — `state=passed`; validates required outputs, 20-warrior identity, 10/10 faction split, and stable camera evidence before Unity/browser handoff.
 
 ### 3. Audio Assets
 - **Loop:** `assets/audio/battlefield_loop.wav` — 2.53 MB, low-rumble battlefield ambience from Asset Foundry job `asset-1781916330853-f7d831d9`
@@ -82,7 +83,7 @@ This is runtime evidence, not a fresh build artifact. The final Unity gate still
 
 - `index.html` loads `assets/samurai_character.glb` via THREE.GLTFLoader
 - 20 actors created (10 Takeda, 10 Uesugi) with pose/scale/variant transforms
-- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1782103724605-0d84b27a/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
+- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1782104876865-071b076d/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
 - Camera presets: overview, redClose, blueClose, sideProfile, topFormation, assetInspect
 - Audio: loop toggle, charge/clash/step/confirm sound effects
 - Charge/reform gameplay mechanics

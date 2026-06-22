@@ -1,0 +1,25 @@
+{
+  "jobId": "asset-1782104876865-071b076d",
+  "ingestedAt": "2026-06-22T05:13:00.447Z",
+  "sourceJobDir": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104876865-071b076d",
+  "reviewState": "passed",
+  "stats": {
+    "inspection_views": [
+      "wide_clash",
+      "overhead_layout",
+      "takeda_line",
+      "uesugi_line",
+      "center_meeting"
+    ],
+    "material_count": 29,
+    "mesh_count": 1425,
+    "object_count": 2142,
+    "prompt_format": "/goal",
+    "stable_camera_views": 5,
+    "takeda_count": 10,
+    "uesugi_count": 10,
+    "warrior_count": 20
+  },
+  "browserPackUrl": "assets/generated/foundry/samurai-battlefield-pack/asset-1782104876865-071b076d/samurai_battlefield_pack.glb",
+  "unityStreamingAssets": "unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb"
+}
