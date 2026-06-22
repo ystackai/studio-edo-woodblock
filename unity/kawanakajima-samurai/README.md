@@ -2,7 +2,7 @@
 
 **Work Order:** work-order-1781967391303-7-1  
 **Deliverable:** Kawanakajima 20 Samurai Countryside Unity Game  
-**Status:** Unity source handoff plus verified local Mac build and Unity MCP routing.
+**Status:** Unity source handoff plus managed-patched Mac player smoke evidence. A fresh current Unity Editor build is still blocked by local license activation.
 **Playables:** Browser proof at `games/kawanakajima-foundry-samurai-proof/`
 
 ## Overview
@@ -43,7 +43,7 @@ unity/kawanakajima-samurai/
 ├── ProjectSettings/ (Unity project version)
 ├── README.md (this file)
 ├── verify-unity-handoff.js (verification script)
-├── UNITY_BUILD_VERIFICATION.md
+├── UNITY_BUILD_VERIFICATION.md (historical/stale build record, not current completion)
 └── UNITY_LOCAL_STATUS.md
 ```
 
@@ -57,21 +57,29 @@ unity/kawanakajima-samurai/
 
 All assets verified via `node verify-unity-handoff.js` → **PASS**
 
-## Verified Local Build
+## Current Unity Build Status
 
-Recorded on 2026-06-20 from the local Mac Studio:
+As of 2026-06-22, the current source handoff verifies structurally and the managed-patched existing Mac player reaches:
 
-```bash
-Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
-  -executeMethod KawanakajimaUnityBuild.BuildMac \
-  -logFile /tmp/kawanakajima-batch-build.log
+```text
+KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
 ```
 
-Result:
-- Exit code 0
-- Output: `Builds/Mac/KawanakajimaSamurai.app`
-- Bundle size: 112 MB
-- Unity Editor: 2023.2.20f1
+That smoke proves the current runtime source can load the real samurai GLB and the real 20-samurai battlefield pack GLB without runtime actor or pack fallbacks.
+
+A fresh current Unity Editor rebuild has not been produced yet. The local batch build fails before import/build because this Mac's Unity Editor has no active batch/headless license:
+
+```text
+No valid Unity Editor license found. Please activate your license.
+```
+
+After license activation, rerun:
+
+```bash
+./run-local-unity-build.sh
+```
+
+`UNITY_BUILD_VERIFICATION.md` records an older 2026-06-20 build of the Unity project. It is retained as history, but it is not proof that the current source in this PR has been freshly rebuilt.
 
 ## Quick Start
 
@@ -144,6 +152,7 @@ Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
 
 ## Known Blockers
 
+- **Fresh current Unity build:** the Mac host has Unity Editor 2023.2.20f1 installed, but batch mode currently fails license activation before build. See `UNITY_CURRENT_QA_2026-06-21.md`.
 - **Remote worker Unity hosting:** The remote worker has Unity CLI/MCP only and does not host the Editor directly. It routes Unity MCP calls to the Mac Studio listener instead.
 - **Disk space:** Remote worker `/cache` has limited free space; Unity Editor installation remains a poor fit there.
 

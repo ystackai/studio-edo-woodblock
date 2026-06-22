@@ -59,8 +59,11 @@ mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Mac build h
 mustContain('smoke-built-player.sh', 'built player readiness smoke test', /KAWANAKAJIMA_UNITY_READY[\s\S]*actors=20[\s\S]*Built player smoke: PASS/);
 mustContain('patch-existing-mac-player-managed.sh', 'managed patch smoke helper', /Assembly-CSharp\.dll[\s\S]*Roslyn[\s\S]*smoke-built-player\.sh/);
 mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'real GLB managed patch smoke evidence', /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
-mustContain('README.md', 'verified local Unity build documented', /Verified Local Build[\s\S]*KawanakajimaUnityBuild\.BuildMac[\s\S]*Exit code 0/);
-mustContain('UNITY_BUILD_VERIFICATION.md', 'Mac build success documented', /Build result: succeeded[\s\S]*Builds\/Mac\/KawanakajimaSamurai\.app/);
+mustContain('README.md', 'current managed-patched player smoke documented', /managed-patched Mac player smoke evidence[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
+mustContain('README.md', 'fresh Unity build blocker documented', /fresh current Unity Editor rebuild has not been produced|No valid Unity Editor license found/i);
+mustContain('UNITY_BUILD_VERIFICATION.md', 'historical build clearly marked stale', /Historical Unity Editor batchmode evidence[\s\S]*must not be used as proof that the current PR has a fresh playable Unity build/);
+mustContain('UNITY_BUILD_VERIFICATION.md', 'historical Mac build record retained', /Historical build result: succeeded[\s\S]*Builds\/Mac\/KawanakajimaSamurai\.app/);
+mustContain('UNITY_LOCAL_STATUS.md', 'current license blocker documented', /not a fresh build of the current source[\s\S]*no valid Unity Editor license is active/);
 mustContain('UNITY_LOCAL_STATUS.md', 'Mac Unity MCP routing documented', /Worker routed URL:\s*`http:\/\/172\.21\.0\.1:25666`[\s\S]*Worker preflight: passed/);
 
 if (errors.length) {

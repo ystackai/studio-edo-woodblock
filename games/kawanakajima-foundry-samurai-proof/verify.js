@@ -102,7 +102,8 @@ checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
 
 checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), [
   { name: 'Unity handoff references Foundry Samurai', test: c => /asset-1781913507610-bf69e595/.test(c) },
-  { name: 'Unity handoff documents local build', test: c => /Verified Local Build[\s\S]*KawanakajimaUnityBuild\.BuildMac[\s\S]*Exit code 0/.test(c) },
+  { name: 'Unity handoff documents current managed patch smoke', test: c => /managed-patched Mac player smoke evidence[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
+  { name: 'Unity handoff documents fresh build license blocker', test: c => /fresh current Unity Editor rebuild has not been produced|No valid Unity Editor license found/i.test(c) },
 ]);
 
 // Asset sizes roughly

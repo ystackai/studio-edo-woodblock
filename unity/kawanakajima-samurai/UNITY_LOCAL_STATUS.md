@@ -2,7 +2,7 @@
 
 **Recorded:** 2026-06-20
 
-The Kawanakajima Samurai Unity project now opens and builds on the local Mac Studio with Unity 2023.2.20f1.
+Historical local Unity/MCP status for the Kawanakajima Samurai project. Current QA is recorded in `UNITY_CURRENT_QA_2026-06-21.md`.
 
 ## Local Editor
 
@@ -11,13 +11,15 @@ The Kawanakajima Samurai Unity project now opens and builds on the local Mac Stu
 - Scene generation: `KawanakajimaUnityBuild.CreateOrRefreshScene`
 - Scene path: `Assets/Kawanakajima/Scenes/Kawanakajima.unity`
 
-## Local Build
+## Historical Local Build
 
 - Batch method: `KawanakajimaUnityBuild.BuildMac`
 - Output: `Builds/Mac/KawanakajimaSamurai.app`
 - Size: 112 MB
 - Last verified: 2026-06-20T15:27:40Z
 - Verification: `UNITY_BUILD_VERIFICATION.md`
+
+This is not a fresh build of the current source. As of 2026-06-22, `run-local-unity-build.sh` fails before import/build because no valid Unity Editor license is active for batch/headless use on this Mac. The current runtime source has instead been smoke-tested through the managed-patched existing Mac player path with real GLBs and no runtime fallbacks.
 
 ## Local MCP
 
