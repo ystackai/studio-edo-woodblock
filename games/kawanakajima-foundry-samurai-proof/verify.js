@@ -120,7 +120,7 @@ checkContent(path.join(ROOT, 'run-reviewed-foundry-handoff.sh'), [
   { name: 'handoff loop ingests only reviewed jobs', test: c => /ingest-reviewed-foundry-job\.js/.test(c) },
   { name: 'handoff loop verifies Unity handoff', test: c => /verify-unity-handoff\.js/.test(c) },
   { name: 'handoff loop supports browser smoke', test: c => /--browser-smoke[\s\S]*smoke-browser-pack\.sh/.test(c) },
-  { name: 'handoff loop supports managed Unity smoke', test: c => /--managed-unity-smoke[\s\S]*smoke-built-player\.sh/.test(c) },
+  { name: 'handoff loop supports managed Unity smoke', test: c => /--managed-unity-smoke[\s\S]*smoke-managed-patched-player\.sh/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, 'ingest-reviewed-foundry-job.js'), [

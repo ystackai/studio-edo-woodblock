@@ -178,13 +178,7 @@ fi
 
 if [[ "$RUN_MANAGED_UNITY_SMOKE" -eq 1 ]]; then
   echo "=== Managed-patched Unity player smoke ==="
-  (
-    cd "$REPO_ROOT"
-    unity/kawanakajima-samurai/patch-existing-mac-player-managed.sh
-    APP=/tmp/KawanakajimaSamurai-patched.app/Contents/MacOS/kawanakajima-samurai \
-      LOG=/tmp/kawanakajima-reviewed-handoff-managed-smoke.log \
-      unity/kawanakajima-samurai/smoke-built-player.sh
-  )
+  (cd "$REPO_ROOT" && LOG=/tmp/kawanakajima-reviewed-handoff-managed-smoke.log unity/kawanakajima-samurai/smoke-managed-patched-player.sh)
 fi
 
 echo "Reviewed Foundry handoff loop: PASS"

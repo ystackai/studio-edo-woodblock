@@ -58,6 +58,7 @@ mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Linux build
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Mac build hook', /BuildTarget\.StandaloneOSX/);
 mustContain('smoke-built-player.sh', 'built player readiness smoke test', /KAWANAKAJIMA_UNITY_READY[\s\S]*actors=20[\s\S]*Built player smoke: PASS/);
 mustContain('patch-existing-mac-player-managed.sh', 'managed patch smoke helper', /Assembly-CSharp\.dll[\s\S]*Roslyn[\s\S]*smoke-built-player\.sh/);
+mustContain('smoke-managed-patched-player.sh', 'single-command managed patch smoke helper', /patch-existing-mac-player-managed\.sh[\s\S]*smoke-built-player\.sh/);
 mustContain('check-unity-mcp.sh', 'Unity MCP preflight helper', /wait-for-ready[\s\S]*UNITY_MCP_READY[\s\S]*Unity Editor log tail/);
 mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'real GLB managed patch smoke evidence', /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
 mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'Unity MCP current blocker documented', /Unity-MCP Preflight Recheck[\s\S]*MCP readiness times out[\s\S]*No valid Unity Editor license found/);

@@ -71,6 +71,7 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 
 - `unity/kawanakajima-samurai/verify-unity-handoff.js` — structure verifier for GLBs, audio, review images, runtime controls, shader-safe glTF material generation, and build hooks.
 - `unity/kawanakajima-samurai/patch-existing-mac-player-managed.sh` — compiles current managed source into the existing Mac player when Unity Editor batch build is license-blocked.
+- `unity/kawanakajima-samurai/smoke-managed-patched-player.sh` — one-command managed-patched Mac player smoke gate.
 - `unity/kawanakajima-samurai/smoke-built-player.sh` — repeatable built-player readiness gate.
 - Passing managed-patched smoke:
 

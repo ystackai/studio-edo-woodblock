@@ -61,6 +61,10 @@ All assets verified via `node verify-unity-handoff.js` → **PASS**
 
 As of 2026-06-22, the current source handoff verifies structurally and the managed-patched existing Mac player reaches:
 
+```bash
+./smoke-managed-patched-player.sh
+```
+
 ```text
 KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
 ```
