@@ -113,6 +113,19 @@ Browser battlefield pack smoke: PASS
 
 - Canvas pixel variance confirms rendered scene (not blank)
 
+## Reviewed Foundry Handoff Loop
+
+`run-reviewed-foundry-handoff.sh` can replay the production handoff:
+
+```bash
+games/kawanakajima-foundry-samurai-proof/run-reviewed-foundry-handoff.sh \
+  --job-dir games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai-battlefield-pack/asset-1782104876865-071b076d \
+  --browser-smoke \
+  --managed-unity-smoke
+```
+
+Use `--submit` instead of `--job-dir` to create a fresh Asset Foundry `samurai_battlefield_pack` job through the HTTP API, wait for review, ingest only a passed job, and then run the same browser/Unity gates.
+
 ## Known Limitations
 
 - **Fresh Unity playable build:** Not created yet. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac host has Unity Editor 2023.2.20f1, but batch build currently fails with `No valid Unity Editor license found`. The managed-patched existing Mac player smoke passes with real GLBs, but the next pass still needs license activation and a fresh build/inspection.

@@ -53,6 +53,7 @@ mustExist(path.join(ROOT, 'assets/generated/foundry/audio/asset-1781916330853-f7
 mustExist(path.join(ROOT, 'DELIVERABLE_STATUS.md'), 'reviewable deliverable status');
 mustExist(path.join(ROOT, 'UNITY_BLOCKER.md'), 'Unity blocker note');
 mustExist(path.join(ROOT, 'smoke-browser-pack.sh'), 'browser battlefield pack smoke script');
+mustExist(path.join(ROOT, 'run-reviewed-foundry-handoff.sh'), 'reviewed Foundry handoff loop');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md'), 'Unity current QA note');
 mustExist(path.join(ROOT, '../../.factoryx/preview-entrypoint'), 'FactoryX preview entrypoint');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), 'Unity handoff README');
@@ -101,6 +102,14 @@ checkContent(path.join(ROOT, 'ASSET_MANIFEST.md'), [
 checkContent(path.join(ROOT, 'smoke-browser-pack.sh'), [
   { name: 'browser smoke pack readiness check', test: c => /isFoundryPackLoaded\(\)[\s\S]*isFoundryPackVisible\(\)/.test(c) },
   { name: 'browser smoke uses battlefield GLB', test: c => /samurai_battlefield_pack\.glb|packUrl/.test(c) },
+]);
+
+checkContent(path.join(ROOT, 'run-reviewed-foundry-handoff.sh'), [
+  { name: 'handoff loop can submit Foundry job', test: c => /--submit[\s\S]*samurai_battlefield_pack/.test(c) },
+  { name: 'handoff loop ingests only reviewed jobs', test: c => /ingest-reviewed-foundry-job\.js/.test(c) },
+  { name: 'handoff loop verifies Unity handoff', test: c => /verify-unity-handoff\.js/.test(c) },
+  { name: 'handoff loop supports browser smoke', test: c => /--browser-smoke[\s\S]*smoke-browser-pack\.sh/.test(c) },
+  { name: 'handoff loop supports managed Unity smoke', test: c => /--managed-unity-smoke[\s\S]*smoke-built-player\.sh/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md'), [

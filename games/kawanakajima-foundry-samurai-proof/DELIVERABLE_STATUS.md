@@ -39,12 +39,13 @@
   - This proves the patched player can load the real samurai GLB and real 20-samurai battlefield pack GLB without runtime actor or pack fallbacks.
 - **Verification evidence:** `VERIFICATION.json`, `verify.js`, `ASSET_MANIFEST.md`, six committed review screenshots under `screenshots/`, and hosted preview runtime checks.
   - `smoke-browser-pack.sh` starts a local server/headless Chrome and verifies the browser can load 20 actors, lazy-load `samurai_battlefield_pack.glb`, and mark the pack as visible.
+  - `run-reviewed-foundry-handoff.sh` is the repeatable Asset Foundry handoff loop: it can submit a fresh `samurai_battlefield_pack` job, wait for a passed review contract, ingest reviewed outputs into browser/Unity paths, and run the structure, browser, and managed-Unity smoke gates.
 
 ## What Is Not Done
 
 - **Fresh Unity build:** not produced from the current source because the local Unity Editor batch run fails license activation before import/build.
 - **Unity remaining gap:** activate the Mac Unity Editor license, run `unity/kawanakajima-samurai/run-local-unity-build.sh`, and inspect a freshly built player. The managed-patched existing player smoke is strong runtime evidence, but it is not a substitute for a fresh licensed Unity build.
-- **Autonomous completion:** not fully proven end-to-end. The Asset Foundry review contract and repo-owned ingestion command now reject under-evidenced battlefield jobs before Unity/browser handoff, but final art quality and a fresh Unity Editor build still require external review/license resolution.
+- **Autonomous completion:** not fully proven end-to-end. The Asset Foundry review contract, repo-owned ingestion command, and `run-reviewed-foundry-handoff.sh` now reject under-evidenced battlefield jobs before Unity/browser handoff and can replay the reviewed handoff plus QA gates; final art quality and a fresh Unity Editor build still require external review/license resolution.
 
 ## Current Review Verdict
 
