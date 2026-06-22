@@ -82,6 +82,7 @@ This is runtime evidence, not a fresh build artifact. The final Unity gate still
 
 - `index.html` loads `assets/samurai_character.glb` via THREE.GLTFLoader
 - 20 actors created (10 Takeda, 10 Uesugi) with pose/scale/variant transforms
+- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
 - Camera presets: overview, redClose, blueClose, sideProfile, topFormation, assetInspect
 - Audio: loop toggle, charge/clash/step/confirm sound effects
 - Charge/reform gameplay mechanics
@@ -93,9 +94,22 @@ This is runtime evidence, not a fresh build artifact. The final Unity gate still
 
 - WebGL context: created
 - 20 samurai loaded, no 404s
+- Foundry-authored 20-samurai battlefield pack is exposed through the browser `PACK GLB` review toggle
 - First viewport shows non-blank 3D scene with camera framing subjects
 - Orbit controls (drag), zoom (wheel), keyboard shortcuts (1-6, A, C, R, X, T, F)
 - `node verify.js` passes all structure/asset/size checks
+- `./smoke-browser-pack.sh` passes the direct browser pack runtime smoke:
+
+```text
+Browser battlefield pack smoke: PASS
+{
+  "actorCount": 20,
+  "packLoaded": true,
+  "packVisible": true,
+  "bodyPackVisible": "true"
+}
+```
+
 - Canvas pixel variance confirms rendered scene (not blank)
 
 ## Known Limitations

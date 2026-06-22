@@ -42,6 +42,7 @@ mustExist(path.join(ROOT, 'assets/audio/formation_step.wav'), 'file-backed forma
 mustExist(path.join(ROOT, 'assets/generated/foundry/audio/asset-1781916330853-f7d831d9/summary.json'), 'Foundry audio summary');
 mustExist(path.join(ROOT, 'DELIVERABLE_STATUS.md'), 'reviewable deliverable status');
 mustExist(path.join(ROOT, 'UNITY_BLOCKER.md'), 'Unity blocker note');
+mustExist(path.join(ROOT, 'smoke-browser-pack.sh'), 'browser battlefield pack smoke script');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md'), 'Unity current QA note');
 mustExist(path.join(ROOT, '../../.factoryx/preview-entrypoint'), 'FactoryX preview entrypoint');
 mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), 'Unity handoff README');
@@ -56,10 +57,12 @@ mustExist(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAsse
 checkContent(path.join(ROOT, 'index.html'), [
   { name: 'canvas element', test: c => /<canvas id="c"/.test(c) },
   { name: 'Foundry GLB path', test: c => /samurai_character\.glb/.test(c) },
+  { name: 'Foundry battlefield pack GLB path', test: c => /samurai_battlefield_pack\.glb/.test(c) },
   { name: 'GLTFLoader script', test: c => /GLTFLoader/.test(c) },
   { name: '20 actors', test: c => /ACTOR_COUNT = 20/.test(c) || /20/.test(c) },
   { name: 'repeatable cams', test: c => /overview|redClose|blueClose|sideProfile|topFormation|assetInspect/.test(c) },
   { name: 'contact panel', test: c => /contact-img|review-panel|TOGGLE CONTACT/.test(c) },
+  { name: 'battlefield pack review toggle', test: c => /btn-pack|loadFoundryBattlefieldPack|isFoundryPackVisible/.test(c) },
   { name: 'charge reform', test: c => /function charge|btn-charge/.test(c) },
   { name: 'file-backed audio paths', test: c => /battlefield_loop\.wav|charge_cue\.wav|clash_accent\.wav/.test(c) },
   { name: 'audio controls', test: c => /btn-audio|toggleAudio|hasFileBackedAudio/.test(c) },
@@ -80,6 +83,12 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
 checkContent(path.join(ROOT, 'ASSET_MANIFEST.md'), [
   { name: 'asset manifest Unity managed patch smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
   { name: 'asset manifest fresh Unity build caveat', test: c => /Fresh Unity playable build:\*\* Not created yet|fresh build\/inspection/.test(c) },
+  { name: 'asset manifest browser pack smoke', test: c => /smoke-browser-pack\.sh[\s\S]*Browser battlefield pack smoke: PASS/.test(c) },
+]);
+
+checkContent(path.join(ROOT, 'smoke-browser-pack.sh'), [
+  { name: 'browser smoke pack readiness check', test: c => /isFoundryPackLoaded\(\)[\s\S]*isFoundryPackVisible\(\)/.test(c) },
+  { name: 'browser smoke uses battlefield GLB', test: c => /samurai_battlefield_pack\.glb|packUrl/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md'), [
@@ -161,7 +170,12 @@ if (errors.length) {
       readiness: 'KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False',
       note: 'Existing Mac player patched with current managed source loads real samurai and battlefield GLBs; fresh Unity Editor rebuild remains license-blocked.'
     },
-    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff, managed-patched Unity player real-GLB smoke',
+    browserBattlefieldPackReview: {
+      exposed: true,
+      path: `assets/generated/foundry/samurai-battlefield-pack/${BATTLEFIELD_JOB}/samurai_battlefield_pack.glb`,
+      toggle: 'PACK GLB button / P key'
+    },
+    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff, browser battlefield-pack GLB review toggle, managed-patched Unity player real-GLB smoke',
     passed: true
   }, null, 2) + '\n');
   console.log('Wrote VERIFICATION.json');

@@ -20,6 +20,7 @@
   - Uses the Foundry GLB as the visible character base.
   - Variants come from pose transforms, scale, formation, faction standards, and small additive props.
   - Includes CHARGE, REFORM, camera presets, click-to-inspect, and contact-sheet review.
+  - Includes a `PACK GLB`/`P` review toggle that lazy-loads the Foundry-authored `samurai_battlefield_pack.glb` scene directly into the browser proof, so reviewers can compare the cloned runtime formation against the real 20-samurai pack artifact.
 - **Music/audio:** live Asset Foundry audio job `asset-1781916330853-f7d831d9`.
   - Playable mirrored files are under `assets/audio/`.
   - AUDIO toggles `battlefield_loop.wav`; CHARGE/REFORM/CLASH play file-backed cues.
@@ -37,6 +38,7 @@
   - Passing readiness marker: `KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False`.
   - This proves the patched player can load the real samurai GLB and real 20-samurai battlefield pack GLB without runtime actor or pack fallbacks.
 - **Verification evidence:** `VERIFICATION.json`, `verify.js`, `ASSET_MANIFEST.md`, six committed review screenshots under `screenshots/`, and hosted preview runtime checks.
+  - `smoke-browser-pack.sh` starts a local server/headless Chrome and verifies the browser can load 20 actors, lazy-load `samurai_battlefield_pack.glb`, and mark the pack as visible.
 
 ## What Is Not Done
 
@@ -46,4 +48,4 @@
 
 ## Current Review Verdict
 
-This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a Foundry-authored 20-samurai battlefield pack, Unity source handoff, and a managed-patched Mac player smoke that reaches `KAWANAKAJIMA_UNITY_READY` using the real GLBs with `fallbackActors=False fallbackPack=False`. v5 supersedes the bad v4 single-character visual pass with a cleaner stylized samurai asset and refreshed Blender evidence; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Final Unity completion is still not claimed: the fresh Unity Editor rebuild remains blocked by local license activation, and the current asset set remains stylized rather than final realistic game-world quality. PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical asset proof), follow-up PR #165, and current Unity QA PR #180.
+This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a browser `PACK GLB` toggle for the Foundry-authored 20-samurai battlefield pack, Unity source handoff, and a managed-patched Mac player smoke that reaches `KAWANAKAJIMA_UNITY_READY` using the real GLBs with `fallbackActors=False fallbackPack=False`. v5 supersedes the bad v4 single-character visual pass with a cleaner stylized samurai asset and refreshed Blender evidence; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (`node verify.js` PASS, `smoke-browser-pack.sh` PASS, nonblank screenshots). Final Unity completion is still not claimed: the fresh Unity Editor rebuild remains blocked by local license activation, and the current asset set remains stylized rather than final realistic game-world quality. PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (canonical asset proof), follow-up PR #165, and current Unity QA PR #180.

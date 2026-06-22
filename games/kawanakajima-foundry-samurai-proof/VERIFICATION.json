@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-06-22T04:24:07.251Z",
+  "verifiedAt": "2026-06-22T04:33:20.380Z",
   "assetFoundryJob": "asset-1781913507610-bf69e595",
   "actorCount": 20,
   "glbSize": 1285892,
@@ -24,6 +24,11 @@
     "readiness": "KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False",
     "note": "Existing Mac player patched with current managed source loads real samurai and battlefield GLBs; fresh Unity Editor rebuild remains license-blocked."
   },
-  "checks": "structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff, managed-patched Unity player real-GLB smoke",
+  "browserBattlefieldPackReview": {
+    "exposed": true,
+    "path": "assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb",
+    "toggle": "PACK GLB button / P key"
+  },
+  "checks": "structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff, browser battlefield-pack GLB review toggle, managed-patched Unity player real-GLB smoke",
   "passed": true
 }
