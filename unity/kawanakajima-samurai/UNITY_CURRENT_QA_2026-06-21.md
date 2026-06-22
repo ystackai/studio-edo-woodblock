@@ -194,3 +194,29 @@ KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fal
 This is the strongest Unity proof so far: the existing Mac player, patched with current managed source, can reach a 20-actor Kawanakajima world using the real samurai GLB and real 20-samurai battlefield pack GLB without runtime actor or pack fallbacks.
 
 The full active goal remains incomplete because a fresh Unity Editor rebuild is still blocked by the local license state, and the current asset pack remains stylized rather than the final desired realistic game-world quality.
+
+## Unity-MCP Preflight Recheck - 2026-06-22
+
+Repeatable helper added:
+
+```bash
+unity/kawanakajima-samurai/check-unity-mcp.sh
+unity/kawanakajima-samurai/check-unity-mcp.sh --open
+```
+
+Current result:
+
+- `check-unity-mcp.sh` finds no real `Unity.app/Contents/MacOS/Unity` Editor process for this project.
+- Unity-MCP CLI status can report the Unity Hub helper as "Unity is running"; the helper is not a usable Editor process.
+- Default project MCP probe at `http://localhost:21560` returns connection refused.
+- A stale `gamedev-mcp-server` process can remain on `27481`, but CLI readiness and system ping time out without a connected Editor.
+- Launching through `unity-mcp-cli open ... --url http://localhost:27482` starts Unity, but MCP readiness times out after 120s.
+- The Editor log shows the same licensing root cause in GUI mode:
+
+```text
+Unable to update licenses. Errors: No ULF license found.,Token not found in cache
+License is not active (com.unity.editor.ui). HasEntitlements will fail.
+No valid Unity Editor license found. Please activate your license.
+```
+
+The MCP route is therefore not a current workaround for the Unity build gap. It should be retried after Unity license activation using `check-unity-mcp.sh --open`, then the fresh build gate should run.

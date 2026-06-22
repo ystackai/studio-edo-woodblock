@@ -79,6 +79,16 @@ After license activation, rerun:
 ./run-local-unity-build.sh
 ```
 
+Unity-MCP should also be rechecked after license activation:
+
+```bash
+./check-unity-mcp.sh --open
+```
+
+The current MCP recheck found no ready listener for this PR worktree. A stale
+`gamedev-mcp-server` process can listen without a connected Editor, and the
+Editor launch path currently stops at the same missing Unity license state.
+
 `UNITY_BUILD_VERIFICATION.md` records an older 2026-06-20 build of the Unity project. It is retained as history, but it is not proof that the current source in this PR has been freshly rebuilt.
 
 ## Quick Start
@@ -153,7 +163,8 @@ Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
 ## Known Blockers
 
 - **Fresh current Unity build:** the Mac host has Unity Editor 2023.2.20f1 installed, but batch mode currently fails license activation before build. See `UNITY_CURRENT_QA_2026-06-21.md`.
-- **Remote worker Unity hosting:** The remote worker has Unity CLI/MCP only and does not host the Editor directly. It routes Unity MCP calls to the Mac Studio listener instead.
+- **Unity-MCP:** Tools are installed, but the current PR-worktree preflight does not have a ready listener because Unity cannot pass license activation. Re-run `check-unity-mcp.sh --open` after license activation.
+- **Remote worker Unity hosting:** The remote worker has Unity CLI/MCP only and does not host the Editor directly. Historical routes to the Mac listener exist, but current source completion still requires a ready local Editor/MCP session.
 - **Disk space:** Remote worker `/cache` has limited free space; Unity Editor installation remains a poor fit there.
 
 ## Browser Proof

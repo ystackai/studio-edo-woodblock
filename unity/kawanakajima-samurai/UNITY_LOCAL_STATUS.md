@@ -30,4 +30,17 @@ This is not a fresh build of the current source. As of 2026-06-22, `run-local-un
 - Worker preflight: passed
 - MCP tool calls were verified against the running editor.
 
+## Current MCP Recheck - 2026-06-22
+
+The historical listener result above is not current proof. A fresh check from this PR
+worktree added `check-unity-mcp.sh` and found:
+
+- No real Unity Editor process was running for `unity/kawanakajima-samurai`.
+- Unity-MCP CLI status can mistake a Unity Hub helper process for the Editor; the helper does not expose MCP tools.
+- `http://localhost:21560` refused connections for this project.
+- A stale `gamedev-mcp-server` process was listening on `27481`, but readiness and system-tool pings timed out without a connected Editor.
+- Launching the Editor through Unity-MCP with `--open` reached the same missing-license state as batchmode: no ULF license and no cached token.
+
+Use `./check-unity-mcp.sh --open` after Unity license activation before claiming Unity-MCP scene/build work on the current source.
+
 Remote worker capacity notes from the earlier Hetzner attempt remain in the work-order history.
