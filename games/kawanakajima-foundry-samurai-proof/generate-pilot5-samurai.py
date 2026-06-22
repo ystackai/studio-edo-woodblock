@@ -364,7 +364,7 @@ def add_weapons_and_banner(M, variant_idx=0):
         ("banner_mon", (0.30, 0.150, 1.60), 0.038, 0.006, "banner_ink"),
     ]
 
-    start = variant_idx * 3
+    start = (variant_idx % 4) * 3
     for i in range(3):
         entry = banner_data[start + i]
         name = entry[0]
