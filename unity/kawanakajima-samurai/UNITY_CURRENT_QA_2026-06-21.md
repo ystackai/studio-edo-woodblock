@@ -115,3 +115,33 @@ Source fix added after this smoke test:
 - `verify-unity-handoff.js` now checks for this fallback path.
 
 This source fix still needs a fresh Unity build after the Unity license issue is resolved.
+
+Graphics-enabled smoke was also attempted against the same existing build:
+
+```bash
+/Users/marcus/Documents/Github/studio-edo-woodblock/unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app/Contents/MacOS/kawanakajima-samurai \
+  -batchmode \
+  -logFile /tmp/kawanakajima-built-player-graphics-smoke.log
+```
+
+Result: the old build selects the Apple M3 Ultra Metal device, but still fails with the same `new Material(null)` runtime exception before reaching `KAWANAKAJIMA_UNITY_READY`.
+
+Relevant log excerpt:
+
+```text
+Using device Apple M3 Ultra (high power)
+Initializing Metal device caps: Apple M3 Ultra
+ArgumentNullException: Value cannot be null.
+Parameter name: shader
+  at UnityEngine.Material..ctor (UnityEngine.Shader shader)
+  at KawanakajimaRuntimeBootstrap.MakeMaterial (...)
+  at KawanakajimaRuntimeBootstrap.CreateMaterials ()
+```
+
+`smoke-built-player.sh` was added to make this gate repeatable. It expects the built app to log:
+
+```text
+KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True
+```
+
+The currently existing Mac build fails this smoke test because it was built before the material fallback source fix.
