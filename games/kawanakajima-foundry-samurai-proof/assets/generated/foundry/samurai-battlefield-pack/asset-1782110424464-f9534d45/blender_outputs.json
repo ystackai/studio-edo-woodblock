@@ -1,0 +1,33 @@
+{
+  "blend": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782110424464-f9534d45/samurai_battlefield_pack_source.blend",
+  "glb": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782110424464-f9534d45/samurai_battlefield_pack.glb",
+  "manifest": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782110424464-f9534d45/samurai_battlefield_manifest.json",
+  "renders": {
+    "center_meeting": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782110424464-f9534d45/samurai_battlefield_center_meeting.png",
+    "overhead_layout": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782110424464-f9534d45/samurai_battlefield_overhead_layout.png",
+    "takeda_line": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782110424464-f9534d45/samurai_battlefield_takeda_line.png",
+    "uesugi_line": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782110424464-f9534d45/samurai_battlefield_uesugi_line.png",
+    "wide_clash": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782110424464-f9534d45/samurai_battlefield_wide_clash.png"
+  },
+  "stats": {
+    "center_gap": 2.6,
+    "environment_feature_count": 125,
+    "inspection_views": [
+      "wide_clash",
+      "overhead_layout",
+      "takeda_line",
+      "uesugi_line",
+      "center_meeting"
+    ],
+    "material_count": 32,
+    "mesh_count": 1751,
+    "object_count": 2640,
+    "rice_paddy_count": 4,
+    "river_reed_count": 12,
+    "sky_backdrop_count": 1,
+    "takeda_count": 10,
+    "tree_count": 10,
+    "uesugi_count": 10,
+    "warrior_count": 20
+  }
+}

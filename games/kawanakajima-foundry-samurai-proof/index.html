@@ -54,8 +54,9 @@
      <button id="btn-reform">REFORM</button>
      <button id="btn-audio">AUDIO</button>
      <button id="btn-clash">CLASH</button>
+     <button id="btn-pack">PACK GLB</button>
      <button id="btn-contact">CONTACT</button>
-     <span class="label hint">drag orbit · wheel zoom · click samurai · 1-6 keys · A audio</span>
+     <span class="label hint">drag orbit · wheel zoom · click samurai · 1-6 keys · P pack · A audio</span>
    </div>
 
    <div id="load">preparing kawanakajima tableau from foundry glb…</div>
@@ -69,6 +70,10 @@
        <div style="margin-top:6px;">
          <div class="review-label" style="margin-bottom:2px;">Hero reference:</div>
          <img id="hero-thumb" src="assets/samurai_character_hero.png" style="max-height:92px;width:auto;vertical-align:middle;border:none" alt="hero">
+       </div>
+       <div style="margin-top:8px;">
+         <div class="review-label" style="margin-bottom:2px;">20-samurai Foundry battlefield pack contact:</div>
+         <img id="pack-contact-img" src="assets/generated/foundry/samurai-battlefield-pack/asset-1782110424464-f9534d45/samurai_battlefield_contact_sheet.png" alt="Foundry 20-samurai battlefield pack contact sheet">
        </div>
      </div>
    </div>
@@ -90,6 +95,8 @@
       step: 'assets/audio/formation_step.wav'
      };
     const audio = { ready: false, enabled: false, loop: null, sfx: {} };
+    const PACK_URL = 'assets/generated/foundry/samurai-battlefield-pack/asset-1782110424464-f9534d45/samurai_battlefield_pack.glb';
+    const foundryPack = { loaded: false, visible: false, group: null, error: null };
 
     window.addEventListener('error', (e) => {
       console.error('PAGE_ERROR', e.message, e.filename + ':' + e.lineno);
@@ -392,6 +399,60 @@
 
     function frameDefault() { camPresets.overview(); }
 
+    function setFormationActorsVisible(visible) {
+      takedaGroup.visible = visible;
+      uesugiGroup.visible = visible;
+    }
+
+    function setFoundryPackVisible(visible) {
+      foundryPack.visible = visible;
+      if (foundryPack.group) foundryPack.group.visible = visible;
+      setFormationActorsVisible(!visible);
+      const packButton = document.getElementById('btn-pack');
+      if (packButton) packButton.classList.toggle('active', visible);
+      document.body.dataset.foundryPackVisible = visible ? 'true' : 'false';
+      statusEl.textContent = visible ? 'PACK GLB' : 'FORMATION';
+    }
+
+    function loadFoundryBattlefieldPack() {
+      if (foundryPack.loaded && foundryPack.group) {
+        setFoundryPackVisible(!foundryPack.visible);
+        if (foundryPack.visible) {
+          reviewPanel.classList.add('open');
+          applyPreset('overview');
+        }
+        return;
+      }
+      if (foundryPack.error) {
+        statusEl.textContent = 'PACK ERR';
+        return;
+      }
+      statusEl.textContent = 'LOADING PACK';
+      loader.load(PACK_URL, (gltf) => {
+        const pack = gltf.scene;
+        pack.name = 'foundry-authored-20-samurai-battlefield-pack';
+        pack.traverse((o) => {
+          if (o.isMesh) {
+            o.castShadow = false;
+            o.receiveShadow = true;
+          }
+        });
+        pack.position.set(0, 0.02, -3.8);
+        pack.rotation.y = 0;
+        pack.visible = false;
+        scene.add(pack);
+        foundryPack.group = pack;
+        foundryPack.loaded = true;
+        setFoundryPackVisible(true);
+        reviewPanel.classList.add('open');
+        applyPreset('overview');
+      }, undefined, (err) => {
+        console.error('Foundry battlefield pack load failed', err);
+        foundryPack.error = err;
+        statusEl.textContent = 'PACK ERR';
+      });
+    }
+
     // === AUDIO ===
     function initAudio() {
       if (audio.ready) return;
@@ -644,6 +705,10 @@
         applyCam: applyPreset,
         getCanvas: () => canvas,
         getActors: () => actors,
+        packUrl: PACK_URL,
+        loadFoundryBattlefieldPack,
+        isFoundryPackLoaded: () => foundryPack.loaded,
+        isFoundryPackVisible: () => foundryPack.visible,
         audioPaths: AUDIO_PATHS,
         hasFileBackedAudio: true,
         isAudioEnabled: () => audio.enabled
@@ -736,6 +801,7 @@
     document.getElementById('btn-reform').addEventListener('click', reform);
     document.getElementById('btn-audio').addEventListener('click', toggleAudio);
     document.getElementById('btn-clash').addEventListener('click', () => playSfx('clash'));
+    document.getElementById('btn-pack').addEventListener('click', loadFoundryBattlefieldPack);
     document.getElementById('btn-contact').addEventListener('click', () => reviewPanel.classList.toggle('open'));
 
     // === KEYBOARD ===
@@ -751,6 +817,7 @@
       if (k === 'r') reform();
       if (k === 'a') toggleAudio();
       if (k === 'x') playSfx('clash');
+      if (k === 'p') loadFoundryBattlefieldPack();
       if (k === 'i' && actors.length) inspectActor(actors[Math.floor(Math.random() * actors.length)]);
       if (k === 'f' || e.key === ' ') { e.preventDefault(); applyPreset('overview'); }
       if (k === 't') reviewPanel.classList.toggle('open');

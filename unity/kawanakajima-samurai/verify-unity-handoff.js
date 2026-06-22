@@ -45,16 +45,31 @@ mustExist('Assets/Kawanakajima/Review/samurai_battlefield_contact_sheet.png', '2
 mustExist('Assets/Kawanakajima/Review/samurai_battlefield_wide_clash.png', '20-samurai battlefield wide render');
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', '20 actor bootstrap', /ActorCount\s*=\s*20/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'runtime GLB loading', /new GltfImport\(\)|gltf\.Load\(url\)/);
+mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'shader-safe glTF material generator', /ShaderSafeGltfMaterialGenerator[\s\S]*IMaterialGenerator/);
+mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'shader-safe GLB import wiring', /new GltfImport\(null,\s*null,\s*GltfMaterialGenerator,\s*null\)/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', '20-samurai battlefield pack loading', /samurai_battlefield_pack\.glb|ToggleFoundryBattlefieldPack|KeyCode\.P/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'playable controls', /KeyCode\.C|KeyCode\.R|ToggleMusic|ApplyCameraPreset/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'readiness marker', /KAWANAKAJIMA_UNITY_READY/);
+mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'headless shader fallback', /KAWANAKAJIMA_SHADER_FALLBACK[\s\S]*ApplySharedMaterial/);
+mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'runtime actor fallback marker', /KAWANAKAJIMA_UNITY_READY_FALLBACK[\s\S]*KAWANAKAJIMA_GLTF_ACTOR_FALLBACK[\s\S]*KAWANAKAJIMA_GLTF_PACK_FALLBACK/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'scene creation menu', /Create Or Refresh Scene/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'WebGL build hook', /BuildTarget\.WebGL/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Linux build hook', /BuildTarget\.StandaloneLinux64/);
 mustContain('Assets/Kawanakajima/Editor/KawanakajimaUnityBuild.cs', 'Mac build hook', /BuildTarget\.StandaloneOSX/);
-mustContain('README.md', 'verified local Unity build documented', /Verified Local Build[\s\S]*KawanakajimaUnityBuild\.BuildMac[\s\S]*Exit code 0/);
-mustContain('UNITY_BUILD_VERIFICATION.md', 'Mac build success documented', /Build result: succeeded[\s\S]*Builds\/Mac\/KawanakajimaSamurai\.app/);
+mustContain('smoke-built-player.sh', 'built player readiness smoke test', /KAWANAKAJIMA_UNITY_READY[\s\S]*actors=20[\s\S]*Built player smoke: PASS/);
+mustContain('patch-existing-mac-player-managed.sh', 'managed patch smoke helper', /Assembly-CSharp\.dll[\s\S]*Roslyn[\s\S]*smoke-built-player\.sh/);
+mustContain('smoke-managed-patched-player.sh', 'single-command managed patch smoke helper', /patch-existing-mac-player-managed\.sh[\s\S]*smoke-built-player\.sh/);
+mustContain('check-unity-mcp.sh', 'Unity MCP preflight helper', /wait-for-ready[\s\S]*UNITY_MCP_READY[\s\S]*Unity Editor log tail/);
+mustContain('check-unity-mcp.sh', 'Unity MCP batchmode diagnostic', /batch\/headless[\s\S]*not an interactive Editor session[\s\S]*MCP tools will not be available/);
+mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'real GLB managed patch smoke evidence', /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
+mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'Unity MCP current blocker documented', /Unity-MCP Preflight Recheck[\s\S]*MCP readiness times out[\s\S]*No valid Unity Editor license found/);
+mustContain('README.md', 'current managed-patched player smoke documented', /managed-patched Mac player smoke evidence[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
+mustContain('README.md', 'fresh Unity build blocker documented', /fresh current Unity Editor rebuild has not been produced|No valid Unity Editor license found/i);
+mustContain('UNITY_BUILD_VERIFICATION.md', 'historical build clearly marked stale', /Historical Unity Editor batchmode evidence[\s\S]*must not be used as proof that the current PR has a fresh playable Unity build/);
+mustContain('UNITY_BUILD_VERIFICATION.md', 'historical Mac build record retained', /Historical build result: succeeded[\s\S]*Builds\/Mac\/KawanakajimaSamurai\.app/);
+mustContain('UNITY_LOCAL_STATUS.md', 'current license blocker documented', /not a fresh build of the current source[\s\S]*no valid Unity Editor license is active/);
 mustContain('UNITY_LOCAL_STATUS.md', 'Mac Unity MCP routing documented', /Worker routed URL:\s*`http:\/\/172\.21\.0\.1:25666`[\s\S]*Worker preflight: passed/);
+mustContain('UNITY_LOCAL_STATUS.md', 'current MCP recheck documented', /Current MCP Recheck[\s\S]*check-unity-mcp\.sh[\s\S]*readiness and system-tool pings timed out/);
 
 if (errors.length) {
   console.error('UNITY HANDOFF VERIFICATION FAILS:');

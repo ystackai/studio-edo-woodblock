@@ -1,0 +1,5 @@
+{
+  "glb": "/tmp/factoryx-v25-render/samurai-repaired-full-20-v25/uesugi-01/samurai_character.glb",
+  "blend": "/tmp/factoryx-v25-render/samurai-repaired-full-20-v25/uesugi-01/samurai_character_source.blend",
+  "improvements": "v25 sculpted mesh cloth and lacquer surfaces, noise-displaced material breakup, reduced primitive panel read, preserved compact helmet/head, repeatable multi-angle verification cameras"
+}

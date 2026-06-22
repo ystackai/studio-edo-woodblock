@@ -1,0 +1,42 @@
+{
+  "asset_name": "kawanakajima-realistic-samurai-character-v29",
+  "created_at_ms": 1782104227756,
+  "duration_s": 5.11,
+  "job_dir": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798",
+  "job_id": "asset-1782104227755-0ef02798",
+  "log": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/runner.log",
+  "outputs": {
+    "blender_script": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_blender.py",
+    "blender_stderr": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/blender_stderr.log",
+    "blender_stdout": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/blender_stdout.log",
+    "contact_sheet": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_contact_sheet.png",
+    "glb": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character.glb",
+    "poster": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_hero.png",
+    "source_blend": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_source.blend",
+    "turntable": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_turntable.gif"
+  },
+  "recipe": "samurai_character",
+  "state": "completed",
+  "stats": {
+    "crest": "crescent",
+    "faction": "takeda",
+    "inspection_views": [
+      "hero",
+      "front",
+      "left",
+      "rear",
+      "top",
+      "three_quarter"
+    ],
+    "material_count": 15,
+    "mesh_count": 207,
+    "mon": "four-diamonds",
+    "object_count": 277,
+    "pose": "guard",
+    "prompt_format": "/goal",
+    "stable_camera_views": 6,
+    "turntable_frames": 8,
+    "variant_index": 9
+  },
+  "updated_at_ms": 1782104232868
+}

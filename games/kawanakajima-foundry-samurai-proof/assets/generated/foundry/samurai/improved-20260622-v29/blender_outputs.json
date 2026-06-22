@@ -1,0 +1,40 @@
+{
+  "blend": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_source.blend",
+  "glb": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character.glb",
+  "renders": {
+    "front": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_front.png",
+    "hero": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_hero.png",
+    "left": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_left.png",
+    "rear": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_rear.png",
+    "three_quarter": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_three_quarter.png",
+    "top": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_top.png"
+  },
+  "stats": {
+    "crest": "crescent",
+    "faction": "takeda",
+    "inspection_views": [
+      "hero",
+      "front",
+      "left",
+      "rear",
+      "top",
+      "three_quarter"
+    ],
+    "material_count": 15,
+    "mesh_count": 207,
+    "mon": "four-diamonds",
+    "object_count": 277,
+    "pose": "guard",
+    "variant_index": 9
+  },
+  "turntable_frames": [
+    "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/turntable_000.png",
+    "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/turntable_001.png",
+    "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/turntable_002.png",
+    "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/turntable_003.png",
+    "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/turntable_004.png",
+    "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/turntable_005.png",
+    "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/turntable_006.png",
+    "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/turntable_007.png"
+  ]
+}

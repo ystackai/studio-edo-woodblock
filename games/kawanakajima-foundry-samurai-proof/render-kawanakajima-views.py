@@ -10,15 +10,17 @@ from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[2]
 GAME_DIR = ROOT / "games" / "kawanakajima-foundry-samurai-proof"
-SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v5.blend"
+SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "improved-20260622-v29" / "samurai_character_source.blend"
+if not SOURCE_BLEND.exists():
+    SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v5.blend"
 if not SOURCE_BLEND.exists():
     SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v4.blend"
 if not SOURCE_BLEND.exists():
     SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source_v3.blend"
 if not SOURCE_BLEND.exists():
     SOURCE_BLEND = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_source.blend"
-SOURCE_HERO = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_hero.png"
-SOURCE_CONTACT = GAME_DIR / "assets" / "generated" / "foundry" / "samurai" / "samurai_character_contact_sheet.png"
+SOURCE_HERO = GAME_DIR / "assets" / "samurai_character_hero.png"
+SOURCE_CONTACT = GAME_DIR / "assets" / "samurai_character_contact_sheet.png"
 SHOT_DIR = ROOT / ".factoryx" / "work-orders" / "work-order-1781913967751-7-1" / "screenshots"
 GAME_SHOT_DIR = GAME_DIR / "screenshots"
 
@@ -185,9 +187,12 @@ def build_scene():
 
     scene = bpy.context.scene
     scene.render.engine = "BLENDER_EEVEE"
-    scene.eevee.use_gtao = True
-    scene.eevee.gtao_distance = 3
-    scene.eevee.gtao_factor = 1.4
+    if hasattr(scene.eevee, "use_gtao"):
+        scene.eevee.use_gtao = True
+    if hasattr(scene.eevee, "gtao_distance"):
+        scene.eevee.gtao_distance = 3
+    if hasattr(scene.eevee, "gtao_factor"):
+        scene.eevee.gtao_factor = 1.4
     scene.render.resolution_x = 960
     scene.render.resolution_y = 600
     scene.render.film_transparent = False
