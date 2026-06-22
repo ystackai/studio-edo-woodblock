@@ -29,9 +29,9 @@ That proves the fresh Unity player can load the samurai GLB and 20-samurai battl
 - **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy; v29 narrows the armor underframe so the default playable asset reads less like a red ball torso. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
-- **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1782110424464-f9534d45/samurai_battlefield_pack.glb`
-- **Size:** 7.11 MB
-- **Provenance:** Asset Foundry Blender job `asset-1782110424464-f9534d45` (review-gated API handoff after Asset Foundry `review_contract` validation)
+- **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1782152407992-cc920f4b/samurai_battlefield_pack.glb`
+- **Size:** 7.06 MB
+- **Provenance:** Asset Foundry Blender job `asset-1782152407992-cc920f4b` (fresh `--submit` job, review-gated API handoff after Asset Foundry `review_contract` validation)
 - **Contents:** One GLB scene with 20 named samurai, 10 Takeda + 10 Uesugi, on countryside battlefield with road, river, rice paddies, cedar hills, banners, weapons.
 - **Manifest:** `samurai_battlefield_manifest.json` — warrior_count=20, 10/10 faction split, per-warrior ID/pose/position/yaw.
 - **Evidence:** `samurai_battlefield_contact_sheet.png` — 5 stable camera views.
@@ -61,7 +61,7 @@ That proves the fresh Unity player can load the samurai GLB and 20-samurai battl
 ## Unity Handoff Assets
 
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` — 1.15 MB
-- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` — 6.27 MB
+- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` — 7.06 MB
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` — 20 warriors manifest
 - `unity/kawanakajima-samurai/Assets/Resources/KawanakajimaAudio/` — all WAV files
 - `unity/kawanakajima-samurai/Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs` — runtime bootstrap
@@ -89,7 +89,7 @@ This is fresh Unity build/runtime evidence.
 
 - `index.html` loads `assets/samurai_character.glb` via THREE.GLTFLoader
 - 20 actors created (10 Takeda, 10 Uesugi) with pose/scale/variant transforms
-- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1782110424464-f9534d45/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
+- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1782152407992-cc920f4b/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
 - Camera presets: overview, redClose, blueClose, sideProfile, topFormation, assetInspect
 - Audio: loop toggle, charge/clash/step/confirm sound effects
 - Charge/reform gameplay mechanics
@@ -125,12 +125,14 @@ Browser battlefield pack smoke: PASS
 
 ```bash
 games/kawanakajima-foundry-samurai-proof/run-reviewed-foundry-handoff.sh \
-  --job-dir games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai-battlefield-pack/asset-1782110424464-f9534d45 \
+  --job-dir games/kawanakajima-foundry-samurai-proof/assets/generated/foundry/samurai-battlefield-pack/asset-1782152407992-cc920f4b \
   --browser-smoke \
-  --managed-unity-smoke
+  --fresh-unity-build
 ```
 
-Use `--submit` instead of `--job-dir` to create a fresh Asset Foundry `samurai_battlefield_pack` job through the HTTP API, wait for review, ingest only a passed job, and then run the same browser/Unity gates.
+The 2026-06-22 autonomous proof used `--submit --browser-smoke --fresh-unity-build`, created `asset-1782152407992-cc920f4b`, ingested only after `review.state=passed`, browser-smoked the pack, built the Unity Mac player, and reached `KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False`.
+
+Use `--submit` instead of `--job-dir` to create another fresh Asset Foundry `samurai_battlefield_pack` job through the HTTP API, wait for review, ingest only a passed job, and then run the same browser/Unity gates.
 
 ## Known Limitations
 

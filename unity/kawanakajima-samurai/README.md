@@ -16,8 +16,8 @@ unity/kawanakajima-samurai/
 ├── Assets/
 │   ├── StreamingAssets/
 │   │   └── Kawanakajima/
-│   │       ├── samurai_character.glb          (1.23 MB, v5 Blender repair)
-│   │       ├── samurai_battlefield_pack.glb   (6.27 MB, review-gated Asset Foundry battlefield pack)
+│   │       ├── samurai_character.glb          (1.15 MB, v29 Blender anatomy pass)
+│   │       ├── samurai_battlefield_pack.glb   (7.06 MB, review-gated Asset Foundry battlefield pack)
 │   │       └── samurai_battlefield_manifest.json (20 warriors, 10/10 split)
 │   ├── Resources/
 │   │   └── KawanakajimaAudio/
@@ -52,7 +52,7 @@ unity/kawanakajima-samurai/
 | Asset | Job ID | Size | Description |
 |-------|--------|------|-------------|
 | `samurai_character.glb` | `asset-1782104227755-0ef02798` | 1.15 MB | v29 Blender 5 anatomy pass — kabuto, mempo, lamellar, sode, kote, hakama, tabi/geta, katana, sashimono |
-| `samurai_battlefield_pack.glb` | `asset-1782110424464-f9534d45` | 7.11 MB | Review-gated Blender 5 API pack — 20 named warriors with terrain, banners, formation, and passed `review.json` |
+| `samurai_battlefield_pack.glb` | `asset-1782152407992-cc920f4b` | 7.06 MB | Fresh autonomous `--submit` Blender 5 API pack — 20 named warriors with terrain, banners, formation, and passed `review.json` |
 | Audio stems | `asset-1781916330853-f7d831d9` | ~2.7 MB | Battlefield loop, charge/clash/confirm/step SFX |
 
 All assets verified via `node verify-unity-handoff.js` → **PASS**
