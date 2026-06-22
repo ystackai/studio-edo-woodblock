@@ -2,7 +2,7 @@
 
 **Work Order:** work-order-1781967391303-7-1  
 **Deliverable:** Kawanakajima 20 Samurai Countryside Unity Game  
-**Status:** Unity source handoff plus managed-patched Mac player smoke evidence. A fresh current Unity Editor build is still blocked by local license activation.
+**Status:** Fresh Unity Editor Mac build and built-player smoke pass with real GLBs and no fallbacks.
 **Playables:** Browser proof at `games/kawanakajima-foundry-samurai-proof/`
 
 ## Overview
@@ -59,41 +59,32 @@ All assets verified via `node verify-unity-handoff.js` → **PASS**
 
 ## Current Unity Build Status
 
-As of 2026-06-22, the current source handoff verifies structurally and the managed-patched existing Mac player reaches:
-
-```bash
-./smoke-managed-patched-player.sh
-```
-
-```text
-KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
-```
-
-That smoke proves the current runtime source can load the real samurai GLB and the real 20-samurai battlefield pack GLB without runtime actor or pack fallbacks.
-
-A fresh current Unity Editor rebuild has not been produced yet. The local batch build fails before import/build because this Mac's Unity Editor has no active batch/headless license:
-
-```text
-No valid Unity Editor license found. Please activate your license.
-```
-
-After license activation, rerun:
+As of 2026-06-22, the current source handoff verifies structurally, builds through Unity Editor batchmode, and the freshly built Mac player reaches:
 
 ```bash
 ./run-local-unity-build.sh
+APP="$PWD/Builds/Mac/KawanakajimaSamurai.app/Contents/MacOS/kawanakajima-samurai" \
+  ./smoke-built-player.sh
 ```
 
-Unity-MCP should also be rechecked after license activation:
+```text
+Kawanakajima Mac Unity build: PASS
+KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
+```
+
+That smoke proves the fresh Unity player can load the real samurai GLB and the real 20-samurai battlefield pack GLB without runtime actor or pack fallbacks.
+
+Unity-MCP also reaches readiness from this project:
 
 ```bash
 ./check-unity-mcp.sh --open
 ```
 
-The current MCP recheck found no ready listener for this PR worktree. A stale
-`gamedev-mcp-server` process can listen without a connected Editor, and the
-Editor launch path currently stops at the same missing Unity license state.
+```text
+UNITY_MCP_READY url=http://localhost:27482
+```
 
-`UNITY_BUILD_VERIFICATION.md` records an older 2026-06-20 build of the Unity project. It is retained as history, but it is not proof that the current source in this PR has been freshly rebuilt.
+`UNITY_BUILD_VERIFICATION.md` records the fresh 2026-06-22 build, built-player smoke, and Unity-MCP readiness evidence.
 
 ## Quick Start
 
@@ -164,12 +155,11 @@ Unity -batchmode -quit -projectPath unity/kawanakajima-samurai \
 - Audio: file-backed WAV files, toggle loop, SFX on charge/clash/confirm/step
 - Optional Foundry battlefield pack view toggled with `P`
 
-## Known Blockers
+## Known Limitations
 
-- **Fresh current Unity build:** the Mac host has Unity Editor 2023.2.20f1 installed, but batch mode currently fails license activation before build. See `UNITY_CURRENT_QA_2026-06-21.md`.
-- **Unity-MCP:** Tools are installed, but the current PR-worktree preflight does not have a ready listener because Unity cannot pass license activation. Re-run `check-unity-mcp.sh --open` after license activation.
 - **Remote worker Unity hosting:** The remote worker has Unity CLI/MCP only and does not host the Editor directly. Historical routes to the Mac listener exist, but current source completion still requires a ready local Editor/MCP session.
 - **Disk space:** Remote worker `/cache` has limited free space; Unity Editor installation remains a poor fit there.
+- **Asset fidelity:** Current assets are coherent and review-gated, but still stylized rather than final photoreal production art.
 
 ## Browser Proof
 

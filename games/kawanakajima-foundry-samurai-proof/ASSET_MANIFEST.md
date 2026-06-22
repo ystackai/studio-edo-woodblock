@@ -9,13 +9,14 @@
 
 ## Status
 
-Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity source handoff is present. A managed-code patch of the existing Mac player now smokes successfully with the current runtime source and real GLBs:
+Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity source handoff is present. A fresh Unity Editor Mac build now smokes successfully with the current runtime source and real GLBs:
 
 ```text
+Kawanakajima Mac Unity build: PASS
 KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
 ```
 
-That proves the current Unity runtime can load the samurai GLB and 20-samurai battlefield pack GLB without runtime actor or pack fallback. Fresh Unity Editor rebuild is still not included because the local Unity Editor batch build is blocked by license activation.
+That proves the fresh Unity player can load the samurai GLB and 20-samurai battlefield pack GLB without runtime actor or pack fallback.
 
 ## Generated Assets (Asset Foundry provenance)
 
@@ -24,7 +25,7 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 - **Size:** 1.15 MB
 - **Provenance:** Asset Foundry local HTTP API + Blender 5 job `asset-1782104227755-0ef02798` (v29 anatomy pass; supersedes v5 while preserving v5 in history)
 - **Source:** `assets/generated/foundry/samurai/improved-20260622-v29/samurai_character_source.blend`
-- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. Current Unity managed-patched player smoke proves this GLB can load in the existing Mac player; a fresh Unity Editor rebuild is still pending license activation.
+- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. Current fresh Unity player smoke proves this GLB can load in the built Mac player.
 - **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy; v29 narrows the armor underframe so the default playable asset reads less like a red ball torso. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
@@ -70,17 +71,19 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 ## Unity Runtime Verification
 
 - `unity/kawanakajima-samurai/verify-unity-handoff.js` — structure verifier for GLBs, audio, review images, runtime controls, shader-safe glTF material generation, and build hooks.
-- `unity/kawanakajima-samurai/patch-existing-mac-player-managed.sh` — compiles current managed source into the existing Mac player when Unity Editor batch build is license-blocked.
+- `unity/kawanakajima-samurai/run-local-unity-build.sh` — builds the fresh Mac player through Unity Editor batchmode.
+- `unity/kawanakajima-samurai/patch-existing-mac-player-managed.sh` — fallback helper that compiles current managed source into the existing Mac player if a future Editor batch build is unavailable.
 - `unity/kawanakajima-samurai/smoke-managed-patched-player.sh` — one-command managed-patched Mac player smoke gate.
 - `unity/kawanakajima-samurai/smoke-built-player.sh` — repeatable built-player readiness gate.
-- Passing managed-patched smoke:
+- Passing fresh build and smoke:
 
 ```text
+Kawanakajima Mac Unity build: PASS
 Built player smoke: PASS
 KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False
 ```
 
-This is runtime evidence, not a fresh build artifact. The final Unity gate still requires a licensed Editor rebuild and visual/playable inspection of that fresh build.
+This is fresh Unity build/runtime evidence.
 
 ## Integration Points
 
@@ -131,7 +134,7 @@ Use `--submit` instead of `--job-dir` to create a fresh Asset Foundry `samurai_b
 
 ## Known Limitations
 
-- **Fresh Unity playable build:** Not created yet. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac host has Unity Editor 2023.2.20f1, but batch build currently fails with `No valid Unity Editor license found`. The managed-patched existing Mac player smoke passes with real GLBs, but the next pass still needs license activation and a fresh build/inspection.
+- **Fresh Unity playable build:** Created on the Mac host through Unity Editor 2023.2.20f1 and smoked successfully with real GLBs. The Hetzner worker still has Unity CLI (0.1.0-beta.7) but no installed Editor, so Editor builds should continue to run on the Mac host.
 - **Asset fidelity:** Stylized, not photoreal. v29 improves the default playable samurai over v5 by reducing the spherical torso read, but it is still not final realistic character art.
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.

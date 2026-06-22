@@ -96,7 +96,7 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'battlefield Foundry job', test: c => new RegExp(BATTLEFIELD_JOB).test(c) },
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
   { name: 'Unity managed patch GLB smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
-  { name: 'fresh Unity build caveat', test: c => /Fresh Unity build:\*\* not produced|fresh Unity Editor rebuild remains blocked/.test(c) },
+  { name: 'fresh Unity build pass', test: c => /Fresh Unity Mac build and player smoke:[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
   { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not fully proven end-to-end|Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
   { name: 'meeting composition gate documented', test: c => /center_gap=2\.6/.test(c) },
   { name: 'countryside environment gate documented', test: c => /environment_feature_count=125/.test(c) },
@@ -104,7 +104,7 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
 
 checkContent(path.join(ROOT, 'ASSET_MANIFEST.md'), [
   { name: 'asset manifest Unity managed patch smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
-  { name: 'asset manifest fresh Unity build caveat', test: c => /Fresh Unity playable build:\*\* Not created yet|fresh build\/inspection/.test(c) },
+  { name: 'asset manifest fresh Unity build pass', test: c => /Fresh Unity playable build:\*\* Created on the Mac host[\s\S]*smoked successfully/.test(c) },
   { name: 'asset manifest browser pack smoke', test: c => /smoke-browser-pack\.sh[\s\S]*Browser battlefield pack smoke: PASS/.test(c) },
   { name: 'asset manifest meeting gate', test: c => /center_gap=2\.6[\s\S]*maximum of `2\.8`/.test(c) },
   { name: 'asset manifest environment gate', test: c => /environment_feature_count=125[\s\S]*sky_backdrop_count=1/.test(c) },
@@ -121,6 +121,7 @@ checkContent(path.join(ROOT, 'run-reviewed-foundry-handoff.sh'), [
   { name: 'handoff loop verifies Unity handoff', test: c => /verify-unity-handoff\.js/.test(c) },
   { name: 'handoff loop supports browser smoke', test: c => /--browser-smoke[\s\S]*smoke-browser-pack\.sh/.test(c) },
   { name: 'handoff loop supports managed Unity smoke', test: c => /--managed-unity-smoke[\s\S]*smoke-managed-patched-player\.sh/.test(c) },
+  { name: 'handoff loop supports fresh Unity build smoke', test: c => /--fresh-unity-build[\s\S]*run-local-unity-build\.sh[\s\S]*smoke-built-player\.sh/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, 'ingest-reviewed-foundry-job.js'), [
@@ -131,8 +132,8 @@ checkContent(path.join(ROOT, 'ingest-reviewed-foundry-job.js'), [
 ]);
 
 checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/UNITY_CURRENT_QA_2026-06-21.md'), [
-  { name: 'Unity QA real GLB managed patch smoke', test: c => /Managed Patch GLB Smoke[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
-  { name: 'Unity QA license caveat', test: c => /No valid Unity Editor license found|license state/.test(c) },
+  { name: 'Unity QA fresh build smoke', test: c => /Fresh Built Player Smoke[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
+  { name: 'Unity QA MCP ready', test: c => /Unity-MCP Preflight[\s\S]*UNITY_MCP_READY url=http:\/\/localhost:27482/.test(c) },
 ]);
 
 checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
@@ -141,8 +142,7 @@ checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
 
 checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), [
   { name: 'Unity handoff references Foundry Samurai', test: c => new RegExp(SAMURAI_JOB).test(c) },
-  { name: 'Unity handoff documents current managed patch smoke', test: c => /managed-patched Mac player smoke evidence[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
-  { name: 'Unity handoff documents fresh build license blocker', test: c => /fresh current Unity Editor rebuild has not been produced|No valid Unity Editor license found/i.test(c) },
+  { name: 'Unity handoff documents fresh build smoke', test: c => /freshly built Mac player reaches[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
 ]);
 
 // Asset sizes roughly
@@ -261,14 +261,14 @@ if (errors.length) {
     unityManagedPatchSmoke: {
       passed: true,
       readiness: 'KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False',
-      note: 'Existing Mac player patched with current managed source loads real samurai and battlefield GLBs; fresh Unity Editor rebuild remains license-blocked.'
+      note: 'Fresh Mac Unity player loads real samurai and battlefield GLBs; no actor or pack fallbacks.'
     },
     browserBattlefieldPackReview: {
       exposed: true,
       path: `assets/generated/foundry/samurai-battlefield-pack/${BATTLEFIELD_JOB}/samurai_battlefield_pack.glb`,
       toggle: 'PACK GLB button / P key'
     },
-    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff, browser battlefield-pack GLB review toggle, managed-patched Unity player real-GLB smoke',
+    checks: 'structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff, browser battlefield-pack GLB review toggle, fresh Unity Editor build smoke',
     passed: true
   }, null, 2) + '\n');
   console.log('Wrote VERIFICATION.json');

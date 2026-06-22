@@ -61,15 +61,14 @@ mustContain('patch-existing-mac-player-managed.sh', 'managed patch smoke helper'
 mustContain('smoke-managed-patched-player.sh', 'single-command managed patch smoke helper', /patch-existing-mac-player-managed\.sh[\s\S]*smoke-built-player\.sh/);
 mustContain('check-unity-mcp.sh', 'Unity MCP preflight helper', /wait-for-ready[\s\S]*UNITY_MCP_READY[\s\S]*Unity Editor log tail/);
 mustContain('check-unity-mcp.sh', 'Unity MCP batchmode diagnostic', /batch\/headless[\s\S]*not an interactive Editor session[\s\S]*MCP tools will not be available/);
-mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'real GLB managed patch smoke evidence', /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
-mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'Unity MCP current blocker documented', /Unity-MCP Preflight Recheck[\s\S]*MCP readiness times out[\s\S]*No valid Unity Editor license found/);
-mustContain('README.md', 'current managed-patched player smoke documented', /managed-patched Mac player smoke evidence[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
-mustContain('README.md', 'fresh Unity build blocker documented', /fresh current Unity Editor rebuild has not been produced|No valid Unity Editor license found/i);
-mustContain('UNITY_BUILD_VERIFICATION.md', 'historical build clearly marked stale', /Historical Unity Editor batchmode evidence[\s\S]*must not be used as proof that the current PR has a fresh playable Unity build/);
-mustContain('UNITY_BUILD_VERIFICATION.md', 'historical Mac build record retained', /Historical build result: succeeded[\s\S]*Builds\/Mac\/KawanakajimaSamurai\.app/);
-mustContain('UNITY_LOCAL_STATUS.md', 'current license blocker documented', /not a fresh build of the current source[\s\S]*no valid Unity Editor license is active/);
+mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'fresh build smoke evidence', /Fresh Built Player Smoke[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
+mustContain('UNITY_CURRENT_QA_2026-06-21.md', 'Unity MCP current readiness documented', /Unity-MCP Preflight[\s\S]*UNITY_MCP_READY url=http:\/\/localhost:27482/);
+mustContain('README.md', 'current fresh build smoke documented', /freshly built Mac player reaches[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
+mustContain('UNITY_BUILD_VERIFICATION.md', 'fresh Mac build record retained', /Fresh Unity Editor batchmode evidence[\s\S]*Kawanakajima Mac Unity build: PASS/);
+mustContain('UNITY_BUILD_VERIFICATION.md', 'fresh built player smoke retained', /Fresh Built Player Smoke[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/);
+mustContain('UNITY_LOCAL_STATUS.md', 'current fresh Unity build documented', /run-local-unity-build\.sh` now passes[\s\S]*freshly built player also passes/);
 mustContain('UNITY_LOCAL_STATUS.md', 'Mac Unity MCP routing documented', /Worker routed URL:\s*`http:\/\/172\.21\.0\.1:25666`[\s\S]*Worker preflight: passed/);
-mustContain('UNITY_LOCAL_STATUS.md', 'current MCP recheck documented', /Current MCP Recheck[\s\S]*check-unity-mcp\.sh[\s\S]*readiness and system-tool pings timed out/);
+mustContain('UNITY_LOCAL_STATUS.md', 'current MCP recheck documented', /Current MCP Recheck[\s\S]*check-unity-mcp\.sh --open[\s\S]*UNITY_MCP_READY url=http:\/\/localhost:27482/);
 
 if (errors.length) {
   console.error('UNITY HANDOFF VERIFICATION FAILS:');
