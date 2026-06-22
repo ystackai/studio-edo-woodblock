@@ -18,6 +18,7 @@ JOB_DIR=""
 SUBMIT=0
 RUN_BROWSER_SMOKE=0
 RUN_MANAGED_UNITY_SMOKE=0
+RUN_FRESH_UNITY_BUILD=0
 STARTED_SERVER_PID=""
 
 usage() {
@@ -31,6 +32,7 @@ Options:
   --submit                    Submit a fresh samurai_battlefield_pack job through the Asset Foundry HTTP API.
   --browser-smoke             Run browser pack smoke after ingest.
   --managed-unity-smoke       Run managed-patched Unity player smoke after ingest.
+  --fresh-unity-build         Run a fresh local Unity Editor Mac build and smoke the built player.
   --asset-name NAME           Asset name for --submit.
   -h, --help                  Show this help.
 
@@ -63,6 +65,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --managed-unity-smoke)
       RUN_MANAGED_UNITY_SMOKE=1
+      shift
+      ;;
+    --fresh-unity-build)
+      RUN_FRESH_UNITY_BUILD=1
       shift
       ;;
     --asset-name)
@@ -179,6 +185,17 @@ fi
 if [[ "$RUN_MANAGED_UNITY_SMOKE" -eq 1 ]]; then
   echo "=== Managed-patched Unity player smoke ==="
   (cd "$REPO_ROOT" && LOG=/tmp/kawanakajima-reviewed-handoff-managed-smoke.log unity/kawanakajima-samurai/smoke-managed-patched-player.sh)
+fi
+
+if [[ "$RUN_FRESH_UNITY_BUILD" -eq 1 ]]; then
+  echo "=== Fresh Unity Editor build and built-player smoke ==="
+  (
+    cd "$REPO_ROOT"
+    CLOSE_EXISTING_UNITY=1 unity/kawanakajima-samurai/run-local-unity-build.sh
+    APP="$REPO_ROOT/unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app/Contents/MacOS/kawanakajima-samurai" \
+      LOG=/tmp/kawanakajima-reviewed-handoff-fresh-build-smoke.log \
+      unity/kawanakajima-samurai/smoke-built-player.sh
+  )
 fi
 
 echo "Reviewed Foundry handoff loop: PASS"

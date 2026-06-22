@@ -1,8 +1,8 @@
 # UNITY_LOCAL_STATUS
 
-**Recorded:** 2026-06-20
+**Recorded:** 2026-06-22
 
-Historical local Unity/MCP status for the Kawanakajima Samurai project. Current QA is recorded in `UNITY_CURRENT_QA_2026-06-21.md`.
+Current local Unity/MCP status for the Kawanakajima Samurai project. Current QA is recorded in `UNITY_CURRENT_QA_2026-06-21.md`.
 
 ## Local Editor
 
@@ -11,15 +11,15 @@ Historical local Unity/MCP status for the Kawanakajima Samurai project. Current 
 - Scene generation: `KawanakajimaUnityBuild.CreateOrRefreshScene`
 - Scene path: `Assets/Kawanakajima/Scenes/Kawanakajima.unity`
 
-## Historical Local Build
+## Current Local Build
 
 - Batch method: `KawanakajimaUnityBuild.BuildMac`
 - Output: `Builds/Mac/KawanakajimaSamurai.app`
-- Size: 112 MB
-- Last verified: 2026-06-20T15:27:40Z
+- Size: 111 MB
+- Last verified: 2026-06-22T18:06:00Z
 - Verification: `UNITY_BUILD_VERIFICATION.md`
 
-This is not a fresh build of the current source. As of 2026-06-22, `run-local-unity-build.sh` fails before import/build because no valid Unity Editor license is active for batch/headless use on this Mac. The current runtime source has instead been smoke-tested through the managed-patched existing Mac player path with real GLBs and no runtime fallbacks.
+`run-local-unity-build.sh` now passes on this Mac. The freshly built player also passes `smoke-built-player.sh` with the real samurai GLB, real battlefield pack GLB, and file-backed audio.
 
 ## Local MCP
 
@@ -32,15 +32,12 @@ This is not a fresh build of the current source. As of 2026-06-22, `run-local-un
 
 ## Current MCP Recheck - 2026-06-22
 
-The historical listener result above is not current proof. A fresh check from this PR
-worktree added `check-unity-mcp.sh` and found:
+`check-unity-mcp.sh --open` now launches the Editor and reaches:
 
-- No real Unity Editor process was running for `unity/kawanakajima-samurai`.
-- Unity-MCP CLI status can mistake a Unity Hub helper or transient batchmode `-batchmode -quit` process for the Editor; neither exposes interactive MCP tools.
-- `http://localhost:21560` refused connections for this project.
-- A stale `gamedev-mcp-server` process was listening on `27481`, but readiness and system-tool pings timed out without a connected Editor.
-- Launching the Editor through Unity-MCP with `--open` reached the same missing-license state as batchmode: no ULF license and no cached token.
+```text
+UNITY_MCP_READY url=http://localhost:27482
+```
 
-Use `./check-unity-mcp.sh --open` after Unity license activation before claiming Unity-MCP scene/build work on the current source.
+The script still warns when it sees a transient `-batchmode -quit` process because that process is not an interactive MCP-capable Editor session.
 
 Remote worker capacity notes from the earlier Hetzner attempt remain in the work-order history.
