@@ -1,0 +1,72 @@
+{
+  "asset_name": "kawanakajima-realistic-samurai-character-v29",
+  "notes": [
+    "Generated through Asset Foundry using a /goal-style prompt.",
+    "Stylized samurai model includes kabuto, mempo, shikoro, do cuirass, sode shoulder plates, kusazuri skirt plates, kote forearm guards, greaves, waraji sandals, katana blade, saya, lacing, rivets, and studio lighting.",
+    "Contact sheet uses repeatable hero/front/left/rear/top/three-quarter cameras for self-verification.",
+    "Variant params drive faction palette, crest, banner mon, and katana pose so repeated jobs can produce distinguishable warriors.",
+    "Review contract is copied from the recipe manifest so callers can reject blocky or under-evidenced outputs instead of accepting a merely successful run."
+  ],
+  "outputs": {
+    "blender_script": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_blender.py",
+    "blender_stderr": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/blender_stderr.log",
+    "blender_stdout": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/blender_stdout.log",
+    "contact_sheet": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_contact_sheet.png",
+    "glb": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character.glb",
+    "poster": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_hero.png",
+    "source_blend": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_source.blend",
+    "turntable": "/Users/marcus/Documents/Github/asset-foundry/outputs/asset-1782104227755-0ef02798/samurai_character_turntable.gif"
+  },
+  "recipe": "samurai_character",
+  "review_contract": {
+    "iteration_policy": "After each significant recipe change, render the same stable cameras, identify the least realistic visible issue, preserve the best prior version, and continue until no visible issue remains worth fixing for the requested game use.",
+    "prompt_format": "/goal",
+    "required_outputs": [
+      "samurai_character.glb",
+      "samurai_character_source.blend",
+      "samurai_character_contact_sheet.png",
+      "samurai_character_turntable.gif",
+      "hero/front/left/rear/top/three_quarter stable renders"
+    ],
+    "stable_cameras": [
+      "hero",
+      "front",
+      "left",
+      "rear",
+      "top",
+      "three_quarter"
+    ],
+    "visual_acceptance": [
+      "adult armored samurai silhouette reads immediately from hero and front cameras",
+      "kabuto, mempo, layered lamellar do, sode, kusazuri, kote, greaves, waraji, katana, saya, lacing, rivets, and sashimono are visible",
+      "asset is not Minecraft-like, not grey primitives, not slab-bodied, and not a single generic mannequin",
+      "materials show blackened iron, lacquer, cloth, leather, brass, and steel rather than one flat color"
+    ]
+  },
+  "stats": {
+    "crest": "crescent",
+    "faction": "takeda",
+    "inspection_views": [
+      "hero",
+      "front",
+      "left",
+      "rear",
+      "top",
+      "three_quarter"
+    ],
+    "material_count": 15,
+    "mesh_count": 207,
+    "mon": "four-diamonds",
+    "object_count": 277,
+    "pose": "guard",
+    "prompt_format": "/goal",
+    "stable_camera_views": 6,
+    "turntable_frames": 8,
+    "variant_index": 9
+  },
+  "variant": {
+    "faction": "takeda",
+    "pose": "guard",
+    "variant_index": 9
+  }
+}

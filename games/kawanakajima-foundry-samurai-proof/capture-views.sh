@@ -12,12 +12,21 @@ mkdir -p "$SHOTDIR" "$GAME_DIR/screenshots"
 
 RENDER_PY="$GAME_DIR/render-kawanakajima-views.py"
 LEGACY_RENDER_PY="/tmp/render_kawanakajima_views.py"
+BLENDER_BIN="${BLENDER:-$(command -v blender || true)}"
 if [ -f "$RENDER_PY" ]; then
   echo "=== Using repo-owned Blender repeatable inspection cameras ==="
-  /usr/bin/blender --background --python "$RENDER_PY" 2>&1 | tail -18
+  if [ -z "$BLENDER_BIN" ]; then
+    echo "Blender is not on PATH; skipping repeatable Blender captures."
+  else
+    "$BLENDER_BIN" --background --python "$RENDER_PY" 2>&1 | tail -18
+  fi
 elif [ -f "$LEGACY_RENDER_PY" ]; then
   echo "=== Using Blender for repeatable inspection cameras (WebGL may be blocked) ==="
-  /usr/bin/blender --background --python "$LEGACY_RENDER_PY" 2>&1 | tail -8 || true
+  if [ -z "$BLENDER_BIN" ]; then
+    echo "Blender is not on PATH; skipping legacy Blender captures."
+  else
+    "$BLENDER_BIN" --background --python "$LEGACY_RENDER_PY" 2>&1 | tail -8 || true
+  fi
 else
   echo "No blender render script; attempting chromium only."
 fi
@@ -49,7 +58,12 @@ python3 -m http.server $PORT --directory "$GAME_DIR" >/tmp/verify-server.log 2>&
 SRV=$!
 sleep 1.5
 # Just hit the page; do not require good shot here
-timeout 8s chromium --headless=new --disable-gpu --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --window-size=800,600 --virtual-time-budget=12000 "http://127.0.0.1:$PORT/index.html?cam=overview" --dump-dom 2>/dev/null | grep -o 'data-error="[^"]*"' | cat || true
+CHROME_BIN="$(command -v chromium || command -v google-chrome || command -v chrome || true)"
+if [ -n "$CHROME_BIN" ]; then
+  timeout 8s "$CHROME_BIN" --headless=new --disable-gpu --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --window-size=800,600 --virtual-time-budget=12000 "http://127.0.0.1:$PORT/index.html?cam=overview" --dump-dom 2>/dev/null | grep -o 'data-error="[^"]*"' | cat || true
+else
+  echo "No chromium/google-chrome/chrome on PATH; skipping optional browser DOM smoke."
+fi
 kill $SRV 2>/dev/null || true
 
 echo "=== Capture complete. Evidence in $SHOTDIR ==="

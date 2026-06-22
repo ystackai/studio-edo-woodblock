@@ -21,11 +21,11 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 
 ### 1. Samurai Character Asset
 - **File:** `assets/samurai_character.glb`
-- **Size:** 1.23 MB
-- **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v5 repair pass (2026-06-20)
-- **Source:** `http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source_v5.blend`
+- **Size:** 1.15 MB
+- **Provenance:** Asset Foundry local HTTP API + Blender 5 job `asset-1782104227755-0ef02798` (v29 anatomy pass; supersedes v5 while preserving v5 in history)
+- **Source:** `assets/generated/foundry/samurai/improved-20260622-v29/samurai_character_source.blend`
 - **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. Current Unity managed-patched player smoke proves this GLB can load in the existing Mac player; a fresh Unity Editor rebuild is still pending license activation.
-- **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
+- **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy; v29 narrows the armor underframe so the default playable asset reads less like a red ball torso. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
 - **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1782103724605-0d84b27a/samurai_battlefield_pack.glb`
@@ -44,8 +44,8 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 - **Provenance:** All file-backed WAVs from Foundry, mirrored from `assets/generated/foundry/audio/asset-1781916330853-f7d831d9/`
 
 ### 4. Evidence Images
-- `assets/samurai_character_contact_sheet.png` — 1.12 MB, v5 contact sheet
-- `assets/samurai_character_hero.png` — 669 KB, hero reference
+- `assets/samurai_character_contact_sheet.png` — 486 KB, v29 contact sheet
+- `assets/samurai_character_hero.png` — 768 KB, v29 hero reference
 - `screenshots/` — 6 repeatable camera PNGs:
   - `overview.png` — wide battlefield overview
   - `redClose.png` — Takeda (red) close inspection
@@ -56,7 +56,7 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 
 ## Unity Handoff Assets
 
-- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` — 1.23 MB
+- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` — 1.15 MB
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` — 6.27 MB
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` — 20 warriors manifest
 - `unity/kawanakajima-samurai/Assets/Resources/KawanakajimaAudio/` — all WAV files
@@ -115,7 +115,7 @@ Browser battlefield pack smoke: PASS
 ## Known Limitations
 
 - **Fresh Unity playable build:** Not created yet. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac host has Unity Editor 2023.2.20f1, but batch build currently fails with `No valid Unity Editor license found`. The managed-patched existing Mac player smoke passes with real GLBs, but the next pass still needs license activation and a fresh build/inspection.
-- **Asset fidelity:** Stylized, not photoreal. v5 improved over v4 (no more slab/blocky reads).
+- **Asset fidelity:** Stylized, not photoreal. v29 improves the default playable samurai over v5 by reducing the spherical torso read, but it is still not final realistic character art.
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.
 
@@ -129,5 +129,5 @@ Browser battlefield pack smoke: PASS
 | Side profile | sideProfile | screenshots/sideProfile.png | 744 KB |
 | Top formation | topFormation | screenshots/topFormation.png | 796 KB |
 | Asset inspect | assetInspect | screenshots/assetInspect.png | 779 KB |
-| Contact sheet | v5 contact | assets/samurai_character_contact_sheet.png | 1.12 MB |
-| Hero reference | v5 hero | assets/samurai_character_hero.png | 669 KB |
+| Contact sheet | v29 contact | assets/samurai_character_contact_sheet.png | 486 KB |
+| Hero reference | v29 hero | assets/samurai_character_hero.png | 768 KB |

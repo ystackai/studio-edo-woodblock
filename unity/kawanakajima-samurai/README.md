@@ -51,7 +51,7 @@ unity/kawanakajima-samurai/
 
 | Asset | Job ID | Size | Description |
 |-------|--------|------|-------------|
-| `samurai_character.glb` | `asset-1781913507610-bf69e595` | 1.23 MB | v5 Blender repair — kabuto, mempo, lamellar, sode, kote, hakama, tabi/geta, katana, sashimono |
+| `samurai_character.glb` | `asset-1782104227755-0ef02798` | 1.15 MB | v29 Blender 5 anatomy pass — kabuto, mempo, lamellar, sode, kote, hakama, tabi/geta, katana, sashimono |
 | `samurai_battlefield_pack.glb` | `asset-1782103724605-0d84b27a` | 6.27 MB | v26 Blender 5 API pack — 20 named warriors with terrain, banners, formation |
 | Audio stems | `asset-1781916330853-f7d831d9` | ~2.7 MB | Battlefield loop, charge/clash/confirm/step SFX |
 

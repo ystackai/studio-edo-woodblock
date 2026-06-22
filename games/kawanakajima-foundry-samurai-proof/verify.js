@@ -6,6 +6,11 @@ const path = require('path');
 
 const ROOT = __dirname;
 const errors = [];
+const SAMURAI_JOB = 'asset-1782104227755-0ef02798';
+const SAMURAI_ROOT = path.join(
+  ROOT,
+  'assets/generated/foundry/samurai/improved-20260622-v29'
+);
 const BATTLEFIELD_JOB = 'asset-1782103724605-0d84b27a';
 const BATTLEFIELD_ROOT = path.join(
   ROOT,
@@ -34,6 +39,11 @@ mustExist(path.join(ROOT, 'GLTFLoader.js'), 'GLTFLoader');
 mustExist(path.join(ROOT, 'assets/samurai_character.glb'), 'Foundry GLB');
 mustExist(path.join(ROOT, 'assets/samurai_character_contact_sheet.png'), 'contact sheet');
 mustExist(path.join(ROOT, 'assets/samurai_character_hero.png'), 'hero png');
+mustExist(path.join(SAMURAI_ROOT, 'samurai_character.glb'), 'v29 Samurai GLB provenance copy');
+mustExist(path.join(SAMURAI_ROOT, 'samurai_character_source.blend'), 'v29 Samurai source blend');
+mustExist(path.join(SAMURAI_ROOT, 'samurai_character_contact_sheet.png'), 'v29 Samurai contact sheet');
+mustExist(path.join(SAMURAI_ROOT, 'samurai_character_turntable.gif'), 'v29 Samurai turntable');
+mustExist(path.join(SAMURAI_ROOT, 'summary.json'), 'v29 Samurai summary');
 mustExist(path.join(ROOT, 'assets/audio/battlefield_loop.wav'), 'file-backed battlefield loop');
 mustExist(path.join(ROOT, 'assets/audio/charge_cue.wav'), 'file-backed charge cue');
 mustExist(path.join(ROOT, 'assets/audio/clash_accent.wav'), 'file-backed clash accent');
@@ -72,7 +82,7 @@ checkContent(path.join(ROOT, 'index.html'), [
 ]);
 
 checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
-  { name: 'asset Foundry job', test: c => /asset-1781913507610-bf69e595/.test(c) },
+  { name: 'asset Foundry job', test: c => new RegExp(SAMURAI_JOB).test(c) },
   { name: 'battlefield Foundry job', test: c => new RegExp(BATTLEFIELD_JOB).test(c) },
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
   { name: 'Unity managed patch GLB smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
@@ -101,7 +111,7 @@ checkContent(path.join(ROOT, '../../.factoryx/preview-entrypoint'), [
 ]);
 
 checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), [
-  { name: 'Unity handoff references Foundry Samurai', test: c => /asset-1781913507610-bf69e595/.test(c) },
+  { name: 'Unity handoff references Foundry Samurai', test: c => new RegExp(SAMURAI_JOB).test(c) },
   { name: 'Unity handoff documents current managed patch smoke', test: c => /managed-patched Mac player smoke evidence[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
   { name: 'Unity handoff documents fresh build license blocker', test: c => /fresh current Unity Editor rebuild has not been produced|No valid Unity Editor license found/i.test(c) },
 ]);
@@ -109,6 +119,10 @@ checkContent(path.join(ROOT, '../../unity/kawanakajima-samurai/README.md'), [
 // Asset sizes roughly
 const glb = fs.statSync(path.join(ROOT, 'assets/samurai_character.glb'));
 if (glb.size < 800000) errors.push('GLB too small for detailed Foundry asset');
+const samuraiGlb = fs.statSync(path.join(SAMURAI_ROOT, 'samurai_character.glb'));
+const unitySamuraiGlb = fs.statSync(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb'));
+if (samuraiGlb.size !== glb.size) errors.push('top-level Samurai GLB size does not match v29 provenance copy');
+if (unitySamuraiGlb.size !== glb.size) errors.push('Unity mirrored Samurai GLB size does not match top-level runtime asset');
 
 const contact = fs.statSync(path.join(ROOT, 'assets/samurai_character_contact_sheet.png'));
 if (contact.size < 300000) errors.push('contact sheet missing or truncated');
@@ -117,6 +131,25 @@ const loop = fs.statSync(path.join(ROOT, 'assets/audio/battlefield_loop.wav'));
 if (loop.size < 1000000) errors.push('battlefield loop too small for the Foundry WAV preview');
 
 let battlefield = null;
+let samurai = null;
+try {
+  const summary = JSON.parse(fs.readFileSync(path.join(SAMURAI_ROOT, 'summary.json'), 'utf8'));
+  samurai = {
+    assetFoundryJob: SAMURAI_JOB,
+    glbSize: glb.size,
+    contactSheet: 'assets/generated/foundry/samurai/improved-20260622-v29/samurai_character_contact_sheet.png',
+    objectCount: summary.stats && summary.stats.object_count,
+    meshCount: summary.stats && summary.stats.mesh_count,
+    stableCameraViews: summary.stats && summary.stats.stable_camera_views,
+    turntableFrames: summary.stats && summary.stats.turntable_frames,
+    unityMirror: true
+  };
+  if (samurai.stableCameraViews !== 6) errors.push('samurai summary stable camera count is not 6');
+  if (samurai.turntableFrames !== 8) errors.push('samurai summary turntable frame count is not 8');
+} catch (error) {
+  errors.push('samurai summary parse failed: ' + error.message);
+}
+
 const battlefieldGlb = fs.statSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_pack.glb'));
 const unityBattlefieldGlb = fs.statSync(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb'));
 if (battlefieldGlb.size < 6000000) errors.push('battlefield pack GLB too small for v26 generated pack');
@@ -159,9 +192,10 @@ if (errors.length) {
   // Write evidence
   fs.writeFileSync(path.join(ROOT, 'VERIFICATION.json'), JSON.stringify({
     verifiedAt: new Date().toISOString(),
-    assetFoundryJob: 'asset-1781913507610-bf69e595',
+    assetFoundryJob: SAMURAI_JOB,
     actorCount: 20,
     glbSize: glb.size,
+    samuraiCharacter: samurai,
     battlefieldPack: battlefield,
     audioFoundryJob: 'asset-1781916330853-f7d831d9',
     audioLoopSize: loop.size,

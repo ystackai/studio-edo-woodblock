@@ -1,8 +1,18 @@
 {
-  "verifiedAt": "2026-06-22T04:51:00.945Z",
-  "assetFoundryJob": "asset-1781913507610-bf69e595",
+  "verifiedAt": "2026-06-22T05:02:09.511Z",
+  "assetFoundryJob": "asset-1782104227755-0ef02798",
   "actorCount": 20,
-  "glbSize": 1285892,
+  "glbSize": 1207976,
+  "samuraiCharacter": {
+    "assetFoundryJob": "asset-1782104227755-0ef02798",
+    "glbSize": 1207976,
+    "contactSheet": "assets/generated/foundry/samurai/improved-20260622-v29/samurai_character_contact_sheet.png",
+    "objectCount": 277,
+    "meshCount": 207,
+    "stableCameraViews": 6,
+    "turntableFrames": 8,
+    "unityMirror": true
+  },
   "battlefieldPack": {
     "assetFoundryJob": "asset-1782103724605-0d84b27a",
     "warriorCount": 20,
