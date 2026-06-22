@@ -6,7 +6,7 @@ const path = require('path');
 
 const ROOT = __dirname;
 const errors = [];
-const BATTLEFIELD_JOB = 'asset-1781935845583-91a9fdbe';
+const BATTLEFIELD_JOB = 'asset-1782103724605-0d84b27a';
 const BATTLEFIELD_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai-battlefield-pack',
@@ -119,7 +119,7 @@ if (loop.size < 1000000) errors.push('battlefield loop too small for the Foundry
 let battlefield = null;
 const battlefieldGlb = fs.statSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_pack.glb'));
 const unityBattlefieldGlb = fs.statSync(path.join(ROOT, '../../unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb'));
-if (battlefieldGlb.size < 6000000) errors.push('battlefield pack GLB too small for v3 generated pack');
+if (battlefieldGlb.size < 6000000) errors.push('battlefield pack GLB too small for v26 generated pack');
 if (unityBattlefieldGlb.size !== battlefieldGlb.size) errors.push('Unity mirrored battlefield GLB size does not match Foundry output');
 try {
   const manifest = JSON.parse(fs.readFileSync(path.join(BATTLEFIELD_ROOT, 'samurai_battlefield_manifest.json'), 'utf8'));

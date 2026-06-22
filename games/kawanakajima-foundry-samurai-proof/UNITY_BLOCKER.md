@@ -18,7 +18,7 @@ Unity Editor is not available in the Hetzner worker container runtime. The Unity
 - Mac Unity MCP listener route: `http://172.21.0.1:25666`.
 - Authenticated worker probe: `POST /api/system-tools/ping` with `Authorization: Bearer $UNITY_MCP_TOKEN` returns HTTP 200 and `{"result":"pong"}`.
 - Invalid probes such as `GET /`, `/health`, or dummy bearer tokens may return 400/404/401 and should not be treated as listener failure.
-- A Unity source handoff now exists at `unity/kawanakajima-samurai/` with copied GLB/WAV assets, the v3 20-samurai battlefield scene pack GLB/manifest, a runtime bootstrap, and Editor build hooks.
+- A Unity source handoff now exists at `unity/kawanakajima-samurai/` with copied GLB/WAV assets, the v26 Blender 5 API 20-samurai battlefield scene pack GLB/manifest, a runtime bootstrap, and Editor build hooks.
 - No Unity Editor scene/build was created or verified in this PR.
 - This deliverable is the browser/Three.js review proof plus a Unity source handoff only.
 - If final shipping requires Unity, the next run should drive the already reachable Mac Unity MCP listener to load the handoff project, insert the assets, and produce build evidence.

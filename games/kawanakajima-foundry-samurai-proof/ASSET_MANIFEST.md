@@ -28,9 +28,9 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 - **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
-- **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb`
-- **Size:** 6.55 MB
-- **Provenance:** Asset Foundry Blender job `asset-1781935845583-91a9fdbe` (v3 fidelity pass)
+- **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1782103724605-0d84b27a/samurai_battlefield_pack.glb`
+- **Size:** 6.27 MB
+- **Provenance:** Asset Foundry Blender job `asset-1782103724605-0d84b27a` (v26 Blender 5 API pass)
 - **Contents:** One GLB scene with 20 named samurai, 10 Takeda + 10 Uesugi, on countryside battlefield with road, river, rice paddies, cedar hills, banners, weapons.
 - **Manifest:** `samurai_battlefield_manifest.json` — warrior_count=20, 10/10 faction split, per-warrior ID/pose/position/yaw.
 - **Evidence:** `samurai_battlefield_contact_sheet.png` — 5 stable camera views.
@@ -57,7 +57,7 @@ That proves the current Unity runtime can load the samurai GLB and 20-samurai ba
 ## Unity Handoff Assets
 
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` — 1.23 MB
-- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` — 6.55 MB
+- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` — 6.27 MB
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` — 20 warriors manifest
 - `unity/kawanakajima-samurai/Assets/Resources/KawanakajimaAudio/` — all WAV files
 - `unity/kawanakajima-samurai/Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs` — runtime bootstrap
@@ -82,7 +82,7 @@ This is runtime evidence, not a fresh build artifact. The final Unity gate still
 
 - `index.html` loads `assets/samurai_character.glb` via THREE.GLTFLoader
 - 20 actors created (10 Takeda, 10 Uesugi) with pose/scale/variant transforms
-- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
+- `PACK GLB` button and `P` key lazy-load `assets/generated/foundry/samurai-battlefield-pack/asset-1782103724605-0d84b27a/samurai_battlefield_pack.glb` for direct browser review of the Foundry-authored 20-warrior scene pack
 - Camera presets: overview, redClose, blueClose, sideProfile, topFormation, assetInspect
 - Audio: loop toggle, charge/clash/step/confirm sound effects
 - Charge/reform gameplay mechanics
