@@ -11,7 +11,7 @@ const SAMURAI_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai/improved-20260622-v29'
 );
-const BATTLEFIELD_JOB = 'asset-1782110424464-f9534d45';
+const BATTLEFIELD_JOB = 'asset-1782152407992-cc920f4b';
 const BATTLEFIELD_ROOT = path.join(
   ROOT,
   'assets/generated/foundry/samurai-battlefield-pack',
@@ -97,7 +97,7 @@ checkContent(path.join(ROOT, 'DELIVERABLE_STATUS.md'), [
   { name: 'audio Foundry job', test: c => /asset-1781916330853-f7d831d9/.test(c) },
   { name: 'Unity managed patch GLB smoke', test: c => /KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
   { name: 'fresh Unity build pass', test: c => /Fresh Unity Mac build and player smoke:[\s\S]*KAWANAKAJIMA_UNITY_READY actors=20 pack=True audio=True fallbackActors=False fallbackPack=False/.test(c) },
-  { name: 'autonomy caveat documented', test: c => /Autonomous completion:\*\* not fully proven end-to-end|Autonomous completion:\*\* not proven end-to-end|manual intervention/.test(c) },
+  { name: 'art-quality caveat documented', test: c => /Art quality:\*\* autonomous generation is now functionally proven end-to-end[\s\S]*stylized rather than final realistic production art/.test(c) },
   { name: 'meeting composition gate documented', test: c => /center_gap=2\.6/.test(c) },
   { name: 'countryside environment gate documented', test: c => /environment_feature_count=125/.test(c) },
 ]);
