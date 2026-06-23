@@ -6,8 +6,22 @@
 **Playbook:** `creative_game`
 **Completion Mode:** polish_until_deadline
 **Deadline:** 2026-06-21T21:06:19Z
-**Last Updated:** 2026-06-20
+**Last Updated:** 2026-06-23
 
+## 0. Merge Conflict Resolution (Review Feedback from github-mergeability)
+
+**Review ID:** review-1782222603336-7-18
+**Issue:** GitHub reports merge conflicts on PR #167; review blocked until rebase.
+**Resolution (2026-06-23):** Rebased `factoryx/factory-edo-woodblock/work-order-1781989579492-7-1` onto `origin/main` (21 commits, 38 files changed). Resolved conflicts in:
+- `unity/kawanakajima-samurai/Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs` (retained Unity 6 reflection-based GLTFast imports, disposed pattern, camera presets from work-order branch; took HEAD for other sections)
+- `games/kawanakajima-foundry-samurai-proof/DELIVERABLE_STATUS.md` (took HEAD/main — more complete v8.7+ status)
+- `games/kawanakajima-foundry-samurai-proof/VERIFICATION.json` (took HEAD/main — fresher timestamps and job IDs)
+- `unity/kawanakajima-samurai/verify-unity-handoff.js` (took HEAD/main — current verification checks)
+- `unity/kawanakajima-samurai/UNITY_BUILD_VERIFICATION.md` (took HEAD/main)
+
+Rebase completed; PR #167 is now mergeable. Review can continue.
+
+---
 ---
 
 ## 1. Vision and Player Fantasy
@@ -231,7 +245,7 @@ Since Asset Foundry and Blender MCP are available (`http://factoryx-edo-woodbloc
 | Unity MCP preflight | ✅ REACHABLE | 2026-06-20 |
 | Browser proof existing | ✅ VERIFIED | 2026-06-20 |
 | Unity Mac build existing | ✅ VERIFIED | 2026-06-20 |
-| PR #167 open | ✅ MERGEABLE | 2026-06-20 |
+| PR #167 open | ✅ MERGE CONFLICTS RESOLVED (rebased onto main 2026-06-23) | 2026-06-23 |
 | Visual review pass | ⏳ PENDING | — |
 | Unity Play Mode proof | ⏳ PENDING | — |
 | Unity build proof | ⏳ PENDING | — |
