@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>&#38631;&#31361; &#x2014; Lantern in the Rain</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e14; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: none; }
+#overlay {
+  position: fixed; inset: 0; display: flex; align-items: center;
+  justify-content: center; flex-direction: column;
+  background: rgba(10, 14, 20, 0.92); z-index: 10;
+  transition: opacity 1.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  font-family: 'Noto Serif JP', 'Hiragino Mincho Pro', serif;
+  color: #c4b89a; text-align: center;
+}
+#overlay.hidden { opacity: 0; pointer-events: none; }
+#overlay h1 {
+  font-size: clamp(2rem, 6vw, 4.5rem); font-weight: 400;
+  letter-spacing: 0.15em; margin-bottom: 0.4em;
+  color: #d4a84b; text-shadow: 0 0 30px rgba(212, 168, 75, 0.3);
+}
+#overlay h1 span { display: block; font-size: 0.4em; letter-spacing: 0.4em; color: #8a8070; margin-top: 0.3em; }
+#overlay p {
+  font-size: clamp(0.8rem, 2vw, 1.1rem); line-height: 1.8;
+  max-width: 380px; color: #7a7268; margin-top: 0.3em;
+}
+#overlay .start-btn {
+  margin-top: 2em; padding: 0.7em 2.4em; border: 1px solid #5a5248;
+  background: rgba(30, 26, 20, 0.8); color: #c4b89a;
+  font-family: inherit; font-size: clamp(0.85rem, 1.8vw, 1rem);
+  letter-spacing: 0.2em; cursor: pointer;
+  transition: all 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+#overlay .start-btn:hover, #overlay .start-btn:focus {
+  background: rgba(212, 168, 75, 0.15); border-color: #d4a84b;
+  color: #d4a84b; box-shadow: 0 0 20px rgba(212, 168, 75, 0.15);
+}
+#audio-hint {
+  position: fixed; bottom: 1.2em; right: 1.5em;
+  font-family: 'Noto Serif JP', serif; font-size: 0.7rem;
+  color: #4a4438; z-index: 5; opacity: 0;
+  transition: opacity 1.2s ease 3s;
+  letter-spacing: 0.1em;
+}
+#audio-hint.show { opacity: 1; }
+#audio-hint button {
+  background: none; border: 1px solid #3a3428; color: #5a5248;
+  font-family: inherit; font-size: 0.65rem; padding: 0.3em 0.8em;
+  margin-left: 0.5em; cursor: pointer; letter-spacing: 0.05em;
+  transition: all 0.4s ease;
+}
+#audio-hint button:hover { color: #8a8070; border-color: #5a5248; }
+</style>
+</head>
+<body>
+<div id="overlay">
+  <h1>
+    &#38631;&#31361;
+    <span>lantern in the rain</span>
+  </h1>
+  <p>
+    Rain falls on an old paper lantern.<br>
+    Move your hand over it to shelter the flame.<br>
+    Hold still, and it will burn steadier.
+  </p>
+  <button class="start-btn" id="startBtn">begin</button>
+</div>
+<div id="audio-hint">
+  rain sound
+  <button id="audioToggle">off</button>
+</div>
+<canvas id="c"></canvas>
+<script>
+(function(){
+  'use strict';
+
+  /* ===== Setup ===== */
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+  var overlay = document.getElementById('overlay');
+  var startBtn = document.getElementById('startBtn');
+  var audioHint = document.getElementById('audio-hint');
+  var audioToggle = document.getElementById('audioToggle');
+
+  var W, H, dpr;
+  var running = false;
+  var shieldProgress = 0;
+  var patience = 0;
+  var startedAt = 0;
+  var lastTime = 0;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    setLanternPos();
+    buildTextures();
+  }
+
+  function setLanternPos() {
+    lantern.x = W * 0.5;
+    lantern.y = H * 0.42;
+    lantern.radius = Math.min(W, H) * 0.13;
+    lantern.stringLen = H * 0.12;
+  }
+
+  /* ===== Input ===== */
+  var input = { x: W / 2, y: H / 2, active: false };
+
+  function handleInput(x, y) {
+    input.x = x;
+    input.y = y;
+    input.active = true;
+  }
+
+  canvas.addEventListener('mousemove', function(e) { handleInput(e.clientX, e.clientY); });
+  canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    if (e.touches.length > 0) handleInput(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+  canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    if (e.touches.length > 0) handleInput(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+  canvas.addEventListener('mouseleave', function() { input.active = false; });
+  canvas.addEventListener('touchend', function() { input.active = false; });
+
+  /* ===== Audio ===== */
+  var audioCtx = null;
+  var audioEnabled = false;
+  var rainNodes = [];
+
+  function initAudio() {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { audioCtx = null; }
+  }
+
+  function startRainAudio() {
+    if (!audioCtx || audioEnabled) return;
+    audioEnabled = true;
+    audioToggle.textContent = 'on';
+    audioToggle.style.color = '#8a8070';
+
+    var bufferSize = audioCtx.sampleRate * 2;
+    var brownBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    var data = brownBuffer.getChannelData(0);
+    var lastOut = 0;
+    for (var i = 0; i < bufferSize; i++) {
+      var white = Math.random() * 2 - 1;
+      lastOut = (lastOut + (0.02 * white)) / 1.02;
+      data[i] = lastOut * 3.5;
+    }
+    var noise = audioCtx.createBufferSource();
+    noise.buffer = brownBuffer;
+    noise.loop = true;
+
+    var filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    filter.Q.value = 0.5;
+
+    var gain = audioCtx.createGain();
+    gain.gain.value = 0.12;
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    noise.start();
+
+    rainNodes.push({ source: noise, gain: gain, filter: filter });
+  }
+
+  function stopRainAudio() {
+    if (!audioCtx || !audioEnabled) return;
+    audioEnabled = false;
+    audioToggle.textContent = 'off';
+    audioToggle.style.color = '#5a5248';
+    rainNodes.forEach(function(n) { n.gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.5); });
+    setTimeout(function() {
+      rainNodes.forEach(function(n) { try { n.source.stop(); } catch(e){} });
+      rainNodes = [];
+    }, 1500);
+  }
+
+  audioToggle.addEventListener('click', function() {
+    if (audioEnabled) stopRainAudio();
+    else startRainAudio();
+  });
+
+  /* ===== Textures ===== */
+  var paperTexCanvas, grainTexCanvas;
+
+  function buildTextures() {
+    // Paper texture
+    paperTexCanvas = document.createElement('canvas');
+    paperTexCanvas.width = 512;
+    paperTexCanvas.height = 512;
+    var pCtx = paperTexCanvas.getContext('2d');
+    pCtx.fillStyle = '#e8dcc4';
+    pCtx.fillRect(0, 0, 512, 512);
+    for (var i = 0; i < 3000; i++) {
+      var px = Math.random() * 512, py = Math.random() * 512;
+      var len = Math.random() * 8 + 2, angle = Math.random() * Math.PI;
+      pCtx.strokeStyle = 'rgba(' + (160+Math.random()*40) + ',' + (145+Math.random()*35) + ',' + (120+Math.random()*30) + ',' + (Math.random()*0.08) + ')';
+      pCtx.lineWidth = Math.random() * 0.5 + 0.3;
+      pCtx.beginPath();
+      pCtx.moveTo(px, py);
+      pCtx.lineTo(px + Math.cos(angle) * len, py + Math.sin(angle) * len);
+      pCtx.stroke();
+    }
+    for (var j = 0; j < 30; j++) {
+      var bx = Math.random() * 512, by = Math.random() * 512, br = Math.random() * 20 + 5;
+      var bg = pCtx.createRadialGradient(bx, by, 0, bx, by, br);
+      bg.addColorStop(0, 'rgba(' + (180+Math.random()*30) + ',' + (165+Math.random()*30) + ',' + (140+Math.random()*25) + ',' + (Math.random()*0.04) + ')');
+      bg.addColorStop(1, 'rgba(0,0,0,0)');
+      pCtx.fillStyle = bg;
+      pCtx.fillRect(bx - br, by - br, br * 2, br * 2);
+    }
+
+    // Grain texture
+    grainTexCanvas = document.createElement('canvas');
+    grainTexCanvas.width = 256;
+    grainTexCanvas.height = 256;
+    var gCtx = grainTexCanvas.getContext('2d');
+    var gData = gCtx.createImageData(256, 256);
+    for (var k = 0; k < gData.data.length; k += 4) {
+      var v = Math.random() * 25;
+      gData.data[k] = v; gData.data[k+1] = v; gData.data[k+2] = v; gData.data[k+3] = 15;
+    }
+    gCtx.putImageData(gData, 0, 0);
+  }
+
+  /* ===== Rain ===== */
+  var rainDrops = [];
+  var RAIN_COUNT = 280;
+  for (var ri = 0; ri < RAIN_COUNT; ri++) {
+    (function(){
+      var d = {};
+      d.reset = function(init) {
+        d.x = Math.random() * W * 1.3 - W * 0.15;
+        d.y = init ? Math.random() * -H : -Math.random() * 100 - 20;
+        d.speed = (3 + Math.random() * 4) * (H / 800);
+        d.length = (12 + Math.random() * 25) * (H / 800);
+        d.opacity = 0.08 + Math.random() * 0.18;
+        d.thickness = Math.random() * 1.2 + 0.3;
+        d.wind = 0.6 + Math.random() * 0.4;
+      };
+      d.update = function(dt) {
+        d.y += d.speed * dt;
+        d.x += d.wind * dt * 0.5;
+        if (shieldProgress > 0) {
+          var dx = d.x - lantern.x, dy = d.y - lantern.y;
+          var dist = Math.sqrt(dx*dx + dy*dy);
+          var shieldR = lantern.radius * 3;
+          if (dist < shieldR) {
+            var sf = 1 - shieldProgress * 0.6 * (1 - dist / shieldR);
+            d.y += d.speed * dt * (sf - 1) * 0.3;
+            d.x += d.wind * dt * 0.5 * (1 - shieldProgress * 0.3);
+          }
+        }
+        if (d.y > H + 50 || d.x > W + 100 || d.x < -100) d.reset();
+      };
+      d.draw = function(ctx) {
+        var alpha = d.opacity * (0.6 + shieldProgress * 0.4);
+        ctx.strokeStyle = 'rgba(170, 185, 210, ' + alpha + ')';
+        ctx.lineWidth = d.thickness;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x + d.wind * 2, d.y + d.length);
+        ctx.stroke();
+      };
+      d.reset(true);
+      rainDrops.push(d);
+    })();
+  }
+
+  /* ===== Water drops on lantern ===== */
+  var waterDrops = [];
+  for (var wi = 0; wi < 40; wi++) {
+    (function(){
+      var d = {};
+      d.trail = [];
+      d.reset = function(init) {
+        var angle = Math.random() * Math.PI * 2;
+        var r = Math.random() * lantern.radius * 0.85;
+        d.x = lantern.x + Math.cos(angle) * r;
+        d.y = lantern.y + Math.sin(angle) * r;
+        d.size = Math.random() * 2.5 + 0.8;
+        d.opacity = 0.15 + Math.random() * 0.25;
+        d.speedY = 0.1 + Math.random() * 0.3;
+        d.life = 1;
+        d.trail = [];
+      };
+      d.update = function(dt, shielded) {
+        var fs = shielded ? d.speedY * 0.3 : d.speedY;
+        d.trail.push({ x: d.x, y: d.y });
+        if (d.trail.length > 6) d.trail.shift();
+        d.y += fs * dt;
+        d.life -= 0.001 * dt;
+        if (d.life <= 0 || d.y > lantern.y + lantern.radius + 10) d.reset();
+      };
+      d.draw = function(ctx) {
+        if (d.life <= 0) return;
+        var a = d.opacity * d.life;
+        ctx.fillStyle = 'rgba(200, 210, 230, ' + (a * 0.6) + ')';
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(240, 245, 255, ' + (a * 0.4) + ')';
+        ctx.beginPath(); ctx.arc(d.x - d.size*0.25, d.y - d.size*0.25, d.size*0.3, 0, Math.PI * 2); ctx.fill();
+      };
+      d.reset(true);
+      waterDrops.push(d);
+    })();
+  }
+
+  /* ===== Lantern object ===== */
+  var lantern = { x: W/2, y: H*0.42, radius: 80, stringLen: 100 };
+
+  /* ===== Drawing ===== */
+  function drawBackground() {
+    var grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#0c1020');
+    grad.addColorStop(0.35, '#121830');
+    grad.addColorStop(0.65, '#1a1e34');
+    grad.addColorStop(1, '#1e2238');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    drawMountains();
+  }
+
+  function drawMountains() {
+    // Far mountains
+    ctx.fillStyle = '#0e1225';
+    ctx.beginPath();
+    var pts = [
+      [0, H*0.58], [W*0.08, H*0.52], [W*0.15, H*0.55], [W*0.22, H*0.48],
+      [W*0.3, H*0.52], [W*0.38, H*0.44], [W*0.45, H*0.47], [W*0.52, H*0.42],
+      [W*0.6, H*0.46], [W*0.68, H*0.40], [W*0.75, H*0.44], [W*0.82, H*0.38],
+      [W*0.88, H*0.42], [W*0.95, H*0.45], [W, H*0.50], [W, H*0.6], [0, H*0.6]
+    ];
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length; i++) {
+      if (i < pts.length - 1) {
+        var xc = (pts[i][0] + pts[i+1][0])/2, yc = (pts[i][1] + pts[i+1][1])/2;
+        ctx.quadraticCurveTo(pts[i][0], pts[i][1], xc, yc);
+      } else { ctx.lineTo(pts[i][0], pts[i][1]); }
+    }
+    ctx.fill();
+
+    // Closer mountains
+    ctx.fillStyle = '#111528';
+    ctx.beginPath();
+    var pts2 = [
+      [0, H*0.65], [W*0.1, H*0.60], [W*0.18, H*0.63], [W*0.25, H*0.58],
+      [W*0.35, H*0.62], [W*0.42, H*0.57], [W*0.55, H*0.61], [W*0.65, H*0.55],
+      [W*0.78, H*0.60], [W*0.88, H*0.56], [W, H*0.62], [W, H*0.7], [0, H*0.7]
+    ];
+    ctx.moveTo(pts2[0][0], pts2[0][1]);
+    for (var j = 1; j < pts2.length; j++) {
+      if (j < pts2.length - 1) {
+        var xc2 = (pts2[j][0] + pts2[j+1][0])/2, yc2 = (pts2[j][1] + pts2[j+1][1])/2;
+        ctx.quadraticCurveTo(pts2[j][0], pts2[j][1], xc2, yc2);
+      } else { ctx.lineTo(pts2[j][0], pts2[j][1]); }
+    }
+    ctx.fill();
+  }
+
+  function drawLantern() {
+    var lx = lantern.x, ly = lantern.y, r = lantern.radius;
+    var flickerAmount = 1 - shieldProgress;
+
+    // Hanging string
+    ctx.strokeStyle = '#2a2420';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(lx, 0);
+    var cp1y = ly * 0.3;
+    ctx.quadraticCurveTo(lx + Math.sin(Date.now() * 0.001) * 2, cp1y, lx, ly);
+    ctx.stroke();
+
+    // Caps
+    ctx.fillStyle = '#2a2218';
+    ctx.beginPath(); ctx.ellipse(lx, ly - r*0.95, r*0.35, r*0.08, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(lx, ly + r*0.95, r*0.35, r*0.08, 0, 0, Math.PI*2); ctx.fill();
+
+    // Vertical ribs
+    ctx.strokeStyle = '#3a3028';
+    ctx.lineWidth = 1;
+    for (var i = -3; i <= 3; i++) {
+      var off = (i/3) * r * 0.85;
+      ctx.beginPath();
+      ctx.moveTo(lx + off, ly - r*0.9);
+      ctx.quadraticCurveTo(lx + off * 0.5, ly, lx + off, ly + r*0.9);
+      ctx.stroke();
+    }
+
+    // Horizontal ribs
+    for (var j = -2; j <= 2; j++) {
+      var off2 = (j/2) * r * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(lx - r*0.85, ly + off2);
+      ctx.quadraticCurveTo(lx, ly + off2, lx + r*0.85, ly + off2);
+      ctx.stroke();
+    }
+
+    // Paper body
+    var paperGrad = ctx.createRadialGradient(lx, ly, r*0.1, lx, ly, r);
+    paperGrad.addColorStop(0, '#e8d4a8');
+    paperGrad.addColorStop(0.5, '#ddd0b0');
+    paperGrad.addColorStop(1, '#c8b890');
+    ctx.fillStyle = paperGrad;
+    ctx.beginPath(); ctx.ellipse(lx, ly, r*0.9, r*0.95, 0, 0, Math.PI*2); ctx.fill();
+
+    // Paper texture overlay
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(paperTexCanvas, lx - r, ly - r, r*2, r*2);
+    ctx.restore();
+
+    // ---- FLAME & GLOW ----
+    var flameSteadiness = shieldProgress;
+    var flickerX = Math.sin(Date.now() * 0.008) * flickerAmount * 3;
+    var flickerY = Math.sin(Date.now() * 0.012) * flickerAmount * 2;
+    var flameSize = r * (0.12 + Math.sin(Date.now() * 0.01) * flickerAmount * 0.02);
+
+    // Outer glow
+    var glowGrad = ctx.createRadialGradient(lx + flickerX*0.3, ly + flickerY*0.3, 0, lx, ly, r*2.5);
+    var glowI = 0.12 + flameSteadiness * 0.1;
+    glowGrad.addColorStop(0, 'rgba(220, 170, 80, ' + glowI + ')');
+    glowGrad.addColorStop(0.3, 'rgba(200, 150, 60, ' + (glowI*0.5) + ')');
+    glowGrad.addColorStop(0.7, 'rgba(180, 130, 50, ' + (glowI*0.15) + ')');
+    glowGrad.addColorStop(1, 'rgba(160, 120, 40, 0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Inner glow through paper
+    var innerGlow = ctx.createRadialGradient(lx+flickerX, ly+flickerY, 0, lx, ly, r*0.7);
+    innerGlow.addColorStop(0, 'rgba(255, 200, 100, ' + (0.25 + flameSteadiness*0.1) + ')');
+    innerGlow.addColorStop(0.5, 'rgba(240, 180, 80, ' + (0.12 + flameSteadiness*0.05) + ')');
+    innerGlow.addColorStop(1, 'rgba(220, 160, 60, 0)');
+    ctx.fillStyle = innerGlow;
+    ctx.beginPath(); ctx.ellipse(lx, ly, r*0.85, r*0.9, 0, 0, Math.PI*2); ctx.fill();
+
+    // Flame body
+    var flameBaseY = ly + r*0.25;
+    var flameTipY = ly - flameSize;
+    ctx.save();
+    ctx.translate(lx + flickerX, flameBaseY);
+    ctx.rotate(Math.sin(Date.now()*0.006) * flickerAmount * 0.08);
+    var fGrad = ctx.createLinearGradient(0, 0, 0, -flameSize);
+    fGrad.addColorStop(0, 'rgba(255, 220, 120, 0.9)');
+    fGrad.addColorStop(0.4, 'rgba(255, 190, 80, 0.7)');
+    fGrad.addColorStop(0.7, 'rgba(255, 160, 50, 0.3)');
+    fGrad.addColorStop(1, 'rgba(255, 120, 30, 0)');
+    ctx.fillStyle = fGrad;
+    ctx.beginPath();
+    ctx.moveTo(-flameSize*0.2, 0);
+    ctx.quadraticCurveTo(-flameSize*0.35, -flameSize*0.4, flickerX*0.5, -flameSize);
+    ctx.quadraticCurveTo(flameSize*0.35, -flameSize*0.4, flameSize*0.2, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner bright core
+    var coreGrad = ctx.createRadialGradient(0, -flameSize*0.3, 0, 0, -flameSize*0.3, flameSize*0.4);
+    coreGrad.addColorStop(0, 'rgba(255, 255, 220, 0.6)');
+    coreGrad.addColorStop(1, 'rgba(255, 220, 120, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath(); ctx.ellipse(0, -flameSize*0.3, flameSize*0.2, flameSize*0.35, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // Wet paper effect
+    var wetness = 1 - flameSteadiness * 0.5;
+    ctx.save();
+    ctx.globalAlpha = wetness * 0.15;
+    for (var k = 0; k < 8; k++) {
+      var angle = (k/8) * Math.PI*2 + Date.now()*0.0001;
+      var dist = r * (0.3 + Math.sin(Date.now()*0.0005 + k) * 0.2);
+      var wpx = lx + Math.cos(angle) * dist;
+      var wpy = ly + Math.sin(angle) * dist * 1.1;
+      var wetGrad = ctx.createRadialGradient(wpx, wpy, 0, wpx, wpy, r*0.2);
+      wetGrad.addColorStop(0, 'rgba(60, 55, 45, 0.3)');
+      wetGrad.addColorStop(1, 'rgba(60, 55, 45, 0)');
+      ctx.fillStyle = wetGrad;
+      ctx.fillRect(wpx - r*0.2, wpy - r*0.2, r*0.4, r*0.4);
+    }
+    ctx.restore();
+
+    // Rain reflections on wet paper
+    ctx.save();
+    ctx.globalAlpha = 0.03 + shieldProgress * 0.02;
+    for (var m = 0; m < 12; m++) {
+      var rx = lx + Math.sin(Date.now()*0.001 + m*1.3) * r*0.7;
+      var ry = ly + Math.cos(Date.now()*0.0008 + m*0.9) * r*0.7;
+      ctx.strokeStyle = 'rgba(180, 195, 220, 0.5)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx+3, ry+8); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawForeground() {
+    var fgGrad = ctx.createLinearGradient(0, H*0.72, 0, H);
+    fgGrad.addColorStop(0, 'rgba(14, 16, 28, 0)');
+    fgGrad.addColorStop(0.3, 'rgba(12, 14, 24, 0.5)');
+    fgGrad.addColorStop(1, 'rgba(8, 10, 18, 0.95)');
+    ctx.fillStyle = fgGrad;
+    ctx.fillRect(0, H*0.72, W, H*0.28);
+
+    // Roof eave silhouette
+    ctx.fillStyle = '#0c0e18';
+    ctx.beginPath();
+    ctx.moveTo(0, H*0.85);
+    ctx.bezierCurveTo(W*0.15, H*0.83, W*0.35, H*0.82, W*0.5, H*0.81);
+    ctx.bezierCurveTo(W*0.65, H*0.82, W*0.85, H*0.83, W, H*0.85);
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = '#1a1e30';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, H*0.85);
+    ctx.bezierCurveTo(W*0.15, H*0.83, W*0.35, H*0.82, W*0.5, H*0.81);
+    ctx.bezierCurveTo(W*0.65, H*0.82, W*0.85, H*0.83, W, H*0.85);
+    ctx.stroke();
+  }
+
+  function drawShieldIndicator() {
+    if (!input.active) return;
+    var dx = input.x - lantern.x, dy = input.y - lantern.y;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    var shieldR = lantern.radius * 2.5;
+    if (dist < shieldR) {
+      var vigGrad = ctx.createRadialGradient(input.x, input.y, 0, input.x, input.y, shieldR*0.5);
+      vigGrad.addColorStop(0, 'rgba(255, 220, 140, ' + (shieldProgress*0.04) + ')');
+      vigGrad.addColorStop(1, 'rgba(255, 220, 140, 0)');
+      ctx.fillStyle = vigGrad;
+      ctx.fillRect(input.x - shieldR, input.y - shieldR, shieldR*2, shieldR*2);
+    }
+  }
+
+  /* ===== Mist particles ===== */
+  var mistParticles = [];
+  for (var mi = 0; mi < 15; mi++) {
+    mistParticles.push({
+      x: Math.random() * 2000, y: Math.random() * 800,
+      size: 60 + Math.random() * 120,
+      speed: 0.1 + Math.random() * 0.3,
+      opacity: 0.01 + Math.random() * 0.02
+    });
+  }
+
+  function drawMist() {
+    for (var i = 0; i < mistParticles.length; i++) {
+      var m = mistParticles[i];
+      m.x += m.speed;
+      if (m.x > W + m.size) m.x = -m.size;
+      var grad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.size);
+      grad.addColorStop(0, 'rgba(180, 185, 200, ' + m.opacity + ')');
+      grad.addColorStop(1, 'rgba(180, 185, 200, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(m.x - m.size, m.y - m.size, m.size*2, m.size*2);
+    }
+  }
+
+  /* ===== Render loop ===== */
+  function render(time) {
+    if (!running) return;
+    var dt = Math.min(time - lastTime, 50) / 16.67;
+    lastTime = time;
+
+    ctx.clearRect(0, 0, W, H);
+    drawBackground();
+    drawMist();
+
+    // Rain
+    for (var i = 0; i < rainDrops.length; i++) {
+      rainDrops[i].update(dt);
+      rainDrops[i].draw(ctx);
+    }
+
+    drawForeground();
+    drawLantern();
+
+    // Water drops on lantern
+    for (var j = 0; j < waterDrops.length; j++) {
+      waterDrops[j].update(dt, input.active);
+      waterDrops[j].draw(ctx);
+    }
+
+    drawShieldIndicator();
+
+    // Grain overlay
+    ctx.save();
+    ctx.globalAlpha = 0.04;
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.drawImage(grainTexCanvas, 0, 0, W, H);
+    ctx.restore();
+
+    // Vignette
+    var vigGrad = ctx.createRadialGradient(W/2, H/2, W*0.25, W/2, H/2, W*0.75);
+    vigGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    vigGrad.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = vigGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Shield / patience logic
+    if (input.active) {
+      var dx = input.x - lantern.x, dy = input.y - lantern.y;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+      var shieldR = lantern.radius * 2.5;
+      if (dist < shieldR) {
+        shieldProgress = Math.min(1, shieldProgress + 0.015 * dt);
+        var elapsed = (time - startedAt) / 1000;
+        if (elapsed > 3) {
+          patience += 0.002 * dt;
+          patience = Math.min(1, patience);
+          shieldProgress = Math.min(1, shieldProgress + patience * 0.15 * dt);
+        }
+      } else {
+        shieldProgress = Math.max(0, shieldProgress - 0.02 * dt);
+      }
+    } else {
+      shieldProgress = Math.max(0, shieldProgress - 0.008 * dt);
+    }
+
+    // Audio intensity
+    if (audioEnabled && rainNodes.length > 0) {
+      var vol = 0.06 + shieldProgress * 0.08;
+      rainNodes[0].gain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.3);
+    }
+
+    requestAnimationFrame(render);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    audioHint.classList.add('show');
+    running = true;
+    startedAt = performance.now();
+    lastTime = performance.now();
+    requestAnimationFrame(render);
+  }
+
+  startBtn.addEventListener('click', function() {
+    initAudio();
+    start();
+  });
+
+  /* ===== Init ===== */
+  window.addEventListener('resize', resize);
+  resize();
+})();
+</script>
+</body>
+</html>
