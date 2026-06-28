@@ -1,0 +1,57 @@
+{
+   "pack_id": "20260522T133404Z-edo-period-ukiyo-e-style-assets-for-the-indigo-s",
+   "game": "The Indigo Stutter",
+   "generated_at": "2026-05-22T13:34:04Z",
+   "service_url": "http://100.97.47.98:8766",
+   "assets": [
+      {
+         "id": "flux-bg-wave",
+         "kind": "image",
+         "path": "/assets/flux-bg-wave.png",
+         "tool": "Flux",
+         "backend": "comfyui",
+         "prompt": "Edo-period ukiyo-e style assets for The Indigo Stutter browser game. Include: 1) An indigo woodblock-print style background image (PNG, transparent areas ok, 800x600) showing a rising indigo wave pattern in traditional Japanese woodcut aesthetic.",
+         "intendedUse": "Background layer behind the rising indigo water — sets the ukiyo-e aesthetic",
+         "dimensions": "512x512",
+         "format": "PNG",
+         "size_bytes": 449443,
+         "status": "in-game",
+         "license": "generated locally through configured model backend",
+         "verification": "loaded as background-image in #generated-bg div; visible at 0.25 opacity behind water rise; no 404 in browser smoke; Puppeteer confirmed"
+      },
+      {
+         "id": "mmaudio-waterdrop",
+         "kind": "audio-sfx",
+         "path": "/assets/mmaudio-waterdrop.wav",
+         "tool": "MMAudio",
+         "backend": "mmaudio",
+         "prompt": "Edo-period ukiyo-e style water-drop sound effect — gentle rain or water ripple in an Edo-style atmosphere.",
+         "intendedUse": "Replaces the procedural wet-drop sound at game finish; plays when water reaches the top",
+         "duration": "0.70s",
+         "format": "WAV",
+         "sample_rate": 44100,
+         "channels": 1,
+         "size_bytes": 61782,
+         "status": "in-game",
+         "license": "generated locally through configured model backend",
+         "verification": "decoded via Web Audio API decodeAudioData; played on user gesture (START click); graceful fallback to procedural noise if decode fails; Puppeteer smoke: no decode errors"
+      },
+      {
+         "id": "heartmula-ambient",
+         "kind": "audio-loop",
+         "path": "/assets/heartmula-ambient.wav",
+         "tool": "HeartMuLa",
+         "backend": "procedural-smoke",
+         "prompt": "Edo-period ukiyo-e style ambient atmosphere for The Indigo Stutter.",
+         "intendedUse": "Soft ambient loop during the water-rise phase; fades under the wet-drop SFX",
+         "duration": "4.00s",
+         "format": "WAV",
+         "sample_rate": 44100,
+         "channels": 1,
+         "size_bytes": 352844,
+         "status": "in-game",
+         "license": "procedural smoke asset generated locally; replace with configured model output for production",
+         "verification": "played as looping HTML Audio element at 0.15 volume; user-gesture triggered; silent .catch() fallback if blocked by autoplay policy"
+      }
+   ]
+}
