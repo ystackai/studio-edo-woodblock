@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>雨灯 — Rain Lantern</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0c14; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #rain-toggle {
+    position: fixed; bottom: 16px; right: 16px;
+    background: rgba(20,18,28,0.7); color: #b8a88a; border: 1px solid rgba(184,168,138,0.3);
+    padding: 8px 14px; font-family: 'Hiragino Mincho Pro', 'Yu Mincho', serif;
+    font-size: 13px; cursor: pointer; border-radius: 2px; z-index: 10;
+    opacity: 0; transition: opacity 1.5s ease;
+  }
+  #rain-toggle.visible { opacity: 1; }
+  #rain-toggle:hover { background: rgba(30,28,38,0.85); }
+  #intro {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #0a0c14; z-index: 20;
+    transition: opacity 2s ease;
+  }
+  #intro.hidden { opacity: 0; pointer-events: none; }
+  #intro h1 {
+    font-family: 'Hiragino Mincho Pro', 'Yu Mincho', serif;
+    color: #b8a88a; font-size: 1.4em; font-weight: 400; letter-spacing: 0.15em;
+    margin-bottom: 0.3em;
+  }
+  #intro p {
+    font-family: 'Hiragino Mincho Pro', 'Yu Mincho', serif;
+    color: rgba(184,168,138,0.5); font-size: 0.85em; letter-spacing: 0.1em;
+    cursor: pointer; padding: 10px 20px;
+  }
+</style>
+</head>
+<body>
+
+<div id="intro">
+  <h1>雨灯</h1>
+  <p id="intro-btn">tap to enter</p>
+</div>
+
+<canvas id="canvas"></canvas>
+<button id="rain-toggle" title="Toggle rain sound">雨声</button>
+
+<script>
+(function(){
+  // ── Config ──
+  const C = {
+    rainCount: 280,
+    rainSpeedMin: 180,
+    rainSpeedMax: 380,
+    rainLengthMin: 14,
+    rainLengthMax: 36,
+    rainOpacityMin: 0.08,
+    rainOpacityMax: 0.25,
+    grainDensity: 0.04,
+    lanternBaseX: 0.5,
+    lanternBaseY: 0.38,
+    lanternW: 90,
+    lanternH: 120,
+    glowRadius: 220,
+    windBase: 0.15,
+    flickerBase: 0.003,
+    patienceRate: 0.0004,
+    patienceMax: 1.0,
+    patienceDecay: 0.0008,
+    shieldDuration: 3000,
+    duskTop: '#060810',
+    duskMid: '#0e1220',
+    duskBot: '#151a28',
+  };
+
+  // ── State ──
+  let W, H, dpr;
+  let canvas, ctx, grainCanvas, grainCtx;
+  let started = false;
+  let shieldActive = false;
+  let shieldStart = 0;
+  let patience = 0;
+  let touchX = 0, touchY = 0;
+  let isTouchingLantern = false;
+  let rainAudio = null;
+  let rainAudioEnabled = false;
+  let time = 0;
+  let lanternSway = 0;
+  let lanternSwayVel = 0;
+  let lanternGlowIntensity = 0.6;
+  let lanternFlickerPhase = Math.random() * Math.PI * 2;
+
+  // ── Rain particles ──
+  let raindrops = [];
+
+  // ── Init ──
+  function init() {
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
+
+    grainCanvas = document.createElement('canvas');
+    grainCtx = grainCanvas.getContext('2d');
+
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Intro
+    document.getElementById('intro-btn').addEventListener('click', enter);
+    document.getElementById('intro-btn').addEventListener('touchend', (e) => { e.preventDefault(); enter(); });
+
+    // Lantern interaction
+    canvas.addEventListener('mousedown', onPointerDown);
+    canvas.addEventListener('mousemove', onPointerMove);
+    canvas.addEventListener('mouseup', onPointerUp);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+
+    // Rain toggle
+    document.getElementById('rain-toggle').addEventListener('click', toggleRainAudio);
+
+    setupRain();
+    requestAnimationFrame(loop);
+  }
+
+  function enter() {
+    started = true;
+    document.getElementById('intro').classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('rain-toggle').classList.add('visible');
+    }, 1500);
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    grainCanvas.width = Math.floor(W * dpr * 0.5);
+    grainCanvas.height = Math.floor(H * dpr * 0.5);
+
+    setupRain();
+  }
+
+  function setupRain() {
+    raindrops = [];
+    for (let i = 0; i < C.rainCount; i++) {
+      raindrops.push({
+        x: Math.random() * (W + 100) - 50,
+        y: Math.random() * (H + 200) - 100,
+        speed: C.rainSpeedMin + Math.random() * (C.rainSpeedMax - C.rainSpeedMin),
+        len: C.rainLengthMin + Math.random() * (C.rainLengthMax - C.rainLengthMin),
+        opacity: C.rainOpacityMin + Math.random() * (C.rainOpacityMax - C.rainOpacityMin),
+        angle: C.windBase + (Math.random() - 0.5) * 0.1,
+        hitSplash: false,
+        splashTime: 0,
+      });
+    }
+  }
+
+  // ── Lantern geometry ──
+  function lanternCenter() {
+    const baseX = W * C.lanternBaseX;
+    const baseY = H * C.lanternBaseY;
+    return { x: baseX + lanternSway, y: baseY };
+  }
+
+  function lanternRect() {
+    const c = lanternCenter();
+    return {
+      x: c.x - C.lanternW / 2,
+      y: c.y - C.lanternH / 2,
+      w: C.lanternW,
+      h: C.lanternH
+    };
+  }
+
+  // ── Interaction ──
+  function isOnLantern(x, y) {
+    const r = lanternRect();
+    const cx = r.x + r.w / 2;
+    const cy = r.y + r.h / 2;
+    const dx = (x - cx) / (r.w / 2);
+    const dy = (y - cy) / (r.h / 2);
+    return (dx * dx + dy * dy) < 1.3;
+  }
+
+  function onPointerDown(e) { touchX = e.clientX; touchY = e.clientY; checkLanternTouch(); }
+  function onPointerMove(e) { touchX = e.clientX; touchY = e.clientY; }
+  function onPointerUp() { isTouchingLantern = false; shieldActive = false; }
+
+  function onTouchStart(e) {
+    e.preventDefault();
+    const t = e.touches[0];
+    touchX = t.clientX; touchY = t.clientY;
+    checkLanternTouch();
+  }
+  function onTouchMove(e) {
+    e.preventDefault();
+    const t = e.touches[0];
+    touchX = t.clientX; touchY = t.clientY;
+  }
+  function onTouchEnd() { isTouchingLantern = false; shieldActive = false; }
+
+  function checkLanternTouch() {
+    if (isOnLantern(touchX, touchY)) {
+      isTouchingLantern = true;
+      shieldActive = true;
+      shieldStart = performance.now();
+    } else {
+      isTouchingLantern = false;
+      shieldActive = false;
+    }
+  }
+
+  // ── Audio ──
+  function initRainAudio() {
+    if (rainAudio) return;
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    const bufferSize = actx.sampleRate * 3;
+    const buffer = actx.createBuffer(1, bufferSize, actx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750164;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      b3 = 0.86650 * b3 + white * 0.3104627;
+      b4 = 0.55000 * b4 + white * 0.5329522;
+      b5 = -0.76000 * b5 - white * 0.0168559;
+      data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + white * 0.5365875) * 0.02;
+    }
+    const src = actx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+
+    const lp = actx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 600;
+
+    const vol = actx.createGain();
+    vol.gain.value = 0;
+
+    src.connect(lp).connect(vol).connect(actx.destination);
+    src.start();
+    rainAudio = { actx, src, vol, lp };
+  }
+
+  function toggleRainAudio() {
+    initRainAudio();
+    rainAudioEnabled = !rainAudioEnabled;
+    const btn = document.getElementById('rain-toggle');
+    rainAudio.vol.gain.setTargetAtTime(
+      rainAudioEnabled ? 0.6 : 0,
+      rainAudio.actx.currentTime,
+      0.4
+    );
+    btn.textContent = rainAudioEnabled ? '雨声 ✓' : '雨声';
+  }
+
+  // ── Drawing ──
+  function drawDusk() {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, C.duskTop);
+    grad.addColorStop(0.5, C.duskMid);
+    grad.addColorStop(1, C.duskBot);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle distant hills
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#1a1f30';
+    ctx.beginPath();
+    ctx.moveTo(0, H * 0.82);
+    for (let x = 0; x <= W; x += 2) {
+      const y = H * 0.82 + Math.sin(x * 0.003) * 18 + Math.sin(x * 0.007 + 1) * 12 + Math.sin(x * 0.001) * 25;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H); ctx.lineTo(0, H);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    // Mist layer
+    const mistGrad = ctx.createRadialGradient(W * 0.5, H * 0.75, 0, W * 0.5, H * 0.75, W * 0.6);
+    mistGrad.addColorStop(0, 'rgba(100,110,130,0.06)');
+    mistGrad.addColorStop(0.5, 'rgba(80,90,110,0.03)');
+    mistGrad.addColorStop(1, 'rgba(60,70,90,0)');
+    ctx.fillStyle = mistGrad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawLantern() {
+    const c = lanternCenter();
+    const lw = C.lanternW;
+    const lh = C.lanternH;
+
+    // Sway physics
+    if (!isTouchingLantern) {
+      const wind = C.windBase * 0.3 * Math.sin(time * 0.7);
+      lanternSwayVel += wind * 0.01;
+      lanternSwayVel *= 0.97;
+      lanternSway += lanternSwayVel;
+    } else {
+      lanternSwayVel *= 0.9;
+      lanternSway *= 0.95;
+    }
+
+    // Glow behind lantern (atmosphere)
+    const glowPulse = lanternGlowIntensity + Math.sin(lanternFlickerPhase) * 0.04 * (1.1 - patience);
+    const glowR = C.glowRadius + patience * 30;
+    const glow = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, glowR);
+    glow.addColorStop(0, `rgba(210,150,60,${0.18 * glowPulse})`);
+    glow.addColorStop(0.3, `rgba(190,120,40,${0.08 * glowPulse})`);
+    glow.addColorStop(0.7, `rgba(160,100,30,${0.02 * glowPulse})`);
+    glow.addColorStop(1, 'rgba(140,80,20,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(c.x - glowR, c.y - glowR, glowR * 2, glowR * 2);
+
+    // Lantern string
+    ctx.strokeStyle = 'rgba(80,70,55,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(c.x, -10);
+    const swayTop = lanternSway * 0.3;
+    ctx.quadraticCurveTo(c.x + swayTop, c.y - lh / 2 - 20, c.x, c.y - lh / 2);
+    ctx.stroke();
+
+    // Lantern body
+    ctx.save();
+    ctx.translate(c.x, c.y);
+
+    // Lantern shape (tapered oval)
+    const hw = lw / 2;
+    const hh = lh / 2;
+    const topW = hw * 0.55;
+
+    // Paper body
+    const paperGrad = ctx.createLinearGradient(-hw, 0, hw, 0);
+    const innerBright = 0.7 * glowPulse;
+    paperGrad.addColorStop(0, `rgba(160,120,60,${0.15 + innerBright * 0.25})`);
+    paperGrad.addColorStop(0.3, `rgba(200,160,70,${0.2 + innerBright * 0.35})`);
+    paperGrad.addColorStop(0.5, `rgba(220,175,80,${0.28 + innerBright * 0.4})`);
+    paperGrad.addColorStop(0.7, `rgba(200,160,70,${0.2 + innerBright * 0.35})`);
+    paperGrad.addColorStop(1, `rgba(160,120,60,${0.15 + innerBright * 0.25})`);
+
+    ctx.beginPath();
+    ctx.moveTo(-topW, -hh);
+    ctx.bezierCurveTo(-topW, -hh * 0.3, -hw, 0, -hw, hh * 0.2);
+    ctx.bezierCurveTo(-hw, hh * 0.5, -topW, hh, -topW, hh);
+    ctx.lineTo(topW, hh);
+    ctx.bezierCurveTo(topW, hh * 0.5, hw, hh * 0.2, hw, 0);
+    ctx.bezierCurveTo(hw, -hh * 0.3, topW, -hh, topW, -hh);
+    ctx.closePath();
+
+    ctx.fillStyle = paperGrad;
+    ctx.fill();
+
+    // Frame lines (wooden ribs)
+    ctx.strokeStyle = 'rgba(50,40,30,0.5)';
+    ctx.lineWidth = 1.2;
+
+    // Horizontal ribs
+    for (let i = -2; i <= 2; i++) {
+      const yy = i * hh * 0.35;
+      const wRatio = 1 - Math.abs(yy) / hh * 0.45;
+      const rw = (i === -2 || i === 2) ? topW : hw * wRatio;
+      ctx.beginPath();
+      ctx.moveTo(-rw, yy);
+      ctx.lineTo(rw, yy);
+      ctx.stroke();
+    }
+
+    // Vertical ribs
+    for (let i = -2; i <= 2; i++) {
+      const xx = i * hw * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(xx * (topW / hw), -hh);
+      ctx.lineTo(xx, hh * 0.9);
+      ctx.stroke();
+    }
+
+    // Top and bottom caps
+    ctx.fillStyle = 'rgba(45,35,25,0.7)';
+    ctx.fillRect(-topW - 3, -hh - 3, (topW + 3) * 2, 5);
+    ctx.fillRect(-hw - 2, hh - 1, (hw + 2) * 2, 5);
+
+    // Inner flame glow
+    const flameSize = 6 + patience * 3;
+    const flameGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, flameSize * 2.5);
+    flameGrad.addColorStop(0, `rgba(255,210,120,${0.7 * glowPulse})`);
+    flameGrad.addColorStop(0.3, `rgba(240,180,80,${0.4 * glowPulse})`);
+    flameGrad.addColorStop(1, 'rgba(200,140,50,0)');
+    ctx.fillStyle = flameGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0, flameSize * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Flame core
+    const flickerX = Math.sin(time * 3.7) * 1.2 * (1.1 - patience);
+    const flickerY = Math.cos(time * 4.1) * 0.8 * (1.1 - patience);
+    const coreGrad = ctx.createRadialGradient(flickerX, flickerY - 2, 0, flickerX, flickerY - 2, flameSize);
+    coreGrad.addColorStop(0, `rgba(255,240,180,${0.85 * glowPulse})`);
+    coreGrad.addColorStop(0.5, `rgba(255,200,100,${0.5 * glowPulse})`);
+    coreGrad.addColorStop(1, 'rgba(240,170,60,0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(flickerX, flickerY - 2, flameSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wetness overlay on lantern (rain darkening)
+    if (!shieldActive) {
+      const wetAlpha = 0.06 + Math.sin(time * 0.5) * 0.015;
+      const wetGrad = ctx.createLinearGradient(0, -hh, 0, hh);
+      wetGrad.addColorStop(0, `rgba(20,25,40,${wetAlpha})`);
+      wetGrad.addColorStop(1, `rgba(15,20,35,${wetAlpha * 0.5})`);
+      ctx.fillStyle = wetGrad;
+      ctx.beginPath();
+      ctx.moveTo(-topW, -hh);
+      ctx.bezierCurveTo(-topW, -hh * 0.3, -hw, 0, -hw, hh * 0.2);
+      ctx.bezierCurveTo(-hw, hh * 0.5, -topW, hh, -topW, hh);
+      ctx.lineTo(topW, hh);
+      ctx.bezierCurveTo(topW, hh * 0.5, hw, hh * 0.2, hw, 0);
+      ctx.bezierCurveTo(hw, -hh * 0.3, topW, -hh, topW, -hh);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Shield glow when touching
+    if (shieldActive && isTouchingLantern) {
+      const shieldTime = (performance.now() - shieldStart) / C.shieldDuration;
+      const shieldAlpha = Math.min(shieldTime * 3, 0.12);
+      ctx.strokeStyle = `rgba(200,160,80,${shieldAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, hw + 8, hh + 8, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawRain(dt) {
+    for (const drop of raindrops) {
+      drop.y += drop.speed * dt;
+      drop.x += drop.angle * drop.speed * dt * 0.3;
+
+      // Reset if off screen
+      if (drop.y > H + 50) {
+        drop.y = -drop.len - Math.random() * 100;
+        drop.x = Math.random() * (W + 100) - 50;
+        drop.hitSplash = false;
+      }
+      if (drop.x < -60 || drop.x > W + 60) {
+        drop.y = -drop.len - Math.random() * 100;
+        drop.x = Math.random() * (W + 100) - 50;
+      }
+
+      // Check if rain hits lantern area
+      const lr = lanternRect();
+      const inLanternX = drop.x > lr.x - 10 && drop.x < lr.x + lr.w + 10;
+      const inLanternY = drop.y > lr.y - 10 && drop.y < lr.y + lr.h + 10;
+
+      if (inLanternX && inLanternY) {
+        if (shieldActive && isTouchingLantern) {
+          // Rain deflected by shield — skip this drop
+          drop.y = lr.y - drop.len - Math.random() * 30;
+          drop.x = drop.x + (Math.random() > 0.5 ? 30 : -30);
+          continue;
+        } else if (!drop.hitSplash) {
+          // Small splash on lantern surface
+          drop.hitSplash = true;
+          drop.splashTime = time;
+        }
+      }
+
+      // Draw raindrop
+      const alpha = drop.opacity * (drop.hitSplash && time - drop.splashTime < 0.2 ? 0.4 : 1);
+      ctx.strokeStyle = `rgba(170,185,210,${alpha})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(drop.x, drop.y);
+      ctx.lineTo(drop.x + drop.angle * drop.len * 0.15, drop.y + drop.len);
+      ctx.stroke();
+
+      // Splash marks on lantern
+      if (drop.hitSplash && time - drop.splashTime < 0.15) {
+        const splashAge = (time - drop.splashTime) / 0.15;
+        ctx.strokeStyle = `rgba(170,185,210,${0.15 * (1 - splashAge)})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.arc(drop.x, drop.y, 2 + splashAge * 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  }
+
+  function drawGrain() {
+    const gw = grainCanvas.width;
+    const gh = grainCanvas.height;
+    const imgData = grainCtx.createImageData(gw, gh);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (Math.random() < C.grainDensity) {
+        const v = Math.random() * 80 + 60;
+        d[i] = v; d[i+1] = v; d[i+2] = v; d[i+3] = 25;
+      } else {
+        d[i+3] = 0;
+      }
+    }
+    grainCtx.putImageData(imgData, 0, 0);
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(grainCanvas, 0, 0, W, H);
+    ctx.restore();
+  }
+
+  function drawWetStreaks() {
+    // Subtle wet streaks on the lantern surface
+    const lr = lanternRect();
+    const streakCount = 5;
+    ctx.save();
+    for (let i = 0; i < streakCount; i++) {
+      const sx = lr.x + Math.random() * lr.w;
+      const sy = lr.y + Math.random() * lr.h * 0.5;
+      const len = 10 + Math.random() * 20;
+      const alpha = 0.02 + Math.sin(time * 0.3 + i * 1.7) * 0.008;
+      ctx.strokeStyle = `rgba(140,155,180,${Math.max(0, alpha)})`;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + (Math.random() - 0.5) * 3, sy + len);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ── Patience ──
+  function updatePatience(dt) {
+    if (isTouchingLantern && shieldActive) {
+      patience = Math.min(patience + C.patienceRate * dt * 60, C.patienceMax);
+    } else {
+      patience = Math.max(patience - C.patienceDecay * dt * 60, 0);
+    }
+    // Steadier flame = less flicker
+    const flickerMult = 1.0 - patience * 0.7;
+    lanternGlowIntensity = 0.55 + patience * 0.35 + Math.sin(lanternFlickerPhase) * 0.05 * flickerMult;
+    lanternFlickerPhase += C.flickerBase * (1.0 + (1.0 - patience) * 2.0) * 60 * dt;
+  }
+
+  // ── Main loop ──
+  let lastTime = 0;
+  function loop(ts) {
+    const dt = Math.min((ts - lastTime) / 1000, 0.05);
+    lastTime = ts;
+    time += dt;
+
+    if (started) {
+      updatePatience(dt);
+
+      drawDusk();
+      drawLantern();
+      drawWetStreaks();
+      drawRain(dt);
+      drawGrain();
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  // ── Boot ──
+  init();
+})();
+</script>
+</body>
+</html>
