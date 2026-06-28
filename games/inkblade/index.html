@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edo Inkblade — The Road Opens</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#0b0a08; font-family: system-ui, -apple-system, "Noto Serif JP", serif; }
+#game-container { position:relative; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; background:#0b0a08; }
+canvas { display:block; image-rendering: crisp-edges; box-shadow: 0 4px 30px rgba(0,0,0,0.6); background:#f8f4eb; touch-action:none; }
+#hint { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); font-size:11px; color:#5c5246; letter-spacing:0.04em; pointer-events:none; user-select:none; }
+#hint kbd { font-family:inherit; background:rgba(92,82,70,0.15); padding:1px 5px; border-radius:3px; }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <canvas id="paper" width="960" height="600"></canvas>
+  <div id="hint">hold or drag over the ward &nbsp;•&nbsp; R resets &nbsp;•&nbsp; space holds</div>
+</div>
+<script>
+const canvas = document.getElementById('paper');
+const ctx = canvas.getContext('2d', { alpha: true });
+
+const W = 960;
+const H = 600;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+canvas.width = W * DPR;
+canvas.height = H * DPR;
+canvas.style.width = W + 'px';
+canvas.style.height = H + 'px';
+ctx.scale(DPR, DPR);
+
+let now = 0;
+let last = performance.now();
+let acc = 0;
+const DT = 1000 / 60;
+
+const paper = '#f8f4eb';
+const ink = '#0f172a';
+const indigo = '#0A0F3C';
+const verm = '#8B3A2F'; // restrained, only for seal if earned
+
+// Ward segments (the living barrier across the road)
+let segments = [];
+let progress = 0; // 0 closed .. 1 fully open
+let lastCarveT = 0;
+let captionAlpha = 0;
+let captionTimer = 0;
+let openedOnce = false;
+
+function resetPrint() {
+  segments = [];
+  const cx = W / 2;
+  const baseY = 278;
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const t = (i - (n-1)/2) / ((n-1)/2);
+    const x = cx + t * 118;
+    const y = baseY + Math.sin(t * 0.9) * 6;
+    segments.push({
+      x, y,
+      resistance: 1.0,
+      jitter: 1.8,
+      phase: i * 0.7 + Math.random() * 0.4,
+      w: 19 + (1 - Math.abs(t)) * 3
+    });
+  }
+  progress = 0;
+  lastCarveT = 0;
+  captionAlpha = 0;
+  captionTimer = 0;
+  openedOnce = false;
+  if (audio) {
+    try { audio.master.gain.value = 0.0001; } catch(e){}
+  }
+}
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// Simple noise for fiber / mist
+function hash(n) { return (Math.sin(n) * 43758.5453) % 1; }
+
+let frameCount = 0;
+let mouse = { x: W/2, y: H/2, down: false, overWard: false };
+let bladeActive = false;
+
+canvas.addEventListener('pointerdown', e => {
+  const r = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - r.left) / r.width * W;
+  mouse.y = (e.clientY - r.top) / r.height * H;
+  mouse.down = true;
+  ensureAudio();
+  applyCarve(mouse.x, mouse.y, true);
+});
+canvas.addEventListener('pointermove', e => {
+  const r = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - r.left) / r.width * W;
+  mouse.y = (e.clientY - r.top) / r.height * H;
+  if (mouse.down) applyCarve(mouse.x, mouse.y, false);
+  updateBladeActive();
+});
+window.addEventListener('pointerup', () => { mouse.down = false; });
+
+canvas.addEventListener('touchstart', e => { e.preventDefault(); });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); });
+
+let keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'KeyR') { resetPrint(); e.preventDefault(); }
+  if ((e.code === 'Space' || e.code === 'Enter') && bladeActive) {
+    e.preventDefault();
+    ensureAudio();
+    applyCarve(mouse.x, mouse.y, true);
+    mouse.down = true;
+  }
+});
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
+  if (e.code === 'Space' || e.code === 'Enter') mouse.down = false;
+});
+
+function updateBladeActive() {
+  bladeActive = false;
+  for (let s of segments) {
+    const d = Math.hypot(mouse.x - s.x, mouse.y - s.y);
+    if (d < 52) { bladeActive = true; break; }
+  }
+  canvas.style.cursor = bladeActive ? 'none' : 'default';
+}
+
+function getWardCenterY() {
+  if (!segments.length) return 278;
+  return segments.reduce((a,s)=>a+s.y,0) / segments.length;
+}
+
+function applyCarve(px, py, isStart) {
+  if (!segments.length) return;
+  let any = false;
+  const nowT = performance.now();
+  for (let s of segments) {
+    const dx = px - s.x;
+    const dy = py - (s.y - 4);
+    const d = Math.hypot(dx, dy);
+    if (d < 58) {
+      const strength = (1 - d / 58) * (isStart ? 1.15 : 0.9);
+      const drain = 0.032 * strength;
+      s.resistance = clamp(s.resistance - drain, 0, 1);
+      s.jitter = lerp(s.jitter, s.resistance * 1.7, 0.6);
+      any = true;
+      // emit a restrained lift stroke (visual only)
+      if (Math.random() < 0.35 || isStart) {
+        inkLifts.push({
+          x: s.x + (Math.random()-0.5)*9,
+          y: s.y + (Math.random()-0.5)*5 - 3,
+          vx: (Math.random()-0.5)*0.6 - dx*0.008,
+          vy: (Math.random()-0.5)*0.8 - 0.4,
+          life: 0.6 + Math.random()*0.5,
+          a: 0.55
+        });
+      }
+    }
+  }
+  if (any) {
+    lastCarveT = nowT;
+    // audio grain
+    if (audio && audio.ctx) {
+      const t = audio.ctx.currentTime;
+      const g = audio.carve;
+      try {
+        const noise = audio.ctx.createBufferSource();
+        const buf = audio.ctx.createBuffer(1, 2200, audio.ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i=0; i<data.length; i++) data[i] = Math.random()*2-1;
+        noise.buffer = buf;
+        const hp = audio.ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value = 720;
+        const lp = audio.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 2650;
+        const gn = audio.ctx.createGain();
+        const vol = 0.018 + (progress * 0.012);
+        gn.gain.value = vol;
+        gn.gain.linearRampToValueAtTime(0.0001, t + 0.038);
+        const panner = audio.ctx.createStereoPanner();
+        panner.pan.value = (px - W/2) / (W/2) * 0.6;
+        noise.connect(hp); hp.connect(lp); lp.connect(gn); gn.connect(panner); panner.connect(audio.master);
+        noise.start(t);
+      } catch(e){}
+    }
+  }
+  updateProgress();
+}
+
+let inkLifts = [];
+
+function updateProgress() {
+  if (!segments.length) return;
+  const avg = segments.reduce((a,s)=>a + s.resistance, 0) / segments.length;
+  const target = 1 - avg;
+  progress = lerp(progress, target, 0.18);
+  if (progress > 0.82 && !openedOnce) {
+    openedOnce = true;
+    playOpenEvent();
+  }
+  // caption after first real progress
+  if (progress > 0.18 && captionTimer <= 0) {
+    captionTimer = 5.2;
+    captionAlpha = 0.001;
+  }
+}
+
+function playOpenEvent() {
+  if (!audio || !audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  try {
+    // low woody strike + paper lift
+    const o = audio.ctx.createOscillator(); o.type='sine'; o.frequency.value=178;
+    const g = audio.ctx.createGain(); g.gain.value=0.09;
+    g.gain.linearRampToValueAtTime(0.0001, t+0.9);
+    const n = audio.ctx.createBufferSource();
+    const nb = audio.ctx.createBuffer(1, 4800, audio.ctx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i=0;i<nd.length;i++) nd[i]=(Math.random()*2-1)*Math.pow(1-i/nd.length,1.6);
+    n.buffer=nb;
+    const lp = audio.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=920;
+    const gn = audio.ctx.createGain(); gn.gain.value=0.035;
+    gn.gain.linearRampToValueAtTime(0.0001, t+0.65);
+    o.connect(g); g.connect(audio.master);
+    n.connect(lp); lp.connect(gn); gn.connect(audio.master);
+    o.start(t); o.stop(t+1.1);
+    n.start(t);
+  } catch(e){}
+}
+
+// Audio (created on first gesture only, sparse, physical)
+let audio = null;
+function ensureAudio() {
+  if (audio) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const master = ctx.createGain();
+    master.gain.value = 0.0001;
+    master.connect(ctx.destination);
+    audio = { ctx, master };
+    // carve grain node holder (created per grain)
+    audio.carve = null;
+    // resolve tone (low woody)
+    const osc = ctx.createOscillator(); osc.type='triangle'; osc.frequency.value=112;
+    const osc2 = ctx.createOscillator(); osc2.type='sine'; osc2.frequency.value=167;
+    const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420;
+    const g = ctx.createGain(); g.gain.value=0.0001;
+    const p = ctx.createStereoPanner(); p.pan.value = -0.1;
+    osc.connect(lp); osc2.connect(lp); lp.connect(g); g.connect(p); p.connect(master);
+    osc.start(); osc2.start();
+    audio.tone = { osc, osc2, lp, g, baseF:112 };
+    // gentle scheduler for hesitation / resolve
+    audio.scheduler = { next: ctx.currentTime + 0.2, gap: 0.28 };
+  } catch(e) { audio = { disabled:true }; }
+}
+
+function updateAudio(dt) {
+  if (!audio || audio.disabled || !audio.ctx) return;
+  const t = audio.ctx.currentTime;
+  const m = audio.master;
+  const targetMaster = (mouse.down || keys['Space'] || keys['Enter']) ? 0.32 : 0.18;
+  m.gain.value = lerp(m.gain.value || 0.0001, targetMaster, 0.06);
+
+  if (audio.tone && audio.tone.g) {
+    const g = audio.tone.g;
+    const want = (progress * 0.7 + (mouse.down ? 0.3 : 0)) * 0.22;
+    g.gain.value = lerp(g.gain.value, want, 0.09);
+    // slight filter open with progress
+    audio.tone.lp.frequency.value = lerp(audio.tone.lp.frequency.value, 420 + progress*680, 0.05);
+  }
+
+  // hesitation scheduler (creaks / drops that close as progress rises)
+  if (audio.scheduler) {
+    if (t > audio.scheduler.next) {
+      const gapBase = 0.31 - progress * 0.18;
+      audio.scheduler.gap = lerp(audio.scheduler.gap, gapBase, 0.4);
+      const gap = audio.scheduler.gap * (0.7 + Math.random()*0.6);
+      audio.scheduler.next = t + gap;
+      try {
+        const o = audio.ctx.createOscillator(); o.type='sine'; o.frequency.value = 82 + progress*28;
+        const gn = audio.ctx.createGain(); gn.gain.value = 0.022 + progress*0.018;
+        gn.gain.linearRampToValueAtTime(0.0001, t + 0.11 + progress*0.06);
+        const lp = audio.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value= 340 + progress*120;
+        o.connect(lp); lp.connect(gn); gn.connect(audio.master);
+        o.start(t); o.stop(t + 0.22);
+      } catch(e){}
+    }
+  }
+}
+
+function drawPaper() {
+  ctx.fillStyle = paper;
+  ctx.fillRect(0, 0, W, H);
+  // subtle fiber / tooth
+  ctx.fillStyle = 'rgba(60,55,48,0.035)';
+  for (let i=0; i<420; i++) {
+    const x = ((i*37) % (W-20)) + 10;
+    const y = ((i*73) % (H-20)) + 10;
+    const s = 0.6 + (hash(i+frameCount*0.01)%1)*0.7;
+    ctx.fillRect(x, y, s, s);
+  }
+  // very faint deckle edge suggestion
+  ctx.strokeStyle = 'rgba(60,55,48,0.06)';
+  ctx.lineWidth = 18;
+  ctx.strokeRect(9, 9, W-18, H-18);
+}
+
+function drawMist(phase) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  for (let k=0; k<4; k++) {
+    const px = W*0.5 + Math.sin(phase*0.3 + k)* (90 + k*18);
+    const py = 220 + k*38 + Math.cos(phase*0.17 + k*1.3)*18;
+    const r = 210 + k*55;
+    const grd = ctx.createRadialGradient(px, py, 30, px+70, py+40, r);
+    grd.addColorStop(0, 'rgba(10,15,60,0.07)');
+    grd.addColorStop(0.5, 'rgba(10,15,60,0.035)');
+    grd.addColorStop(1, 'rgba(10,15,60,0.0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(px, py, r*0.9, r*0.55, (k-1.5)*0.12, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRoad(prog) {
+  ctx.save();
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const cy = 420;
+  // receding road bed
+  for (let i=0; i<5; i++) {
+    const t = i / 4;
+    const y = lerp(470, 195, t);
+    const w = lerp(92, 14, t*t);
+    ctx.globalAlpha = 0.18 + t*0.12;
+    ctx.beginPath();
+    ctx.moveTo(W/2 - w, y);
+    ctx.lineTo(W/2 + w, y);
+    ctx.stroke();
+  }
+  // path lines (stronger near, resolve with prog)
+  ctx.globalAlpha = 0.85;
+  ctx.lineWidth = 1.6;
+  const open = Math.max(0, (prog - 0.28) / 0.72);
+  // left side
+  ctx.beginPath();
+  ctx.moveTo(428, 475);
+  ctx.quadraticCurveTo(402, 340, 395, 195);
+  ctx.stroke();
+  // right side
+  ctx.beginPath();
+  ctx.moveTo(532, 475);
+  ctx.quadraticCurveTo(558, 340, 565, 195);
+  ctx.stroke();
+  // center texture + continuation that strengthens
+  ctx.lineWidth = 1.1;
+  ctx.globalAlpha = 0.35 + open * 0.55;
+  for (let i=1; i<6; i++) {
+    const t = i/5.5;
+    const y = lerp(455, 210, t);
+    const off = (1-t)*18;
+    ctx.beginPath();
+    ctx.moveTo(W/2 - off*0.6, y);
+    ctx.lineTo(W/2 + off*0.6, y);
+    ctx.stroke();
+  }
+  // stepping suggestion when open
+  if (open > 0.1) {
+    ctx.globalAlpha = open * 0.5;
+    ctx.lineWidth = 1.4;
+    for (let i=0; i<3; i++) {
+      const t = 0.35 + i*0.18;
+      const y = lerp(455, 210, t);
+      const w = 11 - i*1.5;
+      ctx.beginPath();
+      ctx.moveTo(W/2 - w, y);
+      ctx.lineTo(W/2 + w, y);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawWard(phase) {
+  if (!segments.length) return;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const avgRes = segments.reduce((a,s)=>a+s.resistance,0)/segments.length;
+  const open = 1 - avgRes;
+
+  // the ofuda / seal paper (faint, lifts with progress)
+  const cx = W/2;
+  const cy = getWardCenterY();
+  ctx.globalAlpha = 0.9 * (1 - open*0.7);
+  ctx.fillStyle = '#e8dcc8';
+  ctx.fillRect(cx-29, cy-18, 58, 36);
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(cx-29, cy-18, 58, 36);
+  // simple ink mark on ofuda
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(cx-14, cy-8); ctx.lineTo(cx+13, cy+7);
+  ctx.moveTo(cx-11, cy+9); ctx.lineTo(cx+16, cy-5);
+  ctx.stroke();
+
+  // main ward bar + living jitter segments
+  for (let i=0; i<segments.length; i++) {
+    const s = segments[i];
+    const j = s.jitter * (0.6 + Math.sin(phase*1.7 + s.phase)*0.4);
+    const y = s.y + Math.sin(phase*2.1 + i)*j*0.6;
+    const x = s.x + Math.cos(phase*1.3 + i*1.7)*j*0.35;
+
+    // shadow / bleed under
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = indigo;
+    ctx.lineWidth = s.w + 4.5;
+    ctx.beginPath();
+    ctx.moveTo(x-1, y+2.5);
+    ctx.lineTo(x+1, y+2.5);
+    ctx.stroke();
+
+    // main ink
+    ctx.globalAlpha = 0.92 - open*0.35;
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = s.w * (0.6 + s.resistance*0.4);
+    ctx.beginPath();
+    ctx.moveTo(x-1, y);
+    ctx.lineTo(x+1, y);
+    ctx.stroke();
+
+    // feathered edge passes (house style)
+    ctx.globalAlpha = 0.22 * (0.7 + s.resistance*0.3);
+    ctx.lineWidth = s.w * 1.35;
+    ctx.beginPath();
+    ctx.moveTo(x-2, y-0.5);
+    ctx.lineTo(x+2, y-0.5);
+    ctx.stroke();
+  }
+
+  // separation gap when opening
+  if (open > 0.25) {
+    const gap = (open - 0.25) * 28;
+    ctx.globalAlpha = open * 0.7;
+    ctx.strokeStyle = paper;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(cx - gap*0.6, cy - 3);
+    ctx.lineTo(cx + gap*0.6, cy + 3);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawTraveler(prog) {
+  const baseX = 480;
+  const baseY = 458;
+  const adv = prog * 78; // limited advance
+  const tx = baseX + adv * 0.6;
+  const ty = baseY - adv * 0.22;
+
+  ctx.save();
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 2.1;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // robe body (silhouette, decisive)
+  ctx.beginPath();
+  ctx.moveTo(tx, ty-26);
+  ctx.lineTo(tx-11, ty+11);
+  ctx.lineTo(tx+11, ty+11);
+  ctx.closePath();
+  ctx.stroke();
+
+  // head + hat brim (ukiyo-e style)
+  ctx.beginPath();
+  ctx.arc(tx, ty-30, 6.5, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(tx-10, ty-33);
+  ctx.lineTo(tx+10, ty-33);
+  ctx.stroke();
+
+  // subtle arm (blade side)
+  const arm = Math.sin(now*0.003 + prog*3) * (1-prog) * 2.5;
+  ctx.beginPath();
+  ctx.moveTo(tx+4, ty-19);
+  ctx.lineTo(tx+18 + arm, ty-8);
+  ctx.stroke();
+
+  // legs (very restrained walk)
+  const walk = Math.sin(now*0.004 + prog*4) * prog * 3.5;
+  ctx.beginPath();
+  ctx.moveTo(tx-3, ty+8);
+  ctx.lineTo(tx-7 - walk*0.3, ty+19);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(tx+3, ty+8);
+  ctx.lineTo(tx+7 + walk*0.3, ty+19);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawBlade(px, py) {
+  if (!bladeActive) return;
+  ctx.save();
+  const ang = -0.65 + Math.sin(now*0.004)*0.04;
+  ctx.translate(px, py);
+  ctx.rotate(ang);
+
+  // blade
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-2, -18);
+  ctx.lineTo(3, 14);
+  ctx.stroke();
+
+  // small guard
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(-7, 3);
+  ctx.lineTo(8, 3);
+  ctx.stroke();
+
+  // contact pressure ring when carving
+  if (mouse.down) {
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = verm;
+    ctx.lineWidth = 1.5;
+    const r = 13 + Math.sin(now*0.012)*2;
+    ctx.beginPath();
+    ctx.arc(1, 6, r, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawLifts() {
+  ctx.save();
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 1.1;
+  ctx.lineCap = 'round';
+  for (let i=inkLifts.length-1; i>=0; i--) {
+    const p = inkLifts[i];
+    ctx.globalAlpha = p.a * (p.life / 0.9);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + p.vx*3, p.y + p.vy*3);
+    ctx.stroke();
+    p.x += p.vx; p.y += p.vy; p.vy += 0.03; p.life -= 0.016; p.a *= 0.985;
+    if (p.life <= 0.02) inkLifts.splice(i,1);
+  }
+  ctx.restore();
+}
+
+function drawCaption() {
+  if (captionAlpha <= 0.01 && captionTimer <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.82, captionAlpha);
+  ctx.fillStyle = ink;
+  ctx.font = '12px "Noto Serif JP", serif';
+  ctx.textAlign = 'right';
+  const txt = 'the blade that parts the ward for a moment';
+  ctx.fillText(txt, W - 48, H - 42);
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const phase = now * 0.0007;
+
+  drawPaper();
+  drawMist(phase);
+  drawRoad(progress);
+  drawWard(phase);
+  drawTraveler(progress);
+  drawLifts();
+  drawCaption();
+
+  // blade last so it sits on top
+  if (bladeActive) drawBlade(mouse.x, mouse.y);
+
+  // very faint margin title (ukiyo-e cartouche feel)
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = ink;
+  ctx.font = '10px system-ui, serif';
+  ctx.fillText('Edo Inkblade — road opens', 46, H - 38);
+  ctx.restore();
+
+  frameCount++;
+}
+
+function update(dt) {
+  now += dt;
+  // jitter and resistance breathing
+  for (let s of segments) {
+    const targetJ = s.resistance * 1.75;
+    s.jitter = lerp(s.jitter, targetJ, 0.07);
+    // slow creep back when not carving recently
+    if (performance.now() - lastCarveT > 420) {
+      s.resistance = clamp(s.resistance + 0.0009 * dt/16, 0, 1);
+    }
+  }
+  updateProgress();
+
+  // caption fade
+  if (captionTimer > 0) {
+    captionTimer -= dt/1000;
+    captionAlpha = Math.min(1, captionAlpha + 0.04);
+  } else {
+    captionAlpha = Math.max(0, captionAlpha - 0.018);
+  }
+
+  // audio
+  updateAudio(dt);
+
+  // gentle idle ward pulse when low activity (makes first screen alive)
+  if (performance.now() - lastCarveT > 1800) {
+    for (let i=0; i<segments.length; i+=2) {
+      segments[i].jitter = Math.max(segments[i].jitter, 0.6 + Math.sin(now*0.0015 + i)*0.4);
+    }
+  }
+}
+
+function loop(t) {
+  if (!last) last = t;
+  const realDt = t - last;
+  last = t;
+  acc += realDt;
+  while (acc >= DT) {
+    update(DT);
+    acc -= DT;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// boot
+resetPrint();
+updateBladeActive();
+
+// expose for verification harness
+window.__INKBLADE_SLICE = { get progress(){return progress;}, get opened(){return openedOnce;}, reset: resetPrint };
+// first frame
+draw();
+requestAnimationFrame(loop);
+
+// gentle idle animation so first screen is not dead
+setTimeout(() => { if (segments.length) segments[3].jitter = 2.1; }, 420);
+</script>
+</body>
+</html>
