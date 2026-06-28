@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>雨の明かり — Lantern in the Rain</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#05030a;cursor:none;font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif}
+canvas{display:block;position:absolute;top:0;left:0}
+#ui{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;padding:14px 18px;z-index:10;pointer-events:none}
+#rain-toggle{
+  pointer-events:auto;
+  background:rgba(255,170,90,0.06);border:1px solid rgba(255,170,90,0.12);
+  color:rgba(255,195,130,0.45);font:11px/1.2 "Hiragino Sans",sans-serif;
+  padding:8px 14px;border-radius:4px;cursor:pointer;
+  transition:all 0.5s ease;letter-spacing:0.08em;
+  text-transform:lowercase;
+}
+#rain-toggle:hover{background:rgba(255,170,90,0.14);color:rgba(255,205,140,0.65)}
+#rain-toggle.on{background:rgba(255,170,90,0.18);border-color:rgba(255,170,90,0.28);color:rgba(255,205,140,0.6)}
+#hint{
+  color:rgba(255,195,130,0.22);font:10px/1.5 "Hiragino Sans",sans-serif;
+  pointer-events:none;transition:opacity 4s ease;
+  max-width:240px;text-align:right;
+}
+#title{
+  position:fixed;top:20px;right:22px;
+  color:rgba(255,195,130,0.12);font:12px/1.3 "Hiragino Sans",sans-serif;
+  z-index:10;pointer-events:none;letter-spacing:0.15em;
+}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<canvas id="rain"></canvas>
+<canvas id="lantern"></canvas>
+<canvas id="fx"></canvas>
+<div id="title">雨の明かり</div>
+<div id="ui">
+   <div id="hint">hold near the lantern<br>to shelter it from the rain</div>
+   <button id="rain-toggle">rain sound</button>
+</div>
+<script>
+"use strict";
+
+// ═══════════════════════════════════════════════════════
+//  雨の明かり — Lantern in the Rain
+//  A quiet moment: rain, a paper lantern, patience.
+// ═══════════════════════════════════════════════════════
+
+const CFG = {
+  rainCount:         450,
+  rainWind:          -0.3,
+  rainSpeedBase:     9,
+  grainAlpha:        0.04,
+  lanternX:          0.5,
+  lanternY:          0.45,
+  lanternScale:      1.0,
+  flickerBase:       0.15,
+  steadinessRate:    0.00018,
+  shieldRadius:      0.22,
+  shieldDur:         3500,
+};
+
+// ── Globals ──────────────────────────────────────────
+let canvases = {}, ctxs = {};
+let W = 0, H = 0, dpr = 1;
+let startTs = performance.now();
+
+// Audio
+let rainAudioCtx = null, rainGain = null, rainAudioPlaying = false;
+
+// Interaction
+let shieldActive = false, shieldEndTs = 0, shieldOpacity = 0;
+let pointerX = -999, pointerY = -999, pointerDown = false;
+let steadiness = 0;
+let hintHidden = false;
+let bgDirty = true;
+
+// ── Helpers ──────────────────────────────────────────
+const lerp  = (a, b, t) => a + (b - a) * t;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rand  = (lo, hi) => lo + Math.random() * (hi - lo);
+
+// ── Canvas init ──────────────────────────────────────
+function initCanvases() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  for (const id of ['bg','rain','lantern','fx']) {
+    canvases[id] = document.getElementById(id);
+    ctxs[id] = canvases[id].getContext('2d');
+    canvases[id].width = W * dpr;
+    canvases[id].height = H * dpr;
+    canvases[id].style.width = W + 'px';
+    canvases[id].style.height = H + 'px';
+    ctxs[id].scale(dpr, dpr);
+  }
+}
+
+// ═════════════════════════════════════════════════════
+//  DUSK BACKGROUND
+// ═════════════════════════════════════════════════════
+let bgCanvas2, bgCtx2;
+
+function drawDusk() {
+  bgCanvas2 = document.createElement('canvas');
+  bgCanvas2.width = W * dpr; bgCanvas2.height = H * dpr;
+  bgCtx2 = bgCanvas2.getContext('2d');
+  bgCtx2.scale(dpr, dpr);
+  const c = bgCtx2;
+
+  // Sky — deep dusk gradient
+  const sky = c.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0.00, '#030208');
+  sky.addColorStop(0.10, '#060418');
+  sky.addColorStop(0.25, '#0e0a2c');
+  sky.addColorStop(0.45, '#1a1240');
+  sky.addColorStop(0.60, '#241a48');
+  sky.addColorStop(0.72, '#2d1f45');
+  sky.addColorStop(0.82, '#352540');
+  sky.addColorStop(0.90, '#2a1d35');
+  sky.addColorStop(0.95, '#1a1428');
+  sky.addColorStop(1.00, '#0e0a18');
+  c.fillStyle = sky;
+  c.fillRect(0, 0, W, H);
+
+  // Distant warm glow — sunset remnant on the horizon
+  const hg = c.createRadialGradient(W*0.28, H*0.84, 0, W*0.28, H*0.84, H*0.38);
+  hg.addColorStop(0,   'rgba(170, 85, 40, 0.10)');
+  hg.addColorStop(0.3, 'rgba(140, 60, 35, 0.05)');
+  hg.addColorStop(0.7, 'rgba(100, 40, 30, 0.015)');
+  hg.addColorStop(1,   'rgba(0, 0, 0, 0)');
+  c.fillStyle = hg;
+  c.fillRect(0, 0, W, H);
+
+  // Second warm layer — softer
+  const hg2 = c.createRadialGradient(W*0.65, H*0.82, 0, W*0.65, H*0.82, H*0.3);
+  hg2.addColorStop(0,   'rgba(150, 75, 35, 0.06)');
+  hg2.addColorStop(0.5, 'rgba(120, 55, 30, 0.02)');
+  hg2.addColorStop(1,   'rgba(0, 0, 0, 0)');
+  c.fillStyle = hg2;
+  c.fillRect(0, 0, W, H);
+
+  // Mist layer
+  const mist = c.createLinearGradient(0, H*0.72, 0, H*0.95);
+  mist.addColorStop(0,   'rgba(80, 75, 110, 0)');
+  mist.addColorStop(0.3, 'rgba(80, 75, 110, 0.04)');
+  mist.addColorStop(0.6, 'rgba(70, 65, 100, 0.06)');
+  mist.addColorStop(1,   'rgba(60, 55, 85, 0.03)');
+  c.fillStyle = mist;
+  c.fillRect(0, H*0.72, W, H*0.23);
+
+  // Ground
+  c.fillStyle = '#06040c';
+  c.beginPath();
+  c.moveTo(0, H*0.93);
+  for (let x = 0; x <= W; x += 5) {
+    const y = H*0.93
+      + Math.sin(x*0.0015 + 1.0) * H*0.01
+      + Math.sin(x*0.005 + 0.3) * H*0.005
+      + Math.sin(x*0.012) * H*0.002;
+    c.lineTo(x, y);
+  }
+  c.lineTo(W, H); c.lineTo(0, H); c.closePath(); c.fill();
+
+  // Wet ground sheen
+  const wetG = c.createLinearGradient(0, H*0.92, 0, H);
+  wetG.addColorStop(0, 'rgba(40, 35, 60, 0.12)');
+  wetG.addColorStop(0.5, 'rgba(45, 38, 65, 0.06)');
+  wetG.addColorStop(1, 'rgba(25, 20, 40, 0.15)');
+  c.fillStyle = wetG;
+  c.fillRect(0, H*0.92, W, H*0.08);
+
+  // Moon — faint, high right
+  const mx = W*0.82, my = H*0.09, mr = 12;
+  const mg = c.createRadialGradient(mx, my, 0, mx, my, mr*6);
+  mg.addColorStop(0,   'rgba(190, 200, 220, 0.055)');
+  mg.addColorStop(0.3, 'rgba(170, 180, 200, 0.018)');
+  mg.addColorStop(1,   'rgba(0, 0, 0, 0)');
+  c.fillStyle = mg;
+  c.fillRect(0, 0, W, H);
+
+  // Moon disk
+  c.fillStyle = 'rgba(195, 205, 220, 0.045)';
+  c.beginPath(); c.arc(mx, my, mr, 0, Math.PI*2); c.fill();
+
+  // Distant silhouettes — pine trees / structures
+  c.fillStyle = 'rgba(8, 6, 16, 0.7)';
+  // Left cluster
+  for (let i = 0; i < 6; i++) {
+    const tx = W*(0.03 + i*0.05);
+    const th = H*(0.025 + Math.sin(i*2.1)*0.02);
+    const tw = 3 + Math.sin(i*1.7)*1.5;
+    c.beginPath();
+    c.moveTo(tx - tw, H*0.93);
+    c.lineTo(tx, H*0.93 - th);
+    c.lineTo(tx + tw, H*0.93);
+    c.fill();
+  }
+  // Right cluster
+  for (let i = 0; i < 5; i++) {
+    const tx = W*(0.72 + i*0.06);
+    const th = H*(0.02 + Math.sin(i*1.3)*0.018);
+    const tw = 2.5 + Math.sin(i*2.5)*1;
+    c.beginPath();
+    c.moveTo(tx - tw, H*0.93);
+    c.lineTo(tx, H*0.93 - th);
+    c.lineTo(tx + tw, H*0.93);
+    c.fill();
+  }
+}
+
+// ═════════════════════════════════════════════════════
+//  LANTERN
+// ═════════════════════════════════════════════════════
+function getLanternPos() {
+  return { x: W * CFG.lanternX, y: H * CFG.lanternY };
+}
+
+const ripples = [];
+
+function drawLantern(ts) {
+  const c = ctxs.lantern;
+  c.clearRect(0, 0, W, H);
+  const lp = getLanternPos();
+  const sc = CFG.lanternScale * Math.min(W, H) * 0.0014;
+  const lx = lp.x, ly = lp.y;
+  const bw = 55*sc, bh = 75*sc;
+
+  // Flicker — reduced by steadiness
+  const fi = CFG.flickerBase * (1 - steadiness * 0.8);
+  const f1 = Math.sin(ts*0.007) * fi;
+  const f2 = Math.sin(ts*0.013 + 1.3) * fi * 0.45;
+  const f3 = Math.sin(ts*0.022 + 2.7) * fi * 0.2;
+  const glowA = clamp(0.72 + f1 + f2 + f3, 0.3, 1.0);
+
+  // Shield opacity
+  if (shieldActive) {
+    shieldOpacity = clamp((shieldEndTs - ts) / CFG.shieldDur, 0, 1);
+  } else {
+    shieldOpacity *= 0.96;
+    if (shieldOpacity < 0.005) shieldOpacity = 0;
+  }
+
+  // Sway
+  const sway = Math.sin(ts*0.0007) * 4*sc;
+
+  // ── Hanging cord ──
+  c.strokeStyle = 'rgba(90, 72, 55, 0.45)';
+  c.lineWidth = 1.8*sc;
+  c.beginPath();
+  c.moveTo(lx, 0);
+  c.quadraticCurveTo(lx + sway*0.4, ly*0.45, lx + sway, ly - bh - 6*sc);
+  c.stroke();
+
+  // ── Outer glow layers ──
+  // Layer 1: wide, warm
+  const oR1 = bw*5;
+  const og1 = c.createRadialGradient(lx+sway*0.3, ly, bw*0.3, lx+sway*0.3, ly, oR1);
+  og1.addColorStop(0,   `rgba(255, 175, 75, ${0.10*glowA})`);
+  og1.addColorStop(0.2, `rgba(255, 160, 65, ${0.05*glowA})`);
+  og1.addColorStop(0.5, `rgba(230, 130, 50, ${0.02*glowA})`);
+  og1.addColorStop(1,   'rgba(0,0,0,0)');
+  c.fillStyle = og1;
+  c.fillRect(lx-oR1, ly-oR1, oR1*2, oR1*2);
+
+  // Layer 2: closer, more saturated
+  const oR2 = bw*2.8;
+  const og2 = c.createRadialGradient(lx+sway*0.3, ly, 0, lx+sway*0.3, ly, oR2);
+  og2.addColorStop(0,   `rgba(255, 195, 100, ${0.08*glowA})`);
+  og2.addColorStop(0.4, `rgba(255, 170, 75, ${0.03*glowA})`);
+  og2.addColorStop(1,   'rgba(0,0,0,0)');
+  c.fillStyle = og2;
+  c.fillRect(lx-oR2, ly-oR2, oR2*2, oR2*2);
+
+  // ── Lantern body ──
+  c.save();
+  c.translate(lx + sway*0.3, ly);
+
+  const bulge = bw*0.14;
+
+  // Paper body path
+  c.beginPath();
+  c.moveTo(-bw + bulge, -bh);
+  c.bezierCurveTo(-bw - 2*sc, -bh*0.55, -bw - 2*sc, bh*0.55, -bw + bulge, bh);
+  c.lineTo(bw - bulge, bh);
+  c.bezierCurveTo(bw + 2*sc, bh*0.55, bw + 2*sc, -bh*0.55, bw - bulge, -bh);
+  c.closePath();
+
+  // Paper fill — warm gradient
+  const pg = c.createRadialGradient(0, 0, 0, 0, 0, bh);
+  pg.addColorStop(0.0, `rgba(255, 215, 125, ${0.97*glowA})`);
+  pg.addColorStop(0.2, `rgba(252, 205, 110, ${0.92*glowA})`);
+  pg.addColorStop(0.45, `rgba(248, 190, 90,  ${0.82*glowA})`);
+  pg.addColorStop(0.7,  `rgba(238, 170, 70,  ${0.62*glowA})`);
+  pg.addColorStop(0.9,  `rgba(215, 145, 55,  ${0.45*glowA})`);
+  pg.addColorStop(1.0,  `rgba(190, 120, 45,  ${0.32*glowA})`);
+  c.fillStyle = pg;
+  c.fill();
+
+  // Paper texture — subtle grain on the paper
+  c.save();
+  c.clip();
+  for (let i = 0; i < 60; i++) {
+    const px = rand(-bw, bw);
+    const py = rand(-bh, bh);
+    const pa = rand(0.01, 0.04) * glowA;
+    c.fillStyle = `rgba(255, ${rand(180,230)|0}, ${rand(100,160)|0}, ${pa})`;
+    c.fillRect(px, py, rand(1,3)*sc, rand(1,3)*sc);
+  }
+  c.restore();
+
+  // Vertical ribs
+  c.strokeStyle = `rgba(130, 85, 40, ${0.10*glowA})`;
+  c.lineWidth = 0.7*sc;
+  for (let i = -4; i <= 4; i++) {
+    const rx = i * bw * 0.22;
+    const crv = Math.abs(i) * 2.5*sc;
+    c.beginPath();
+    c.moveTo(rx, -bh + 3*sc);
+    c.quadraticCurveTo(rx + crv, 0, rx, bh - 3*sc);
+    c.stroke();
+  }
+
+  // Horizontal ribs
+  c.strokeStyle = `rgba(120, 78, 38, ${0.07*glowA})`;
+  c.lineWidth = 0.5*sc;
+  for (let i = -2; i <= 2; i++) {
+    const ry = i * bh * 0.32;
+    const xs = bw * (0.88 - Math.abs(i)*0.06);
+    c.beginPath();
+    c.moveTo(-xs, ry);
+    c.quadraticCurveTo(0, ry + 2*sc, xs, ry);
+    c.stroke();
+  }
+
+  // ── Wet paper streaks ──
+  const wetAlpha = 0.18 + Math.sin(ts*0.0015)*0.03;
+  for (let i = 0; i < 10; i++) {
+    const phase = i*2.9 + 0.5;
+    const wx = Math.sin(phase) * bw*0.65;
+    const wy = -bh*0.6 + ((Math.sin(phase*1.3+2)*0.5+0.5)*bh*0.45);
+    const wh = bh*(0.15 + Math.sin(phase*0.7)*0.08);
+
+    const wg = c.createLinearGradient(wx, wy, wx, wy + wh);
+    wg.addColorStop(0,   `rgba(255, 230, 165, ${wetAlpha*glowA*0.35})`);
+    wg.addColorStop(0.5, `rgba(255, 220, 155, ${wetAlpha*glowA*0.18})`);
+    wg.addColorStop(1,   'rgba(255, 200, 140, 0)');
+    c.fillStyle = wg;
+    c.beginPath();
+    c.ellipse(wx, wy + wh*0.45, 1.8*sc, wh*0.45, 0, 0, Math.PI*2);
+    c.fill();
+  }
+
+  // Water droplets running down
+  for (let i = 0; i < 6; i++) {
+    const dx = Math.sin(i*3.1+1.0)*bw*0.55;
+    const dyOff = ((ts*0.015 + i*40) % (bh*2)) - bh;
+    const dr = (1.2 + Math.sin(ts*0.004 + i*1.7)*0.4)*sc;
+
+    // Droplet
+    c.fillStyle = `rgba(255, 235, 180, ${0.22*glowA})`;
+    c.beginPath(); c.arc(dx, dyOff, dr, 0, Math.PI*2); c.fill();
+
+    // Highlight
+    c.fillStyle = `rgba(255, 250, 240, ${0.14*glowA})`;
+    c.beginPath(); c.arc(dx-dr*0.25, dyOff-dr*0.25, dr*0.3, 0, Math.PI*2); c.fill();
+  }
+
+  // ── Flame ──
+  const flameF = Math.sin(ts*0.02)*0.07 + Math.sin(ts*0.036)*0.035;
+  const fa = clamp(0.88 + flameF, 0.5, 1.0);
+  const fh = bh*0.38, fw = bw*0.17;
+
+  // Outer flame glow
+  const fg1 = c.createRadialGradient(0, 3*sc, 0, 0, 3*sc, fh*1.3);
+  fg1.addColorStop(0,   `rgba(255, 250, 220, ${0.92*fa*glowA})`);
+  fg1.addColorStop(0.25,`rgba(255, 225, 120, ${0.72*fa*glowA})`);
+  fg1.addColorStop(0.55,`rgba(255, 155, 50,  ${0.38*fa*glowA})`);
+  fg1.addColorStop(0.8, `rgba(220, 90, 25,   ${0.12*fa*glowA})`);
+  fg1.addColorStop(1,   'rgba(180, 60, 10, 0)');
+  c.fillStyle = fg1;
+  c.beginPath(); c.ellipse(0, 3*sc, fw*1.3, fh*1.1, 0, 0, Math.PI*2); c.fill();
+
+  // Inner bright core
+  const fg2 = c.createRadialGradient(0, 0, 0, 0, 0, fw);
+  fg2.addColorStop(0,   `rgba(255, 255, 248, ${0.95*fa})`);
+  fg2.addColorStop(0.4, `rgba(255, 245, 200, ${0.55*fa})`);
+  fg2.addColorStop(0.7, `rgba(255, 210, 130, ${0.2*fa})`);
+  fg2.addColorStop(1,   'rgba(255, 180, 80, 0)');
+  c.fillStyle = fg2;
+  c.beginPath(); c.ellipse(0, 0, fw*0.55, fw*0.7, 0, 0, Math.PI*2); c.fill();
+
+  // Steadiness indicator: when flame has steadied, add a warm golden aura
+  if (steadiness > 0.3) {
+    const sa = (steadiness - 0.3) * 0.15;
+    const sg = c.createRadialGradient(0, 2*sc, bw*0.2, 0, 2*sc, bw*1.5);
+    sg.addColorStop(0, `rgba(255, 220, 140, ${sa})`);
+    sg.addColorStop(0.5, `rgba(255, 200, 120, ${sa*0.4})`);
+    sg.addColorStop(1, 'rgba(255, 180, 100, 0)');
+    c.fillStyle = sg;
+    c.beginPath(); c.arc(0, 2*sc, bw*1.5, 0, Math.PI*2); c.fill();
+  }
+
+  // ── Shield dome ──
+  if (shieldOpacity > 0.01) {
+    c.save();
+    c.globalAlpha = shieldOpacity * 0.18;
+
+    // Soft shield glow
+    const shg = c.createRadialGradient(0, 0, bw*0.4, 0, 0, bw*2.8);
+    shg.addColorStop(0,   'rgba(255, 215, 155, 0.35)');
+    shg.addColorStop(0.4, 'rgba(255, 200, 140, 0.14)');
+    shg.addColorStop(0.75,'rgba(255, 185, 125, 0.04)');
+    shg.addColorStop(1,   'rgba(0, 0, 0, 0)');
+    c.fillStyle = shg;
+    c.beginPath(); c.arc(0, 0, bw*2.8, 0, Math.PI*2); c.fill();
+
+    // Shield boundary ring
+    c.globalAlpha = shieldOpacity * 0.2;
+    c.strokeStyle = 'rgba(255, 215, 155, 0.5)';
+    c.lineWidth = 1.5*sc;
+    c.setLineDash([5*sc, 8*sc]);
+    c.beginPath(); c.arc(0, 0, bw*2.5, 0, Math.PI*2); c.stroke();
+    c.setLineDash([]);
+    c.restore();
+  }
+
+  // ── Top cap ──
+  const capH = 5.5*sc;
+  c.fillStyle = `rgba(42, 28, 18, ${0.85*glowA})`;
+  c.beginPath();
+  c.ellipse(0, -bh - capH*0.4, bw+4*sc, capH, 0, 0, Math.PI*2);
+  c.fill();
+  c.strokeStyle = `rgba(75, 50, 32, ${0.3*glowA})`;
+  c.lineWidth = 0.8*sc;
+  c.stroke();
+
+  // ── Bottom cap ──
+  c.fillStyle = `rgba(38, 25, 16, ${0.88*glowA})`;
+  c.beginPath();
+  c.ellipse(0, bh + capH*0.2, bw+4*sc, capH*0.75, 0, 0, Math.PI*2);
+  c.fill();
+  c.strokeStyle = `rgba(65, 42, 28, ${0.25*glowA})`;
+  c.lineWidth = 0.8*sc;
+  c.stroke();
+
+  // ── Hanging tassel ──
+  const tasselY = bh + capH + 4*sc;
+  const tasselLen = 20*sc;
+  c.strokeStyle = `rgba(175, 75, 38, ${0.38*glowA})`;
+  c.lineWidth = 1.3*sc;
+  c.beginPath();
+  c.moveTo(0, tasselY);
+  c.lineTo(0, tasselY + tasselLen);
+  c.stroke();
+
+  // Tassel threads
+  for (let i = -3; i <= 3; i++) {
+    const tx = i*2.8*sc;
+    const swayT = Math.sin(ts*0.0025 + i*0.9)*2.5*sc;
+    c.strokeStyle = `rgba(195, 82, 40, ${0.18*glowA})`;
+    c.lineWidth = 0.6*sc;
+    c.beginPath();
+    c.moveTo(0, tasselY + tasselLen);
+    c.quadraticCurveTo(tx + swayT, tasselY + tasselLen + 7*sc, tx*0.4 + swayT*0.7, tasselY + tasselLen + 14*sc);
+    c.stroke();
+  }
+
+  c.restore();
+
+  // ── Ground reflection ──
+  const reflY = H*0.93;
+  const reflG = c.createRadialGradient(lx+sway*0.3, reflY, 0, lx+sway*0.3, reflY, bw*3.5);
+  reflG.addColorStop(0, `rgba(255, 170, 70, ${0.06*glowA})`);
+  reflG.addColorStop(0.4, `rgba(240, 150, 60, ${0.025*glowA})`);
+  reflG.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  c.fillStyle = reflG;
+  c.fillRect(lx-bw*4.5, reflY-bw*1.5, bw*9, bw*3);
+
+  // ── Rain ripples on wet ground ──
+  if (Math.random() < 0.06) {
+    ripples.push({
+      x: lx + rand(-W*0.2, W*0.2),
+      y: reflY + rand(0, H*0.035),
+      t: 0, maxT: 50 + Math.random()*30
+    });
+  }
+
+  // Draw ripples
+  for (let i = ripples.length-1; i >= 0; i--) {
+    const r = ripples[i];
+    r.t++;
+    const prog = r.t / r.maxT;
+    if (prog >= 1) { ripples.splice(i, 1); continue; }
+    const ra = (1 - prog) * 0.08;
+    const rr = prog * 18 * sc;
+    c.strokeStyle = `rgba(200, 190, 170, ${ra})`;
+    c.lineWidth = 0.6;
+    c.beginPath();
+    c.ellipse(r.x, r.y, rr, rr*0.25, 0, 0, Math.PI*2);
+    c.stroke();
+  }
+}
+
+// ═════════════════════════════════════════════════════
+//  RAIN
+// ═════════════════════════════════════════════════════
+const drops = [];
+
+function makeDrop(randomY) {
+  const isHeavy = Math.random() < 0.12;
+  return {
+    x: rand(-200, W + 200),
+    y: randomY ? rand(-80, H + 80) : rand(-70, -5),
+    len: isHeavy ? rand(16, 32) : rand(8, 22),
+    speed: CFG.rainSpeedBase + rand(0, isHeavy ? 6 : 4),
+    alpha: isHeavy ? rand(0.15, 0.35) : rand(0.06, 0.2),
+    width: isHeavy ? rand(0.8, 1.8) : rand(0.3, 0.9),
+    heavy: isHeavy,
+  };
+}
+
+function initDrops() {
+  drops.length = 0;
+  for (let i = 0; i < CFG.rainCount; i++) drops.push(makeDrop(true));
+}
+
+function updateAndDrawRain(ts) {
+  const c = ctxs.rain;
+  c.clearRect(0, 0, W, H);
+  const lp = getLanternPos();
+  const shieldR = CFG.shieldRadius * Math.min(W, H);
+  const shielding = shieldActive && shieldOpacity > 0.1;
+  c.lineCap = 'round';
+
+  for (let i = 0; i < drops.length; i++) {
+    const d = drops[i];
+    const spd = d.heavy ? 1.25 : 1.0;
+    d.y += d.speed * spd * 0.55;
+    d.x += CFG.rainWind * d.speed * 0.11;
+
+    // Shield deflection
+    if (shielding) {
+      const dx = d.x - lp.x, dy = d.y - lp.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < shieldR * 1.6) {
+        const force = (1 - dist/(shieldR*1.6)) * shieldOpacity;
+        d.x += (dx/(dist||1)) * force * 4.5;
+        d.y -= force * 1.8;
+      }
+    }
+
+    // Draw
+    const aMul = d.heavy ? 1.4 : 1.0;
+    const lenMul = d.heavy ? 1.3 : 1.0;
+    const wMul = d.heavy ? 1.5 : 1.0;
+    c.strokeStyle = `rgba(155, 170, 205, ${d.alpha * aMul})`;
+    c.lineWidth = d.width * wMul;
+    c.beginPath();
+    c.moveTo(d.x, d.y);
+    c.lineTo(d.x + CFG.rainWind * d.len * lenMul * 0.09, d.y + d.len * lenMul);
+    c.stroke();
+
+    // Reset
+    if (d.y > H + 35 || d.x < -250 || d.x > W + 250) {
+      drops[i] = makeDrop(false);
+    }
+  }
+
+  // Subtle rain mist overlay
+  c.fillStyle = 'rgba(90, 100, 135, 0.012)';
+  c.fillRect(0, 0, W, H);
+}
+
+// ═════════════════════════════════════════════════════
+//  FILM GRAIN + VIGNETTE
+// ═════════════════════════════════════════════════════
+let grainBuf, grainC;
+
+function initGrainBuf() {
+  const sz = Math.min(256, Math.floor(Math.min(W, H) * 0.3));
+  grainBuf = document.createElement('canvas');
+  grainBuf.width = sz; grainBuf.height = sz;
+  grainC = grainBuf.getContext('2d');
+}
+
+let grainTick = 0;
+function drawFx(ts) {
+  const c = ctxs.fx;
+  c.clearRect(0, 0, W, H);
+
+  // Cursor
+  drawCursor(ts);
+
+  // Steadiness text
+  drawSteadinessText(ts);
+
+  // Grain (every other frame)
+  grainTick++;
+  if (grainTick % 2 === 0) {
+    const sz = grainBuf.width;
+    const img = grainC.createImageData(sz, sz);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.random()*255;
+      d[i]     = clamp(v + rand(-4, 4), 0, 255);
+      d[i + 1] = clamp(v + rand(-3, 3), 0, 255);
+      d[i + 2] = clamp(v + rand(-6, 2), 0, 255);
+      d[i + 3] = CFG.grainAlpha * 255;
+    }
+    grainC.putImageData(img, 0, 0);
+    c.save();
+    c.globalAlpha = 0.6;
+    c.drawImage(grainBuf, 0, 0, sz, sz, 0, 0, W, H);
+    c.restore();
+  }
+
+  // Vignette
+  const vg = c.createRadialGradient(W/2, H/2, Math.min(W,H)*0.22, W/2, H/2, Math.max(W,H)*0.72);
+  vg.addColorStop(0,   'rgba(0,0,0,0)');
+  vg.addColorStop(0.5, 'rgba(0,0,0,0.04)');
+  vg.addColorStop(0.8, 'rgba(0,0,0,0.18)');
+  vg.addColorStop(1,   'rgba(0,0,0,0.4)');
+  c.fillStyle = vg;
+  c.fillRect(0, 0, W, H);
+}
+
+function drawCursor(ts) {
+  if (pointerX < -100) return;
+  const c = ctxs.fx;
+  const lp = getLanternPos();
+  const dx = pointerX - lp.x, dy = pointerY - lp.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const near = dist < CFG.shieldRadius * Math.min(W, H);
+
+  c.save();
+  // Outer ring
+  c.strokeStyle = near ? 'rgba(255,205,145,0.32)' : 'rgba(255,205,145,0.1)';
+  c.lineWidth = 1.2;
+  c.beginPath(); c.arc(pointerX, pointerY, 8, 0, Math.PI*2); c.stroke();
+  // Dot
+  c.fillStyle = near ? 'rgba(255,215,150,0.45)' : 'rgba(255,205,145,0.18)';
+  c.beginPath(); c.arc(pointerX, pointerY, 1.8, 0, Math.PI*2); c.fill();
+  // Proximity pulse
+  if (near && !shieldActive) {
+    const p = 0.5 + Math.sin(ts*0.0035)*0.5;
+    c.strokeStyle = `rgba(255,205,145,${p*0.08})`;
+    c.lineWidth = 1;
+    c.beginPath(); c.arc(pointerX, pointerY, 20 + p*5, 0, Math.PI*2); c.stroke();
+  }
+  c.restore();
+}
+
+function drawSteadinessText(ts) {
+  if (steadiness < 0.08) return;
+  const c = ctxs.fx;
+  c.save();
+  const a = Math.min(0.12, (steadiness - 0.08) * 0.09);
+  if (a > 0.005) {
+    c.fillStyle = `rgba(255, 210, 145, ${a})`;
+    c.font = `${10 * Math.min(W,H)/380}px "Hiragino Sans", sans-serif`;
+    c.textAlign = 'center';
+    c.fillText('the flame steadies…', W*0.5, H*0.12);
+  }
+  c.restore();
+}
+
+// ═════════════════════════════════════════════════════
+//  STEADINESS
+// ═════════════════════════════════════════════════════
+function updateSteadiness(ts) {
+  const elapsed = ts - startTs;
+  let val = elapsed * CFG.steadinessRate;
+  // Shielding accelerates steadiness
+  if (shieldActive && shieldOpacity > 0.15) {
+    val += elapsed * CFG.steadinessRate * 0.25;
+  }
+  steadiness = clamp(val, 0, 1);
+}
+
+// ═════════════════════════════════════════════════════
+//  AUDIO (rain)
+// ═════════════════════════════════════════════════════
+function initRainAudio() {
+  if (rainAudioCtx) return;
+  rainAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Generate brown noise with texture
+  const dur = 6, rate = rainAudioCtx.sampleRate;
+  const buf = rainAudioCtx.createBuffer(2, rate*dur, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random()*2 - 1;
+      last = (last + 0.018*w + (Math.random()-0.5)*0.002) / 1.019;
+      // Add subtle intermittent intensity variation (like gusts)
+      const gust = Math.sin(i/(rate*0.5))*0.15 + 1;
+      d[i] = last * 3.8 * gust;
+    }
+  }
+
+  const src = rainAudioCtx.createBufferSource();
+  src.buffer = buf; src.loop = true;
+
+  const lp = rainAudioCtx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 750; lp.Q.value = 0.5;
+  const hp = rainAudioCtx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 50;
+  const bp = rainAudioCtx.createBiquadFilter();
+  bp.type = 'peaking'; bp.frequency.value = 350; bp.gain.value = 2.5; bp.Q.value = 0.4;
+
+  rainGain = rainAudioCtx.createGain();
+  rainGain.gain.value = 0;
+
+  src.connect(lp).connect(hp).connect(bp).connect(rainGain).connect(rainAudioCtx.destination);
+  src.start();
+}
+
+function toggleRainAudio() {
+  if (!rainAudioCtx) initRainAudio();
+  const btn = document.getElementById('rain-toggle');
+  if (rainAudioPlaying) {
+    rainGain.gain.linearRampToValueAtTime(0, rainAudioCtx.currentTime + 1.5);
+    rainAudioPlaying = false;
+    btn.textContent = 'rain sound';
+    btn.classList.remove('on');
+  } else {
+    if (rainAudioCtx.state === 'suspended') rainAudioCtx.resume();
+    rainGain.gain.linearRampToValueAtTime(0.28, rainAudioCtx.currentTime + 0.7);
+    rainAudioPlaying = true;
+    btn.textContent = 'sound off';
+    btn.classList.add('on');
+  }
+}
+
+// ═════════════════════════════════════════════════════
+//  INPUT
+// ═════════════════════════════════════════════════════
+function handleDown(x, y) {
+  pointerX = x; pointerY = y; pointerDown = true;
+  const lp = getLanternPos();
+  const dx = x - lp.x, dy = y - lp.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const shieldR = CFG.shieldRadius * Math.min(W, H);
+
+  if (dist < shieldR) {
+    shieldActive = true;
+    shieldEndTs = performance.now() + CFG.shieldDur;
+  }
+
+  if (!hintHidden) {
+    hintHidden = true;
+    const h = document.getElementById('hint');
+    if (h) h.style.opacity = '0';
+  }
+}
+function handleUp() { pointerDown = false; }
+
+document.addEventListener('pointerdown', e => handleDown(e.clientX, e.clientY));
+document.addEventListener('pointerup', handleUp);
+document.addEventListener('pointerleave', handleUp);
+document.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  handleDown(t.clientX, t.clientY);
+}, { passive: false });
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter') {
+    const lp = getLanternPos();
+    handleDown(lp.x, lp.y);
+  }
+});
+document.addEventListener('keyup', e => {
+  if (e.code === 'Space' || e.code === 'Enter') handleUp();
+});
+document.getElementById('rain-toggle').addEventListener('click', e => {
+  e.stopPropagation();
+  toggleRainAudio();
+});
+
+// ═════════════════════════════════════════════════════
+//  MAIN LOOP
+// ═════════════════════════════════════════════════════
+function frame(ts) {
+  updateSteadiness(ts);
+  if (shieldActive && ts > shieldEndTs) shieldActive = false;
+
+  updateAndDrawRain(ts);
+  drawLantern(ts);
+  drawFx(ts);
+
+  if (bgDirty) { drawDusk(); bgDirty = false; }
+
+  requestAnimationFrame(frame);
+}
+
+// ═════════════════════════════════════════════════════
+//  RESIZE
+// ═════════════════════════════════════════════════════
+let rTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(rTimer);
+  rTimer = setTimeout(() => {
+    initCanvases();
+    initGrainBuf();
+    initDrops();
+    bgDirty = true;
+  }, 250);
+});
+
+// ═════════════════════════════════════════════════════
+//  BOOT
+// ═════════════════════════════════════════════════════
+initCanvases();
+initGrainBuf();
+initDrops();
+drawDusk();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
