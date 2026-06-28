@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Living Print — Edo Woodblock</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #ede8d5;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="print"></canvas>
+<script>
+(function() {
+  'use strict';
+
+  const canvas = document.getElementById('print');
+  const ctx = canvas.getContext('2d');
+
+  // State
+  let W, H;
+  let pressDepth = 0;       // 0..1 current press
+  let driedInk = 0;         // 0..1 permanently absorbed
+  let isPressing = false;
+  let time = 0;
+  let firstInteraction = false;
+
+  // Offscreen buffers
+  let paperCanvas, paperCtx;
+  let inkTextureCanvas, inkTextureCtx;
+
+  // Mist system
+  const MIST_COUNT = 22;
+  let mist = [];
+
+  // Audio
+  let audioCtx = null;
+
+  // ---- Resize ----
+  function resize() {
+    W = canvas.width = window.innerWidth * devicePixelRatio;
+    H = canvas.height = window.innerHeight * devicePixelRatio;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    buildPaper();
+    buildInkTexture();
+  }
+
+  // ---- Paper grain ----
+  function buildPaper() {
+    paperCanvas = document.createElement('canvas');
+    paperCanvas.width = W;
+    paperCanvas.height = H;
+    paperCtx = paperCanvas.getContext('2d');
+
+    // Base paper: warm handmade paper color
+    const baseR = 237, baseG = 232, baseB = 213;
+    paperCtx.fillStyle = 'rgb(' + baseR + ',' + baseG + ',' + baseB + ')';
+    paperCtx.fillRect(0, 0, W, H);
+
+    // Pixel-level grain
+    const imgData = paperCtx.createImageData(W, H);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (Math.random() - 0.5) * 14;
+      d[i]     = Math.min(255, Math.max(0, baseR + n));
+      d[i + 1] = Math.min(255, Math.max(0, baseG + n * 0.9));
+      d[i + 2] = Math.min(255, Math.max(0, baseB + n * 0.7));
+      d[i + 3] = 255;
+    }
+    paperCtx.putImageData(imgData, 0, 0);
+
+    // Fiber streaks — horizontal and diagonal
+    paperCtx.globalAlpha = 0.035;
+    paperCtx.strokeStyle = '#8a7e6b';
+    for (let i = 0; i < 80; i++) {
+      paperCtx.beginPath();
+      const x = Math.random() * W;
+      const y = Math.random() * H;
+      const len = 30 + Math.random() * 100;
+      const angle = (Math.random() - 0.3) * 0.4; // mostly horizontal
+      paperCtx.moveTo(x, y);
+      paperCtx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+      paperCtx.lineWidth = 0.3 + Math.random() * 1.2;
+      paperCtx.stroke();
+    }
+
+    // Water stains — subtle circular discolorations
+    paperCtx.globalAlpha = 0.02;
+    for (let i = 0; i < 5; i++) {
+      const cx = Math.random() * W;
+      const cy = Math.random() * H;
+      const r = 40 + Math.random() * 120;
+      const grad = paperCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grad.addColorStop(0, 'rgba(200,190,170,0.5)');
+      grad.addColorStop(0.7, 'rgba(210,200,185,0.2)');
+      grad.addColorStop(1, 'transparent');
+      paperCtx.fillStyle = grad;
+      paperCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    }
+
+    // Edge darkening (vignette like a real print)
+    paperCtx.globalAlpha = 1;
+    const edgeGrad = paperCtx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.7);
+    edgeGrad.addColorStop(0, 'transparent');
+    edgeGrad.addColorStop(1, 'rgba(180,170,150,0.12)');
+    paperCtx.fillStyle = edgeGrad;
+    paperCtx.fillRect(0, 0, W, H);
+  }
+
+  // ---- Ink texture (granulation pattern) ----
+  function buildInkTexture() {
+    inkTextureCanvas = document.createElement('canvas');
+    inkTextureCanvas.width = 256;
+    inkTextureCanvas.height = 256;
+    inkTextureCtx = inkTextureCanvas.getContext('2d');
+
+    const imgData = inkTextureCtx.createImageData(256, 256);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.random();
+      // Granulation: clusters of dark and light dots
+      const dark = v > 0.65;
+      d[i]     = dark ? 15 : 45;
+      d[i + 1] = dark ? 18 : 48;
+      d[i + 2] = dark ? 35 : 65;
+      d[i + 3] = dark ? 200 : 100;
+    }
+    inkTextureCtx.putImageData(imgData, 0, 0);
+  }
+
+  // ---- Mist init ----
+  function initMist() {
+    mist = [];
+    for (let i = 0; i < MIST_COUNT; i++) {
+      mist.push({
+        x: Math.random() * W * 1.4 - W * 0.2,
+        y: H * 0.12 + Math.random() * H * 0.55,
+        w: (140 + Math.random() * 350) * devicePixelRatio,
+        h: (18 + Math.random() * 55) * devicePixelRatio,
+        speedX: (0.06 + Math.random() * 0.22) * devicePixelRatio,
+        speedY: (Math.random() - 0.5) * 0.03 * devicePixelRatio,
+        opacity: 0.04 + Math.random() * 0.12,
+        phase: Math.random() * Math.PI * 2,
+        layer: Math.floor(Math.random() * 3) // 0=far, 1=mid, 2=near
+      });
+    }
+  }
+
+  // ---- Wave horizon ----
+  function waveY(x, t, depth) {
+    // The main wave: broad, slow, with subtle overtones
+    const base = H * 0.5;
+    const d = Math.min(1, depth + driedInk * 0.4);
+
+    // Primary swell — wide arc
+    const a1 = H * 0.07 * (0.6 + d * 0.4);
+    // Secondary ripple
+    const a2 = H * 0.035 * (0.5 + d * 0.5);
+    // Fine detail
+    const a3 = H * 0.012 * (0.7 + d * 0.3);
+    // Micro texture
+    const a4 = H * 0.004 * d;
+
+    return base
+      + a1 * Math.sin(x * 0.0025 + t * 0.12)
+      + a2 * Math.sin(x * 0.006 + t * 0.22 + 1.0)
+      + a3 * Math.sin(x * 0.014 + t * 0.35 + 2.5)
+      + a4 * Math.sin(x * 0.035 + t * 0.55 + 4.0);
+  }
+
+  // Secondary distant wave
+  function waveYFar(x, t, depth) {
+    const base = H * 0.42;
+    const d = Math.min(1, depth + driedInk * 0.3);
+    const a1 = H * 0.03 * (0.4 + d * 0.6);
+    const a2 = H * 0.015 * d;
+
+    return base
+      + a1 * Math.sin(x * 0.0035 + t * 0.09 + 0.5)
+      + a2 * Math.sin(x * 0.009 + t * 0.18 + 2.0);
+  }
+
+  // ---- Indigo ink color at a given depth ----
+  function indigo(depth) {
+    const d = Math.min(1, depth);
+    // Ranges from pale washed indigo to deep saturated
+    const r = Math.floor(30 + (1 - d) * 80);
+    const g = Math.floor(35 + (1 - d) * 75);
+    const b = Math.floor(65 + (1 - d) * 50);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  // ---- Draw ----
+  function draw() {
+    const t = time;
+    const pd = pressDepth;
+    const depth = Math.min(1, pd + driedInk * 0.35);
+
+    // 1. Paper base
+    ctx.drawImage(paperCanvas, 0, 0);
+
+    // 2. Very faint sky wash at top
+    const skyWash = ctx.createLinearGradient(0, 0, 0, H * 0.4);
+    skyWash.addColorStop(0, 'rgba(215,210,195,0.15)');
+    skyWash.addColorStop(1, 'rgba(237,232,213,0)');
+    ctx.fillStyle = skyWash;
+    ctx.fillRect(0, 0, W, H * 0.4);
+
+    // 3. Distant wave (faint, almost there)
+    drawWaveFill(waveYFar, t, depth * 0.5, 0.25 + depth * 0.2);
+
+    // 4. Main wave
+    drawWaveFill(waveY, t, depth, 0.7 + depth * 0.28);
+
+    // 5. Ink granulation on wave
+    drawInkGranulation(waveY, t, depth);
+
+    // 6. Wave crest highlight
+    drawWaveCrest(waveY, t, depth);
+
+    // 7. Ink bleed / halo at wave edge
+    drawInkBleed(waveY, t, depth);
+
+    // 8. Mist layers
+    drawMist(t, depth);
+
+    // 9. Press feedback
+    if (isPressing && pd > 0.03) {
+      ctx.save();
+      ctx.globalAlpha = pd * 0.04;
+      const pg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.5);
+      pg.addColorStop(0, 'rgba(20,25,40,0.6)');
+      pg.addColorStop(1, 'transparent');
+      ctx.fillStyle = pg;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
+
+  // ---- Draw a filled wave shape ----
+  function drawWaveFill(waveFn, t, depth, baseAlpha) {
+    ctx.save();
+
+    // Build path
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 1.5) {
+      ctx.lineTo(x, waveFn(x, t, depth));
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+
+    // Ink gradient from wave top to bottom
+    const topY = waveFn(W * 0.5, t, depth) - H * 0.05;
+    const grad = ctx.createLinearGradient(0, topY, 0, H);
+
+    // Top: lighter, with paper showing through
+    const t1 = Math.floor(50 + (1 - depth) * 70);
+    const g1 = Math.floor(55 + (1 - depth) * 65);
+    const b1 = Math.floor(90 + (1 - depth) * 45);
+    grad.addColorStop(0, 'rgba(' + t1 + ',' + g1 + ',' + b1 + ',' + (baseAlpha * 0.7).toFixed(3) + ')');
+
+    // Middle: true indigo
+    const t2 = Math.floor(28 + (1 - depth) * 30);
+    const g2 = Math.floor(32 + (1 - depth) * 28);
+    const b2 = Math.floor(60 + (1 - depth) * 25);
+    grad.addColorStop(0.35, 'rgba(' + t2 + ',' + g2 + ',' + b2 + ',' + baseAlpha.toFixed(3) + ')');
+
+    // Bottom: deep pressed ink
+    const t3 = Math.floor(t2 * 0.5);
+    const g3 = Math.floor(g2 * 0.5);
+    const b3 = Math.floor(b2 * 0.55);
+    grad.addColorStop(1, 'rgba(' + t3 + ',' + g3 + ',' + b3 + ',' + Math.min(1, baseAlpha + 0.08).toFixed(3) + ')');
+
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Stipple texture overlay — simulated woodblock grain within the ink
+    if (depth > 0.15) {
+      ctx.save();
+      ctx.globalAlpha = depth * 0.08;
+      ctx.clip();
+      ctx.globalCompositeOperation = 'multiply';
+      const pattern = ctx.createPattern(inkTextureCanvas, 'repeat');
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // ---- Ink granulation (fine texture dots on the wave) ----
+  function drawInkGranulation(waveFn, t, depth) {
+    if (depth < 0.1) return;
+    ctx.save();
+    ctx.globalAlpha = depth * 0.1;
+
+    // Clip to wave shape
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 2) {
+      ctx.lineTo(x, waveFn(x, t, depth));
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.clip();
+
+    // Random granules
+    const count = Math.floor(depth * 120);
+    for (let i = 0; i < count; i++) {
+      const gx = Math.random() * W;
+      const gyBase = waveFn(gx, t, depth);
+      const gy = gyBase + Math.random() * (H - gyBase);
+      const r = (0.4 + Math.random() * 1.8) * devicePixelRatio;
+      const shade = Math.random() > 0.5 ? 'rgba(15,18,35,0.4)' : 'rgba(50,55,80,0.2)';
+      ctx.fillStyle = shade;
+      ctx.beginPath();
+      ctx.arc(gx, gy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ---- Wave crest highlight ----
+  function drawWaveCrest(waveFn, t, depth) {
+    ctx.save();
+    ctx.globalAlpha = 0.2 + depth * 0.35;
+
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 1.5) {
+      const y = waveFn(x, t, depth);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = 'rgba(237,232,213,0.9)';
+    ctx.lineWidth = (1.2 + depth * 1.5) * devicePixelRatio;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ---- Ink bleed / halo ----
+  function drawInkBleed(waveFn, t, depth) {
+    if (depth < 0.05) return;
+    ctx.save();
+    ctx.globalAlpha = depth * 0.12;
+
+    // Upper bleed
+    for (let pass = 0; pass < 3; pass++) {
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 2) {
+        const y = waveFn(x, t, depth) - (4 + pass * 5 + depth * 8) * devicePixelRatio;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = 'rgba(40,45,70,' + (0.15 - pass * 0.04) + ')';
+      ctx.lineWidth = (2 + pass * 3 + depth * 6) * devicePixelRatio;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // ---- Mist ----
+  function drawMist(t, depth) {
+    for (let i = 0; i < mist.length; i++) {
+      const m = mist[i];
+
+      // Drift
+      m.x += m.speedX;
+      m.y += m.speedY + Math.sin(t * 0.08 + m.phase) * 0.04 * devicePixelRatio;
+
+      // Wrap
+      if (m.x > W + m.w) m.x = -m.w;
+      if (m.x < -m.w * 1.5) m.x = W + m.w * 0.5;
+
+      // Opacity responds to press: mist thins as ink deepens
+      const op = m.opacity * (1 - depth * 0.35);
+
+      // Color: warm paper tone, slightly different per layer
+      const layerColors = [
+        [225, 220, 205], // far — cooler
+        [232, 227, 212], // mid
+        [237, 232, 217]  // near — warmer
+      ];
+      const c = layerColors[m.layer];
+
+      ctx.save();
+      ctx.globalAlpha = op;
+
+      const cx = m.x + m.w * 0.5;
+      const cy = m.y;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, m.w * 0.5);
+      grad.addColorStop(0, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0.85)');
+      grad.addColorStop(0.4, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0.45)');
+      grad.addColorStop(0.75, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0.15)');
+      grad.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, m.w * 0.5, m.h * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ---- Audio ----
+  function initAudio() {
+    if (audioCtx) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { audioCtx = null; }
+  }
+
+  function playPress() {
+    if (!audioCtx || !firstInteraction) return;
+    try {
+      const now = audioCtx.currentTime;
+
+      // Very subtle paper sound — filtered noise
+      const bufSize = audioCtx.sampleRate * 0.12;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.008;
+        data[i] *= Math.pow(1 - i / bufSize, 1.5);
+      }
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 350;
+      filter.Q.value = 0.5;
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+      src.connect(filter).connect(gain).connect(audioCtx.destination);
+      src.start(now);
+      src.stop(now + 0.25);
+    } catch(e) {}
+  }
+
+  // ---- Input ----
+  let audioPlayed = false;
+
+  function onDown(e) {
+    e.preventDefault();
+    if (!firstInteraction) {
+      firstInteraction = true;
+      initAudio();
+      audioPlayed = true;
+      playPress();
+    } else if (audioPlayed) {
+      audioPlayed = false;
+      playPress();
+    }
+    isPressing = true;
+  }
+
+  function onUp(e) {
+    e.preventDefault();
+    if (isPressing) {
+      // Some ink dries in
+      driedInk = Math.min(1, driedInk + pressDepth * 0.25);
+      isPressing = false;
+    }
+  }
+
+  canvas.addEventListener('pointerdown', onDown, { passive: false });
+  canvas.addEventListener('pointerup', onUp, { passive: false });
+  canvas.addEventListener('pointercancel', onUp, { passive: false });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      if (!isPressing) onDown(e);
+    }
+  });
+  document.addEventListener('keyup', function(e) {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      if (isPressing) onUp(e);
+    }
+  });
+
+  // ---- Main loop ----
+  let lastTs = 0;
+  function loop(ts) {
+    const dt = Math.min(0.05, (ts - lastTs) / 1000);
+    lastTs = ts;
+    time += dt;
+
+    // Press physics with resistance
+    if (isPressing) {
+      // The deeper you press, the more resistance (slower progression)
+      const resistance = 1.0 - pressDepth * 0.55;
+      pressDepth = Math.min(1, pressDepth + 0.55 * resistance * dt);
+    } else {
+      // Gentle recession
+      pressDepth = Math.max(0, pressDepth - 0.18 * dt);
+    }
+
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ---- Boot ----
+  window.addEventListener('resize', resize);
+  resize();
+  initMist();
+  requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
