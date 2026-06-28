@@ -25,8 +25,8 @@ Current local Unity/MCP status for the Kawanakajima Samurai project. Current QA 
 
 - CLI/server tools installed under `/Users/marcus/codex-work/local-unity-tools`
 - Unity project package: `com.ivanmurzak.unity.mcp` 0.81.1
-- Listener URL: `http://localhost:25666`
-- Worker routed URL: `http://172.21.0.1:25666`
+- Listener URL: `http://localhost:27481/mcp`
+- Worker routed URL: `http://host.docker.internal:27481/mcp`
 - Worker preflight: passed
 - MCP tool calls were verified against the running editor.
 

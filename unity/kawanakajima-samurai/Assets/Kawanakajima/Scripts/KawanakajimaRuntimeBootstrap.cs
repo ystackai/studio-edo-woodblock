@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
-using GLTFast;
-using GLTFast.Materials;
 using UnityEngine;
 
 public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
@@ -15,6 +14,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     public string battlefieldPackGlbStreamingAssetsPath = "Kawanakajima/samurai_battlefield_pack.glb";
 
     private readonly List<Actor> actors = new List<Actor>();
+    private readonly List<IDisposable> retainedGltfImports = new List<IDisposable>();
     private readonly Vector3 cameraDefaultTarget = new Vector3(0f, 1.7f, -2.2f);
 
     private Camera mainCamera;
@@ -41,15 +41,12 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private float distance = 14.5f;
     private bool charging;
     private bool musicEnabled;
+    private bool showUi = true;
     private bool assetsReady;
-    private bool usingFallbackActors;
-    private bool usingFallbackPack;
     private bool foundryBattlefieldPackReady;
     private bool showingFoundryBattlefieldPack;
     private string status = "LOADING FOUNDRY SAMURAI";
     private Vector2 previousMouse;
-
-    private static readonly IMaterialGenerator GltfMaterialGenerator = new ShaderSafeGltfMaterialGenerator();
 
     private sealed class Actor
     {
@@ -62,23 +59,6 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         public float IdlePhase;
     }
 
-    private sealed class ShaderSafeGltfMaterialGenerator : IMaterialGenerator
-    {
-        public UnityEngine.Material GetDefaultMaterial(bool pointsSupport = false)
-        {
-            return null;
-        }
-
-        public UnityEngine.Material GenerateMaterial(GLTFast.Schema.MaterialBase gltfMaterial, IGltfReadable gltf, bool pointsSupport = false)
-        {
-            return null;
-        }
-
-        public void SetLogger(GLTFast.Logging.ICodeLogger logger)
-        {
-        }
-    }
-
     private async void Start()
     {
         CreateMaterials();
@@ -86,12 +66,10 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         BuildCountryside();
         await LoadSamuraiFormation();
         await LoadFoundryBattlefieldPack();
-        ApplyCameraPreset("overview");
+        ApplyCameraPreset("inspect");
         assetsReady = actors.Count == ActorCount;
-        status = assetsReady
-            ? (usingFallbackActors ? "KAWANAKAJIMA_UNITY_READY_FALLBACK" : "KAWANAKAJIMA_UNITY_READY")
-            : "UNITY HANDOFF LOAD FAILED";
-        Debug.Log(status + " actors=" + actors.Count + " pack=" + foundryBattlefieldPackReady + " audio=" + (musicSource.clip != null) + " fallbackActors=" + usingFallbackActors + " fallbackPack=" + usingFallbackPack);
+        status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : "UNITY HANDOFF LOAD FAILED";
+        Debug.Log(status + " actors=" + actors.Count + " pack=" + foundryBattlefieldPackReady + " audio=" + (musicSource.clip != null));
     }
 
     private void Update()
@@ -101,22 +79,37 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         UpdateCamera();
     }
 
+    private void OnDestroy()
+    {
+        foreach (var import in retainedGltfImports)
+        {
+            import.Dispose();
+        }
+        retainedGltfImports.Clear();
+    }
+
     private void OnGUI()
     {
         const int pad = 14;
-        GUI.Box(new Rect(pad, pad, 490, 118), string.Empty);
-        GUI.Label(new Rect(pad + 12, pad + 8, 360, 24), "KAWANAKAJIMA - UNITY HANDOFF");
-        GUI.Label(new Rect(pad + 12, pad + 30, 360, 22), "20 samurai: 10 Takeda / 10 Uesugi");
-        GUI.Label(new Rect(pad + 12, pad + 52, 360, 22), status);
+        if (!showUi) return;
 
-        if (GUI.Button(new Rect(pad + 12, pad + 80, 58, 26), "1 Wide")) ApplyCameraPreset("overview");
-        if (GUI.Button(new Rect(pad + 74, pad + 80, 58, 26), "2 Red")) ApplyCameraPreset("red");
-        if (GUI.Button(new Rect(pad + 136, pad + 80, 58, 26), "3 Blue")) ApplyCameraPreset("blue");
-        if (GUI.Button(new Rect(pad + 198, pad + 80, 58, 26), "4 Side")) ApplyCameraPreset("side");
-        if (GUI.Button(new Rect(pad + 260, pad + 80, 58, 26), "5 Top")) ApplyCameraPreset("top");
-        if (GUI.Button(new Rect(pad + 322, pad + 80, 58, 26), "6 Inspect")) ApplyCameraPreset("inspect");
+        int panelWidth = Mathf.Min(320, Screen.width - pad * 2);
+        int x = Mathf.Max(pad, Screen.width - panelWidth - pad);
+        GUI.Box(new Rect(x, pad, panelWidth, 112), string.Empty);
+        GUI.Label(new Rect(x + 12, pad + 8, panelWidth - 24, 24), "KAWANAKAJIMA - UNITY HANDOFF");
+        GUI.Label(new Rect(x + 12, pad + 30, panelWidth - 24, 22), "20 samurai: 10 Takeda / 10 Uesugi");
+        GUI.Label(new Rect(x + 12, pad + 52, panelWidth - 24, 22), status);
 
-        int y = pad + 132;
+        int cameraY = pad + 78;
+        int buttonWidth = 46;
+        if (GUI.Button(new Rect(x + 12, cameraY, buttonWidth, 24), "Wide")) ApplyCameraPreset("overview");
+        if (GUI.Button(new Rect(x + 62, cameraY, buttonWidth, 24), "Red")) ApplyCameraPreset("red");
+        if (GUI.Button(new Rect(x + 112, cameraY, buttonWidth, 24), "Blue")) ApplyCameraPreset("blue");
+        if (GUI.Button(new Rect(x + 162, cameraY, buttonWidth, 24), "Side")) ApplyCameraPreset("side");
+        if (GUI.Button(new Rect(x + 212, cameraY, buttonWidth, 24), "Top")) ApplyCameraPreset("top");
+        if (GUI.Button(new Rect(x + 262, cameraY, buttonWidth, 24), "Inspect")) ApplyCameraPreset("inspect");
+
+        int y = Mathf.Max(pad + 132, Screen.height - 44);
         if (GUI.Button(new Rect(pad, y, 86, 30), "CHARGE")) Charge();
         if (GUI.Button(new Rect(pad + 92, y, 86, 30), "REFORM")) Reform();
         if (GUI.Button(new Rect(pad + 184, y, 86, 30), musicEnabled ? "AUDIO ON" : "AUDIO")) ToggleMusic();
@@ -139,20 +132,9 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
     private static Material MakeMaterial(string name, Color color)
     {
         var shader = Shader.Find("Standard");
-        if (shader == null)
-        {
-            Debug.LogWarning("KAWANAKAJIMA_SHADER_FALLBACK material=" + name + " Standard shader unavailable; using Unity primitive default material");
-            return null;
-        }
-
         var material = new Material(shader) { name = name, color = color };
-        if (material.HasProperty("_Glossiness")) material.SetFloat("_Glossiness", 0.08f);
+        material.SetFloat("_Glossiness", 0.08f);
         return material;
-    }
-
-    private static void ApplySharedMaterial(Renderer renderer, Material material)
-    {
-        if (renderer != null && material != null) renderer.sharedMaterial = material;
     }
 
     private void CreateCameraAndAudio()
@@ -204,7 +186,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ground.name = "Japanese countryside ground";
         ground.transform.localScale = new Vector3(18f, 1f, 12f);
-        ApplySharedMaterial(ground.GetComponent<Renderer>(), groundMat);
+        ground.GetComponent<Renderer>().sharedMaterial = groundMat;
 
         for (int i = 0; i < 5; i++)
         {
@@ -213,7 +195,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             hill.transform.position = new Vector3(-18f + i * 9f, 0.35f, 14f + (i % 2) * 3f);
             hill.transform.rotation = Quaternion.Euler(0f, -8f + i * 4f, 0f);
             hill.transform.localScale = new Vector3(8f, 0.7f + i * 0.08f, 3.1f);
-            ApplySharedMaterial(hill.GetComponent<Renderer>(), hillMat);
+            hill.GetComponent<Renderer>().sharedMaterial = hillMat;
         }
 
         for (int i = 0; i < 18; i++)
@@ -230,7 +212,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             stone.name = "Low field stone";
             stone.transform.position = new Vector3(-9f + (i * 1.91f) % 18f, 0.08f, -7.4f + (i * 2.73f) % 15f);
             stone.transform.localScale = new Vector3(0.22f + (i % 4) * 0.04f, 0.08f, 0.16f + (i % 5) * 0.03f);
-            ApplySharedMaterial(stone.GetComponent<Renderer>(), stoneMat);
+            stone.GetComponent<Renderer>().sharedMaterial = stoneMat;
         }
     }
 
@@ -244,7 +226,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         trunk.transform.SetParent(root.transform, false);
         trunk.transform.localPosition = new Vector3(0f, 0.52f * scale, 0f);
         trunk.transform.localScale = new Vector3(0.12f * scale, 0.52f * scale, 0.12f * scale);
-        ApplySharedMaterial(trunk.GetComponent<Renderer>(), trunkMat);
+        trunk.GetComponent<Renderer>().sharedMaterial = trunkMat;
 
         for (int layer = 0; layer < 3; layer++)
         {
@@ -253,158 +235,247 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
             crown.transform.SetParent(root.transform, false);
             crown.transform.localPosition = new Vector3(0f, (1.08f + layer * 0.38f) * scale, 0f);
             crown.transform.localScale = new Vector3((0.72f - layer * 0.14f) * scale, 0.18f * scale, (0.72f - layer * 0.14f) * scale);
-            ApplySharedMaterial(crown.GetComponent<Renderer>(), treeMat);
+            crown.GetComponent<Renderer>().sharedMaterial = treeMat;
         }
     }
 
     private async Task LoadSamuraiFormation()
     {
         var url = StreamingAssetUrl(samuraiGlbStreamingAssetsPath);
-        var gltf = new GltfImport(null, null, GltfMaterialGenerator, null);
-        var loaded = await gltf.Load(url);
-        if (!loaded)
+        var gltf = await LoadGltf(url);
+        if (gltf == null)
         {
             Debug.LogError("Failed to load Foundry GLB from " + url);
             return;
         }
 
-        for (int i = 0; i < ActorCount; i++)
+        bool retained = false;
+        try
         {
-            bool takeda = i < 10;
-            var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_Samurai_" + (i % 10 + 1).ToString("00"));
-            bool success;
-            try
+            for (int i = 0; i < ActorCount; i++)
             {
-                success = await gltf.InstantiateMainSceneAsync(root.transform);
-            }
-            catch (Exception exc)
-            {
-                Debug.LogWarning("KAWANAKAJIMA_GLTF_ACTOR_FALLBACK index=" + i + " reason=" + exc.GetType().Name + ": " + exc.Message);
-                success = false;
+                bool takeda = i < 10;
+                var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_Samurai_" + (i % 10 + 1).ToString("00"));
+                var success = await InstantiateGltfMainScene(gltf, root.transform);
+                if (!success)
+                {
+                    Debug.LogError("Failed to instantiate Foundry Samurai " + i);
+                    UnityEngine.Object.Destroy(root);
+                    continue;
+                }
+
+                ConfigureActorRoot(root, i, takeda);
+                AddFactionStandard(root.transform, takeda, i);
+                if (i % 3 == 0) AddYari(root.transform, takeda, i);
+
+                var actor = new Actor
+                {
+                    Root = root,
+                    Takeda = takeda,
+                    Index = i,
+                    BasePosition = root.transform.position,
+                    BaseRotation = root.transform.rotation,
+                    ChargeTarget = root.transform.position,
+                    IdlePhase = i * 0.47f
+                };
+                actors.Add(actor);
             }
 
-            if (!success)
+            if (gltf is IDisposable disposable)
             {
-                UnityEngine.Object.Destroy(root);
-                root = CreateFallbackSamuraiActor(takeda, i);
-                usingFallbackActors = true;
+                retainedGltfImports.Add(disposable);
+                retained = true;
             }
-
-            ConfigureActorRoot(root, i, takeda);
-            AddFactionStandard(root.transform, takeda, i);
-            if (i % 3 == 0) AddYari(root.transform, takeda, i);
-
-            var actor = new Actor
-            {
-                Root = root,
-                Takeda = takeda,
-                Index = i,
-                BasePosition = root.transform.position,
-                BaseRotation = root.transform.rotation,
-                ChargeTarget = root.transform.position,
-                IdlePhase = i * 0.47f
-            };
-            actors.Add(actor);
+        }
+        finally
+        {
+            if (!retained) (gltf as IDisposable)?.Dispose();
         }
     }
 
     private async Task LoadFoundryBattlefieldPack()
     {
         var url = StreamingAssetUrl(battlefieldPackGlbStreamingAssetsPath);
-        var gltf = new GltfImport(null, null, GltfMaterialGenerator, null);
-        var loaded = await gltf.Load(url);
-        if (!loaded)
+        var gltf = await LoadGltf(url);
+        if (gltf == null)
         {
             Debug.LogWarning("Optional 20-samurai Foundry battlefield pack was not loaded from " + url);
             return;
         }
 
-        foundryBattlefieldPackRoot = new GameObject("Foundry_20_Samurai_Battlefield_Pack");
-        bool instantiated;
+        bool retained = false;
         try
         {
-            instantiated = await gltf.InstantiateMainSceneAsync(foundryBattlefieldPackRoot.transform);
+            foundryBattlefieldPackRoot = new GameObject("Foundry_20_Samurai_Battlefield_Pack");
+            var instantiated = await InstantiateGltfMainScene(gltf, foundryBattlefieldPackRoot.transform);
+            if (!instantiated)
+            {
+                Debug.LogWarning("Optional 20-samurai Foundry battlefield pack failed to instantiate");
+                UnityEngine.Object.Destroy(foundryBattlefieldPackRoot);
+                foundryBattlefieldPackRoot = null;
+                return;
+            }
+
+            foundryBattlefieldPackRoot.transform.position = new Vector3(0f, 0.02f, -1.2f);
+            foundryBattlefieldPackRoot.transform.localScale = Vector3.one * 1.15f;
+            foundryBattlefieldPackRoot.SetActive(false);
+            foundryBattlefieldPackReady = true;
+            if (gltf is IDisposable disposable)
+            {
+                retainedGltfImports.Add(disposable);
+                retained = true;
+            }
         }
-        catch (Exception exc)
+        finally
         {
-            Debug.LogWarning("KAWANAKAJIMA_GLTF_PACK_FALLBACK reason=" + exc.GetType().Name + ": " + exc.Message);
-            instantiated = false;
+            if (!retained) (gltf as IDisposable)?.Dispose();
         }
-
-        if (!instantiated)
-        {
-            UnityEngine.Object.Destroy(foundryBattlefieldPackRoot);
-            foundryBattlefieldPackRoot = CreateFallbackBattlefieldPack();
-            usingFallbackPack = true;
-        }
-
-        foundryBattlefieldPackRoot.transform.position = new Vector3(0f, 0.02f, -1.2f);
-        foundryBattlefieldPackRoot.transform.localScale = Vector3.one * 1.15f;
-        foundryBattlefieldPackRoot.SetActive(false);
-        foundryBattlefieldPackReady = true;
-    }
-
-    private GameObject CreateFallbackSamuraiActor(bool takeda, int index)
-    {
-        var root = new GameObject((takeda ? "Takeda" : "Uesugi") + "_FallbackSamurai_" + (index % 10 + 1).ToString("00"));
-
-        var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-        body.name = "fallback armored body";
-        body.transform.SetParent(root.transform, false);
-        body.transform.localPosition = new Vector3(0f, 1.05f, 0f);
-        body.transform.localScale = new Vector3(0.34f, 0.72f, 0.24f);
-
-        var helmet = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        helmet.name = "fallback kabuto helmet";
-        helmet.transform.SetParent(root.transform, false);
-        helmet.transform.localPosition = new Vector3(0f, 1.92f, -0.02f);
-        helmet.transform.localScale = new Vector3(0.34f, 0.18f, 0.28f);
-
-        var armor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        armor.name = takeda ? "fallback red armor plate" : "fallback blue armor plate";
-        armor.transform.SetParent(root.transform, false);
-        armor.transform.localPosition = new Vector3(0f, 1.18f, -0.18f);
-        armor.transform.localScale = new Vector3(0.46f, 0.48f, 0.07f);
-        ApplySharedMaterial(armor.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
-
-        var sashimono = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        sashimono.name = "fallback sashimono";
-        sashimono.transform.SetParent(root.transform, false);
-        sashimono.transform.localPosition = new Vector3(takeda ? -0.32f : 0.32f, 1.88f, 0.24f);
-        sashimono.transform.localScale = new Vector3(0.28f, 0.42f, 0.035f);
-        ApplySharedMaterial(sashimono.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
-
-        var blade = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        blade.name = "fallback katana";
-        blade.transform.SetParent(root.transform, false);
-        blade.transform.localPosition = new Vector3(takeda ? 0.42f : -0.42f, 1.12f, -0.20f);
-        blade.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -35f : 35f);
-        blade.transform.localScale = new Vector3(0.025f, 0.72f, 0.025f);
-
-        return root;
-    }
-
-    private GameObject CreateFallbackBattlefieldPack()
-    {
-        var root = new GameObject("Fallback_20_Samurai_Battlefield_Pack");
-        for (int i = 0; i < ActorCount; i++)
-        {
-            bool takeda = i < 10;
-            var marker = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            marker.name = (takeda ? "Fallback Takeda pack marker " : "Fallback Uesugi pack marker ") + (i % 10 + 1).ToString("00");
-            marker.transform.SetParent(root.transform, false);
-            marker.transform.localPosition = new Vector3((takeda ? -3.0f : 3.0f) + (i % 10 - 4.5f) * 0.36f, 0.72f, (i % 3 - 1) * 0.25f);
-            marker.transform.localRotation = Quaternion.Euler(0f, takeda ? 82f : -82f, 0f);
-            marker.transform.localScale = new Vector3(0.18f, 0.72f, 0.18f);
-            ApplySharedMaterial(marker.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
-        }
-        return root;
     }
 
     private static string StreamingAssetUrl(string relativePath)
     {
         string path = Path.Combine(Application.streamingAssetsPath, relativePath);
         return path.Contains("://") ? path : "file://" + path;
+    }
+
+    private static async Task<object> LoadGltf(string url)
+    {
+        var type = FindType("GLTFast.GltfImport");
+        if (type == null)
+        {
+            Debug.LogWarning("glTFast is not compiled yet; GLB loading is unavailable for " + url);
+            return null;
+        }
+
+        var gltf = CreateGltfImport(type);
+        if (gltf == null)
+        {
+            Debug.LogWarning("glTFast GltfImport constructor API was not found.");
+            return null;
+        }
+
+        var load = FindMethod(type, "Load", parameters => parameters.Length > 0 && parameters[0].ParameterType == typeof(string));
+        if (load == null)
+        {
+            Debug.LogWarning("glTFast Load(string) API was not found.");
+            return null;
+        }
+
+        var loaded = await AwaitBooleanTask(load.Invoke(gltf, BuildArgs(load.GetParameters(), url)));
+        return loaded ? gltf : null;
+    }
+
+    private static async Task<bool> InstantiateGltfMainScene(object gltf, Transform parent)
+    {
+        var method = FindMethod(gltf.GetType(), "InstantiateMainSceneAsync", parameters => parameters.Length > 0 && parameters[0].ParameterType == typeof(Transform));
+        if (method == null)
+        {
+            Debug.LogWarning("glTFast InstantiateMainSceneAsync(Transform) API was not found.");
+            return false;
+        }
+
+        return await AwaitBooleanTask(method.Invoke(gltf, BuildArgs(method.GetParameters(), parent)));
+    }
+
+    private static object CreateGltfImport(Type type)
+    {
+        // GLTFast.GltfImport expects service interfaces; pass concrete services without hard-linking the assembly.
+        var downloadProviderInterface = FindType("GLTFast.Loading.IDownloadProvider");
+        var deferAgentInterface = FindType("GLTFast.IDeferAgent");
+        var materialGeneratorInterface = FindType("GLTFast.Materials.IMaterialGenerator");
+        var codeLoggerInterface = FindType("GLTFast.Logging.ICodeLogger");
+
+        var downloadProvider = FindType("GLTFast.Loading.DefaultDownloadProvider");
+        var deferAgent = FindType("GLTFast.UninterruptedDeferAgent");
+        var materialGenerator = FindType("GLTFast.Materials.BuiltInMaterialGenerator");
+        var codeLogger = FindType("GLTFast.Logging.ConsoleLogger");
+
+        if (downloadProviderInterface != null && deferAgentInterface != null && materialGeneratorInterface != null && codeLoggerInterface != null
+            && downloadProvider != null && deferAgent != null && materialGenerator != null && codeLogger != null)
+        {
+            var ctor = type.GetConstructor(new[] { downloadProviderInterface, deferAgentInterface, materialGeneratorInterface, codeLoggerInterface });
+            if (ctor != null)
+            {
+                object dp = Activator.CreateInstance(downloadProvider);
+                object da = Activator.CreateInstance(deferAgent);
+                object mg = Activator.CreateInstance(materialGenerator);
+                object cl = Activator.CreateInstance(codeLogger);
+                return ctor.Invoke(new object[] { dp, da, mg, cl });
+            }
+        }
+
+        foreach (var constructor in type.GetConstructors(BindingFlags.Instance | BindingFlags.Public))
+        {
+            try
+            {
+                return constructor.Invoke(BuildArgs(constructor.GetParameters()));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"glTFast GltfImport constructor fallback failed: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    private static System.Reflection.MethodInfo FindMethod(Type type, string name, Func<System.Reflection.ParameterInfo[], bool> predicate)
+    {
+        foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (method.Name != name) continue;
+            var parameters = method.GetParameters();
+            if (predicate(parameters)) return method;
+        }
+
+        return null;
+    }
+
+    private static object[] BuildArgs(System.Reflection.ParameterInfo[] parameters, params object[] provided)
+    {
+        var args = new object[parameters.Length];
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (i < provided.Length)
+            {
+                args[i] = provided[i];
+                continue;
+            }
+
+            var parameterType = parameters[i].ParameterType;
+            var defaultValue = parameters[i].HasDefaultValue ? parameters[i].DefaultValue : null;
+            if (defaultValue != null && defaultValue != DBNull.Value && defaultValue != Type.Missing)
+            {
+                args[i] = defaultValue;
+                continue;
+            }
+
+            args[i] = parameterType.IsValueType ? Activator.CreateInstance(parameterType) : null;
+        }
+
+        return args;
+    }
+
+    private static Type FindType(string fullName)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var type = assembly.GetType(fullName, false);
+            if (type != null) return type;
+        }
+        return null;
+    }
+
+    private static async Task<bool> AwaitBooleanTask(object value)
+    {
+        if (value is Task<bool> booleanTask) return await booleanTask;
+        if (value is Task task)
+        {
+            await task;
+            var resultProperty = task.GetType().GetProperty("Result");
+            return resultProperty == null || resultProperty.GetValue(task) is true;
+        }
+        return value is true;
     }
 
     private void ConfigureActorRoot(GameObject root, int index, bool takeda)
@@ -452,7 +523,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         pole.transform.localPosition = new Vector3(takeda ? -0.28f : 0.28f, 1.95f, -0.36f);
         pole.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -5f : 5f);
         pole.transform.localScale = new Vector3(0.025f, 0.78f, 0.025f);
-        ApplySharedMaterial(pole.GetComponent<Renderer>(), poleMat);
+        pole.GetComponent<Renderer>().sharedMaterial = poleMat;
 
         var cloth = GameObject.CreatePrimitive(PrimitiveType.Cube);
         cloth.name = takeda ? "Takeda red standard" : "Uesugi blue standard";
@@ -460,7 +531,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         cloth.transform.localPosition = new Vector3(takeda ? -0.28f : 0.28f, 2.45f, -0.36f);
         cloth.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -5f : 5f);
         cloth.transform.localScale = new Vector3(0.36f, 0.48f, 0.018f);
-        ApplySharedMaterial(cloth.GetComponent<Renderer>(), takeda ? takedaMat : uesugiMat);
+        cloth.GetComponent<Renderer>().sharedMaterial = takeda ? takedaMat : uesugiMat;
     }
 
     private void AddYari(Transform parent, bool takeda, int index)
@@ -471,7 +542,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         shaft.transform.localPosition = new Vector3(takeda ? 0.58f : -0.58f, 1.38f, 0.03f);
         shaft.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -22f : 22f);
         shaft.transform.localScale = new Vector3(0.018f, 1.35f, 0.018f);
-        ApplySharedMaterial(shaft.GetComponent<Renderer>(), poleMat);
+        shaft.GetComponent<Renderer>().sharedMaterial = poleMat;
 
         var tip = GameObject.CreatePrimitive(PrimitiveType.Capsule);
         tip.name = "Additive yari blade";
@@ -479,7 +550,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         tip.transform.localPosition = new Vector3(takeda ? 0.98f : -0.98f, 2.64f, 0.03f);
         tip.transform.localRotation = Quaternion.Euler(0f, 0f, takeda ? -22f : 22f);
         tip.transform.localScale = new Vector3(0.045f, 0.18f, 0.045f);
-        ApplySharedMaterial(tip.GetComponent<Renderer>(), stoneMat);
+        tip.GetComponent<Renderer>().sharedMaterial = stoneMat;
     }
 
     private void HandleInput()
@@ -495,6 +566,7 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.A)) ToggleMusic();
         if (Input.GetKeyDown(KeyCode.X)) PlaySfx(clashAccent);
         if (Input.GetKeyDown(KeyCode.P)) ToggleFoundryBattlefieldPack();
+        if (Input.GetKeyDown(KeyCode.H)) showUi = !showUi;
 
         if (Input.GetMouseButtonDown(0)) previousMouse = Input.mousePosition;
         if (Input.GetMouseButton(0))
@@ -610,13 +682,13 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
         switch (preset)
         {
             case "red":
-                cameraTarget = actors.Count > 3 ? actors[3].Root.transform.position + new Vector3(0f, 1.55f, 0.15f) : new Vector3(-5f, 1.7f, -5f);
-                yaw = -0.72f; pitch = 0.30f; distance = 5.3f;
+                cameraTarget = ActorLookTarget(3, new Vector3(-5f, 1.7f, -5f));
+                yaw = -0.72f; pitch = 0.25f; distance = 3.2f;
                 status = "RED CLOSE";
                 break;
             case "blue":
-                cameraTarget = actors.Count > 13 ? actors[13].Root.transform.position + new Vector3(0f, 1.55f, 0.15f) : new Vector3(5f, 1.7f, -5f);
-                yaw = -1.58f; pitch = 0.30f; distance = 5.0f;
+                cameraTarget = ActorLookTarget(13, new Vector3(5f, 1.7f, -5f));
+                yaw = -1.58f; pitch = 0.25f; distance = 3.15f;
                 status = "BLUE CLOSE";
                 break;
             case "side":
@@ -630,8 +702,8 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
                 status = "TOP FORMATION";
                 break;
             case "inspect":
-                cameraTarget = actors.Count > 8 ? actors[8].Root.transform.position + new Vector3(0f, 1.48f, 0.18f) : new Vector3(-5f, 1.8f, -5f);
-                yaw = -0.72f; pitch = 0.31f; distance = 4.35f;
+                cameraTarget = ActorLookTarget(8, new Vector3(-5f, 1.8f, -5f));
+                yaw = -0.72f; pitch = 0.22f; distance = 2.85f;
                 status = "INSPECT ASSET";
                 break;
             default:
@@ -640,6 +712,35 @@ public sealed class KawanakajimaRuntimeBootstrap : MonoBehaviour
                 status = assetsReady ? "KAWANAKAJIMA_UNITY_READY" : status;
                 break;
         }
+    }
+
+    private Vector3 ActorLookTarget(int actorIndex, Vector3 fallback)
+    {
+        if (actorIndex < actors.Count && actors[actorIndex].Root != null && TryRendererBounds(actors[actorIndex].Root, out var bounds))
+        {
+            return bounds.center + new Vector3(0f, 0.18f, 0f);
+        }
+        return fallback;
+    }
+
+    private static bool TryRendererBounds(GameObject root, out Bounds bounds)
+    {
+        bounds = default;
+        bool hasBounds = false;
+        foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+        {
+            if (!renderer.enabled) continue;
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+        return hasBounds;
     }
 
     private void UpdateCamera()

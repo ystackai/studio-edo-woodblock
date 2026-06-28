@@ -43,10 +43,8 @@ mustExist('Assets/Kawanakajima/Review/samurai_character_contact_sheet.png', 'rev
 mustExist('Assets/Kawanakajima/Review/samurai_character_hero.png', 'review hero render');
 mustExist('Assets/Kawanakajima/Review/samurai_battlefield_contact_sheet.png', '20-samurai battlefield contact sheet');
 mustExist('Assets/Kawanakajima/Review/samurai_battlefield_wide_clash.png', '20-samurai battlefield wide render');
+mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'reflection-based GLB loading', /CreateGltfImport|FindMethod|FindType/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', '20 actor bootstrap', /ActorCount\s*=\s*20/);
-mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'runtime GLB loading', /new GltfImport\(\)|gltf\.Load\(url\)/);
-mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'shader-safe glTF material generator', /ShaderSafeGltfMaterialGenerator[\s\S]*IMaterialGenerator/);
-mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'shader-safe GLB import wiring', /new GltfImport\(null,\s*null,\s*GltfMaterialGenerator,\s*null\)/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', '20-samurai battlefield pack loading', /samurai_battlefield_pack\.glb|ToggleFoundryBattlefieldPack|KeyCode\.P/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'playable controls', /KeyCode\.C|KeyCode\.R|ToggleMusic|ApplyCameraPreset/);
 mustContain('Assets/Kawanakajima/Scripts/KawanakajimaRuntimeBootstrap.cs', 'readiness marker', /KAWANAKAJIMA_UNITY_READY/);
