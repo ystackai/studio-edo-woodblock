@@ -55,3 +55,13 @@
     - Fog opacity and ground fog scale breathe subtly each frame
 - Both verifiers remain green; zero scratch files
 - Pushed to origin/factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8
+
+## v8.15 — 2026-06-28 (rebase + scratch cleanup + browser smoke)
+
+- Pulled/rebased `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8` onto `origin/main` — resolved merge conflicts (branch changes accepted for all conflicted files)
+- Ran `node games/kawanakajima-foundry-samurai-proof/verify.js` → **PASS** (GLB 1.15 MB, battlefield 7.06 MB, all checks green)
+- Ran `node unity/kawanakajima-samurai/verify-unity-handoff.js` → **PASS**
+- Unity MCP smoke: connection refused from this container (Editor/listener on Mac, not accessible here)
+- Browser smoke test: **PASS** — 20 actors loaded, canvas nonblank (10256 lit pixels), no errors/exceptions/failed requests, screenshot captured
+- Removed 3 scratch `.bak` files from drops/
+- Updated VERIFICATION.md and WORKLOG.md

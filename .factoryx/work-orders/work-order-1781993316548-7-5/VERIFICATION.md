@@ -103,3 +103,17 @@
     - Camera orbit state synced cleanly after transitions
     - Fog breathing (opacity + scale oscillation)
 - All verifiers green; zero scratch files; no syntax errors
+
+## v8.15 — 2026-06-28 (rebase + scratch cleanup + browser smoke)
+
+- Rebasing onto `origin/main` — resolved merge conflicts (accept branch changes for all files)
+- `node games/kawanakajima-foundry-samurai-proof/verify.js` → **PASS**
+  - GLB character: 1.15 MB (Foundry)
+  - GLB battlefield pack: 7.06 MB (20 warriors, 10/10 faction split)
+  - Audio: 5 curated game WAVs
+  - All structure, path, size, syntax, audio, Unity handoff checks pass
+- `node unity/kawanakajima-samurai/verify-unity-handoff.js` → **PASS**
+- Unity MCP smoke: connection refused (000) — Editor/listener not reachable from this container. Previous sessions confirmed working on Mac.
+- Browser smoke test: **PASS** — 20 actors loaded, nonblank canvas (10256 lit pixels), no console errors, no exceptions, no failed requests
+- Removed 3 scratch `.bak` files from drops/ (index.html.bak ×2, main.js.bak ×1)
+- VERIFICATION.json updated with fresh timestamp
