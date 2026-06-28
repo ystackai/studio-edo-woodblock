@@ -117,3 +117,12 @@
 - Browser smoke test: **PASS** — 20 actors loaded, nonblank canvas (10256 lit pixels), no console errors, no exceptions, no failed requests
 - Removed 3 scratch `.bak` files from drops/ (index.html.bak ×2, main.js.bak ×1)
 - VERIFICATION.json updated with fresh timestamp
+
+## PR #167 Status (v8.15 push)
+
+- **Branch:** `factoryx/kawanakajima-samurai-unity-autonomous-loop-20260620-v8`
+- **State:** OPEN
+- **Mergeable:** ✅ Yes (merge conflicts resolved via rebase onto main)
+- **Review Decision:** REVIEW_REQUIRED (awaiting approving review from write-access reviewer)
+- **CI:** FactoryX Delivery workflow running (QUEUED/IN_PROGRESS)
+- **Final verification:** Both `verify.js` and `verify-unity-handoff.js` PASS
