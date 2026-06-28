@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Living Print — Wave Horizon</title>
+<style>
+   *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#f4efe6}
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(function(){
+'use strict';
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, DPR;
+let pressDepth = 0;
+let pressVel = 0;
+let isPressing = false;
+let time = 0;
+
+// Seeded PRNG for stable procedural elements
+function mkRng(seed){
+  return function(){
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+   };
+}
+
+// ── Mist particles ─────────────────────────────────────
+const MIST = [];
+function initMist(){
+  MIST.length = 0;
+  const r = mkRng(42);
+  for(let i = 0; i < 220; i++){
+    MIST.push({
+      x: r() * W,
+      y: H * 0.15 + r() * H * 0.65,
+      r: 20 + r() * 120,
+      vx: (r() - 0.5) * 0.3,
+      vy: (r() - 0.5) * 0.07,
+      a: 0.01 + r() * 0.055,
+      p: r() * Math.PI * 2,
+      s: 0.2 + r() * 0.6,
+      bp: r() * Math.PI * 2
+     });
+   }
+}
+
+// ── Splatters (pre-seeded, stable) ────────────────────
+const SPLATS = [];
+function initSplats(){
+  SPLATS.length = 0;
+  const r = mkRng(77);
+  for(let i = 0; i < 60; i++){
+    SPLATS.push({
+      nx: r(),
+      ny: 0.46 + r() * 0.28,
+      r: 0.3 + r() * 2.5,
+      p: r() * Math.PI * 2
+     });
+   }
+}
+
+// ── Wave functions ─────────────────────────────────────
+// Each wave layer: organic multi-sine with breath modulation
+function wv(x, t, d, baseN, ampN, f1, f2, f3, s1, s2, s3, p2, p3){
+  const breath = Math.sin(time * 0.25 + baseN) * 0.012;
+  const base = H * (baseN + breath);
+  const amp = (ampN + d * (ampN * 0.7)) * (H / 800);
+  return base
+    + Math.sin(x * f1 + t * s1) * amp
+    + Math.sin(x * f2 - t * s2 + p2) * amp * 0.55
+    + Math.sin(x * f3 + t * s3 + p3) * amp * 0.22;
+}
+
+function waveA(x, t, d){ return wv(x,t,d, 0.52, 26, 0.003, 0.007, 0.013, 0.14, 0.07, 0.20, 0.0, 1.1); }
+function waveB(x, t, d){ return wv(x,t,d, 0.58, 20, 0.004, 0.009, 0.016, 0.11, 0.05, 0.16, 1.5, 0.7); }
+function waveC(x, t, d){ return wv(x,t,d, 0.65, 15, 0.005, 0.011, 0.018, 0.09, 0.08, 0.13, 2.8, 1.2); }
+
+// ── Paper texture ──────────────────────────────────────
+let paperPat = null;
+
+function genPaper(){
+  const sz = 256;
+  const off = document.createElement('canvas');
+  off.width = sz; off.height = sz;
+  const oc = off.getContext('2d');
+
+   // Warm paper base with subtle color variation
+  oc.fillStyle = '#f1ebe1';
+  oc.fillRect(0, 0, sz, sz);
+
+   // Fiber noise — thousands of tiny warm/cool specks
+  const rng = mkRng(101);
+  for(let i = 0; i < 6000; i++){
+    const x = rng() * sz;
+    const y = rng() * sz;
+    const warm = rng() > 0.5;
+    const b = warm ? 190 + rng() * 60 : 180 + rng() * 50;
+    const a = 0.01 + rng() * 0.04;
+    oc.fillStyle = warm
+      ? `rgba(${b+8},${b-2},${b-14},${a})`
+      : `rgba(${b-2},${b-4},${b+2},${a})`;
+    oc.fillRect(x, y, 0.4 + rng() * 1.2, 0.4 + rng() * 1.2);
+   }
+
+   // Long grain fibers
+  for(let i = 0; i < 300; i++){
+    const x = rng() * sz;
+    const y = rng() * sz;
+    const len = 2 + rng() * 16;
+    const a = 0.008 + rng() * 0.02;
+    oc.strokeStyle = `rgba(150,143,128,${a})`;
+    oc.lineWidth = 0.2 + rng() * 0.35;
+    oc.beginPath();
+    oc.moveTo(x, y);
+    const cp1y = y + (rng()-0.5)*1.5;
+    const cp2y = y + (rng()-0.5)*1.5;
+    oc.bezierCurveTo(x+len*0.3, cp1y, x+len*0.7, cp2y, x+len, y+(rng()-0.5)*2);
+    oc.stroke();
+   }
+
+   // Occasional darker fibers (natural paper variation)
+  for(let i = 0; i < 40; i++){
+    const x = rng() * sz;
+    const y = rng() * sz;
+    const len = 4 + rng() * 20;
+    oc.strokeStyle = `rgba(130,122,110,${0.01 + rng()*0.015})`;
+    oc.lineWidth = 0.15;
+    oc.beginPath();
+    oc.moveTo(x, y);
+    oc.lineTo(x + len, y + (rng()-0.5)*3);
+    oc.stroke();
+   }
+
+  paperPat = ctx.createPattern(off, 'repeat');
+}
+
+// ── Ink wash (filled area below wave) ─────────────────
+function inkWash(wfn, t, d, cr, cg, cb, maxAlpha){
+  const steps = Math.max(24, Math.floor(W / 4.5));
+  const dx = W / steps;
+
+   // Build path: trace wave, down right, across bottom, up left
+  ctx.beginPath();
+  for(let i = 0; i <= steps; i++){
+    const x = i * dx;
+    const y = wfn(x, t, d);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+   }
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+
+   // Gradient: dark at crest → warm fade
+  const cy = wfn(W * 0.5, t, d);
+  const grad = ctx.createLinearGradient(0, cy - 10, 0, H * 0.88);
+
+  const a1 = Math.min(0.85, maxAlpha * (0.3 + d * 0.6));
+  const a2 = a1 * 0.5;
+  const a3 = Math.min(0.22, maxAlpha * (0.04 + d * 0.15));
+
+  grad.addColorStop(0,    `rgba(${cr},${cg},${cb},${a1})`);
+  grad.addColorStop(0.2,  `rgba(${cr+14},${cg+12},${cb+8},${a1*0.75})`);
+  grad.addColorStop(0.5,  `rgba(${cr+35},${cg+30},${cb+20},${a2})`);
+  grad.addColorStop(0.8,  `rgba(${cr+55},${cg+50},${cb+35},${a3})`);
+  grad.addColorStop(1,    `rgba(${cr+70},${cg+60},${cb+45},${a3*0.15})`);
+
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+// ── Ink line (wave edge) ──────────────────────────────
+function inkLine(wfn, t, d, lw, alpha){
+  const steps = Math.max(48, Math.floor(W / 2.5));
+  const dx = W / steps;
+
+  ctx.beginPath();
+  for(let i = 0; i <= steps; i++){
+    const x = i * dx;
+    const y = wfn(x, t, d);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+   }
+
+   // Main ink line
+  const la = Math.min(0.92, alpha * (0.1 + d * 0.65));
+  ctx.strokeStyle = `rgba(30,26,22,${la})`;
+  ctx.lineWidth = lw * (0.65 + d * 0.55);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+   // Ink bleed / seep
+  const ba = la * 0.2;
+  ctx.strokeStyle = `rgba(30,26,22,${ba})`;
+  ctx.lineWidth = lw * 3.2 * (0.45 + d * 0.65);
+  ctx.filter = `blur(${1.5 + d * 2}px)`;
+  ctx.stroke();
+  ctx.filter = 'none';
+}
+
+// ── Mist rendering ─────────────────────────────────────
+function drawMist(t, d){
+  for(const p of MIST){
+    const sway = Math.sin(t * p.s + p.p) * 28;
+    const dy   = Math.cos(t * p.s * 0.3 + p.p) * 12;
+    const b    = Math.sin(t * 0.35 + p.bp) * 0.3 + 0.7;
+
+    const px = (p.x + p.vx * t * 60 + sway + W * 3) % W;
+    const py = p.y + p.vy * t * 60 + dy;
+
+     // Mist thins as ink deepens
+    const a = p.a * b * (1.0 - d * 0.5);
+
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, p.r);
+    grad.addColorStop(0,    `rgba(240,236,228,${a})`);
+    grad.addColorStop(0.35, `rgba(240,236,228,${a*0.55})`);
+    grad.addColorStop(0.7,  `rgba(240,236,228,${a*0.15})`);
+    grad.addColorStop(1,    'rgba(240,236,228,0)');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(px, py, p.r, 0, Math.PI * 2);
+    ctx.fill();
+   }
+}
+
+// ── Sky gradient ───────────────────────────────────────
+function drawSky(d){
+  const g = ctx.createLinearGradient(0, 0, 0, H * 0.65);
+
+   // Sky subtly warms with press
+  const r1 = 220 + d * 14;
+  const g1 = 216 + d * 9;
+  const b1 = 210 + d * 4;
+
+  const r2 = 210 + d * 20;
+  const g2 = 200 + d * 14;
+  const b2 = 190 + d * 6;
+
+  g.addColorStop(0, `rgb(${r1},${g1},${b1})`);
+  g.addColorStop(1, `rgb(${r2},${g2},${b2})`);
+
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ── Splatters ──────────────────────────────────────────
+function drawSplats(d){
+  if(d < 0.04) return;
+  const a = d * 0.1;
+  ctx.fillStyle = `rgba(30,26,22,${a})`;
+  for(const s of SPLATS){
+    const x = s.nx * W + Math.sin(time * 0.07 + s.p) * 1.5;
+    const y = s.ny * H;
+    ctx.beginPath();
+    ctx.arc(x, y, s.r * (H / 580), 0, Math.PI * 2);
+    ctx.fill();
+   }
+}
+
+// ── Horizon mist band (extra atmospheric layer) ────────
+function drawHorizonMist(d){
+   // A soft horizontal band of mist at the horizon line
+  const y = H * (0.45 + Math.sin(time * 0.2) * 0.01);
+  const h = 40 + d * 15;
+  const a = 0.06 * (1.0 - d * 0.4);
+
+  const g = ctx.createLinearGradient(0, y - h, 0, y + h);
+  g.addColorStop(0, `rgba(240,236,228,0)`);
+  g.addColorStop(0.5, `rgba(240,236,228,${a})`);
+  g.addColorStop(1, `rgba(240,236,228,0)`);
+
+  ctx.fillStyle = g;
+  ctx.fillRect(0, y - h, W, h * 2);
+}
+
+// ── Resize ─────────────────────────────────────────────
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  genPaper();
+  initMist();
+  initSplats();
+}
+
+// ── Input: baren press ─────────────────────────────────
+canvas.addEventListener('pointerdown',  e => { e.preventDefault(); isPressing = true; });
+canvas.addEventListener('pointerup',    e => { isPressing = false; });
+canvas.addEventListener('pointerleave', e => { isPressing = false; });
+canvas.addEventListener('pointercancel',e => { isPressing = false; });
+
+document.addEventListener('keydown', e => {
+  if(e.code === 'Space' || e.code === 'Enter'){ e.preventDefault(); isPressing = true; }
+});
+document.addEventListener('keyup', e => {
+  if(e.code === 'Space' || e.code === 'Enter') isPressing = false;
+});
+
+// ── Audio: near-silent breath ──────────────────────────
+let actx = null;
+let breathOn = false;
+
+function startBreath(){
+  if(breathOn) return;
+  breathOn = true;
+  try{ actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return; }
+  if(actx.state === 'suspended') actx.resume();
+
+  const len = actx.sampleRate * 2;
+  const buf = actx.createBuffer(1, len, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.004;
+
+  const src = actx.createBufferSource();
+  src.buffer = buf; src.loop = true;
+
+  const lp = actx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 160;
+
+  const g = actx.createGain();
+  g.gain.value = 0.02;
+
+  src.connect(lp).connect(g).connect(actx.destination);
+  src.start();
+}
+
+// ── Main loop ──────────────────────────────────────────
+let lastT = performance.now();
+
+function frame(now){
+  const dt = Math.min((now - lastT) / 1000, 0.1);
+  lastT = now;
+  time += dt;
+
+   // ── Baren press physics ──
+  if(isPressing){
+     // Resistance increases with depth — like real woodblock pressure
+    const resistance = 1.0 - pressDepth * 0.7;
+    pressVel += resistance * dt * 2.5;
+    pressVel = Math.min(pressVel, 0.9);
+    pressDepth += pressVel * dt * 2.0 * (1.0 - pressDepth);
+    pressDepth = Math.min(1, pressDepth);
+
+    if(pressDepth > 0.06 && !breathOn) startBreath();
+   } else {
+     // Exhale: ink recedes with a gentle release
+    pressVel *= Math.pow(0.01, dt);
+    pressDepth -= (pressVel + 0.1) * dt * 1.6;
+    pressDepth = Math.max(0, pressDepth);
+    if(pressDepth < 0.0005) pressDepth = 0;
+   }
+
+   // ── Render layers ──
+  // 1. Sky
+  drawSky(pressDepth);
+
+  // 2. Paper grain overlay
+  if(paperPat){
+    ctx.globalAlpha = 0.32;
+    ctx.fillStyle = paperPat;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+   }
+
+  // 3. Horizon mist band
+  drawHorizonMist(pressDepth);
+
+  // 4. Mist particles (atmosphere)
+  drawMist(time, pressDepth);
+
+  // 5. Ink wash (back → front: C, B, A)
+  inkWash(waveC, time, pressDepth,  42, 38, 34, 0.25);
+  inkWash(waveB, time, pressDepth,  40, 36, 32, 0.42);
+  inkWash(waveA, time, pressDepth,  38, 33, 30, 0.62);
+
+  // 6. Ink lines (wave edges)
+  inkLine(waveA, time, pressDepth, 1.7, 1.0);
+  inkLine(waveB, time, pressDepth, 1.0, 0.6);
+  inkLine(waveC, time, pressDepth, 0.6, 0.3);
+
+  // 7. Woodblock splatters
+  drawSplats(pressDepth);
+
+  // 8. Vignette — warm edge darkening
+  const vig = ctx.createRadialGradient(W/2, H/2, W*0.18, W/2, H/2, W*0.7);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, `rgba(16,14,10,${0.055 + pressDepth * 0.06})`);
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+
+  requestAnimationFrame(frame);
+}
+
+// ── Boot ───────────────────────────────────────────────
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
