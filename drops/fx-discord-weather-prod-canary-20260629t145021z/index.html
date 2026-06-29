@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Living Edo Weather Print</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1510;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh; font-family: 'Noto Serif', 'Georgia', serif;
+    overflow: hidden;
+  }
+  #frame {
+    position: relative;
+    border: 12px solid #3a2a1a;
+    border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Crect width='12' height='12' fill='%233a2a1a'/%3E%3Crect x='1' y='1' width='10' height='10' fill='none' stroke='%23c4a265' stroke-width='0.5'/%3E%3C/svg%3E") 12 stretch;
+    box-shadow: 0 0 40px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,0,0,0.3);
+  }
+  canvas { display: block; cursor: pointer; }
+  #ui-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px; gap: 8px;
+    background: linear-gradient(transparent, rgba(26,21,16,0.85));
+  }
+  .weather-btn {
+    background: rgba(196,162,101,0.15); border: 1px solid rgba(196,162,101,0.4);
+    color: #c4a265; padding: 6px 14px; border-radius: 3px;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    transition: all 0.2s ease; user-select: none;
+    min-width: 44px; min-height: 44px; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .weather-btn:hover, .weather-btn.active {
+    background: rgba(196,162,101,0.35); border-color: #c4a265; color: #ffe4b5;
+  }
+  #timer-bar {
+    position: absolute; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, #c4a265, #e8c87a);
+    transition: width 0.1s linear;
+  }
+  #timer-label {
+    position: absolute; top: 8px; right: 12px;
+    color: rgba(196,162,101,0.6); font-size: 11px;
+    font-family: monospace;
+  }
+  #title-strip {
+    position: absolute; top: 8px; left: 12px;
+    color: rgba(196,162,101,0.7); font-size: 12px;
+    letter-spacing: 2px;
+  }
+  #instructions {
+    position: absolute; top: 8px; right: 12px;
+    color: rgba(196,162,101,0.4); font-size: 10px;
+    text-align: right; max-width: 180px; line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="canvas"></canvas>
+  <div id="timer-bar"></div>
+  <div id="timer-label">30s</div>
+  <div id="title-strip">木版画</div>
+  <div id="instructions">1-5 or click to change weather<br>Space to cycle</div>
+  <div id="ui-overlay"></div>
+</div>
+
+<script>
+// ============================================================
+// Living Edo Weather Print — self-contained 2D browser game
+// ============================================================
+
+const W = 800, H = 560;
+const CYCLE_MS = 30000; // 30-second loop
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = W; canvas.height = H;
+
+// --- Weather states ---
+const WEATHERS = [
+  { id:'clear',  label:'☀️ Clear',  skyTop:'#7ab5d4', skyBot:'#f5e6c8', mountain:'#2d5a3e', accent:'#e8a040', particles:'none' },
+  { id:'rain',   label:'🌧️ Rain',   skyTop:'#3a4a5c', skyBot:'#8a9aaa', mountain:'#1a3028', accent:'#6090b0', particles:'rain' },
+  { id:'snow',   label:'❄️ Snow',   skyTop:'#c8d4e0', skyBot:'#f0f4f8', mountain:'#4a6a7a', accent:'#d0e0f0', particles:'snow' },
+  { id:'wind',   label:'🌬️ Wind',   skyTop:'#6a8a6a', skyBot:'#c8d8a0', mountain:'#2a4a3a', accent:'#a0c060', particles:'wind' },
+  { id:'storm',  label:'⛈️ Storm',  skyTop:'#1a1a2e', skyBot:'#3a3a4e', mountain:'#0a1a1e', accent:'#6060a0', particles:'storm' },
+];
+
+let currentWeather = 0;
+let targetWeather = 0;
+let blendFactor = 1; // 0 = transitioning, 1 = settled
+let cycleStart = performance.now();
+let firstCycleDone = false;
+let time = 0;
+let lastFrame = performance.now();
+
+// --- Particles ---
+const MAX_PARTICLES = 300;
+const particles = [];
+
+function spawnParticle(type) {
+  const p = { x: Math.random() * W, y: -10, vx: 0, vy: 0, life: 1, size: 2 };
+  switch(type) {
+    case 'rain':
+      p.vy = 300 + Math.random()*200; p.vx = -20 + Math.random()*10;
+      p.size = 1 + Math.random()*1.5; p.y = Math.random()*H*0.4; break;
+    case 'snow':
+      p.vy = 40 + Math.random()*60; p.vx = Math.sin(Math.random()*6)*30;
+      p.size = 2 + Math.random()*3; p.phase = Math.random()*Math.PI*2; break;
+    case 'wind':
+      p.vx = 100 + Math.random()*150; p.vy = -10 + Math.random()*20;
+      p.size = 0.5 + Math.random(); p.y = Math.random()*H*0.5; break;
+    case 'storm':
+      p.vy = 400 + Math.random()*300; p.vx = -40 + Math.random()*20;
+      p.size = 1.5 + Math.random()*2; p.flash = Math.random() < 0.003; break;
+  }
+  return p;
+}
+
+// --- UI ---
+const overlay = document.getElementById('ui-overlay');
+WEATHERS.forEach((w, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'weather-btn' + (i === 0 ? ' active' : '');
+  btn.textContent = w.label;
+  btn.style.minHeight = '44px';
+  btn.style.minWidth = '44px';
+  btn.addEventListener('click', () => setWeather(i));
+  overlay.appendChild(btn);
+});
+
+function setWeather(idx) {
+  if (idx === currentWeather && blendFactor >= 0.95) return;
+  targetWeather = idx % WEATHERS.length;
+  blendFactor = 0;
+}
+
+// --- Input ---
+document.addEventListener('keydown', e => {
+  if (e.key >= '1' && e.key <= '5') setWeather(parseInt(e.key) - 1);
+  if (e.key === ' ') { e.preventDefault(); setWeather((currentWeather + 1) % 5); }
+  if (e.key === 'ArrowLeft') setWeather((currentWeather - 1 + 5) % 5);
+  if (e.key === 'ArrowRight') setWeather((currentWeather + 1) % 5);
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width * W;
+  // Left third = prev, right third = next, center = cycle
+  if (x < W * 0.33) setWeather((currentWeather - 1 + 5) % 5);
+  else if (x > W * 0.66) setWeather((currentWeather + 1) % 5);
+  else setWeather((currentWeather + 1) % 5);
+});
+
+// --- Color interpolation ---
+function hexToRGB(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return [r,g,b];
+}
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(v => Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');
+}
+function lerpColor(c1, c2, t) {
+  const a = hexToRGB(c1), b = hexToRGB(c2);
+  return rgbToHex(a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t);
+}
+
+// --- Drawing helpers ---
+function drawWoodblockTexture() {
+  // Subtle grain overlay for woodblock print feel
+  ctx.save();
+  ctx.globalAlpha = 0.03;
+  for (let i = 0; i < 200; i++) {
+    const y = Math.random() * H;
+    ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#fff';
+    ctx.fillRect(0, y, W, 1);
+  }
+  ctx.restore();
+}
+
+function drawMountain(cx, baseY, peakY, color) {
+  // Simplified Fuji-like mountain with woodblock-style curves
+  ctx.save();
+  // Main mountain body
+  ctx.beginPath();
+  ctx.moveTo(cx - 200, baseY);
+  ctx.bezierCurveTo(cx - 180, peakY + 80, cx - 60, peakY - 20, cx, peakY);
+  ctx.bezierCurveTo(cx + 60, peakY - 20, cx + 180, peakY + 80, cx + 200, baseY);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  // Snow cap
+  ctx.beginPath();
+  ctx.moveTo(cx - 40, peakY + 30);
+  ctx.bezierCurveTo(cx - 20, peakY + 5, cx, peakY, cx, peakY);
+  ctx.bezierCurveTo(cx, peakY, cx + 20, peakY + 5, cx + 40, peakY + 30);
+  ctx.bezierCurveTo(cx + 15, peakY + 25, cx - 15, peakY + 25, cx - 40, peakY + 30);
+  ctx.fillStyle = lerpColor(color, '#ffffff', 0.6);
+  ctx.fill();
+
+  // Woodblock contour lines
+  ctx.strokeStyle = lerpColor(color, '#000000', 0.3);
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 4; i++) {
+    const ly = peakY + 40 + i * 35;
+    ctx.beginPath();
+    const spread = 40 + i * 40;
+    ctx.moveTo(cx - spread, ly);
+    ctx.quadraticCurveTo(cx, ly - 8, cx + spread, ly);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawWater(baseY, color, weather) {
+  ctx.save();
+  const waterH = H - baseY;
+
+  // Base water color
+  ctx.fillStyle = color;
+  ctx.fillRect(0, baseY, W, waterH);
+
+  // Animated waves
+  const t = time * 0.8;
+  ctx.strokeStyle = lerpColor(color, '#ffffff', 0.15);
+  ctx.lineWidth = 1;
+
+  for (let row = 0; row < 8; row++) {
+    const y = baseY + 10 + row * (waterH / 8);
+    ctx.beginPath();
+    for (let x = 0; x < W; x += 4) {
+      const wave = Math.sin(x * 0.02 + t + row * 1.5) * (3 + row);
+      if (x === 0) ctx.moveTo(x, y + wave);
+      else ctx.lineTo(x, y + wave);
+    }
+    ctx.stroke();
+  }
+
+  // Weather-specific water effects
+  if (weather === 'rain') {
+    // Ripples
+    ctx.globalAlpha = 0.3;
+    for (let i = 0; i < 15; i++) {
+      const rx = Math.random() * W, ry = baseY + Math.random() * waterH;
+      const rr = (Math.sin(time * 3 + i * 2) * 0.5 + 0.5) * 12 + 2;
+      ctx.beginPath(); ctx.arc(rx, ry, rr, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(200,220,240,0.4)'; ctx.lineWidth = 0.5; ctx.stroke();
+    }
+  } else if (weather === 'storm') {
+    // Choppy water
+    ctx.globalAlpha = 0.2;
+    for (let row = 0; row < 5; row++) {
+      const y = baseY + 5 + row * 20;
+      ctx.beginPath();
+      for (let x = 0; x < W; x += 3) {
+        const wave = Math.sin(x * 0.05 + t * 2) * (8 + row * 3);
+        if (x === 0) ctx.moveTo(x, y + wave);
+        else ctx.lineTo(x, y + wave);
+      }
+      ctx.strokeStyle = 'rgba(100,100,150,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawBoat(x, y, scale, weather) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+
+  // Boat body — classic Edo fishing boat
+  ctx.beginPath();
+  ctx.moveTo(-40, 0);
+  ctx.quadraticCurveTo(-45, -12, -20, -10);
+  ctx.lineTo(20, -10);
+  ctx.quadraticCurveTo(45, -12, 50, 0);
+  ctx.quadraticCurveTo(20, 6, -20, 6);
+  ctx.closePath();
+  ctx.fillStyle = '#5a3a20';
+  ctx.fill();
+  ctx.strokeStyle = '#3a2010';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Fisherman silhouette
+  ctx.beginPath();
+  ctx.ellipse(0, -20, 5, 7, 0, 0, Math.PI*2);
+  ctx.fillStyle = '#2a1a10';
+  ctx.fill();
+  // Body
+  ctx.beginPath();
+  ctx.moveTo(-5, -14);
+  ctx.lineTo(-8, -4);
+  ctx.lineTo(8, -4);
+  ctx.lineTo(5, -14);
+  ctx.closePath();
+  ctx.fill();
+
+  // Hat (conical)
+  ctx.beginPath();
+  ctx.moveTo(-10, -22);
+  ctx.lineTo(0, -30);
+  ctx.lineTo(10, -22);
+  ctx.closePath();
+  ctx.fillStyle = '#6a5a3a';
+  ctx.fill();
+
+  // Weather reaction: fisherman huddles in rain/storm
+  if (weather === 'rain' || weather === 'storm') {
+    // Lower the body slightly
+    ctx.beginPath();
+    ctx.moveTo(-4, -10);
+    ctx.lineTo(-6, -3);
+    ctx.lineTo(6, -3);
+    ctx.lineTo(4, -10);
+    ctx.closePath();
+    ctx.fillStyle = '#1a0a08';
+    ctx.fill();
+  }
+
+  // Fishing rod
+  ctx.strokeStyle = '#4a3a20';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(5, -18);
+  ctx.quadraticCurveTo(25, -30, 35, -25);
+  ctx.stroke();
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(35, -25);
+  ctx.lineTo(38, 0);
+  ctx.strokeStyle = 'rgba(100,80,60,0.4)';
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawClouds(weather, t) {
+  ctx.save();
+
+  if (weather === 'clear') {
+    // Wispy, light clouds
+    ctx.globalAlpha = 0.3;
+    for (let i = 0; i < 3; i++) {
+      const cx = 100 + i * 250 + Math.sin(t * 0.3 + i) * 20;
+      const cy = 40 + i * 25;
+      drawCloudShape(cx, cy, 50 + i*15, 15);
+    }
+  } else if (weather === 'rain') {
+    // Dark rain clouds
+    ctx.globalAlpha = 0.7;
+    for (let i = 0; i < 4; i++) {
+      const cx = 50 + i * 200 + Math.sin(t * 0.5 + i) * 10;
+      drawCloudShape(cx, 30 + i*10, 80, 25);
+    }
+  } else if (weather === 'snow') {
+    // Soft grey clouds
+    ctx.globalAlpha = 0.5;
+    for (let i = 0; i < 3; i++) {
+      const cx = 80 + i * 280 + Math.sin(t * 0.2 + i) * 15;
+      drawCloudShape(cx, 40 + i*15, 70, 20);
+    }
+  } else if (weather === 'wind') {
+    // Streaking clouds
+    ctx.globalAlpha = 0.4;
+    for (let i = 0; i < 5; i++) {
+      const cx = (t * 80 + i * 180) % (W + 200) - 100;
+      drawCloudShape(cx, 25 + i*12, 60 + i*10, 12);
+    }
+  } else if (weather === 'storm') {
+    // Heavy dark clouds
+    ctx.globalAlpha = 0.85;
+    for (let i = 0; i < 5; i++) {
+      const cx = 30 + i * 170 + Math.sin(t * 0.7 + i) * 8;
+      drawCloudShape(cx, 20 + i*8, 100, 30);
+    }
+  }
+  ctx.restore();
+}
+
+function drawCloudShape(cx, cy, w, h) {
+  ctx.fillStyle = '#c8c8c8';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, w, h, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx - w*0.4, cy + 3, w*0.7, h*0.8, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + w*0.35, cy + 2, w*0.6, h*0.7, 0, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawTrees(x, y, scale, weather) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+
+  // Pine tree trunk
+  ctx.fillStyle = '#3a2818';
+  ctx.fillRect(-4, -50, 8, 50);
+
+  // Pine branches — layered triangles
+  const treeColor = weather === 'snow' ? '#5a7a6a' :
+                     weather === 'storm' ? '#1a2a1e' :
+                     weather === 'wind' ? '#3a5a3a' : '#2a4a2e';
+  ctx.fillStyle = treeColor;
+
+  const sway = (weather === 'wind') ? Math.sin(time * 3) * 8 :
+               (weather === 'storm') ? Math.sin(time * 5) * 12 : 0;
+
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    const by = -20 - i * 15;
+    const bw = 25 - i * 3;
+    ctx.moveTo(sway * (i/4), by);
+    ctx.lineTo(-bw, by + 18);
+    ctx.lineTo(bw, by + 18);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawDistantVillage(x, y, weather) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  const roofColor = weather === 'snow' ? '#e8e8e8' :
+                     weather === 'storm' ? '#2a1a18' : '#5a3a28';
+  const wallColor = weather === 'storm' ? '#1a1210' : '#8a7a60';
+
+  // Several small houses
+  for (let i = 0; i < 5; i++) {
+    const hx = i * 35 - 70;
+    const hy = Math.sin(i * 1.3) * 5;
+
+    // Wall
+    ctx.fillStyle = wallColor;
+    ctx.fillRect(hx, -12 + hy, 25, 15);
+
+    // Roof (gabled)
+    ctx.fillStyle = roofColor;
+    ctx.beginPath();
+    ctx.moveTo(hx - 5, -12 + hy);
+    ctx.lineTo(hx + 12, -25 + hy);
+    ctx.lineTo(hx + 30, -12 + hy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = lerpColor(roofColor, '#000000', 0.3);
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// --- Main scene draw ---
+function drawScene(weatherIdx) {
+  const w = WEATHERS[weatherIdx];
+  const t = time;
+
+  // Sky gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+  skyGrad.addColorStop(0, w.skyTop);
+  skyGrad.addColorStop(1, w.skyBot);
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Sun/moon for clear weather
+  if (weatherIdx === 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.arc(620, 80, 35, 0, Math.PI*2);
+    ctx.fillStyle = '#f5c842';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(620, 80, 28, 0, Math.PI*2);
+    ctx.fillStyle = '#ffe480';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Storm lightning
+  if (weatherIdx === 4 && Math.sin(t * 7) > 0.95) {
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  // Clouds
+  drawClouds(w.id, t);
+
+  // Distant hills
+  ctx.save();
+  const hillColor = lerpColor(w.mountain, '#888888', 0.3);
+  ctx.fillStyle = hillColor;
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.48);
+  for (let x = 0; x <= W; x += 20) {
+    const h = Math.sin(x * 0.008) * 25 + Math.sin(x * 0.015 + 2) * 15;
+    ctx.lineTo(x, H * 0.45 + h);
+  }
+  ctx.lineTo(W, H * 0.55);
+  ctx.lineTo(0, H * 0.55);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // Main mountain
+  drawMountain(400, H * 0.62, H * 0.22, w.mountain);
+
+  // Secondary smaller mountain
+  drawMountain(180, H * 0.62, H * 0.35, lerpColor(w.mountain, '#888888', 0.2));
+
+  // Distant village
+  drawDistantVillage(300, H * 0.58, w.id);
+
+  // Trees
+  drawTrees(80, H * 0.6, 1.2, w.id);
+  drawTrees(130, H * 0.59, 0.9, w.id);
+  drawTrees(680, H * 0.6, 1.0, w.id);
+  drawTrees(740, H * 0.58, 1.3, w.id);
+
+  // Water area
+  const waterColor = w.id === 'clear' ? '#4a8ab0' :
+                     w.id === 'rain' ? '#3a5a7a' :
+                     w.id === 'snow' ? '#7a9aaa' :
+                     w.id === 'wind' ? '#4a7a6a' : '#1a2a3a';
+  drawWater(H * 0.62, waterColor, w.id);
+
+  // Boat on water
+  const boatX = 350 + Math.sin(t * 0.3) * 40;
+  const boatY = H * 0.72 + Math.sin(t * 0.8) * 3;
+  drawBoat(boatX, boatY, 1.0, w.id);
+
+  // Second smaller boat
+  const boat2X = 580 + Math.sin(t * 0.2 + 2) * 30;
+  const boat2Y = H * 0.68 + Math.sin(t * 0.6 + 1) * 2;
+  drawBoat(boat2X, boat2Y, 0.6, w.id);
+
+  // Particles
+  updateAndDrawParticles(w.particles, t);
+
+  // Woodblock texture overlay
+  drawWoodblockTexture();
+
+  // Ink border — traditional Japanese print frame
+  ctx.save();
+  ctx.strokeStyle = 'rgba(30,20,10,0.4)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(4, 4, W-8, H-8);
+  ctx.restore();
+}
+
+// --- Particle system ---
+function updateAndDrawParticles(type, t) {
+  if (type === 'none') {
+    particles.length = 0;
+    return;
+  }
+
+  // Spawn
+  const spawnRate = type === 'storm' ? 8 : type === 'rain' ? 5 : type === 'wind' ? 3 : 4;
+  if (particles.length < MAX_PARTICLES) {
+    for (let i = 0; i < spawnRate; i++) {
+      particles.push(spawnParticle(type));
+    }
+  }
+
+  // Update and draw
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * 0.016;
+    p.y += p.vy * 0.016;
+
+    if (type === 'snow') {
+      p.phase += 0.03;
+      p.x += Math.sin(p.phase) * 0.5;
+    }
+
+    // Remove off-screen
+    if (p.y > H + 20 || p.x > W + 50 || p.x < -50) {
+      particles.splice(i, 1);
+      continue;
+    }
+
+    // Draw
+    ctx.save();
+    if (type === 'rain') {
+      ctx.strokeStyle = 'rgba(150,180,210,0.5)';
+      ctx.lineWidth = p.size * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + p.vx * 0.02, p.y + 12);
+      ctx.stroke();
+    } else if (type === 'snow') {
+      ctx.fillStyle = 'rgba(240,245,250,0.8)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
+    } else if (type === 'wind') {
+      ctx.strokeStyle = 'rgba(180,200,140,0.3)';
+      ctx.lineWidth = p.size;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + 30, p.y - 5);
+      ctx.stroke();
+    } else if (type === 'storm') {
+      ctx.strokeStyle = 'rgba(100,120,160,0.6)';
+      ctx.lineWidth = p.size * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + p.vx * 0.015, p.y + 15);
+      ctx.stroke();
+
+      // Lightning flash on particle
+      if (p.flash) {
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = '#ffffe0';
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+    ctx.restore();
+  }
+}
+
+// --- Timer ---
+function updateTimer(now) {
+  const elapsed = (now - cycleStart) % CYCLE_MS;
+  const remaining = Math.max(0, Math.ceil((CYCLE_MS - elapsed) / 1000));
+  const pct = (elapsed / CYCLE_MS) * 100;
+
+  document.getElementById('timer-bar').style.width = pct + '%';
+  document.getElementById('timer-label').textContent = remaining + 's';
+
+  // Auto-cycle weather when timer completes
+  if (firstCycleDone && elapsed < 100 && blendFactor >= 0.95) {
+    setWeather((currentWeather + 1) % 5);
+    cycleStart = now;
+    firstCycleDone = true;
+  }
+}
+
+// --- Transition ---
+function drawTransition() {
+  if (blendFactor >= 0.98) {
+    currentWeather = targetWeather;
+    blendFactor = 1;
+    return;
+  }
+
+  blendFactor = Math.min(1, blendFactor + 0.025);
+
+  // Draw target weather
+  ctx.save();
+  ctx.globalAlpha = 1 - blendFactor;
+  drawScene(currentWeather);
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = blendFactor;
+  drawScene(targetWeather);
+  ctx.restore();
+}
+
+// --- Weather label ---
+function drawWeatherLabel() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(26,21,16,0.5)';
+  ctx.fillRect(W/2 - 55, H - 52, 110, 22);
+  ctx.fillStyle = '#c4a265';
+  ctx.font = '12px "Noto Serif", Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(WEATHERS[currentWeather].label, W/2, H - 37);
+  ctx.restore();
+}
+
+// --- Main loop ---
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  time += dt;
+
+  updateTimer(now);
+
+  if (blendFactor >= 0.98) {
+    currentWeather = targetWeather;
+    drawScene(currentWeather);
+  } else {
+    drawTransition();
+  }
+
+  drawWeatherLabel();
+  requestAnimationFrame(frame);
+}
+
+// --- Start ---
+requestAnimationFrame(frame);
+
+// --- Console verification hook ---
+window.__edoWeatherState = () => ({
+  weather: WEATHERS[currentWeather].id,
+  particles: particles.length,
+  elapsed: ((performance.now() - cycleStart) % CYCLE_MS) / 1000,
+  fps: 1 / Math.max(0.001, (performance.now() - lastFrame) / 1000)
+});
+</script>
+</body>
+</html>

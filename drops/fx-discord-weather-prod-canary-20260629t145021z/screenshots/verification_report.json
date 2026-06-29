@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-06-29T15:05:41.559Z",
+  "initialWeather": "clear",
+  "weatherSequence": [
+    "clear",
+    "rain",
+    "snow",
+    "wind",
+    "storm"
+  ],
+  "uniqueWeathersSeen": 5,
+  "runtimeErrors": 0,
+  "errors": [],
+  "states": {
+    "clear": {
+      "weather": "clear",
+      "particles": 0,
+      "elapsed": 2.079,
+      "fps": 185.18518518518206
+    },
+    "rain": {
+      "weather": "rain",
+      "particles": 277,
+      "elapsed": 3.7391999998092653,
+      "fps": 64.10256488631975
+    },
+    "snow": {
+      "weather": "snow",
+      "particles": 298,
+      "elapsed": 5.31539999961853,
+      "fps": 116.27907492522884
+    },
+    "wind": {
+      "weather": "wind",
+      "particles": 301,
+      "elapsed": 6.899300000190735,
+      "fps": 108.69564992043365
+    },
+    "storm": {
+      "weather": "storm",
+      "particles": 302,
+      "elapsed": 8.506,
+      "fps": 62.5
+    }
+  }
+}
