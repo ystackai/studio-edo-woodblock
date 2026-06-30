@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
+<title>Edo Moon Bridge</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0c14}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#ui{position:fixed;top:0;left:0;width:100%;pointer-events:none;z-index:2}
+#lantern-count{position:absolute;top:14px;right:18px;color:#e8d5b7;font:600 18px/1 'Noto Serif',serif;text-shadow:0 0 12px #c89a3a;letter-spacing:.04em}
+#hint{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);color:#c8b89a;font:400 15px/1.4 'Noto Serif',serif;text-align:center;opacity:.85;transition:opacity 1s;max-width:320px;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+#hint.hidden{opacity:0}
+#finale-text{position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);color:#f5e6c8;font:700 28px/1.2 'Noto Serif',serif;text-align:center;opacity:0;transition:opacity 2s;pointer-events:none;text-shadow:0 0 20px #d4a84b,0 0 40px #8b6914;white-space:nowrap}
+#restart{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1a1c28;color:#d4c4a4;border:1px solid #3a3528;padding:12px 28px;font:400 15px 'Noto Serif',serif;border-radius:4px;cursor:pointer;opacity:0;transition:opacity .8s;pointer-events:none;min-width:44px;min-height:44px}
+#restart:hover{background:#24283a;color:#f0e4d0}
+#restart.show{opacity:1;pointer-events:auto}
+#stamp{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);font-size:72px;opacity:0;transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .4s;pointer-events:none;z-index:10;filter:drop-shadow(0 0 18px #d4a84b)}
+#stamp.show{transform:translate(-50%,-50%) scale(1);opacity:1}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="lantern-count">&#129511; 0 / 3</div>
+  <div id="hint">Drag to guide the lantern boat to the bridge</div>
+  <div id="finale-text">&#65312;&#65533;&#12411;&#12426;<br><span style="font-size:17px;font-weight:400;opacity:.7">The bridge glows in moonlight</span></div>
+</div>
+<div id="stamp">&#129511;</div>
+<button id="restart">&#9000; Play again</button>
+<script>
+// === Edo Moon Bridge Toy ===
+// Primary verb: Guide — drag to draw a brush-stroke path for the lantern boat
+// Loop: 3 lantern deliveries to the bridge, then a moonlit finale
+
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+
+// ── Sizing ──
+function resize() {
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── Audio (gesture-activated) ──
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playDeliver() {
+  ensureAudio();
+  // warm two-tone chime
+  [520, 660].forEach((f, i) => {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'triangle';
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.12, audioCtx.currentTime + i * 0.12);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.12 + 0.7);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(audioCtx.currentTime + i * 0.12);
+    o.stop(audioCtx.currentTime + i * 0.12 + 0.8);
+  });
+}
+function playFinale() {
+  ensureAudio();
+  [392, 494, 587, 784].forEach((f, i) => {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.08, audioCtx.currentTime + i * 0.18);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.18 + 2);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(audioCtx.currentTime + i * 0.18);
+    o.stop(audioCtx.currentTime + i * 0.18 + 2.2);
+  });
+}
+function playBrush() {
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(180 + Math.random() * 60, audioCtx.currentTime);
+  o.frequency.linearRampToValueAtTime(140, audioCtx.currentTime + 0.06);
+  g.gain.setValueAtTime(0.03, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+  o.connect(g).connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + 0.1);
+}
+
+// ── Game State ──
+const G = {
+  mode: 'idle',
+  path: [],
+  isDrawing: false,
+  lanternsDelivered: 0,
+  boat: { x: 0, y: 0, angle: 0, bobPhase: 0 },
+  boatTarget: { x: 0, y: 0 },
+  pathIdx: 0,
+  boatSpeed: 3,
+  kelp: [],
+  sparkles: [],
+  petals: [],
+  stars: [],
+  bridgeGlow: 0,
+  moonY: 0.75,
+  moonTarget: 0.75,
+  time: 0,
+  successFlash: 0,
+  finaleTimer: 0,
+  hintVisible: true,
+  round: 0,
+  kelpSpeed: 0.22,
+  targetPulse: 0,
+  stampTimer: 0,
+  stampShown: false
+};
+
+// ── Init helpers ──
+function initStars() {
+  G.stars = [];
+  for (let i = 0; i < 65; i++) {
+    G.stars.push({
+      x: Math.random() * cv.width,
+      y: Math.random() * cv.height * 0.45,
+      r: 0.4 + Math.random() * 1.2,
+      twinkle: Math.random() * Math.PI * 2,
+      spd: 0.4 + Math.random() * 1.8
+    });
+  }
+}
+
+function initKelp() {
+  G.kelp = [];
+  const n = 5;
+  for (let i = 0; i < n; i++) {
+    G.kelp.push({
+      x: cv.width * 0.12 + Math.random() * cv.width * 0.76,
+      y: cv.height * 0.3 + Math.random() * cv.height * 0.5,
+      vy: -(G.kelpSpeed + Math.random() * G.kelpSpeed * 0.5),
+      phase: Math.random() * Math.PI * 2,
+      w: 16 + Math.random() * 18,
+      h: 28 + Math.random() * 25,
+      // pre-assign colors so they dont flicker
+      cr: 28 + Math.floor(Math.random() * 15),
+      cg: 60 + Math.floor(Math.random() * 30),
+      cb: 35 + Math.floor(Math.random() * 15)
+    });
+  }
+}
+
+function resetBoat() {
+  G.boat.x = cv.width * (0.3 + Math.random() * 0.4);
+  G.boat.y = cv.height * 0.86;
+  G.boat.angle = 0;
+  G.boat.bobPhase = Math.random() * Math.PI * 2;
+}
+
+function initGame() {
+  G.mode = 'idle';
+  G.path = [];
+  G.isDrawing = false;
+  G.lanternsDelivered = 0;
+  G.pathIdx = 0;
+  G.sparkles = [];
+  G.petals = [];
+  G.bridgeGlow = 0;
+  G.moonY = 0.75;
+  G.moonTarget = 0.75;
+  G.successFlash = 0;
+  G.finaleTimer = 0;
+  G.hintVisible = true;
+  G.round = 0;
+  G.kelpSpeed = 0.22;
+  G.targetPulse = 0;
+  G.stampTimer = 0;
+  G.stampShown = false;
+  initStars();
+  initKelp();
+  resetBoat();
+  document.getElementById('hint').classList.remove('hidden');
+  document.getElementById('finale-text').style.opacity = 0;
+  document.getElementById('restart').classList.remove('show');
+  document.getElementById('stamp').classList.remove('show');
+  updateHUD();
+}
+
+function updateHUD() {
+  document.getElementById('lantern-count').textContent =
+    '\u{1F3E7} ' + G.lanternsDelivered + ' / 3';
+}
+
+// ── Input ──
+function getPos(e) {
+  if (e.touches && e.touches.length > 0)
+    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+cv.addEventListener('pointerdown', e => {
+  if (G.mode !== 'idle') return;
+  ensureAudio();
+  const p = getPos(e);
+  G.isDrawing = true;
+  G.path = [p];
+  G.boat.x = p.x;
+  G.boat.y = p.y;
+  playBrush();
+  if (G.hintVisible) {
+    document.getElementById('hint').classList.add('hidden');
+    G.hintVisible = false;
+  }
+});
+
+cv.addEventListener('pointermove', e => {
+  if (!G.isDrawing) return;
+  const p = getPos(e);
+  const last = G.path[G.path.length - 1];
+  const dx = p.x - last.x, dy = p.y - last.y;
+  if (dx * dx + dy * dy > 16) {
+    G.path.push(p);
+    if (G.path.length % 8 === 0) playBrush();
+  }
+});
+
+cv.addEventListener('pointerup', e => {
+  if (G.isDrawing && G.path.length > 8) {
+    G.isDrawing = false;
+    G.mode = 'traveling';
+    G.pathIdx = 0;
+    G.boat.x = G.path[0].x;
+    G.boat.y = G.path[0].y;
+    // set boat speed based on path length
+    G.boatSpeed = Math.max(1.5, Math.min(4, 250 / G.path.length));
+  } else {
+    G.isDrawing = false;
+    G.path = [];
+  }
+});
+
+// ── Particle helpers ──
+function spawnSparkles(x, y, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.5 + Math.random() * 2.5;
+    G.sparkles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 1,
+      r: 1 + Math.random() * 2.5,
+      a: 1,
+      cr: 255,
+      cg: 160 + Math.floor(Math.random() * 70),
+      cb: 40 + Math.floor(Math.random() * 50)
+    });
+  }
+}
+
+function spawnPetals(count) {
+  for (let i = 0; i < count; i++) {
+    // Pre-assign all per-petal attributes so no Math.random() in draw loop
+    G.petals.push({
+      x: Math.random() * cv.width,
+      y: -10 - Math.random() * cv.height * 0.25,
+      vy: 0.25 + Math.random() * 0.45,
+      vx: (Math.random() - 0.5) * 0.25,
+      phase: Math.random() * Math.PI * 2,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: 0.008 + Math.random() * 0.025,
+      alpha: 0.35 + Math.random() * 0.4,
+      cr: 255,
+      cg: 175 + Math.floor(Math.random() * 25),
+      cb: 185 + Math.floor(Math.random() * 25)
+    });
+  }
+}
+
+// ── Drawing ──
+let paperTex = null;
+function getPaperTex() {
+  if (paperTex) return paperTex;
+  const t = document.createElement('canvas');
+  t.width = t.height = 256;
+  const tc = t.getContext('2d');
+  tc.fillStyle = '#d4c8a8';
+  tc.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 2000; i++) {
+    const b = 180 + Math.random() * 50;
+    tc.fillStyle = 'rgba(' + b + ',' + (b - 10) + ',' + (b - 35) + ',0.06)';
+    tc.fillRect(Math.random() * 256, Math.random() * 256,
+      1 + Math.random() * 2, 1 + Math.random() * 2);
+  }
+  paperTex = t;
+  return t;
+}
+
+function drawSky() {
+  const g = ctx.createLinearGradient(0, 0, 0, cv.height * 0.52);
+  g.addColorStop(0, '#070b16');
+  g.addColorStop(0.4, '#101530');
+  g.addColorStop(1, '#182040');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, cv.width, cv.height);
+}
+
+function drawStars() {
+  const t = G.time;
+  for (let i = 0; i < G.stars.length; i++) {
+    const s = G.stars[i];
+    const a = 0.25 + 0.65 * Math.abs(Math.sin(t * s.spd + s.twinkle));
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(230,225,215,' + a.toFixed(3) + ')';
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawMoon() {
+  const mx = cv.width * 0.72;
+  const my = cv.height * G.moonY;
+  const mr = Math.min(cv.width, cv.height) * 0.05;
+
+  // glow
+  const gg = ctx.createRadialGradient(mx, my, mr * 0.2, mx, my, mr * 5);
+  gg.addColorStop(0, 'rgba(240,215,150,0.15)');
+  gg.addColorStop(0.4, 'rgba(200,180,110,0.04)');
+  gg.addColorStop(1, 'rgba(100,90,70,0)');
+  ctx.fillStyle = gg;
+  ctx.fillRect(0, 0, cv.width, cv.height * 0.6);
+
+  // moon body
+  ctx.beginPath();
+  ctx.fillStyle = '#f0e4c8';
+  ctx.arc(mx, my, mr, 0, Math.PI * 2);
+  ctx.fill();
+
+  // subtle crater
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(200,190,160,0.2)';
+  ctx.arc(mx + mr * 0.25, my - mr * 0.15, mr * 0.65, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawMountains() {
+  const baseY = cv.height * 0.45;
+
+  // far range
+  ctx.beginPath();
+  ctx.moveTo(0, baseY + 40);
+  for (let x = 0; x <= cv.width; x += 3) {
+    const h = Math.sin(x * 0.003) * 28 +
+      Math.sin(x * 0.008 + 1) * 14 +
+      Math.sin(x * 0.018 + 2) * 5;
+    ctx.lineTo(x, baseY - h);
+  }
+  ctx.lineTo(cv.width, cv.height * 0.55);
+  ctx.lineTo(0, cv.height * 0.55);
+  ctx.closePath();
+  ctx.fillStyle = '#141d36';
+  ctx.fill();
+
+  // near range
+  ctx.beginPath();
+  ctx.moveTo(0, baseY + 55);
+  for (let x = 0; x <= cv.width; x += 3) {
+    const h = Math.sin(x * 0.005 + 2) * 22 +
+      Math.sin(x * 0.012 + 3) * 10;
+    ctx.lineTo(x, baseY + 18 - h);
+  }
+  ctx.lineTo(cv.width, cv.height * 0.55);
+  ctx.lineTo(0, cv.height * 0.55);
+  ctx.closePath();
+  ctx.fillStyle = '#0f1628';
+  ctx.fill();
+}
+
+function drawRiver() {
+  const top = cv.height * 0.48;
+
+  const g = ctx.createLinearGradient(0, top, 0, cv.height);
+  g.addColorStop(0, '#0d1530');
+  g.addColorStop(0.4, '#0a1228');
+  g.addColorStop(1, '#070e1e');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, top, cv.width, cv.height - top);
+
+  // ripples
+  const t = G.time * 0.8;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 12; i++) {
+    const ry = top + 15 + i * (cv.height - top - 15) / 12;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(70,95,155,' + (0.04 + Math.sin(t + i) * 0.015).toFixed(3) + ')';
+    for (let x = 0; x <= cv.width; x += 4) {
+      const y = ry + Math.sin(x * 0.014 + t * 1.2 + i * 0.7) * 2.5;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // moon reflection
+  const mrx = cv.width * 0.72;
+  for (let i = 0; i < 8; i++) {
+    const ry = top + 8 + i * 20;
+    const rw = 20 + i * 6 + Math.sin(t + i * 0.5) * 5;
+    ctx.fillStyle = 'rgba(210,200,170,' + (0.05 - i * 0.004).toFixed(3) + ')';
+    ctx.fillRect(mrx - rw / 2, ry, rw, 2);
+  }
+}
+
+function drawBridge() {
+  const bx = cv.width * 0.5;
+  const by = cv.height * 0.48;
+  const bw = Math.min(cv.width * 0.32, 260);
+  const glow = G.bridgeGlow;
+
+  ctx.save();
+
+  // bridge glow
+  if (glow > 0) {
+    const gg = ctx.createRadialGradient(bx, by, 5, bx, by, bw * 0.9);
+    gg.addColorStop(0, 'rgba(255,195,70,' + (glow * 0.18).toFixed(3) + ')');
+    gg.addColorStop(1, 'rgba(255,195,70,0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(bx - bw, by - bw * 0.5, bw * 2, bw);
+  }
+
+  // arch
+  ctx.beginPath();
+  ctx.moveTo(bx - bw / 2, by + 12);
+  ctx.quadraticCurveTo(bx, by - 32 - glow * 12, bx + bw / 2, by + 12);
+  ctx.strokeStyle = 'rgba(' + (70 + glow * 110) + ',' + (60 + glow * 70) + ',' + (42 + glow * 30) + ',' + (0.65 + glow * 0.35).toFixed(3) + ')';
+  ctx.lineWidth = 3.5 + glow;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // deck
+  ctx.beginPath();
+  ctx.moveTo(bx - bw / 2 - 10, by + 12);
+  ctx.lineTo(bx + bw / 2 + 10, by + 12);
+  ctx.strokeStyle = 'rgba(' + (60 + glow * 90) + ',' + (50 + glow * 55) + ',' + (35 + glow * 25) + ',0.85)';
+  ctx.lineWidth = 4.5;
+  ctx.stroke();
+
+  // pillars
+  for (let i = -2; i <= 2; i++) {
+    const px = bx + i * bw / 5;
+    ctx.fillStyle = 'rgba(' + (45 + glow * 70) + ',' + (35 + glow * 45) + ',' + (25 + glow * 20) + ',0.75)';
+    ctx.fillRect(px - 2, by + 8, 4, 22);
+  }
+
+  // lanterns on bridge
+  const lps = [bx - bw / 2 + 12, bx, bx + bw / 2 - 12];
+  lps.forEach((lx, i) => {
+    if (i < G.lanternsDelivered) {
+      // lit lantern
+      const lg = ctx.createRadialGradient(lx, by - 14, 1, lx, by - 14, 18);
+      lg.addColorStop(0, 'rgba(255,155,35,0.55)');
+      lg.addColorStop(1, 'rgba(255,155,35,0)');
+      ctx.fillStyle = lg;
+      ctx.fillRect(lx - 18, by - 32, 36, 36);
+      ctx.beginPath();
+      ctx.fillStyle = '#d48020';
+      ctx.arc(lx, by - 14, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.fillStyle = '#f0a040';
+      ctx.arc(lx, by - 14, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(70,60,48,0.5)';
+      ctx.arc(lx, by - 14, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  // target indicator when idle and not done
+  if (G.mode === 'idle' && G.lanternsDelivered < 3) {
+    G.targetPulse += 0.04;
+    const pa = 0.3 + 0.35 * Math.sin(G.targetPulse);
+    ctx.fillStyle = 'rgba(255,200,80,' + pa.toFixed(3) + ')';
+    ctx.font = '18px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('\u{1F319}', bx, by - 45 - Math.sin(G.targetPulse) * 4);
+
+    // draw dashed arrow from boat to bridge
+    const boatX = G.boat.x;
+    const boatY = G.boat.y;
+    const aLen = 0.5; // interpolation factor for arrow start
+    const ax = boatX + (bx - boatX) * aLen;
+    const ay = boatY + (by - boatY) * aLen;
+    ctx.save();
+    ctx.setLineDash([6, 8]);
+    ctx.strokeStyle = 'rgba(255,200,80,' + (pa * 0.5).toFixed(3) + ')';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(boatX, boatY - 15);
+    ctx.lineTo(ax, ay);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function drawBoat(bx, by, angle) {
+  ctx.save();
+  ctx.translate(bx, by);
+
+  // gentle bob
+  const bob = Math.sin(G.time * 2.5 + G.boat.bobPhase) * 2;
+  ctx.translate(0, bob);
+
+  // tilt based on travel angle
+  ctx.rotate(angle * 0.06);
+
+  // boat hull
+  ctx.beginPath();
+  ctx.moveTo(-26, 6);
+  ctx.quadraticCurveTo(-22, -14, 0, -12);
+  ctx.quadraticCurveTo(22, -14, 26, 6);
+  ctx.quadraticCurveTo(14, 12, -14, 12);
+  ctx.closePath();
+  ctx.fillStyle = '#4a3018';
+  ctx.fill();
+  ctx.strokeStyle = '#2a1a08';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // oar detail
+  ctx.beginPath();
+  ctx.moveTo(8, -8);
+  ctx.lineTo(18, 14);
+  ctx.strokeStyle = '#3a2010';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // lantern on boat — pole
+  ctx.beginPath();
+  ctx.moveTo(-2, -10);
+  ctx.lineTo(-2, -28);
+  ctx.strokeStyle = 'rgba(160,140,100,0.6)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // lantern glow
+  const lrx = -2, lry = -28;
+  const lg = ctx.createRadialGradient(lrx, lry, 1, lrx, lry, 24);
+  lg.addColorStop(0, 'rgba(255,165,50,0.5)');
+  lg.addColorStop(0.5, 'rgba(255,130,30,0.1)');
+  lg.addColorStop(1, 'rgba(255,130,30,0)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(lrx - 24, lry - 24, 48, 48);
+
+  // lantern body
+  ctx.beginPath();
+  ctx.fillStyle = '#d47828';
+  ctx.arc(lrx, lry, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.fillStyle = '#f0a848';
+  ctx.arc(lrx, lry, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawKelp() {
+  const t = G.time;
+  for (let i = 0; i < G.kelp.length; i++) {
+    const k = G.kelp[i];
+    ctx.save();
+    const kx = k.x + Math.sin(t * 1.3 + k.phase) * 8;
+    ctx.translate(kx, k.y);
+
+    // strand
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    const segs = 5;
+    for (let j = 1; j <= segs; j++) {
+      const sx = Math.sin(t * 1.6 + k.phase + j * 0.8) * 5;
+      const sy = -k.h * j / segs;
+      ctx.lineTo(sx, sy);
+    }
+    ctx.strokeStyle = 'rgba(' + k.cr + ',' + k.cg + ',' + k.cb + ',0.5)';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // leaves
+    for (let j = 1; j < segs; j++) {
+      const sx = Math.sin(t * 1.6 + k.phase + j * 0.8) * 5;
+      const sy = -k.h * j / segs;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(' + (k.cg + 15) + ',' + (k.cg + 20) + ',' + (k.cb + 5) + ',0.4)';
+      ctx.ellipse(sx + 5, sy, 4.5, 2.8,
+        Math.sin(t + k.phase + j) * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+function drawBrushPath() {
+  if (G.path.length < 2) return;
+  ctx.save();
+
+  // glow
+  ctx.beginPath();
+  ctx.moveTo(G.path[0].x, G.path[0].y);
+  for (let i = 1; i < G.path.length; i++) {
+    ctx.lineTo(G.path[i].x, G.path[i].y);
+  }
+  ctx.strokeStyle = 'rgba(255,215,120,0.08)';
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // stroke
+  ctx.strokeStyle = 'rgba(215,195,140,0.25)';
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawSparkles() {
+  for (let i = 0; i < G.sparkles.length; i++) {
+    const s = G.sparkles[i];
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(' + s.cr + ',' + s.cg + ',' + s.cb + ',' + s.a.toFixed(3) + ')';
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawPetals() {
+  const t = G.time;
+  for (let i = 0; i < G.petals.length; i++) {
+    const p = G.petals[i];
+    ctx.save();
+    ctx.translate(p.x + Math.sin(t * 0.8 + p.phase) * 12, p.y);
+    ctx.rotate(p.rot);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 3, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + p.alpha.toFixed(3) + ')';
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawPaperOverlay() {
+  const pt = getPaperTex();
+  ctx.globalAlpha = 0.06;
+  const tw = Math.ceil(cv.width / 256), th = Math.ceil(cv.height / 256);
+  for (let x = 0; x < tw; x++)
+    for (let y = 0; y < th; y++) {
+      ctx.drawImage(pt, x * 256, y * 256);
+    }
+  ctx.globalAlpha = 1;
+}
+
+function drawVignette() {
+  const g = ctx.createRadialGradient(
+    cv.width / 2, cv.height / 2, cv.width * 0.22,
+    cv.width / 2, cv.height / 2, cv.width * 0.75
+  );
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.3)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, cv.width, cv.height);
+}
+
+// ── Easing helper ──
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInOutQuad(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+// ── Update ──
+function boatReachedBridge() {
+  const bridgeY = cv.height * 0.48;
+  const bridgeX = cv.width * 0.5;
+  const dx = G.boat.x - bridgeX;
+  const dy = G.boat.y - bridgeY;
+  return Math.sqrt(dx * dx + dy * dy) < 80;
+}
+
+function update(dt) {
+  G.time += dt;
+
+  // kelp drift
+  for (let i = 0; i < G.kelp.length; i++) {
+    const k = G.kelp[i];
+    k.y += k.vy;
+    if (k.y < -60) {
+      k.y = cv.height + 30;
+      k.x = cv.width * 0.1 + Math.random() * cv.width * 0.8;
+    }
+  }
+
+  // sparkles
+  for (let i = 0; i < G.sparkles.length; i++) {
+    const s = G.sparkles[i];
+    s.x += s.vx;
+    s.y += s.vy;
+    s.vy -= 0.008;
+    s.a -= 0.016;
+    s.r *= 0.992;
+  }
+  G.sparkles = G.sparkles.filter(s => s.a > 0.03);
+
+  // petals
+  for (let i = 0; i < G.petals.length; i++) {
+    const p = G.petals[i];
+    p.y += p.vy;
+    p.rot += p.rotSpeed;
+    if (p.y > cv.height + 30) {
+      p.y = -20;
+      p.x = Math.random() * cv.width;
+    }
+  }
+  if (G.petals.length > 80) G.petals.splice(0, G.petals.length - 80);
+
+  // boat travel
+  if (G.mode === 'traveling') {
+    G.pathIdx += G.boatSpeed;
+    const idx = Math.min(Math.floor(G.pathIdx), G.path.length - 1);
+    const frac = G.pathIdx - idx;
+    const ni = Math.min(idx + 1, G.path.length - 1);
+    const p0 = G.path[idx], p1 = G.path[ni];
+    G.boat.x = p0.x + (p1.x - p0.x) * frac;
+    G.boat.y = p0.y + (p1.y - p0.y) * frac;
+    if (p1 !== p0) {
+      G.boat.angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+    }
+
+    // trail sparkles
+    if (Math.random() < 0.2) spawnSparkles(G.boat.x, G.boat.y, 1);
+
+    if (G.pathIdx >= G.path.length - 2) {
+      if (boatReachedBridge()) {
+        deliverLantern();
+      } else {
+        G.mode = 'returning';
+      }
+    }
+  }
+
+  // boat returning — eased
+  if (G.mode === 'returning') {
+    const ty = cv.height * 0.86;
+    const tx = cv.width * (0.3 + Math.random() * 0.4);
+    G.boat.y += (ty - G.boat.y) * 0.04;
+    G.boat.x += (tx - G.boat.x) * 0.04;
+    if (Math.abs(G.boat.y - ty) < 5) {
+      G.mode = 'idle';
+      G.path = [];
+      G.boat.x = cv.width * (0.3 + Math.random() * 0.4);
+      G.boat.y = cv.height * 0.86;
+    }
+  }
+
+  // success flash
+  if (G.successFlash > 0) G.successFlash -= dt * 2;
+
+  // moon rise in finale
+  if (G.mode === 'finale') {
+    G.moonY += (G.moonTarget - G.moonY) * 0.01;
+    G.finaleTimer += dt;
+
+    if (G.finaleTimer > 0.5) {
+      document.getElementById('finale-text').style.opacity =
+        Math.min(1, (G.finaleTimer - 0.5) / 1.5).toFixed(3);
+    }
+    if (G.finaleTimer > 2.2) {
+      document.getElementById('restart').classList.add('show');
+    }
+    if (G.finaleTimer > 0.8 && !G.stampShown) {
+      document.getElementById('stamp').classList.add('show');
+      G.stampShown = true;
+      G.stampTimer = 0.8;
+    }
+    if (G.stampShown && G.stampTimer > 0) {
+      G.stampTimer -= dt;
+      if (G.stampTimer <= 0) {
+        document.getElementById('stamp').classList.remove('show');
+      }
+    }
+
+    // continuous petals & sparkles
+    if (Math.random() < 0.15) spawnPetals(1);
+    if (Math.random() < 0.05) {
+      spawnSparkles(
+        cv.width * 0.2 + Math.random() * cv.width * 0.6,
+        cv.height * 0.2 + Math.random() * cv.height * 0.4, 2
+      );
+    }
+  }
+}
+
+function deliverLantern() {
+  G.lanternsDelivered++;
+  G.bridgeGlow = Math.min(1, G.bridgeGlow + 0.33);
+  updateHUD();
+  spawnSparkles(cv.width / 2, cv.height * 0.48, 25);
+  G.successFlash = 1;
+  playDeliver();
+
+  if (G.lanternsDelivered >= 3) {
+    // FINALE
+    G.mode = 'finale';
+    G.finaleTimer = 0;
+    G.stampShown = false;
+    G.stampTimer = 0;
+    G.moonTarget = 0.32;
+    spawnPetals(45);
+    spawnSparkles(cv.width / 2, cv.height * 0.35, 55);
+    playFinale();
+  } else {
+    G.mode = 'returning';
+    // increase kelp speed slightly
+    G.kelpSpeed += 0.08;
+    for (let i = 0; i < G.kelp.length; i++) {
+      G.kelp[i].vy = -(G.kelpSpeed + Math.random() * G.kelpSpeed * 0.5);
+    }
+  }
+}
+
+// ── Render ──
+function render() {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  drawSky();
+  drawStars();
+  drawMoon();
+  drawMountains();
+  drawRiver();
+  drawKelp();
+  drawBrushPath();
+  drawBridge();
+  drawBoat(G.boat.x, G.boat.y, G.boat.angle);
+  drawSparkles();
+  drawPetals();
+  drawPaperOverlay();
+  drawVignette();
+
+  // success flash
+  if (G.successFlash > 0) {
+    ctx.fillStyle = 'rgba(255,220,135,' + (G.successFlash * 0.1).toFixed(3) + ')';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+  }
+}
+
+// ── Main loop ──
+let lastTime = 0;
+function loop(t) {
+  const dt = Math.min((t - lastTime) / 1000, 0.05);
+  lastTime = t;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── Restart ──
+document.getElementById('restart').addEventListener('click', () => {
+  initGame();
+});
+
+// ── Start ──
+initGame();
+requestAnimationFrame(t => { lastTime = t; loop(t); });
+</script>
+</body>
+</html>
