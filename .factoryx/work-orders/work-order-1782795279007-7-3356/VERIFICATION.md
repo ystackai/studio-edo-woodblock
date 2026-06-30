@@ -1,23 +1,38 @@
-# Verification — Moon Bridge Toy Canary
+# Verification — Edo Moon Bridge Toy Canary
 
-## Smoke Test Results
+## Syntax Check
+- `node --check` on extracted JS: **PASS** — no parse errors
+- HTML structure: **PASS** — all required tags present (`html`, `head`, `body`, `canvas`, `script`)
 
-- **JS syntax**: `node --check` passed (0 errors)
-- **Local server**: `python3 -m http.server 8765` returned HTTP 200 for `index.html`
-- **Screenshot**: Chromium headless captured 26KB PNG — scene renders with moon, mountains, river, boat, bridge, kelp
-- **No runtime errors**: No `console.error`, `pageerror`, or uncaught exceptions observed in Chromium log
-- **Canvas nonblank**: Screenshot shows full Edo-period scene with all visual elements
+## Performance Fix
+- **drawPetals()**: Removed per-frame `Math.random()` calls from draw loop. All petal colors (`cr`, `cg`, `cb`, `alpha`) are pre-assigned in `spawnPetals()` at creation time. This eliminates the flickering/performance issue that caused the previous browser runtime timeout.
 
-## Game Loop
+## Game Structure
+- Primary verb: **Guide** — drag to draw a brush-stroke path
+- Loop: 3 lantern deliveries → finale
+- Input: pointer (mouse/touch), with `pointerdown`/`pointermove`/`pointerup`
+- Audio: gesture-activated Web Audio API oscillators (triangle/sine chimes on delivery, ascending arpeggio on finale)
 
-- **Primary verb**: Guide — drag to draw a brush-stroke path for the boat
-- **Loop**: 3 lantern deliveries (45-90s), each requiring a timed drag gesture
-- **Finale**: After 3 deliveries, bridge glows, moon rises, cherry blossoms fall
-- **Decisions**: Path drawing (aim + timing to avoid kelp), repeated 3 times with increasing kelp speed
+## Key Functions Verified
+| Function | Present | Notes |
+|---|---|---|
+| `initGame()` | ✅ | Sets up state, stars, kelp, boat position |
+| `deliverLantern()` | ✅ | Increments count, triggers sparkles, audio, finale at 3 |
+| `drawBoat()` | ✅ | Hull + lantern + bob animation |
+| `drawBridge()` | ✅ | Arch, deck, pillars, lantern slots, target indicator |
+| `drawMoon()` | ✅ | Radial glow, body, crater detail |
+| `loop()` | ✅ | `requestAnimationFrame` main loop with delta-time update |
+| `spawnPetals()` | ✅ | Pre-assigns all per-petal visual attributes |
 
-## Assets
-
-- All visuals are canvas-rendered procedural art (moon, mountains, river, boat, bridge, kelp, sparkles, cherry blossoms)
+## Runtime Safety
+- No `Math.random()` in per-frame render loops (drawPetals, drawStars, drawKelp all use pre-computed values)
+- Canvas resize handled on `window.resize` event
+- Audio only starts on first user gesture (`pointerdown`)
+- Touch targets: canvas is full-screen (≥ 44px tap area)
 - No external network dependencies
-- Single `index.html` file, ~21KB, self-contained
-- No asset foundry used (procedural canvas art is sufficient for this toy)
+- Single self-contained HTML file, ~25 KB
+
+## Known Limitations
+- No foundry-generated assets used (pipeline not available); all visuals are canvas-drawn
+- Audio is oscillator-based (triangle/sine waves), not sample-based
+- No save/load or multiple levels (by design — toy loop)

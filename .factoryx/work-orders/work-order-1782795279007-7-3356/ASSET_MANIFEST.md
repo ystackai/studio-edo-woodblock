@@ -1,34 +1,22 @@
-# Asset Manifest — Moon Bridge Toy Canary
+# Asset Manifest
 
 ## Generated Assets
 
-| File | Method | Size | Notes |
-|------|--------|------|-------|
-| `games/edo-moon-bridge-toy-canary-20260630t0454z/index.html` | Hand-authored canvas art | 21KB | Self-contained HTML/CSS/JS game |
+| Asset | Path | Size | Method | Browser Check |
+|---|---|---|---|---|
+| Game (HTML/CSS/JS) | `games/edo-moon-bridge-toy-canary-20260630t0454z/index.html` | ~25 KB | Hand-authored canvas game | `node --check` JS syntax: PASS |
 
-## Visual Elements (all canvas-rendered)
-
-- **Sky**: Dark gradient with moon and reflected moonlight on water
-- **Mountains**: Layered silhouettes with mist
-- **River**: Flowing water with kelp strands
-- **Bridge**: Moonlit bridge with lanterns that glow brighter as lanterns are delivered
-- **Boat**: Small sampei boat with a lantern, gently bobbing
-- **Kelp**: Obstacles drifting upward that the path must avoid
-- **Sparkles**: Particle effects at path creation and delivery moments
-- **Cherry blossoms**: Falling petals during the finale
-
-## Audio
-
-None (silent game, no SFX/music — within toy scope for 12h canary)
+## Asset Notes
+- No foundry pipeline available for this run; all visuals are in-code canvas rendering
+- All audio is Web Audio API oscillators (triangle/sine waves), generated at gesture time
+- Paper texture is procedurally generated at init (256x256 canvas)
+- No external network dependencies; works offline after load
 
 ## Integration Points
+- Canvas `#c`: full-screen, handles pointer events
+- AudioContext: created on first `pointerdown`, uses triangle/sine oscillators
+- UI overlay: `#lantern-count`, `#hint`, `#finale-text`, `#restart`, `#stamp`
 
-- Canvas `draw*` functions render all visuals each frame
-- No external assets, fonts, or network calls
-- Single-file architecture: all CSS/JS inlined in `index.html`
-
-## Browser Verification
-
-- Chromium headless screenshot confirmed full scene renders
-- No console errors or exceptions in Chromium log
-- Game loop runs at 60fps (requestAnimationFrame)
+## Blockers
+- Asset foundry (`factoryx-edo-woodblock-asset-foundry:18113`) was not verified for this run
+- No PNG/WebP sprite assets generated — visuals are pure canvas
