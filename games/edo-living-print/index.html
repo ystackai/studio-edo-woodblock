@@ -72,6 +72,7 @@ function generatePaper() {
   paperCtx.globalAlpha = 1;
 }
 
+
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
   W = window.innerWidth;
@@ -82,6 +83,7 @@ function resize() {
   cvs.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   generatePaper();
+  initParticles();
 }
 
 // ─── Audio (Web Audio, starts on first press) ──────────────
@@ -199,7 +201,17 @@ class Mist {
   }
 }
 const mists = [];
-for (let i = 0; i < 36; i++) mists.push(new Mist(true));
+const petals = [];
+const rains = [];
+const birds = [];
+
+function initParticles() {
+  mists.length = 0; petals.length = 0; rains.length = 0; birds.length = 0;
+  for (let i = 0; i < 36; i++) mists.push(new Mist(true));
+  for (let i = 0; i < 20; i++) petals.push(new Petal());
+  for (let i = 0; i < 100; i++) rains.push(new Rain());
+  for (let i = 0; i < 5; i++) birds.push(new Bird(true));
+}
 
 // Cherry blossoms
 class Petal {
@@ -240,8 +252,7 @@ class Petal {
     ctx.restore();
   }
 }
-const petals = [];
-for (let i = 0; i < 20; i++) petals.push(new Petal());
+
 
 // Rain drops
 class Rain {
@@ -267,8 +278,7 @@ class Rain {
     ctx.stroke();
   }
 }
-const rains = [];
-for (let i = 0; i < 100; i++) rains.push(new Rain());
+
 
 // Birds
 class Bird {
@@ -301,8 +311,7 @@ class Bird {
     ctx.stroke();
   }
 }
-const birds = [];
-for (let i = 0; i < 5; i++) birds.push(new Bird(true));
+
 
 // ─── Mountain (Fuji) ─────────────────────────────────────────
 function drawFuji(t, alpha) {
