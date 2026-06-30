@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Ink Breath — A Living Woodblock</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#ede8df}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ─── Ink Breath: A Living Woodblock Print ──────────────────
+// Press and hold to wake the print. Drag to spread ink.
+// The deeper you press, the more the scene comes alive.
+// Hold for ~60s to see the full reveal.
+// ─────────────────────────────────────────────────────────────
+
+const cvs = document.getElementById('c');
+const ctx = cvs.getContext('2d');
+let W, H, dpr;
+
+// ─── State ───────────────────────────────────────────────────
+let depth = 0;            // 0..1, accumulated ink "life"
+let pressing = false;
+let pressX = W * 0.5;
+let pressY = H * 0.5;
+let pressAge = 0;         // how long this press has held
+let totalPressTime = 0;   // cumulative press time in seconds
+let stage = 0;            // 0..5 visual stages
+let lastStageTime = 0;
+let rainEnabled = false;
+let birdsEnabled = false;
+let moonPhase = 0;        // 0..1, moon rising
+let craneAlpha = 0;       // hidden crane reveal
+let blossomCount = 0;
+
+// ─── Paper grain ─────────────────────────────────────────────
+let paperCanvas, paperCtx;
+
+function generatePaper() {
+  paperCanvas = document.createElement('canvas');
+  paperCanvas.width = W;
+  paperCanvas.height = H;
+  paperCtx = paperCanvas.getContext('2d');
+  const img = paperCtx.createImageData(W, H);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const n = (Math.random() - 0.5) * 14;
+    d[i] = 237 + n;
+    d[i+1] = 232 + n * 0.85;
+    d[i+2] = 223 + n * 0.75;
+    d[i+3] = 255;
+  }
+  paperCtx.putImageData(img, 0, 0);
+  // Fiber streaks
+  paperCtx.globalAlpha = 0.025;
+  for (let i = 0; i < 80; i++) {
+    const y = Math.random() * H;
+    const len = 40 + Math.random() * 140;
+    const x = Math.random() * W;
+    paperCtx.strokeStyle = Math.random() > 0.5 ? '#b0a898' : '#d0c8b8';
+    paperCtx.lineWidth = 0.4 + Math.random() * 0.6;
+    paperCtx.beginPath();
+    paperCtx.moveTo(x, y);
+    paperCtx.lineTo(x + len, y + (Math.random() - 0.5) * 3);
+    paperCtx.stroke();
+  }
+  paperCtx.globalAlpha = 1;
+}
+
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  cvs.width = W * dpr;
+  cvs.height = H * dpr;
+  cvs.style.width = W + 'px';
+  cvs.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  generatePaper();
+  initParticles();
+}
+
+// ─── Audio (Web Audio, starts on first press) ──────────────
+let actx = null;
+let windNode = null;
+let windGain = null;
+let rainNode = null;
+let rainGain = null;
+let lastStageSound = 0;
+
+function initAudio() {
+  if (actx) return;
+  try {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    // Wind: filtered noise
+    const wsz = actx.sampleRate * 6;
+    const wbuf = actx.createBuffer(1, wsz, actx.sampleRate);
+    const wd = wbuf.getChannelData(0);
+    for (let i = 0; i < wsz; i++) wd[i] = (Math.random() * 2 - 1);
+    windNode = actx.createBufferSource();
+    windNode.buffer = wbuf; windNode.loop = true;
+    const wbp = actx.createBiquadFilter();
+    wbp.type = 'bandpass'; wbp.frequency.value = 180; wbp.Q.value = 0.5;
+    windGain = actx.createGain();
+    windGain.gain.value = 0;
+    windNode.connect(wbp); wbp.connect(windGain); windGain.connect(actx.destination);
+    windNode.start();
+    // Rain: higher frequency noise
+    const rsz = actx.sampleRate * 4;
+    const rbuf = actx.createBuffer(1, rsz, actx.sampleRate);
+    const rd = rbuf.getChannelData(0);
+    for (let i = 0; i < rsz; i++) rd[i] = (Math.random() * 2 - 1);
+    rainNode = actx.createBufferSource();
+    rainNode.buffer = rbuf; rainNode.loop = true;
+    const rbp = actx.createBiquadFilter();
+    rbp.type = 'highpass'; rbp.frequency.value = 2000;
+    rainGain = actx.createGain();
+    rainGain.gain.value = 0;
+    rainNode.connect(rbp); rbp.connect(rainGain); rainGain.connect(actx.destination);
+    rainNode.start();
+  } catch(e) {}
+}
+
+// Koto-like pluck at stage transitions
+function pluckStage(tone) {
+  if (!actx) return;
+  const now = actx.currentTime;
+  if (now - lastStageSound < 2) return;
+  lastStageSound = now;
+  const osc = actx.createOscillator();
+  osc.type = 'triangle'; osc.frequency.value = tone;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.08, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+  osc.connect(g); g.connect(actx.destination);
+  osc.start(now); osc.stop(now + 3);
+  // Harmonic
+  const osc2 = actx.createOscillator();
+  osc2.type = 'sine'; osc2.frequency.value = tone * 2.01;
+  const g2 = actx.createGain();
+  g2.gain.setValueAtTime(0.03, now);
+  g2.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+  osc2.connect(g2); g2.connect(actx.destination);
+  osc2.start(now + 0.05); osc2.stop(now + 2);
+}
+
+// Press sound: soft brush-like thud
+function pressSound() {
+  if (!actx) return;
+  const now = actx.currentTime;
+  const buf = actx.createBuffer(1, actx.sampleRate * 0.5, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) {
+    d[i] = (Math.random() * 2 - 1) * 0.04 * Math.exp(-i / (actx.sampleRate * 0.15));
+  }
+  const s = actx.createBufferSource(); s.buffer = buf;
+  const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400;
+  const g = actx.createGain(); g.gain.value = 0.06;
+  s.connect(f); f.connect(g); g.connect(actx.destination); s.start(now);
+}
+
+// ─── Particles ───────────────────────────────────────────────
+
+// Mist
+class Mist {
+  constructor(fill) {
+    this.reset(fill);
+  }
+  reset(fill) {
+    this.x = fill ? Math.random() * (W + 400) - 200 : -200 - Math.random() * 300;
+    this.y = H * 0.15 + Math.random() * H * 0.6;
+    this.r = 80 + Math.random() * 220;
+    this.vx = 0.08 + Math.random() * 0.25;
+    this.o = 0.008 + Math.random() * 0.03;
+    this.wobble = Math.random() * Math.PI * 2;
+    this.wobbleSpd = 0.0004 + Math.random() * 0.0006;
+    this.warmth = Math.random();
+  }
+  tick(t) {
+    this.x += this.vx;
+    this.y += Math.sin(t * this.wobbleSpd + this.wobble) * 0.06;
+    if (this.x > W + this.r) this.reset(false);
+  }
+  draw(ctx, depth) {
+    const o = this.o * (0.3 + depth * 1.5);
+    const r = Math.round(205 + this.warmth * 25);
+    const g = Math.round(200 + this.warmth * 20);
+    const b = Math.round(190 - this.warmth * 10);
+    const gr = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
+    gr.addColorStop(0, `rgba(${r},${g},${b},${o})`);
+    gr.addColorStop(0.6, `rgba(${r},${g},${b},${o * 0.35})`);
+    gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+const mists = [];
+const petals = [];
+const rains = [];
+const birds = [];
+
+function initParticles() {
+  mists.length = 0; petals.length = 0; rains.length = 0; birds.length = 0;
+  for (let i = 0; i < 36; i++) mists.push(new Mist(true));
+  for (let i = 0; i < 20; i++) petals.push(new Petal());
+  for (let i = 0; i < 100; i++) rains.push(new Rain());
+  for (let i = 0; i < 5; i++) birds.push(new Bird(true));
+}
+
+// Cherry blossoms
+class Petal {
+  constructor() { this.reset(true); }
+  reset(fill) {
+    this.x = fill ? Math.random() * W : -10 - Math.random() * 60;
+    this.y = fill ? Math.random() * H * 0.6 : -10;
+    this.size = 3 + Math.random() * 5;
+    this.vx = 0.2 + Math.random() * 0.5;
+    this.vy = 0.1 + Math.random() * 0.3;
+    this.rot = Math.random() * Math.PI * 2;
+    this.rotV = (Math.random() - 0.5) * 0.03;
+    this.wobble = Math.random() * Math.PI * 2;
+    this.alpha = 0.3 + Math.random() * 0.5;
+    // Blossom color: soft pink with slight variation
+    const hue = 340 + Math.random() * 20;
+    const sat = 30 + Math.random() * 25;
+    const lit = 82 + Math.random() * 10;
+    this.color = `hsla(${hue},${sat}%,${lit}%,`;
+  }
+  tick() {
+    this.x += this.vx + Math.sin(this.wobble) * 0.15;
+    this.y += this.vy;
+    this.rot += this.rotV;
+    this.wobble += 0.02;
+    if (this.y > H + 20) this.reset(false);
+  }
+  draw(ctx, globalAlpha) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rot);
+    ctx.globalAlpha = this.alpha * globalAlpha;
+    ctx.fillStyle = this.color + '1)';
+    // Petal shape: a small oval
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+
+// Rain drops
+class Rain {
+  constructor() { this.reset(true); }
+  reset(fill) {
+    this.x = fill ? Math.random() * W : Math.random() * W;
+    this.y = fill ? Math.random() * H : -10 - Math.random() * 40;
+    this.len = 8 + Math.random() * 18;
+    this.speed = 3 + Math.random() * 4;
+    this.alpha = 0.05 + Math.random() * 0.12;
+  }
+  tick() {
+    this.y += this.speed;
+    this.x += 0.3;
+    if (this.y > H + 10) this.reset(false);
+  }
+  draw(ctx, globalAlpha) {
+    ctx.strokeStyle = `rgba(30,40,80,${this.alpha * globalAlpha})`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(this.x + 0.5, this.y + this.len);
+    ctx.stroke();
+  }
+}
+
+
+// Birds
+class Bird {
+  constructor(fill) {
+    this.x = fill ? Math.random() * W : W + 30 + Math.random() * 100;
+    this.y = H * 0.1 + Math.random() * H * 0.2;
+    this.vx = -0.5 - Math.random() * 0.8;
+    this.vy = (Math.random() - 0.5) * 0.15;
+    this.wingPhase = Math.random() * Math.PI * 2;
+    this.size = 4 + Math.random() * 4;
+  }
+  tick() {
+    this.x += this.vx;
+    this.y += Math.sin(this.wingPhase) * 0.08;
+    this.wingPhase += 0.12;
+    if (this.x < -50) {
+      this.x = W + 30 + Math.random() * 100;
+      this.y = H * 0.1 + Math.random() * H * 0.2;
+    }
+  }
+  draw(ctx, alpha) {
+    const wingY = Math.sin(this.wingPhase) * this.size * 0.7;
+    ctx.strokeStyle = `rgba(25,30,50,${alpha})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    // V-shape for the bird
+    ctx.moveTo(this.x - this.size * 2, this.y - wingY);
+    ctx.quadraticCurveTo(this.x - this.size * 0.5, this.y + Math.abs(wingY) * 0.3, this.x, this.y);
+    ctx.quadraticCurveTo(this.x + this.size * 0.5, this.y + Math.abs(wingY) * 0.3, this.x + this.size * 2, this.y - wingY);
+    ctx.stroke();
+  }
+}
+
+
+// ─── Mountain (Fuji) ─────────────────────────────────────────
+function drawFuji(t, alpha) {
+  if (alpha < 0.01) return;
+  const baseY = H * 0.38;
+  const peakX = W * 0.55;
+  const peakY = H * 0.12;
+  const baseW = W * 0.5;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Mountain body
+  ctx.beginPath();
+  ctx.moveTo(peakX - baseW, baseY);
+  // Left slope: smooth curve
+  ctx.bezierCurveTo(
+    peakX - baseW * 0.6, baseY - (baseY - peakY) * 0.3,
+    peakX - baseW * 0.15, peakY + (baseY - peakY) * 0.4,
+    peakX, peakY
+  );
+  // Right slope
+  ctx.bezierCurveTo(
+    peakX + baseW * 0.15, peakY + (baseY - peakY) * 0.4,
+    peakX + baseW * 0.6, baseY - (baseY - peakY) * 0.3,
+    peakX + baseW, baseY
+  );
+  ctx.closePath();
+
+  // Ink gradient for mountain
+  const mg = ctx.createLinearGradient(peakX, peakY, peakX, baseY);
+  const mink = Math.round(35 - depth * 20);
+  mg.addColorStop(0, `rgba(${mink},${mink + 5},${mink + 18},0.9)`);
+  mg.addColorStop(0.3, `rgba(${mink + 8},${mink + 12},${mink + 25},0.75)`);
+  mg.addColorStop(1, `rgba(${mink + 15},${mink + 18},${mink + 30},0.5)`);
+  ctx.fillStyle = mg;
+  ctx.fill();
+
+  // Snow cap (appears at depth > 0.3)
+  if (depth > 0.3) {
+    const snowA = Math.min(1, (depth - 0.3) * 2);
+    ctx.save();
+    ctx.globalAlpha = alpha * snowA * 0.8;
+    ctx.beginPath();
+    const snowW = baseW * 0.28;
+    const snowBase = peakY + (baseY - peakY) * 0.18;
+    ctx.moveTo(peakX - snowW, snowBase);
+    ctx.bezierCurveTo(peakX - snowW * 0.6, snowBase - 8, peakX - 5, peakY + 5, peakX, peakY);
+    ctx.bezierCurveTo(peakX + 5, peakY + 5, peakX + snowW * 0.6, snowBase - 8, peakX + snowW, snowBase);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(230,228,220,0.9)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// ─── Small boat on the water ─────────────────────────────────
+function drawBoat(t, alpha) {
+  if (alpha < 0.01) return;
+  const bx = W * 0.3 + Math.sin(t * 0.0003) * W * 0.04;
+  const by = H * 0.62 + Math.sin(t * 0.0008) * 6;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(bx, by);
+  ctx.rotate(Math.sin(t * 0.0007) * 0.03);
+
+  // Boat hull
+  ctx.beginPath();
+  ctx.moveTo(-35, 4);
+  ctx.quadraticCurveTo(-20, -3, 0, -1);
+  ctx.quadraticCurveTo(20, -3, 35, 4);
+  ctx.quadraticCurveTo(15, 8, 0, 6);
+  ctx.quadraticCurveTo(-15, 8, -35, 4);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(30,35,55,0.7)';
+  ctx.fill();
+
+  // Sail (appears at depth > 0.4)
+  if (depth > 0.4) {
+    const sailA = Math.min(1, (depth - 0.4) * 2.5);
+    ctx.save();
+    ctx.globalAlpha = alpha * sailA;
+    ctx.beginPath();
+    ctx.moveTo(5, -1);
+    ctx.lineTo(-5, -42);
+    ctx.lineTo(18, -12);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(50,55,75,0.5)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Tiny figure (appears at depth > 0.6)
+  if (depth > 0.6) {
+    const figA = Math.min(1, (depth - 0.6) * 2.5);
+    ctx.save();
+    ctx.globalAlpha = alpha * figA;
+    ctx.fillStyle = 'rgba(20,25,40,0.8)';
+    ctx.fillRect(8, -8, 3, 8); // body
+    ctx.beginPath(); ctx.arc(9.5, -11, 2.5, 0, Math.PI * 2); ctx.fill(); // head
+    // Hat (wide-brimmed straw hat)
+    ctx.beginPath();
+    ctx.ellipse(9.5, -13, 7, 2.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(60,55,45,0.6)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// ─── Crane (hidden joy reveal) ───────────────────────────────
+function drawCrane(t, alpha) {
+  if (alpha < 0.01) return;
+  // Crane flies across at upper portion of sky
+  const cx = (W * 0.1 + (t * 0.01) % (W * 1.4)) - W * 0.2;
+  const cy = H * 0.18 + Math.sin(t * 0.001) * 15;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx, cy);
+
+  const s = 1.2; // scale
+  ctx.strokeStyle = `rgba(25,30,50,${alpha})`;
+  ctx.lineWidth = 1.5 * s;
+
+  // Body
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 12 * s, 5 * s, -0.1, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(40,45,65,${alpha * 0.6})`;
+  ctx.fill();
+
+  // Neck (curved)
+  ctx.beginPath();
+  ctx.moveTo(12 * s, -2 * s);
+  ctx.quadraticCurveTo(22 * s, -15 * s, 18 * s, -28 * s);
+  ctx.stroke();
+
+  // Head
+  ctx.beginPath();
+  ctx.arc(18 * s, -30 * s, 3 * s, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(40,45,65,${alpha * 0.7})`;
+  ctx.fill();
+
+  // Red cap (characteristic of herons/cranes)
+  ctx.beginPath();
+  ctx.arc(18 * s, -31 * s, 2 * s, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(180,50,50,${alpha * 0.8})`;
+  ctx.fill();
+
+  // Beak
+  ctx.beginPath();
+  ctx.moveTo(20 * s, -30 * s);
+  ctx.lineTo(30 * s, -27 * s);
+  ctx.lineWidth = 1.5 * s;
+  ctx.stroke();
+
+  // Wings (flapping)
+  const wingPhase = Math.sin(t * 0.003) * 15;
+  ctx.lineWidth = 1.2 * s;
+  // Left wing
+  ctx.beginPath();
+  ctx.moveTo(-5 * s, -3 * s);
+  ctx.quadraticCurveTo(-15 * s, (-18 + wingPhase) * s, -28 * s, (-10 + wingPhase) * s);
+  ctx.stroke();
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(-3 * s, -2 * s);
+  ctx.quadraticCurveTo(-13 * s, (-16 + wingPhase) * s, -25 * s, (-8 + wingPhase) * s);
+  ctx.stroke();
+
+  // Legs (trailing)
+  ctx.lineWidth = 1 * s;
+  ctx.beginPath();
+  ctx.moveTo(-10 * s, 4 * s);
+  ctx.lineTo(-18 * s, 20 * s);
+  ctx.moveTo(-8 * s, 4 * s);
+  ctx.lineTo(-14 * s, 22 * s);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ─── Moon (appears at stage 5) ───────────────────────────────
+function drawMoon(t, alpha) {
+  if (alpha < 0.01) return;
+  const mx = W * 0.72;
+  const my = H * 0.15;
+  const mr = 22 + moonPhase * 8;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Moon glow
+  const mg = ctx.createRadialGradient(mx, my, mr * 0.3, mx, my, mr * 3);
+  mg.addColorStop(0, `rgba(240,235,220,${alpha * 0.4})`);
+  mg.addColorStop(0.5, `rgba(235,230,215,${alpha * 0.1})`);
+  mg.addColorStop(1, 'rgba(235,230,215,0)');
+  ctx.fillStyle = mg;
+  ctx.beginPath(); ctx.arc(mx, my, mr * 3, 0, Math.PI * 2); ctx.fill();
+
+  // Moon disc
+  ctx.beginPath();
+  ctx.arc(mx, my, mr, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(240,238,230,${alpha * 0.85})`;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ─── Wave horizon ────────────────────────────────────────────
+function horizonY(x, t) {
+  const cx = W * 0.5;
+  let y = H * 0.55;
+  // Primary wave
+  y += Math.sin(x * 0.004 + t * 0.0008) * (12 + depth * 18);
+  // Secondary wave
+  y += Math.sin(x * 0.009 - t * 0.0012) * (5 + depth * 8);
+  // Tertiary ripple
+  y += Math.sin(x * 0.02 + t * 0.002) * (2 + depth * 3);
+  // Press influence: horizon responds to press position
+  if (pressing) {
+    const dist = Math.abs(x - pressX) / W;
+    y += Math.sin(dist * Math.PI) * Math.sin(t * 0.004) * pressAge * 0.03;
+  }
+  return y;
+}
+
+// ─── Draw ink wash ──────────────────────────────────────────
+function drawInkWash(t) {
+  const inkR = Math.round(28 - depth * 18);
+  const inkG = Math.round(32 - depth * 22);
+  const inkB = Math.round(58 - depth * 28);
+
+  // Wave path
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  for (let x = 0; x <= W; x += 2) {
+    ctx.lineTo(x, horizonY(x, t));
+  }
+  ctx.lineTo(W, H);
+  ctx.closePath();
+
+  // Ink wash gradient
+  const grad = ctx.createLinearGradient(0, H * 0.45, 0, H);
+  grad.addColorStop(0, `rgba(${inkR},${inkG},${inkB},${0.06 + depth * 0.12})`);
+  grad.addColorStop(0.2, `rgba(${inkR},${inkG},${inkB},${0.25 + depth * 0.2})`);
+  grad.addColorStop(0.5, `rgba(${inkR},${inkG},${inkB},${0.5 + depth * 0.25})`);
+  grad.addColorStop(1, `rgba(${Math.max(0, inkR - 10)},${Math.max(0, inkG - 12)},${Math.max(0, inkB - 18)},${0.68 + depth * 0.15})`);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Ink edge (visible at depth > 0.1)
+  if (depth > 0.1) {
+    const ea = Math.min(1, (depth - 0.1) * 1.8);
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 2) {
+      const y = horizonY(x, t);
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = `rgba(${inkR},${inkG},${inkB},${ea * 0.65})`;
+    ctx.lineWidth = 0.8 + depth * 1.5;
+    ctx.stroke();
+  }
+
+  // Secondary wave echo (depth > 0.4)
+  if (depth > 0.4) {
+    const ga = (depth - 0.4) * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 2) {
+      ctx.lineTo(x, horizonY(x, t + 2000) + H * 0.04);
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${inkR},${inkG},${inkB},${ga})`;
+    ctx.fill();
+  }
+}
+
+// ─── Press point visual ──────────────────────────────────────
+function drawPressPoint() {
+  if (depth < 0.02) return;
+  const r = Math.min(W, H) * (0.08 + depth * 0.18);
+  const g = ctx.createRadialGradient(pressX, pressY, 0, pressX, pressY, r);
+  g.addColorStop(0, `rgba(20,25,45,${depth * 0.06})`);
+  g.addColorStop(0.5, `rgba(20,25,45,${depth * 0.02})`);
+  g.addColorStop(1, 'rgba(20,25,45,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(pressX, pressY, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ─── Cloud wisps (ukiyo-e style) ────────────────────────────
+function drawClouds(t, alpha) {
+  if (alpha < 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // A few stylized cloud wisps
+  for (let i = 0; i < 4; i++) {
+    const cx = ((W * 0.15 * (i + 1) + t * 0.015 * (0.7 + i * 0.1)) % (W + 200)) - 100;
+    const cy = H * 0.06 + i * H * 0.04;
+    const w = 60 + i * 25;
+    const h = 8 + i * 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx - w, cy);
+    ctx.bezierCurveTo(cx - w * 0.5, cy - h, cx + w * 0.5, cy - h * 1.2, cx + w, cy);
+    ctx.bezierCurveTo(cx + w * 0.3, cy + h * 0.5, cx - w * 0.3, cy + h * 0.4, cx - w, cy);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(210,208,198,${alpha * 0.3})`;
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// ─── Stage management ────────────────────────────────────────
+function updateStage() {
+  const newStage = Math.min(5, Math.floor(depth * 5.5));
+  if (newStage > stage) {
+    stage = newStage;
+    // Stage transition sounds
+    const stageTones = [0, 294, 330, 392, 440, 523]; // musical scale
+    if (stageTones[stage]) pluckStage(stageTones[stage]);
+  }
+
+  // Crane reveal at stage 4
+  if (stage >= 4 && craneAlpha < 0.7) {
+    craneAlpha = Math.min(0.7, craneAlpha + 0.008);
+  }
+
+  // Moon at stage 5
+  if (stage >= 5 && moonPhase < 1) {
+    moonPhase = Math.min(1, moonPhase + 0.005);
+  }
+
+  // Blossoms increase with depth
+  if (stage >= 2) {
+    blossomCount = Math.min(20, Math.floor((depth - 0.3) * 60));
+  }
+}
+
+// ─── Ink pool from pressing ──────────────────────────────────
+// A collection of ink pool points that accumulate
+const inkPools = [];
+function addInkPool() {
+  inkPools.push({ x: pressX, y: pressY, r: 20 + Math.random() * 30, t: performance.now() });
+  if (inkPools.length > 40) inkPools.shift();
+}
+
+function drawInkPools() {
+  for (const p of inkPools) {
+    const age = (performance.now() - p.t) / 1000;
+    const alpha = Math.max(0.005, 0.04 * Math.exp(-age * 0.05));
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+    g.addColorStop(0, `rgba(25,30,50,${alpha})`);
+    g.addColorStop(1, 'rgba(25,30,50,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ─── Input ───────────────────────────────────────────────────
+let lastPoolTime = 0;
+
+function startPress(x, y) {
+  if (!pressing) {
+    pressing = true;
+    pressX = x;
+    pressY = y;
+    pressAge = 0;
+    initAudio();
+    pressSound();
+  }
+}
+
+function endPress() {
+  pressing = false;
+  pressAge = 0;
+}
+
+cvs.addEventListener('pointerdown', e => { e.preventDefault(); startPress(e.clientX, e.clientY); });
+cvs.addEventListener('pointerup', () => endPress());
+cvs.addEventListener('pointerleave', () => endPress());
+cvs.addEventListener('pointercancel', () => endPress());
+cvs.addEventListener('pointermove', e => { if (pressing) { pressX = e.clientX; pressY = e.clientY; } });
+
+// Keyboard support
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter') {
+    e.preventDefault();
+    startPress(W * (0.3 + Math.random() * 0.4), H * (0.4 + Math.random() * 0.2));
+  }
+});
+document.addEventListener('keyup', e => {
+  if (e.code === 'Space' || e.code === 'Enter') endPress();
+});
+
+// ─── Depth update ────────────────────────────────────────────
+function updateDepth(dt) {
+  if (pressing) {
+    pressAge += dt * (1 / 60);
+    // Depth accumulates faster when pressing
+    depth = Math.min(1, depth + 0.0008 * dt + 0.00015 * pressAge * dt);
+    totalPressTime += dt * (1 / 60);
+  } else {
+    // Slow decay when not pressing (the print fades gently)
+    depth = Math.max(0, depth - 0.00003 * dt);
+  }
+
+  // Add ink pool periodically during press
+  if (pressing) {
+    const now = performance.now();
+    if (now - lastPoolTime > 200) {
+      addInkPool();
+      lastPoolTime = now;
+    }
+  }
+
+  // Update audio volume based on depth
+  if (actx) {
+    const windVol = depth * 0.04;
+    windGain.gain.setTargetAtTime(windVol, actx.currentTime, 0.5);
+    const rainVol = rainEnabled ? Math.max(0, (depth - 0.5) * 0.03) : 0;
+    if (rainGain) rainGain.gain.setTargetAtTime(rainVol, actx.currentTime, 0.5);
+  }
+
+  // Enable rain at stage 4
+  rainEnabled = stage >= 3;
+  // Enable birds at stage 3
+  birdsEnabled = stage >= 2;
+}
+
+// ─── Hint text (fades out after first press) ───────────────
+let hintAlpha = 1;
+function drawHint() {
+  if (totalPressTime > 0.5) { hintAlpha = 0; return; }
+  ctx.save();
+  ctx.globalAlpha = hintAlpha * 0.5;
+  ctx.fillStyle = 'rgba(40,45,65,0.6)';
+  ctx.font = `${Math.max(14, Math.min(18, W * 0.025))}px serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Press and hold to wake the print', W * 0.5, H * 0.85);
+  ctx.restore();
+}
+
+// ─── Depth indicator (subtle) ───────────────────────────────
+function drawDepthIndicator() {
+  if (depth < 0.05) return;
+  const barH = 3;
+  const barY = H - barH - 8;
+  ctx.fillStyle = `rgba(235,232,222,0.7)`;
+  ctx.fillRect(10, barY, W - 20, barH);
+  ctx.fillStyle = `rgba(30,35,55,${0.3 + depth * 0.5})`;
+  ctx.fillRect(10, barY, (W - 20) * depth, barH);
+}
+
+// ─── Render loop ─────────────────────────────────────────────
+let lastT = 0;
+
+function frame(now) {
+  const dt = Math.min((now - lastT) / 1000, 0.05) * 60;
+  lastT = now;
+
+  updateDepth(dt);
+  updateStage();
+
+  // ─── Layer order ────────────────────────────────────────────
+  // 1. Paper grain
+  if (paperCanvas) ctx.drawImage(paperCanvas, 0, 0, W, H);
+
+  // 2. Cloud wisps (appear at stage 1+)
+  if (stage >= 1) drawClouds(now, Math.min(1, (depth - 0.1) * 3));
+
+  // 3. Moon (stage 5)
+  drawMoon(now, moonPhase);
+
+  // 4. Fuji (appears at stage 1+)
+  const fujiAlpha = stage >= 1 ? Math.min(1, (depth - 0.08) * 2.5) : 0;
+  drawFuji(now, fujiAlpha);
+
+  // 5. Ink wash (wave horizon)
+  drawInkWash(now);
+
+  // 6. Ink pools
+  drawInkPools();
+
+  // 7. Press point
+  drawPressPoint();
+
+  // 8. Boat (stage 2+)
+  if (stage >= 2) drawBoat(now, Math.min(1, (depth - 0.25) * 3));
+
+  // 9. Crane (stage 4+, hidden joy)
+  drawCrane(now, craneAlpha);
+
+  // 10. Petals (stage 2+)
+  const petalAlpha = stage >= 2 ? Math.min(1, (depth - 0.25) * 3) : 0;
+  for (let i = 0; i < Math.min(petals.length, blossomCount); i++) {
+    petals[i].tick();
+    petals[i].draw(ctx, petalAlpha);
+  }
+
+  // 11. Birds (stage 3+)
+  if (birdsEnabled) {
+    const birdAlpha = Math.min(0.7, (depth - 0.4) * 2);
+    for (const b of birds) {
+      b.tick();
+      b.draw(ctx, birdAlpha);
+    }
+  }
+
+  // 12. Rain (stage 4+)
+  if (rainEnabled && depth > 0.4) {
+    const rainAlpha = Math.min(1, (depth - 0.4) * 2.5);
+    for (const r of rains) {
+      r.tick();
+      r.draw(ctx, rainAlpha);
+    }
+  }
+
+  // 13. Mist (always, but deeper with depth)
+  for (const m of mists) { m.tick(now); m.draw(ctx, depth); }
+
+  // 14. Hint text
+  drawHint();
+
+  // 15. Depth indicator bar
+  drawDepthIndicator();
+
+  requestAnimationFrame(frame);
+}
+
+// ─── Init ────────────────────────────────────────────────────
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
