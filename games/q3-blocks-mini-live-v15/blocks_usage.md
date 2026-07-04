@@ -24,7 +24,7 @@ This should feel like being a bell keeper on a rain-soaked Edo-period bridge, ca
   - `FoundryAudio.pickup()` — every 3rd bell catch (score % 30 === 0).
   - `FoundryAudio.fail()` — on tile collision (hit).
   - `FoundryAudio.droneStop()` — on game over (debrief phase).
-  - `FoundryAudio.install()` — re-arm on debrief → waiting reset.
+   - ~~`FoundryAudio.install()` on debrief~~ — removed; AudioContext persists across replays.
 
 ## Key adaptations
 

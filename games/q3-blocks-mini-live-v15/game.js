@@ -43,7 +43,7 @@
     } else if (phase === 'debrief') {
       debriefTimer += dt;
       if (debriefTimer > 2 && (FoundryInput.pointer.justDown || FoundryInput.consume('left') || FoundryInput.consume('right'))) {
-        phase = 'waiting'; FoundryAudio.install(); firstInteraction = false;
+        phase = 'waiting'; firstInteraction = false;
        }
      }
     for (var r = 0; r < rain.length; r++) { rain[r].y += rain[r].sp * dt; if (rain[r].y > H) { rain[r].y = -rain[r].len; rain[r].x = Math.random() * W; } }
