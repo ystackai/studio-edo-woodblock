@@ -1,38 +1,44 @@
 # Blocks Usage — Q3 v16 Crane Bell Relay
 
-## Modules used
+## Modules Copied (as-is, no adaptation)
 
-### game-loop.js (from `.factoryx/foundry/blocks-2d/game-loop.js`)
-- **Copied as-is** into `games/q3-blocks-mini-live-v16/game-loop.js`
-- **Call site**: `game.js` line ~97 — `FoundryLoop.start({update: update, render: render})`
-- Provides the fixed-timestep loop (1/60 s STEP) with MAX_STEPS cap, tab-pause, and `requestAnimationFrame` driving `update(dt)` then `render(alpha)`.
+| Module | Source | Target | Changes |
+|---|---|---|---|
+| `game-loop.js` | `.factoryx/foundry/blocks-2d/game-loop.js` | `games/q3-blocks-mini-live-v16/game-loop.js` | none — copied verbatim |
+| `input.js` | `.factoryx/foundry/blocks-2d/input.js` | `games/q3-blocks-mini-live-v16/input.js` | none — copied verbatim |
+| `webaudio-kit.js` | `.factoryx/foundry/sound/webaudio-kit.js` | `games/q3-blocks-mini-live-v16/webaudio-kit.js` | none — copied verbatim |
 
-### input.js (from `.factoryx/foundry/blocks-2d/input.js`)
-- **Copied as-is** into `games/q3-blocks-mini-live-v16/input.js`
-- **Call site**: `game.js` line ~11 — `FoundryInput.install(canvas, {actions:{left:['ArrowLeft','KeyA'], right:['ArrowRight','KeyD']}})`
-- Used for `FoundryInput.held('left')`, `FoundryInput.held('right')` in the update loop, and `FoundryInput.update(dt)` at end of update.
+## Call Sites in `game.js`
 
-### webaudio-kit.js (from `.factoryx/foundry/sound/webaudio-kit.js`)
-- **Copied as-is** into `games/q3-blocks-mini-live-v16/webaudio-kit.js`
-- **Call sites**:
-  - `game.js` line ~10 — `FoundryAudio.install()` (once at boot, arms gesture listener)
-  - `game.js` line ~18 — `FoundryAudio.click()` and `FoundryAudio.droneStart(48)` inside the `go()` first-interaction handler
-  - `game.js` line ~47 — `FoundryAudio.pickup()` on bell catch
-  - `game.js` line ~54 — `FoundryAudio.fail()` on stone collision
-  - `game.js` line ~55 — `FoundryAudio.droneStop()` on game-over debrief
+### FoundryLoop (game-loop.js)
+- **Line ~164**: `FoundryLoop.start({update:update, render:render})` — bootstraps the fixed-timestep loop.
 
-## PROBE-FIRST input listeners
+### FoundryInput (input.js)
+- **Line ~12**: `FoundryInput.install(C, {actions:{left:['ArrowLeft','KeyA'], right:['ArrowRight','KeyD']}})` — installs keyboard + canvas pointer bindings.
+- **Line ~30**: `if(FoundryInput.held('left')) px-=320*dt` — paddle left in update().
+- **Line ~31**: `if(FoundryInput.held('right')) px+=320*dt` — paddle right in update().
+- **Line ~56**: `FoundryInput.update(dt)` — ages press buffers at end of update().
 
-In addition to `FoundryInput.install(canvas)`, game.js installs direct window-level capture-phase listeners:
+### FoundryAudio (webaudio-kit.js)
+- **Line ~10**: `FoundryAudio.install()` — called once at boot; arms one-time gesture listener to unlock AudioContext.
+- **Line ~19 (first gesture)**: `FoundryAudio.click()` — triangle blip on first interaction.
+- **Line ~19 (first gesture)**: `FoundryAudio.droneStart(48)` — low pad at 48 Hz starts on first interaction.
+- **Line ~43 (bell catch)**: `FoundryAudio.pickup()` — ascending tone on bell collection.
+- **Line ~51 (stone hit)**: `FoundryAudio.fail()` — descending tones on stone collision.
+- **Line ~52 (debrief)**: `FoundryAudio.droneStop()` — fades drone when lives hit 0.
 
-- `window.addEventListener('pointerdown', go, {capture:true})` — line ~20
-- `window.addEventListener('keydown', handler, {capture:true})` — line ~21
-  - Binds: Space, Enter, ArrowLeft, ArrowRight, KeyA, KeyD
-  - Synchronously sets: `first=true`, `phase='playing'`, `pulse=1`, `flashT=1.2`, `paddleX=100` (snap sideways >=80px)
-  - Calls `FoundryAudio.click()` and `FoundryAudio.droneStart(48)`
+## PROBE-FIRST Input Contract
 
-The vermilion flash (`flashT`) renders a full-canvas overlay and two expanding rings visible for >=0.7 seconds, ensuring the browser verifier sees a different frame signature after the first gesture.
+Two direct `window`-level listeners in **capture phase** (`{capture:true}`), separate from `FoundryInput.install()`:
 
-## Reused vs adapted
+1. **`pointerdown` capture listener** (line ~16): fires `go()` on first click/tap anywhere.
+2. **`keydown` capture listener** (line ~18-20): fires `go()` on first press of Space, Enter, ArrowLeft, ArrowRight, KeyA, or KeyD.
 
-All three foundry modules are **reused as-is** (no code changes). The game logic in `game.js` is custom, following the creative seed of an Edo paper-crane bell relay.
+The `go()` function synchronously sets:
+- `phase='playing'` (phase machine transition: waiting → playing)
+- `pulse=1` (paddle glow)
+- `flashT=1.5` (vermilion flash lasts 1.5 seconds, well above the 0.7s minimum)
+- `px=100` (paddle snaps from center 240 to 100 — shift of 140px, well above 80px minimum)
+- `FoundryAudio.click()` and `FoundryAudio.droneStart(48)` for audio proof
+
+No early return guards the first-interaction logic; the phase machine handles all states.
