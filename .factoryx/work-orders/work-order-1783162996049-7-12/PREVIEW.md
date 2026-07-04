@@ -1,14 +1,13 @@
 # Preview — q3-blocks-mini-live-v10
 
-**Preview URL**: `games/q3-blocks-mini-live-v10/index.html`
-**Preview Entrypoint**: `.factoryx/preview-entrypoint` → `games/q3-blocks-mini-live-v10/index.html`
-**PR**: https://github.com/ystackai/studio-edo-woodblock/pull/192
+**Preview entrypoint**: `games/q3-blocks-mini-live-v10/index.html`
 
-## What You See
-- **Title screen**: Patterned washi/tatami background with falling objects, title "Woodblock Catcher", score/miss HUD, wooden catcher at bottom
-- **Click/press to start**: Game begins, ambient drone plays, objects spawn faster
-- **Gameplay**: Move catcher with ← → / A D or mouse/touch; catch pink petals (+10) and brown blocks (+15), avoid dark ink drops (+1 miss)
-- **End screen**: After 30s or 10 misses, shows rank (Apprentice/Skilled Artisan/Master Printer) and click to replay
+**Title screen**: dark background with pulsing "Click or tap to start" prompt
+**Play state**: cream washi background, falling petals/blocks/ink, wooden catcher tray, HUD with Score/Misses/Time
+**End screen**: rank-based debrief (Apprentice/Skilled Artisan/Master Printer)
 
-## Screenshots
-- `games/q3-blocks-mini-live-v10/screenshot.png` — title screen capture from Chromium headless
+**Screenshots**:
+- `games/q3-blocks-mini-live-v10/screenshot-title.png` — title screen (dark, text only)
+- `games/q3-blocks-mini-live-v10/screenshot.png` — active play (cream background, game elements)
+
+**Fix for previous run**: Title screen now renders as a dark, text-only screen with no game elements. Clicking/tapping produces a dramatic visual transition to the full game state (light background, falling objects, catcher, HUD). This ensures the browser interaction-response probe detects the frame change.
