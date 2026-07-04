@@ -9,12 +9,17 @@
 
 ## Call sites
 
-- `game-loop.js` — called as `FoundryLoop.start({ update, render })` in game.js line 143.
-  Provides fixed-timestep (1/60 s) update loop with visibility-change pause handling.
-- `input.js` — called as `FoundryInput.install(canvas, { actions: { up, down } })` in game.js line 13.
+- **game-loop.js** — `FoundryLoop.start({ update, render })` at bottom of game.js.
+  Provides fixed-timestep (1/60 s) update loop with visibility-change pause.
+- **input.js** — `FoundryInput.install(C, { actions: { up, down } })` near top of game.js.
   Provides action-mapped keyboard (ArrowUp/W = up, ArrowDown/S = down) plus pointer `justDown` for click/tap steering.
-  `FoundryInput.held()`, `FoundryInput.consume()`, `FoundryInput.update(dt)`, and `FoundryInput.pointer.justDown` are all used in the update function.
+  `FoundryInput.held()`, `FoundryInput.consume()`, `FoundryInput.update(dt)`, and `FoundryInput.pointer.justDown` used throughout `update()`.
 
 ## Key changes
 
-- None. Both blocks are used verbatim; no load-bearing shapes (fixed timestep, press buffer, trauma curve) were modified.
+- **game.js v2** — Fixed critical interaction bug: previous version had `if (!started) return;` before the `pointer.justDown` check, so the first click/key was never detected. Replaced boolean flag with a `phase` state machine (`'waiting'` → `'playing'` → `'hit'`/`'shore'`) that always processes the first interaction before any early return. This ensures the frame changes immediately on the first click/key press.
+- Both foundry blocks remain verbatim; no load-bearing shapes modified.
+
+## Game: River Lantern
+
+Guide a lantern-lit boat downstream at dusk. Dodge floating debris (brown logs with reed accents) for 35 seconds to reach shore. Click/tap to steer toward that point, or use arrow keys / W/S for vertical movement. Score increases with time; reaching shore grants +500 bonus.
