@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spirit Lantern Collector — Edo Woodblock</title>
+<style>
+   * { margin:0; padding:0; box-sizing:border-box; }
+   html,body { background:#1a1510; height:100%; overflow:hidden; }
+   body { display:flex; align-items:center; justify-content:center; }
+   #wrap { position:relative; width:960px; max-width:100vw; }
+   canvas { display:block; width:100%; height:auto; touch-action:none; }
+   .hud { position:absolute; top:10px; left:14px; color:#f0ead6; font:600 13px/1 system-ui,sans-serif; pointer-events:none; }
+   .hud .sc { font-size:22px; font-weight:800; }
+   .hud .row { opacity:.75; margin-top:2px; }
+   #prompt { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:80px; color:#f0ead6; font:700 system-ui,sans-serif; pointer-events:none; }
+   #prompt .big { font-size:26px; letter-spacing:3px; color:#e8a84c; margin-bottom:6px; }
+   #prompt .sub { font-size:13px; opacity:.8; }
+   #crash { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; background:rgba(26,21,16,.82); color:#f0ead6; font:system-ui,sans-serif; z-index:10; }
+   #crash .title { font-size:22px; font-weight:800; color:#c2410f; margin-bottom:8px; letter-spacing:2px; }
+   #crash .stat { font-size:14px; margin:3px 0; }
+   #crash .grade { font-size:20px; font-weight:800; margin:10px 0 4px; letter-spacing:1px; }
+   .btn { margin-top:14px; padding:10px 28px; font:700 13px/1 system-ui,sans-serif; background:#f0ead6; color:#1a1510; border:2px solid #5c3d2e; border-radius:4px; cursor:pointer; min-height:44px; min-width:160px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="gc" width="960" height="540"></canvas>
+  <div class="hud">
+    <div class="sc" id="sc">0</div>
+    <div class="row">lanterns <span id="lc">0</span> &nbsp; phase <span id="ph">idle</span></div>
+  </div>
+  <div id="prompt">
+    <div class="big">SPIRIT LANTERN</div>
+    <div class="sub">TAP · CLICK · SPACE — collect lanterns, avoid debris</div>
+  </div>
+  <div id="crash">
+    <div class="title" id="ctitle">COLLECTOR LOST</div>
+    <div class="stat">lanterns: <span id="cscore">0</span></div>
+    <div class="stat">time: <span id="ctime">0.0</span>s</div>
+    <div class="grade" id="cgrade"></div>
+    <button class="btn" id="rebtn">RESTART</button>
+    <div style="margin-top:6px;font-size:11px;opacity:.6">TAP · CLICK · R</div>
+  </div>
+</div>
+<script src="game-loop.js"></script>
+<script src="input.js"></script>
+<script src="webaudio-kit.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
