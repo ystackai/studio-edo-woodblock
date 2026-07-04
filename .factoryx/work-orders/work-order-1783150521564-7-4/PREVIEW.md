@@ -9,3 +9,7 @@
 **Screenshots:**
 - `games/q3-blocks-mini-live-v4/screenshots/title.png` — initial load, nonblank canvas with grid, score, and first piece
 - `games/q3-blocks-mini-live-v4/screenshots/delayed.png` — after 2s delay, same render state (headless rAF limitation)
+
+**Fresh screenshots (2026-07-04):**
+- `games/q3-blocks-mini-live-v4/screenshots/fresh_title.png` — re-captured, 5.9 KB, nonblank
+- `games/q3-blocks-mini-live-v4/screenshots/delayed.png` — active play state, 20 KB

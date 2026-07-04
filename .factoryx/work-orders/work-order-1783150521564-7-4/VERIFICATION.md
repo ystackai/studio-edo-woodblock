@@ -33,3 +33,21 @@ Result: **PASS** — game.js is syntactically valid (84 lines, under 90-line lim
 ## Foundry blocks
 - `game-loop.js`: copied verbatim, diff confirms 0 changes
 - `input.js`: copied verbatim, diff confirms 0 changes
+
+## Fresh re-verification (2026-07-04 07:55 UTC)
+
+### node --check (re-run)
+```
+$ node --check games/q3-blocks-mini-live-v4/game.js
+[no output — exit 0]
+```
+Result: **PASS** — game.js is syntactically valid (84 lines, under 90-line limit).
+
+### Fresh browser screenshots
+- **Title screen:** `screenshots/fresh_title.png` (5.9 KB) — shows 10×20 grid with dark bg, colored T-piece at top, "Score: 0" — **nonblank, PASS**
+- **Active play:** `screenshots/delayed.png` (20 KB) — shows mid-game state with multiple placed blocks, grid lines visible, nonblank — **PASS**
+- **Console errors:** None (only dbus environmental warnings)
+
+### v3 failure mitigation
+- **Uncommitted files:** All files committed in `3f35e5b`. `git status` shows only fresh screenshot evidence as untracked. Branch pushed before this verification run.
+- **node --check failure:** v3 had an unexpected-token error; v4 game.js passes `node --check` cleanly with exit 0.
