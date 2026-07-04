@@ -51,25 +51,25 @@ FoundryInput.update(dt);
 // ── Render ─────────────────────────────────────────────────
 function dFox(x,y){
 // Tail
-ctx.fillStyle="#d4731a";ctx.beginPath();ctx.ellipse(x-22,y+2,22,10,-.3,0,6.28);ctx.fill();
+X.fillStyle="#d4731a";X.beginPath();X.ellipse(x-22,y+2,22,10,-.3,0,6.28);X.fill();
 // Body
-ctx.fillStyle="#e88a2a";ctx.beginPath();ctx.ellipse(x,y+8,28,18,0,0,6.28);ctx.fill();
+X.fillStyle="#e88a2a";X.beginPath();X.ellipse(x,y+8,28,18,0,0,6.28);X.fill();
 // Head
-ctx.fillStyle="#f0a040";ctx.beginPath();ctx.ellipse(x+22,y-4,15,13,0,0,6.28);ctx.fill();
+X.fillStyle="#f0a040";X.beginPath();X.ellipse(x+22,y-4,15,13,0,0,6.28);X.fill();
 // Ears
-ctx.fillStyle="#d4731a";
-ctx.beginPath();ctx.moveTo(x+28,y-15);ctx.lineTo(x+22,y-30);ctx.lineTo(x+18,y-14);ctx.fill();
-ctx.beginPath();ctx.moveTo(x+34,y-12);ctx.lineTo(x+32,y-28);ctx.lineTo(x+26,y-13);ctx.fill();
+X.fillStyle="#d4731a";
+X.beginPath();X.moveTo(x+28,y-15);X.lineTo(x+22,y-30);X.lineTo(x+18,y-14);X.fill();
+X.beginPath();X.moveTo(x+34,y-12);X.lineTo(x+32,y-28);X.lineTo(x+26,y-13);X.fill();
 // Eye + Snout
-ctx.fillStyle="#111";ctx.beginPath();ctx.arc(x+29,y-6,2.5,0,6.28);ctx.fill();
-ctx.fillStyle="#f0a040";ctx.beginPath();ctx.ellipse(x+36,y-2,6,4,0,0,6.28);ctx.fill();
+X.fillStyle="#111";X.beginPath();X.arc(x+29,y-6,2.5,0,6.28);X.fill();
+X.fillStyle="#f0a040";X.beginPath();X.ellipse(x+36,y-2,6,4,0,0,6.28);X.fill();
 // Legs
-ctx.fillStyle="#c46a18";for(var i=-1;i<=0;i++){ctx.fillRect(x-12+i*8,y+22,5,10);ctx.fillRect(x+8+i*8,y+22,5,10);}
+X.fillStyle="#c46a18";for(var i=-1;i<=0;i++){X.fillRect(x-12+i*8,y+22,5,10);X.fillRect(x+8+i*8,y+22,5,10);}
 }
 function dLantern(x,y){
-ctx.strokeStyle="#8B6914";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+30,y-5);ctx.lineTo(x+30,y-55);ctx.stroke();
-ctx.fillStyle="#fde68a";ctx.beginPath();ctx.ellipse(x+30,y-58,11,15,0,0,6.28);ctx.fill();
-ctx.fillStyle="#b03030";ctx.fillRect(x+22,y-76,16,5);
+X.strokeStyle="#8B6914";X.lineWidth=3;X.beginPath();X.moveTo(x+30,y-5);X.lineTo(x+30,y-55);X.stroke();
+X.fillStyle="#fde68a";X.beginPath();X.ellipse(x+30,y-58,11,15,0,0,6.28);X.fill();
+X.fillStyle="#b03030";X.fillRect(x+22,y-76,16,5);
 var gr=30+Math.sin(t*3)*5+(flare>0?25:0);
 var gd=X.createRadialGradient(x+30,y-58,2,x+30,y-58,gr);
 gd.addColorStop(0,"rgba(255,220,100,0.45)");gd.addColorStop(1,"rgba(255,200,60,0)");
