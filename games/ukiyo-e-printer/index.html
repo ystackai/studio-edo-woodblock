@@ -485,6 +485,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     ctx.restore();
 
     // Mist layers with parallax and sine drift
+    const mistBoost = Math.max(0, Math.min(0.06, saturationLevel * 0.04 + Math.sin(frame * 0.018) * 0.008));
     for (const m of mist) {
       m.x += m.speed;
       if (m.x > W + m.w) m.x = -m.w;
@@ -502,7 +503,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       const seasonR = 235 + Math.sin(seasonT * Math.PI * 2) * 15;
       const seasonG = 230 + Math.sin(seasonT * Math.PI * 2 + 1) * 12;
       const seasonB = 220 + Math.sin(seasonT * Math.PI * 2 + 2) * 10;
-      const mistColor = 'rgba(' + seasonR|0 + ',' + seasonG|0 + ',' + seasonB|0;
+      const mistColor = `rgba(${seasonR | 0},${seasonG | 0},${seasonB | 0}`;
       const g = ctx.createLinearGradient(m.x, m.y, m.x + m.w, m.y);
       g.addColorStop(0, mistColor + ',0)');
       g.addColorStop(0.35, mistColor + ',0.9)');
