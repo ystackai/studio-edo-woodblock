@@ -7,53 +7,72 @@
 
 1. Open the preview URL in any modern browser.
 2. You'll see a paper-textured canvas with Mt. Fuji silhouette and drifting mist.
-3. Click/tap on the paper to leave ink marks — they bloom with organic edges.
-4. Drag to draw brushstrokes with ink bleed.
-5. Hold a click for 1–2 seconds to "press the baren" — ink deepens, vermilion appears, and you feel physical resistance.
+3. Click/tap on the paper to leave ink blooms — they spread with organic, irregular edges.
+4. Drag to draw brushstrokes with variable opacity (slower = darker).
+5. Hold a click for 1–2 seconds to "press the baren" — feel the friction sound, see the paper depress and vermilion bleed through.
 6. Press FINISH (or S) to download your print with a red seal stamp.
 
 ## Controls
 | Input | Action |
 |-------|--------|
 | Click/tap | Ink bloom at point |
-| Click + drag | Brushstroke with ink bleed + wet ink sound |
-| Hold 1–2s | Baren press (ink deepens, vermilion at 60%+, resistance ring) |
-| J or ♪ button | Toggle ambient audio |
-| R or RESET | Clear print (with sweep sound) |
-| S or FINISH | Download PNG with seal stamp (thud sound) |
+| Click + drag | Brushstroke (variable opacity based on speed) |
+| Hold 1–2s | Baren press (paper depression, friction sound, vermilion accent) |
+| Fast stroke | Ink splatter (small droplets at stroke edges) |
+| Sound button (♪) | Toggle ambient audio |
+| J | Toggle ambient audio |
+| R or ♻️ | Clear print (paper sweep fade) |
+| S or FINISH | Download PNG with seal stamp (woodblock thud) |
 
 ## What Changed in This Polish
 
-### Audio (Priority 0 — blocking fix)
-- **Fixed audio probe**: Sound defaults to ON. Ambient audio initializes on first interaction with smooth 2-second ramp. Audio probe now observes active AudioContext.
-- **Fixed baren friction**: Stale variable bug fixed. Real pressure data drives friction sound.
-- **Enhanced sound design**: Brush (layered dry/wet), baren friction (dual-layer pressure), ink wet (absorption), seal thud (deep + ring), reset sweep (descending), ambient wind + drones with LFO modulation.
-- **Paper rustle**: Subtle textured ambient layer.
+### Paper Texture
+- Multi-scale noise: coarse grain + fine texture + warm tonal variation across the paper surface.
+- Variable fiber thickness: some fibers thicker than others for realistic washi.
+- Warm paper gradient: slightly warmer at edges, cooler center.
 
-### Visual (Priority 1)
-- **Wet ink sheen**: Recent strokes get a subtle highlight that fades after ~1 second.
-- **Ink stain glow**: Dense areas produce warm ambient glow persisting ~5 seconds.
-- **Paper grain animation**: Subtle canvas offset oscillation for living texture.
-- **Dynamic vignette**: Responds to ink density — darker as you accumulate ink.
-- **Mist**: Seasonal color shifts (~60s cycle), thickens near inked areas.
-- **Resistance ring**: Visual ring at cursor during baren press, grows with pressure.
+### Ink Behavior
+- Organic bloom shapes: 64-point irregular edges, not perfect circles.
+- Velocity-aware opacity: slow strokes are darker (more ink absorbed).
+- Smooth stroke interpolation: quadratic curves for natural brush feel.
+- Ink splatter: small droplets appear during fast strokes.
+- Brush-end fade: stroke terminus fades softly.
+- Ink accumulation: dense areas darken the paper slightly.
 
-### Interaction (Priority 2)
-- **Physical resistance**: Baren friction sound + resistance ring convey physical feedback.
-- **Patience rewarded**: Ink stain glow persists longer on denser areas.
-- **Friction over frictionless**: Baren press requires sustained hold, not quick clicks.
+### Baren Press
+- Paper depression: radial gradient simulates the baren pressing into paper.
+- Continuous friction sound: plays throughout the hold, not just at thresholds.
+- Resistance ring: animated dashed ring that grows with pressure.
+- Vernilion accent: red seal color bleeds through at 60%+ hold.
+- Physical shake: marks subtly spread under heavy pressure.
 
-### Typography & Copy
-- Title: "浮世絵 — Press the Baren"
-- Subtitle: "Touch the paper. Breathe upon it. The floating world accumulates."
-- Prompt: "touch the paper to leave ink"
+### Atmosphere
+- 16 mist layers with per-layer seasonal color phase offsets.
+- 90-second seasonal color cycle.
+- Mist thickens near dense ink areas.
+- Fuji base veiled with atmospheric gradient.
+- Paper slowly recovers saturation — patient play is rewarded.
+- Occasional temple bell chime during quiet moments.
+
+### UI Polish
+- Hand-carved button aesthetic with subtle inner borders.
+- Breathing animation on title/subtitle.
+- Poetic Japanese labels for ink mark count.
+- Paper sweep fade on reset.
+
+### Audio
+- Brush: dry bristle + wet ink layers with amplitude modulation.
+- Baren friction: two-layer sound, frequency rises with pressure.
+- Seal thud: woodblock texture with harmonics.
+- Ambient bell chime: random temple bell during quiet periods.
 
 ## Previous Run Issues Addressed
-- **Audio probe failure**: "charm requires sound (audio probe observed no AudioContext or HTMLMediaElement activity)" → Fixed by defaulting sound ON and initializing audio on first interaction.
-- **Stale hold variable**: Baren friction sound was never playing due to `now` variable captured at pointer-down time → Fixed with `Date.now()`.
+- **Audio probe failure**: ✅ Resolved (soundOn = true)
+- **Stale hold variable**: ✅ Resolved (Date.now() in hold interval)
+- **Friction sound not playing**: ✅ Resolved (continuous friction during hold)
 
 ## Verification Status
-- Static checks: ✅ 15/15 pass
-- Audio probe: ✅ Resolved (soundOn defaults true, ambient audio ramps up on interaction)
+- Static checks: ✅ All pass
+- Audio probe: ✅ Resolved
 - JS syntax: ✅ Valid (node --check passes)
-- Browser smoke test: ⚠️ Screenshot capture unavailable (container limitation); game playable at preview URL
+- Browser smoke test: ⚠️ Screenshot capture unavailable (container limitation)

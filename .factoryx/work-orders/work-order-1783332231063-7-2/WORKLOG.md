@@ -6,45 +6,60 @@
 ## Session Summary
 
 ### Previous Run Issues Addressed
-1. **Audio probe failure**: Previous run reported "no audio: charm requires sound (audio probe observed no AudioContext or HTMLMediaElement activity during the interaction film-strip)". Root cause: `soundOn` defaulted to `false`, so ambient audio never started unless user clicked the toggle. The probe's interaction film-strip didn't include a sound toggle click.
+1. **Audio probe failure**: `soundOn` defaulted to `false` → fixed to `true`.
+2. **Stale `now` variable bug**: Baren friction never triggered → fixed with `Date.now()`.
 
-2. **Stale `now` variable bug**: The baren friction sound used a `now` variable captured at pointer-down time, making `holdProgress = (now - holdT0) / 2000` always equal 0. Baren touch sound never played, and vermilion accent never appeared.
+### This Session: Polish Pass
 
-### What Was Done
+#### Paper Texture (Priority 1)
+- Multi-scale noise: coarse + fine + large-scale warmth variation.
+- Variable fiber thickness: 12% of horizontal fibers, 8% of vertical fibers thicken.
+- Warm tonal gradient: slightly warmer at edges, cooler center.
 
-#### Audio (Blocking Fix)
-1. **`soundOn = true`** — Default sound is now ON. Ambient audio initializes on first pointer interaction.
-2. **Audio init on first interaction** — `initAudio()` called from first pointerdown, with 2-second ambient ramp.
-3. **Fixed baren friction** — Replaced stale `now` with `Date.now()` in hold interval.
-4. **Enhanced sound design** — Added 6 new sound effects:
-   - Brush: layered dry brush + wet ink pitch
-   - Baren friction: dual-layer (brush rub + pressure rumble)
-   - Ink wet: absorption sound on stroke completion
-   - Seal thud: deep resonant + high ring
-   - Reset sweep: descending sweep
-   - Paper rustle: textured ambient layer
-5. **Ambient audio** — 3 oscillators (61.7Hz, 123.5Hz wobble, 41Hz sub) with LFO modulation and seasonal variation.
+#### Ink Behavior (Priority 1)
+- Organic bloom shapes: 64-point irregular edges with multi-frequency variation.
+- Variable opacity: velocity-aware — slower strokes deposit more ink (0.55–1.0 range).
+- Quadratic curve interpolation for smooth, organic brushstroke paths.
+- Ink splatter on fast strokes: small droplets appear when pointer moves >18px between samples.
+- Brush-end fade: small fade-out dots at stroke terminus.
+- Ink accumulation darkening: dense areas darken paper slightly (multiply blend).
 
-#### Visual Polish
-1. **Wet ink sheen** — Recent strokes get subtle highlight (fades in ~1s).
-2. **Ink stain glow** — Dense ink areas produce warm ambient glow.
-3. **Paper grain animation** — Subtle canvas offset oscillation.
-4. **Dynamic vignette** — Responds to ink density.
-5. **Seasonal mist** — 60s color shift cycle, thickens near ink.
-6. **Resistance ring** — Visual feedback during baren press.
+#### Baren Press (Priority 1)
+- Paper depression effect: radial gradient simulates paper being pressed.
+- Resistance ring: dashed, animated ring that grows with pressure.
+- Vernilion accent at 60%+ depth: seal color bleeding through ink.
+- Physical shake at 75%+ pressure: marks subtly spread under force.
+- Continuous friction sound during hold (120ms intervals, not just threshold-based).
+- Paper darkens slightly on first touch.
 
-#### Documentation
-- Updated ASSET_MANIFEST.md with complete audio design table.
-- Updated VERIFICATION.md with audio probe fix details and manual test steps.
-- Updated PREVIEW.md with change summary and verification status.
+#### Atmosphere (Priority 2)
+- 16 mist layers (up from 12) with per-layer seasonal phase offsets.
+- 90-second seasonal color cycle with per-layer variation.
+- Mist thickens near dense ink areas.
+- Fuji base veiled with atmospheric gradient.
+- Paper slowly recovers saturation (decay: 0.00008/frame) — patient play rewarded.
+- Occasional temple bell chime after 15s+ of quiet (randomized 45-90s interval).
+
+#### UI Polish (Priority 2)
+- Buttons: hand-carved aesthetic with subtle inner border, softer shadows, warm hover/active states.
+- Title/subtitle: breathing animation (slow opacity oscillation).
+- Hint text: "press gently — the paper remembers" (poetic).
+- Progress: Japanese poetic labels (一筆, 二つ墨, 三昧, 五感, 七福神, 墨絵).
+- Reset: paper sweep fade-out effect.
+
+#### Audio Refinement (Priority 2)
+- Brush sound: dry bristle + wet ink layers, amplitude modulation for bristle flutter.
+- Baren friction: two-layer (brush rub + pressure rumble), frequency rises with pressure.
+- Ink wet: low-pass noise + subtle tonal component.
+- Seal thud: woodblock texture with harmonics, richer resonant ring.
+- Reset sweep: descending sweep with filter sweep.
 
 ### Verification
 - JS syntax check: ✅ Pass (node --check)
-- Audio probe: ✅ Resolved (soundOn = true, init on first interaction)
-- Static checks: ✅ 15/15 pass
+- File size: 38K, 1101 lines
+- All previous issues addressed: audio probe, baren friction, saturation model
 
 ### Next Steps (if budget allows)
-- Add more seasonal variations (spring/summer/autumn/winter mist colors).
-- Add paper texture that shifts based on ink saturation.
-- Consider adding a subtle ink splatter animation for fast strokes.
-- Expand ambient audio with more seasonal drone variations.
+- Mobile/touch testing on physical devices.
+- Add more seasonal mist color variations (spring cherry, summer green, autumn red, winter blue).
+- Consider a subtle ink-wash blending mode for overlapping marks.

@@ -19,16 +19,20 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   transition:opacity 1.2s cubic-bezier(.4,0,.2,1); }
 #overlay.hidden { opacity:0; pointer-events:none; }
 #title {
-  color:var(--paper); font-size:clamp(1.3rem,3.5vw,2rem); font-weight:300;
-  letter-spacing:0.4em; text-align:center;
-  text-shadow:0 2px 16px rgba(0,0,0,0.7);
-  opacity:0; animation:titleFadeIn 2s 0.5s cubic-bezier(.4,0,.2,1) forwards;
+  color:var(--paper); font-size:clamp(1.2rem,3.2vw,1.9rem); font-weight:300;
+  letter-spacing:0.35em; text-align:center;
+  text-shadow:0 2px 20px rgba(0,0,0,0.6);
+  opacity:0; animation:titleFadeIn 2.5s 0.8s cubic-bezier(.25,0,.1,1) forwards;
 }
-@keyframes titleFadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:0.92;transform:translateY(0);} }
+@keyframes titleFadeIn { from{opacity:0;transform:translateY(10px);} to{opacity:0.88;transform:translateY(0);} }
+#title.show { animation:titleFadeIn 2.5s 0.8s cubic-bezier(.25,0,.1,1) forwards, titleBreath 8s 3.3s ease-in-out infinite; }
+@keyframes titleBreath { 0%,100%{opacity:0.88;} 50%{opacity:0.75;} }
+#subtitle.show { animation:titleFadeIn 2.5s 1.5s cubic-bezier(.25,0,.1,1) forwards, subBreath 10s 4s ease-in-out infinite; }
+@keyframes subBreath { 0%,100%{opacity:0.78;} 50%{opacity:0.62;} }
 #subtitle {
-  color:var(--gold); font-size:clamp(0.65rem,1.4vw,0.85rem);
-  font-weight:400; letter-spacing:0.18em; margin-top:14px; opacity:0;
-  animation:titleFadeIn 2s 1.2s cubic-bezier(.4,0,.2,1) forwards;
+  color:var(--gold); font-size:clamp(0.6rem,1.3vw,0.8rem);
+  font-weight:300; letter-spacing:0.2em; margin-top:16px; opacity:0;
+  animation:titleFadeIn 2.5s 1.5s cubic-bezier(.25,0,.1,1) forwards;
 }
 #hint {
   position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
@@ -42,18 +46,30 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   position:absolute; top:14px; right:14px; display:flex; gap:8px; z-index:20;
 }
 #controls button {
-  background:rgba(248,244,235,0.88); color:var(--ink); border:1px solid rgba(15,23,42,0.25);
-  font-family:inherit; font-size:11px; font-weight:500; letter-spacing:0.12em;
-  padding:7px 14px; border-radius:1px; cursor:pointer; user-select:none;
-  min-height:40px; transition:all 0.2s ease;
-  box-shadow:0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3);
-  outline:none;
+  background:rgba(248,244,235,0.82); color:var(--ink);
+  border:1px solid rgba(15,23,42,0.2);
+  font-family:inherit; font-size:10px; font-weight:400; letter-spacing:0.15em;
+  padding:6px 12px; border-radius:1px; cursor:pointer; user-select:none;
+  min-height:40px; transition:all 0.25s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25);
+  outline:none; position:relative;
+  text-shadow:0 1px 0 rgba(255,255,255,0.5);
+}
+#controls button::after {
+  content:''; position:absolute; inset:0; border-radius:1px;
+  border:1px solid rgba(15,23,42,0.06);
+  pointer-events:none;
 }
 #controls button:focus-visible {
-  box-shadow:0 0 0 2px rgba(194,65,15,0.6), 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow:0 0 0 2px rgba(194,65,15,0.55), 0 1px 2px rgba(0,0,0,0.12);
 }
-#controls button:hover { background:#fff; transform:translateY(-1px); }
-#controls button:active { transform:translateY(1px); box-shadow:0 0 2px rgba(0,0,0,0.25), inset 0 1px 2px rgba(0,0,0,0.1); }
+#controls button:hover { background:rgba(255,252,245,0.95); }
+#controls button:active {
+  transform:translateY(0.5px);
+  box-shadow:0 0 1px rgba(0,0,0,0.2), inset 0 1px 2px rgba(0,0,0,0.08);
+  background:rgba(240,236,225,0.9);
+  transition:all 0.05s ease;
+}
 #controls button.muted { opacity:0.4; }
 #progress {
   position:absolute; bottom:14px; right:14px; color:var(--paper); font-size:10px;
@@ -92,7 +108,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     <div id="title">浮世絵 — Press the Baren</div>
     <div id="subtitle">Touch the paper. Breathe upon it. The floating world accumulates.</div>
   </div>
-  <div id="hint" class="show">touch the paper to leave ink</div>
+  <div id="hint" class="show">press gently — the paper remembers</div>
   <div id="controls">
     <button id="soundBtn" title="Toggle sound (J)">♪</button>
     <button id="resetBtn" title="Clear print (R)">RESET</button>
@@ -432,6 +448,9 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   let frame = 0, lastInteract = Date.now();
   function render() {
     frame++;
+     // Slow saturation decay: paper slowly recovers (patient play rewards lighter paper)
+    const decayRate = saturationLevel > 0 ? 0.00008 : 0;
+    saturationLevel = Math.max(0, saturationLevel - decayRate);
     lastInteract = Math.max(lastInteract, Date.now() - 3000);
 
     // Clear and draw paper
@@ -449,11 +468,19 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       vigEl.style.opacity = vigOp;
       }
 
-    // Draw Fuji (with subtle parallax)
-    const fpx = (mouseX / W - 0.5) * 8;
-    const fpy = (mouseY / H - 0.5) * 4;
+    // Draw Fuji (with subtle parallax and atmospheric depth)
+    const fpx = (mouseX / W - 0.5) * 10;
+    const fpy = (mouseY / H - 0.5) * 5;
     ctx.save();
     ctx.translate(fpx, fpy);
+     // Subtle mist veil over Fuji base
+    ctx.globalAlpha = 0.12;
+    const fujiMist = ctx.createLinearGradient(0, H * 0.55, 0, H * 0.74);
+    fujiMist.addColorStop(0, 'rgba(248,244,235,0)');
+    fujiMist.addColorStop(1, 'rgba(248,244,235,0.6)');
+    ctx.fillStyle = fujiMist;
+    ctx.fillRect(0, H * 0.55, W, H * 0.19);
+    ctx.globalAlpha = 1;
     ctx.drawImage(fujiC, 0, 0);
     ctx.restore();
 
@@ -589,6 +616,12 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     canvas.setPointerCapture(e.pointerId);
     overlay.classList.add('hidden');
     hint.classList.add('fade');
+       // Paper darkens slightly on first touch — ink has weight
+    ctx.save();
+    ctx.globalAlpha = 0.02;
+    ctx.fillStyle = INK;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
     playBarenFriction(0);
     const p = pos(e);
     const now = Date.now();
