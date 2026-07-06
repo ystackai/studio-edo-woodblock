@@ -2,6 +2,7 @@
 
 **Preview URL:** `games/ukiyo-e-printer/index.html`  
 **Entry point:** `.factoryx/preview-entrypoint` (points to `games/ukiyo-e-printer/index.html`)
+**Public card route:** `drops/ukiyo-e-printer/` redirects to the same current game artifact.
 
 ## What Changed (This Iteration)
 
@@ -9,13 +10,14 @@
 1. **Fixed undeclared `holdRingX`/`holdRingY` variables** — previously implicit globals, now properly declared as `let` to prevent ReferenceError in strict mode
 2. **Fixed saturation sync** — `SceneBlock` and `LakeBlock` now receive the game's `saturationLevel` each frame, so the scene and water respond to ink density
 3. **Adjusted saturation decay rate** — from 0.00006→0.00015 per frame for more responsive paper recovery (~110s vs ~280s full recovery)
+4. **Aligned public drop route** — `drops/ukiyo-e-printer/` now redirects to `games/ukiyo-e-printer/`, so the shipped studio card opens the current baren/ink printer.
 
 ### Previous iterations (preserved)
-4. **Blocks2D integration** — 12 block types exported and used for scene composition
-5. **Embodied subjects** — Three walking FigureBlock instances (Hokusai-style travelers with conical hats)
-6. **Rich scene composition** — Mt. Fuji, mountain layers, lake with reflections, pine tree, rocks, grasses
-7. **Interactive ink mechanics** — baren press, brushstroke drawing, saturation model, print completion
-8. **Ambient audio** — wind drone, paper rustle, bell (user-gesture triggered)
+5. **Blocks2D integration** — 12 block types exported and used for scene composition
+6. **Embodied subjects** — Three walking FigureBlock instances (Hokusai-style travelers with conical hats)
+7. **Rich scene composition** — Mt. Fuji, mountain layers, lake with reflections, pine tree, rocks, grasses
+8. **Interactive ink mechanics** — baren press, brushstroke drawing, saturation model, print completion
+9. **Ambient audio** — wind drone, paper rustle, bell (user-gesture triggered)
 
 ## Core Interaction
 

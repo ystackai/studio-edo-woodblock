@@ -32,3 +32,23 @@ Rewrote `games/ukiyo-e-printer/index.html` (51KB, 1413 lines) to create a rich a
 - JS syntax: OK for both index.html and blocks-2d.js
 - Blocks2D exports verified: all 15 block types exported and used
 - Branch pushed to `factoryx/factory-edo-woodblock/work-order` (commit 5ab1f19)
+
+### 2026-07-06 — Public route closeout
+
+#### Issue found and fixed
+- `studio.json` still routes the shipped `ukiyo-e-printer` card through
+  `drops/ukiyo-e-printer/`, but the current reviewable artifact is
+  `games/ukiyo-e-printer/index.html` and `.factoryx/preview-entrypoint`
+  already points there.
+- Replaced the stale drop implementation with a tiny redirect to
+  `../../games/ukiyo-e-printer/` so the existing public drops URL opens the
+  current baren/ink printer instead of the older four-block process.
+- Updated `.factoryx/PR_BODY.md` so the preview-entrypoint note matches the
+  branch.
+
+#### Verification
+- Parsed `studio.json` and `.ystack/current/asset-manifest.json`.
+- Confirmed `.factoryx/preview-entrypoint` is `games/ukiyo-e-printer/index.html`.
+- Confirmed the drop redirect points at `../../games/ukiyo-e-printer/`.
+- `node -c games/ukiyo-e-printer/blocks-2d.js`
+- Extracted and syntax-checked the inline game script with `new Function(...)`.

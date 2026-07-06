@@ -37,6 +37,8 @@
 - ✅ Canvas element present with DPR support
 - ✅ BlockList render/update loop integrated in animation frame
 - ✅ Preview URL: `games/ukiyo-e-printer/index.html`
+- ✅ Public card route: `drops/ukiyo-e-printer/` redirects to `../../games/ukiyo-e-printer/`
+- ✅ Studio JSON and current asset manifest parse as valid JSON
 
 ## Manual Play Test
 
