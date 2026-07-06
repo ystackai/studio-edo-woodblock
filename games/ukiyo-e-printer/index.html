@@ -1,59 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>浮世絵 — Press the Baren · Pictures of the Floating World</title>
 <style>
 :root {
-   --paper: #f8f4eb; --ink: #0f172a; --vermilion: #c2410f;
-   --indigo: #2c3a5f; --gold: #b38b3f;
+  --paper: #f8f4eb; --ink: #0f172a; --vermilion: #c2410f;
+  --indigo: #2c3a5f; --gold: #b38b3f;
 }
 html, body { margin:0; padding:0; background:#1a1a18; height:100%; overflow:hidden;
-  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",Georgia,serif; }
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","Source Han Serif JP",Georgia,serif; }
 #stage { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
 canvas { display:block; cursor:crosshair; touch-action:none;
-  image-rendering:auto; box-shadow:0 4px 30px rgba(0,0,0,0.5); }
+  image-rendering:auto; box-shadow:0 4px 40px rgba(0,0,0,0.55); }
 #overlay { position:absolute; inset:0; display:flex; flex-direction:column;
   align-items:center; justify-content:center; pointer-events:none; z-index:10;
-  transition:opacity 0.8s ease; }
+  transition:opacity 1.2s cubic-bezier(.4,0,.2,1); }
 #overlay.hidden { opacity:0; pointer-events:none; }
-#title { color:var(--paper); font-size:clamp(1.2rem,3vw,1.8rem); font-weight:300;
-  letter-spacing:0.35em; text-align:center; text-shadow:0 2px 12px rgba(0,0,0,0.6);
-  opacity:0.9; }
-#subtitle { color:var(--gold); font-size:clamp(0.7rem,1.5vw,0.9rem);
-  font-weight:400; letter-spacing:0.15em; margin-top:10px; opacity:0.7; }
-#hint { position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
-  color:var(--paper); font-size:clamp(0.65rem,1.2vw,0.8rem);
-  letter-spacing:0.1em; opacity:0; text-align:center; z-index:10;
-  pointer-events:none; transition:opacity 1.5s ease; }
-#hint.show { opacity:0.45; }
+#title {
+  color:var(--paper); font-size:clamp(1.3rem,3.5vw,2rem); font-weight:300;
+  letter-spacing:0.4em; text-align:center;
+  text-shadow:0 2px 16px rgba(0,0,0,0.7);
+  opacity:0; animation:titleFadeIn 2s 0.5s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes titleFadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:0.92;transform:translateY(0);} }
+#subtitle {
+  color:var(--gold); font-size:clamp(0.65rem,1.4vw,0.85rem);
+  font-weight:400; letter-spacing:0.18em; margin-top:14px; opacity:0;
+  animation:titleFadeIn 2s 1.2s cubic-bezier(.4,0,.2,1) forwards;
+}
+#hint {
+  position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
+  color:var(--paper); font-size:clamp(0.6rem,1.1vw,0.75rem);
+  letter-spacing:0.12em; opacity:0; text-align:center; z-index:10;
+  pointer-events:none; transition:opacity 1.8s ease;
+}
+#hint.show { opacity:0.4; }
 #hint.fade { opacity:0; }
-#controls { position:absolute; top:14px; right:14px; display:flex; gap:8px; z-index:20; }
-#controls button { background:var(--paper); color:var(--ink); border:1px solid rgba(15,23,42,0.3);
-  font-family:inherit; font-size:12px; font-weight:600; letter-spacing:0.05em;
-  padding:7px 14px; border-radius:2px; cursor:pointer; user-select:none;
-  min-height:40px; transition:all 0.15s ease; box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+#controls {
+  position:absolute; top:14px; right:14px; display:flex; gap:8px; z-index:20;
+}
+#controls button {
+  background:rgba(248,244,235,0.88); color:var(--ink); border:1px solid rgba(15,23,42,0.25);
+  font-family:inherit; font-size:11px; font-weight:500; letter-spacing:0.12em;
+  padding:7px 14px; border-radius:1px; cursor:pointer; user-select:none;
+  min-height:40px; transition:all 0.2s ease;
+  box-shadow:0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3);
+  outline:none;
+}
+#controls button:focus-visible {
+  box-shadow:0 0 0 2px rgba(194,65,15,0.6), 0 1px 3px rgba(0,0,0,0.15);
+}
 #controls button:hover { background:#fff; transform:translateY(-1px); }
-#controls button:active { transform:translateY(1px); box-shadow:0 0 2px rgba(0,0,0,0.3); }
+#controls button:active { transform:translateY(1px); box-shadow:0 0 2px rgba(0,0,0,0.25), inset 0 1px 2px rgba(0,0,0,0.1); }
 #controls button.muted { opacity:0.4; }
-#progress { position:absolute; bottom:14px; right:14px; color:var(--paper); font-size:10px;
-  opacity:0; z-index:20; pointer-events:none; transition:opacity 0.5s; }
-#progress.show { opacity:0.35; }
+#progress {
+  position:absolute; bottom:14px; right:14px; color:var(--paper); font-size:10px;
+  opacity:0; z-index:20; pointer-events:none; transition:opacity 0.6s;
+  letter-spacing:0.08em;
+}
+#progress.show { opacity:0.3; }
+/* Deckle edge overlay */
+#deckle {
+  position:absolute; inset:0; pointer-events:none; z-index:5;
+  background:radial-gradient(ellipse at center, transparent 55%, rgba(26,26,24,0.35) 100%);
+  mix-blend-mode:multiply;
+}
 /* Touch target min 44px */
-@media (pointer:coarse) { #controls button { min-height:48px; min-width:48px; padding:8px 16px; } }
+@media (pointer:coarse) {
+  #controls button { min-height:48px; min-width:48px; padding:9px 18px; font-size:12px; }
+  canvas { touch-action: none; }
+}
+@media (max-width:600px) {
+  #controls { top:8px; right:8px; gap:5px; }
+  #controls button { padding:6px 10px; font-size:10px; letter-spacing:0.08em; }
+}
 </style>
 </head>
 <body>
 <div id="stage">
   <canvas id="canvas"></canvas>
+  <div id="deckle"></div>
   <div id="overlay">
     <div id="title">浮世絵 — Press the Baren</div>
     <div id="subtitle">Touch the paper. Breathe upon it. The floating world accumulates.</div>
   </div>
   <div id="hint" class="show">touch the paper to leave ink</div>
   <div id="controls">
-    <button id="soundBtn" title="Toggle sound">♪</button>
+    <button id="soundBtn" title="Toggle sound (J)">♪</button>
     <button id="resetBtn" title="Clear print (R)">RESET</button>
     <button id="finishBtn" title="Finish and download (S)">FINISH</button>
   </div>
@@ -61,7 +96,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
 </div>
 <script>
 (() => {
-  /* ── Canvas ──────────────────────────────────────────────── */
+  /* ── Canvas ─────────────────────────────────────────────── */
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d', { alpha: true });
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
@@ -70,15 +105,15 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   ctx.scale(DPR, DPR);
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 
-  const overlay  = document.getElementById('overlay');
-  const hint     = document.getElementById('hint');
-  const progress = document.getElementById('progress');
-  const soundBtn = document.getElementById('soundBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const finishBtn= document.getElementById('finishBtn');
+  const overlay   = document.getElementById('overlay');
+  const hint      = document.getElementById('hint');
+  const progress  = document.getElementById('progress');
+  const soundBtn  = document.getElementById('soundBtn');
+  const resetBtn  = document.getElementById('resetBtn');
+  const finishBtn = document.getElementById('finishBtn');
 
   function fit() {
-    const s = Math.min(1, (innerWidth-16)/W, (innerHeight-16)/H);
+    const s = Math.min(1, (innerWidth-24)/W, (innerHeight-24)/H);
     canvas.style.width  = (W*s|0)+'px';
     canvas.style.height = (H*s|0)+'px';
   }
@@ -90,315 +125,744 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     return { x:(t.clientX-r.left)*(W/r.width), y:(t.clientY-r.top)*(H/r.height) };
   }
 
-  /* ── Palette ─────────────────────────────────────────────── */
-  const PAPER='#f8f4eb', INK='#0f172a', VERM='#c2410f', INDIGO='#2c3a5f', GOLD='#b38b3f';
-  function hexA(a){ return (Math.min(1,Math.max(0,a))*255|0).toString(16).padStart(2,'0'); }
-  function cAlpha(c,a){ return c+hexA(a); }
+  /* ── Mouse tracking for mist parallax ─────────────────── */
+  let mouseX = W/2, mouseY = H/2;
+  canvas.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    mouseX = (e.clientX - r.left) * (W / r.width);
+    mouseY = (e.clientY - r.top) * (H / r.height);
+  }, {passive:true});
 
-  /* ── Paper texture (procedural washi) ────────────────────── */
+  /* ── Palette ─────────────────────────────────────────────── */
+  const PAPER = '#f8f4eb', INK = '#0f172a', VERM = '#c2410f', INDIGO = '#2c3a5f', GOLD = '#b38b3f';
+  function hexA(a){ return (Math.min(1,Math.max(0,a))*255|0).toString(16).padStart(2,'0'); }
+  function cAlpha(c,a){ return c + hexA(a); }
+
+  /* ── Paper texture (procedural washi with deckle edge) ─── */
   const paperC = document.createElement('canvas');
-  paperC.width=W; paperC.height=H;
-  const pX=paperC.getContext('2d');
-  pX.fillStyle=PAPER; pX.fillRect(0,0,W,H);
-  const paperImage=pX.getImageData(0,0,W,H);
-  const pd=paperImage.data;
-  for(let i=0;i<pd.length;i+=4){const n=(Math.random()-.5)*10;pd[i]=Math.min(255,Math.max(0,pd[i]+n));pd[i+1]=Math.min(255,Math.max(0,pd[i+1]+n));pd[i+2]=Math.min(255,Math.max(0,pd[i+2]+n));}
-  pX.putImageData(paperImage,0,0);
-  pX.strokeStyle='rgba(180,165,140,0.05)';pX.lineWidth=1;
-  for(let y=0;y<H;y+=3+Math.random()*4){pX.beginPath();pX.moveTo(0,y+Math.random()*2);for(let x=0;x<W;x+=20)pX.lineTo(x,y+Math.sin(x*.02)*2+Math.random());pX.stroke();}
+  paperC.width = W; paperC.height = H;
+  const pX = paperC.getContext('2d');
+
+  // Base paper
+  pX.fillStyle = PAPER;
+  pX.fillRect(0, 0, W, H);
+
+  // Fiber noise
+  const paperImage = pX.getImageData(0, 0, W, H);
+  const pd = paperImage.data;
+  for (let i = 0; i < pd.length; i += 4) {
+    const n = (Math.random() - 0.5) * 8;
+    pd[i]   = Math.min(255, Math.max(0, pd[i] + n));
+    pd[i+1] = Math.min(255, Math.max(0, pd[i+1] + n));
+    pd[i+2] = Math.min(255, Math.max(0, pd[i+2] + n));
+  }
+  pX.putImageData(paperImage, 0, 0);
+
+  // Horizontal washi fibers
+  pX.strokeStyle = 'rgba(180,165,140,0.045)';
+  pX.lineWidth = 1;
+  for (let y = 0; y < H; y += 2 + Math.random() * 5) {
+    pX.beginPath();
+    pX.moveTo(0, y + Math.random() * 2);
+    for (let x = 0; x < W; x += 15) {
+      pX.lineTo(x, y + Math.sin(x * 0.015) * 2.5 + Math.random() * 0.8);
+    }
+    pX.stroke();
+  }
+
+  // Vertical washi fibers (sparse, irregular)
+  pX.strokeStyle = 'rgba(170,155,135,0.025)';
+  for (let x = 0; x < W; x += 8 + Math.random() * 16) {
+    pX.beginPath();
+    pX.moveTo(x, 0);
+    for (let y = 0; y < H; y += 12) {
+      pX.lineTo(x + Math.sin(y * 0.02) * 3 + Math.random(), y);
+    }
+    pX.stroke();
+  }
+
+  // Deckle edge — soft darkened border mimicking handmade paper edge
+  const deckleGrad = pX.createRadialGradient(W/2, H/2, W*0.32, W/2, H/2, W*0.62);
+  deckleGrad.addColorStop(0, 'rgba(248,244,235,0)');
+  deckleGrad.addColorStop(0.55, 'rgba(248,244,235,0)');
+  deckleGrad.addColorStop(0.78, 'rgba(200,190,170,0.12)');
+  deckleGrad.addColorStop(1, 'rgba(180,170,150,0.28)');
+  pX.fillStyle = deckleGrad;
+  pX.fillRect(0, 0, W, H);
+
+  // Deckle edge — subtle irregular dark lines at border
+  pX.strokeStyle = 'rgba(160,145,125,0.08)';
+  pX.lineWidth = 1.5;
+  for (let i = 0; i < 12; i++) {
+    const side = i % 4;
+    pX.beginPath();
+    if (side === 0) { // top
+      pX.moveTo(0, 4 + Math.random() * 6);
+      for (let x = 0; x < W; x += 30 + Math.random() * 40) {
+        pX.lineTo(x, 4 + Math.random() * 8);
+      }
+    } else if (side === 1) { // bottom
+      pX.moveTo(0, H - 4 - Math.random() * 6);
+      for (let x = 0; x < W; x += 30 + Math.random() * 40) {
+        pX.lineTo(x, H - 4 - Math.random() * 8);
+      }
+    } else if (side === 2) { // left
+      pX.moveTo(4 + Math.random() * 6, 0);
+      for (let y = 0; y < H; y += 30 + Math.random() * 40) {
+        pX.lineTo(4 + Math.random() * 8, y);
+      }
+    } else { // right
+      pX.moveTo(W - 4 - Math.random() * 6, 0);
+      for (let y = 0; y < H; y += 30 + Math.random() * 40) {
+        pX.lineTo(W - 4 - Math.random() * 8, y);
+      }
+    }
+    pX.stroke();
+  }
 
   /* ── Mt. Fuji background layer ───────────────────────────── */
-  const fujiC=document.createElement('canvas'); fujiC.width=W; fujiC.height=H;
-  const fX=fujiC.getContext('2d');
-  fX.fillStyle='rgba(15,23,42,0.07)';fX.beginPath();
-  fX.moveTo(W*.12,H*.73);fX.quadraticCurveTo(W*.34,H*.34,W*.5,H*.28);
-  fX.quadraticCurveTo(W*.56,H*.275,W*.62,H*.33);fX.quadraticCurveTo(W*.78,H*.52,W*.88,H*.73);
-  fX.closePath();fX.fill();
-  fX.fillStyle='rgba(248,244,235,0.13)';fX.beginPath();
-  fX.moveTo(W*.43,H*.38);fX.quadraticCurveTo(W*.5,H*.24,W*.57,H*.39);
-  fX.quadraticCurveTo(W*.54,H*.36,W*.5,H*.33);fX.quadraticCurveTo(W*.46,H*.36,W*.43,H*.38);
-  fX.closePath();fX.fill();
-  fX.fillStyle='rgba(248,244,235,0.09)';
-  for(let i=0;i<6;i++){const cx=W*(.25+Math.random()*.5),cy=H*(.3+Math.random()*.15);fX.beginPath();fX.ellipse(cx,cy,70+Math.random()*90,12+Math.random()*22,0,0,Math.PI*2);fX.fill();}
+  const fujiC = document.createElement('canvas');
+  fujiC.width = W; fujiC.height = H;
+  const fX = fujiC.getContext('2d');
+
+  // Distant mountain base — layered atmospheric perspective
+  // Layer 1: Farthest mountain (lightest, smallest)
+  fX.fillStyle = 'rgba(15,23,42,0.04)';
+  fX.beginPath();
+  fX.moveTo(W*0.15, H*0.74);
+  fX.quadraticCurveTo(W*0.35, H*0.45, W*0.5, H*0.40);
+  fX.quadraticCurveTo(W*0.65, H*0.45, W*0.85, H*0.74);
+  fX.closePath();
+  fX.fill();
+
+  // Layer 2: Main Fuji silhouette
+  fX.fillStyle = 'rgba(15,23,42,0.08)';
+  fX.beginPath();
+  fX.moveTo(W*0.12, H*0.73);
+  fX.quadraticCurveTo(W*0.30, H*0.38, W*0.48, H*0.30);
+  fX.quadraticCurveTo(W*0.52, H*0.26, W*0.56, H*0.30);
+  fX.quadraticCurveTo(W*0.64, H*0.40, W*0.78, H*0.52);
+  fX.quadraticCurveTo(W*0.84, H*0.62, W*0.88, H*0.73);
+  fX.closePath();
+  fX.fill();
+
+  // Snow caps
+  fX.fillStyle = 'rgba(248,244,235,0.15)';
+  fX.beginPath();
+  fX.moveTo(W*0.43, H*0.39);
+  fX.quadraticCurveTo(W*0.50, H*0.24, W*0.57, H*0.39);
+  fX.quadraticCurveTo(W*0.54, H*0.36, W*0.50, H*0.33);
+  fX.quadraticCurveTo(W*0.46, H*0.36, W*0.43, H*0.38);
+  fX.closePath();
+  fX.fill();
+
+  // Snow cap tendrils
+  fX.fillStyle = 'rgba(248,244,235,0.07)';
+  for (let i = 0; i < 8; i++) {
+    const cx = W * (0.28 + Math.random() * 0.44);
+    const cy = H * (0.30 + Math.random() * 0.16);
+    fX.beginPath();
+    fX.ellipse(cx, cy, 60 + Math.random() * 90, 10 + Math.random() * 20, 0, 0, Math.PI * 2);
+    fX.fill();
+  }
+
+  // Lower mist/atmosphere wash
+  fX.fillStyle = 'rgba(248,244,235,0.06)';
+  fX.beginPath();
+  fX.moveTo(0, H * 0.62);
+  fX.quadraticCurveTo(W * 0.3, H * 0.58, W * 0.5, H * 0.64);
+  fX.quadraticCurveTo(W * 0.7, H * 0.68, W, H * 0.60);
+  fX.lineTo(W, H);
+  fX.lineTo(0, H);
+  fX.closePath();
+  fX.fill();
 
   /* ── Ink state ───────────────────────────────────────────── */
-  const inkMarks=[]; // permanent marks
-  const blooms=[];   // animated bloom overlays
-  const densityMap=new Float32Array(W*H);
-  const DENSITY_MAX=4;
-  let saturationLevel=0, lastClickTime=0, rapidClickCount=0;
-  let strokePts=[];
-  let isDrawing=false, isHolding=false, holdT0=0, holdCX=0, holdCY=0, holdProgress=0;
-  let holdInterval=null;
+  const inkMarks = [];     // permanent marks
+  const blooms = [];       // animated bloom overlays
+  const densityMap = new Float32Array(W * H);
+  const DENSITY_MAX = 4;
+  let saturationLevel = 0, lastClickTime = 0, rapidClickCount = 0;
+  let strokePts = [];
+  let isDrawing = false, isHolding = false, holdT0 = 0, holdCX = 0, holdCY = 0, holdProgress = 0;
+  let holdInterval = null;
+  let lastStrokeTime = 0;
+  let strokeHoldTime = 0; // track how long current stroke is being held
 
-  function getOp(b){ return Math.max(0.06, b*(1-saturationLevel*.65)); }
-  function getRad(b){ return b*(1-saturationLevel*.3); }
-
-  function drawBloom(cx,cy,radius,op,color){
-    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,radius);
-    g.addColorStop(0,cAlpha(color,.85*op));g.addColorStop(.4,cAlpha(color,.45*op));
-    g.addColorStop(.7,cAlpha(color,.12*op));g.addColorStop(1,cAlpha(color,0));
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.fill();
-    ctx.save();ctx.globalAlpha=.15*op;ctx.strokeStyle=color;ctx.lineWidth=1;ctx.beginPath();
-    for(let i=0;i<=48;i++){const a=(i/48)*Math.PI*2,r=radius+(Math.random()-.5)*radius*.22;
-      const px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
-    ctx.closePath();ctx.stroke();ctx.restore();
+  function getOp(b) {
+    return Math.max(0.06, b * (1 - saturationLevel * 0.65));
+  }
+  function getRad(b) {
+    return b * (1 - saturationLevel * 0.3);
   }
 
-  function accumulateDensity(cx,cy,radius,op){
-    const sr=Math.round(radius),sx=Math.max(0,cx-sr|0),sy=Math.max(0,cy-sr|0),
-          ex=Math.min(W-1,cx+sr|0),ey=Math.min(H-1,cy+sr|0);
-    for(let py=sy;py<=ey;py++)for(let px=sx;px<=ex;px++){
-      const dx=px-cx,dy=py-cy,d=Math.sqrt(dx*dx+dy*dy);
-      if(d<=sr)densityMap[py*W+px]=Math.min(DENSITY_MAX,densityMap[py*W+px]+op*(1-d/sr));}
-    let tot=0,cnt=0;
-    for(let py=sy;py<=ey;py++)for(let px=sx;px<=ex;px++){tot+=densityMap[py*W+px];cnt++;}
-    if(cnt>0)saturationLevel=Math.min(1,saturationLevel+(tot/cnt)*.018);
+  // Draw ink bloom with capillary edge darkening
+  function drawBloom(cx, cy, radius, op, color) {
+    // Core bloom
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    g.addColorStop(0, cAlpha(color, 0.85 * op));
+    g.addColorStop(0.35, cAlpha(color, 0.48 * op));
+    g.addColorStop(0.65, cAlpha(color, 0.14 * op));
+    g.addColorStop(1, cAlpha(color, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Capillary edge darkening — darker rim where ink pools at fiber edges
+    ctx.save();
+    ctx.globalAlpha = 0.2 * op;
+    ctx.strokeStyle = cAlpha('#000000', 0.5);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let i = 0; i <= 48; i++) {
+      const a = (i / 48) * Math.PI * 2;
+      const r = radius + (Math.random() - 0.5) * radius * 0.22;
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
   }
 
-  function registerMark(m){ inkMarks.push(m); accumulateDensity(m.x,m.y,m.radius,m.opacity); }
+  // Draw ink stroke with variable opacity and ink bleed
+  function drawStroke(pts, radius, opacity, color, holdDuration) {
+    const bo = getOp(opacity);
+    const br = getRad(radius);
 
-  /* ── Mist layers ─────────────────────────────────────────── */
-  const mist=[];
-  for(let i=0;i<8;i++)mist.push({x:Math.random()*W,y:H*(.32+Math.random()*.32),
-    w:250+Math.random()*350,h:25+Math.random()*50,speed:.12+Math.random()*.35,op:.025+Math.random()*.055});
+    // Hold-duration opacity: longer holds = darker ink
+    const holdBoost = holdDuration > 0 ? Math.min(0.45, holdDuration / 2000) : 0;
+    const finalOp = Math.min(0.95, bo + holdBoost * 0.35);
+
+    // Main stroke
+    ctx.strokeStyle = cAlpha(color, finalOp);
+    ctx.lineWidth = br * 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let j = 1; j < pts.length; j++) {
+      ctx.lineTo(pts[j].x, pts[j].y);
+    }
+    ctx.stroke();
+
+    // Ink bleed (capillary spread)
+    ctx.globalAlpha = finalOp * 0.3;
+    ctx.lineWidth = br * 4.5;
+    ctx.strokeStyle = cAlpha(color, 0.5);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let j = 1; j < pts.length; j++) {
+      ctx.lineTo(pts[j].x, pts[j].y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Edge darkening — darker line along stroke edges
+    ctx.globalAlpha = finalOp * 0.15;
+    ctx.lineWidth = br * 1.4;
+    ctx.strokeStyle = '#000000';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let j = 1; j < pts.length; j++) {
+      ctx.lineTo(pts[j].x, pts[j].y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function accumulateDensity(cx, cy, radius, op) {
+    const sr = Math.round(radius);
+    const sx = Math.max(0, cx - sr | 0);
+    const sy = Math.max(0, cy - sr | 0);
+    const ex = Math.min(W - 1, cx + sr | 0);
+    const ey = Math.min(H - 1, cy + sr | 0);
+    for (let py = sy; py <= ey; py++) {
+      for (let px = sx; px <= ex; px++) {
+        const dx = px - cx, dy = py - cy;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d <= sr) {
+          densityMap[py * W + px] = Math.min(DENSITY_MAX, densityMap[py * W + px] + op * (1 - d / sr));
+        }
+      }
+    }
+    let tot = 0, cnt = 0;
+    for (let py = sy; py <= ey; py++) {
+      for (let px = sx; px <= ex; px++) {
+        tot += densityMap[py * W + px];
+        cnt++;
+      }
+    }
+    if (cnt > 0) saturationLevel = Math.min(1, saturationLevel + (tot / cnt) * 0.018);
+  }
+
+  function registerMark(m) {
+    inkMarks.push(m);
+    accumulateDensity(m.x, m.y, m.radius, m.opacity);
+  }
+
+  /* ── Mist layers (enhanced with parallax and natural drift) ── */
+  const mist = [];
+  for (let i = 0; i < 12; i++) {
+    mist.push({
+      x: Math.random() * W,
+      y: H * (0.28 + Math.random() * 0.38),
+      w: 220 + Math.random() * 400,
+      h: 22 + Math.random() * 55,
+      speed: 0.08 + Math.random() * 0.3,
+      op: 0.02 + Math.random() * 0.06,
+      // Parallax offset and sine drift
+      parallaxX: (Math.random() - 0.5) * 30,
+      parallaxY: (Math.random() - 0.5) * 12,
+      driftPhase: Math.random() * Math.PI * 2,
+      driftAmp: 3 + Math.random() * 12,
+      driftFreq: 0.003 + Math.random() * 0.008,
+    });
+  }
 
   /* ── Render loop ─────────────────────────────────────────── */
-  let frame=0, lastInteract=Date.now();
-  function render(){
-    frame++; lastInteract=Math.max(lastInteract,Date.now()-3000);
-    ctx.fillStyle=PAPER;ctx.fillRect(0,0,W,H);
-    ctx.globalAlpha=.75;ctx.drawImage(paperC,0,0);ctx.globalAlpha=1;
-    ctx.drawImage(fujiC,0,0);
-    // mist
-    for(const m of mist){
-      m.x+=m.speed;if(m.x>W+m.w)m.x=-m.w;
-      ctx.save();ctx.globalAlpha=m.op;
-      const g=ctx.createLinearGradient(m.x,m.y,m.x+m.w,m.y);
-      g.addColorStop(0,'rgba(248,244,235,0)');g.addColorStop(.35,'rgba(248,244,235,1)');
-      g.addColorStop(.65,'rgba(248,244,235,1)');g.addColorStop(1,'rgba(248,244,235,0)');
-      ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(m.x+m.w/2,m.y,m.w/2,m.h/2,0,0,Math.PI*2);ctx.fill();
+  let frame = 0, lastInteract = Date.now();
+  function render() {
+    frame++;
+    lastInteract = Math.max(lastInteract, Date.now() - 3000);
+
+    // Clear and draw paper
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 0.72;
+    ctx.drawImage(paperC, 0, 0);
+    ctx.globalAlpha = 1;
+
+    // Draw Fuji (with subtle parallax)
+    const fpx = (mouseX / W - 0.5) * 8;
+    const fpy = (mouseY / H - 0.5) * 4;
+    ctx.save();
+    ctx.translate(fpx, fpy);
+    ctx.drawImage(fujiC, 0, 0);
+    ctx.restore();
+
+    // Mist layers with parallax and sine drift
+    for (const m of mist) {
+      m.x += m.speed;
+      if (m.x > W + m.w) m.x = -m.w;
+
+      // Sine wave vertical drift for natural movement
+      const driftY = Math.sin(frame * m.driftFreq + m.driftPhase) * m.driftAmp;
+      // Parallax offset
+      const px = (mouseX / W - 0.5) * m.parallaxX;
+      const py = (mouseY / H - 0.5) * m.parallaxY;
+
+      ctx.save();
+      ctx.globalAlpha = m.op;
+      const g = ctx.createLinearGradient(m.x, m.y, m.x + m.w, m.y);
+      g.addColorStop(0, 'rgba(248,244,235,0)');
+      g.addColorStop(0.35, 'rgba(248,244,235,0.9)');
+      g.addColorStop(0.65, 'rgba(248,244,235,0.9)');
+      g.addColorStop(1, 'rgba(248,244,235,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(m.x + m.w / 2 + px, m.y + driftY + py, m.w / 2, m.h / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
-    // animated blooms
-    for(let i=blooms.length-1;i>=0;i--){
-      const b=blooms[i];b.t+=16;const t=Math.min(1,b.t/b.dur);
-      const e=1-Math.pow(1-t,3);
-      ctx.save();drawBloom(b.x,b.y,b.r*(.45+e*.75),b.op*e,b.c);ctx.restore();
-      if(t>=1)blooms.splice(i,1);
+
+    // Animated blooms
+    for (let i = blooms.length - 1; i >= 0; i--) {
+      const b = blooms[i];
+      b.t += 16;
+      const t = Math.min(1, b.t / b.dur);
+      const e = 1 - Math.pow(1 - t, 3);
+      ctx.save();
+      drawBloom(b.x, b.y, b.r * (.45 + e * .75), b.op * e, b.c);
+      ctx.restore();
+      if (t >= 1) blooms.splice(i, 1);
     }
-    // permanent ink
+
+    // Permanent ink marks
     ctx.save();
-    for(const mk of inkMarks){
-      if(mk.type==='bloom'){drawBloom(mk.x,mk.y,mk.radius,mk.opacity,mk.color);}
-      else if(mk.type==='stroke'){
-        const bo=getOp(mk.op),br=getRad(mk.r);
-        ctx.strokeStyle=mk.color+cAlpha('',bo);ctx.lineWidth=br*2;
-        ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();
-        if(mk.pts&&mk.pts.length){ctx.moveTo(mk.pts[0].x,mk.pts[0].y);
-          for(let j=1;j<mk.pts.length;j++)ctx.lineTo(mk.pts[j].x,mk.pts[j].y);
-        }ctx.stroke();
-        // bleed
-        ctx.globalAlpha=bo*.25;ctx.lineWidth=br*4.5;ctx.stroke();
-        ctx.globalAlpha=1;
+    for (const mk of inkMarks) {
+      if (mk.type === 'bloom') {
+        drawBloom(mk.x, mk.y, mk.radius, mk.opacity, mk.color);
+      } else if (mk.type === 'stroke') {
+        drawStroke(mk.pts, mk.radius, mk.opacity, mk.color, mk.holdDuration || 0);
       }
     }
     ctx.restore();
-    // current stroke preview
-    if(isDrawing&&strokePts.length>1){
-      const bo=getOp(.32),br=getRad(12);
-      ctx.strokeStyle=INK+cAlpha('',bo);ctx.lineWidth=br*2;ctx.lineCap='round';ctx.beginPath();
-      ctx.moveTo(strokePts[0].x,strokePts[0].y);
-      for(let j=1;j<strokePts.length;j++)ctx.lineTo(strokePts[j].x,strokePts[j].y);
-      ctx.stroke();
-      ctx.globalAlpha=bo*.2;ctx.lineWidth=br*4;ctx.stroke();ctx.globalAlpha=1;
+
+    // Current stroke preview
+    if (isDrawing && strokePts.length > 1) {
+      const bo = getOp(.32);
+      const br = getRad(12);
+      const holdDur = isHolding ? (Date.now() - strokeHoldTime) : 0;
+      drawStroke(strokePts, br, .32, INK, holdDur);
     }
-    // baren press visual
-    if(isHolding&&holdProgress>0){
-      const br=getRad(holdProgress*35);
-      const bg=ctx.createRadialGradient(holdCX,holdCY,0,holdCX,holdCY,br);
-      bg.addColorStop(0,cAlpha(INK,.55*holdProgress));bg.addColorStop(.5,cAlpha(INK,.2*holdProgress));
-      bg.addColorStop(1,cAlpha(INK,0));ctx.fillStyle=bg;ctx.beginPath();
-      ctx.arc(holdCX,holdCY,br,0,Math.PI*2);ctx.fill();
-      if(holdProgress>.6){
-        const ao=(holdProgress-.6)/.4*.12;
-        const ag=ctx.createRadialGradient(holdCX,holdCY,0,holdCX,holdCY,br*.4);
-        ag.addColorStop(0,cAlpha(VERM,ao));ag.addColorStop(1,cAlpha(VERM,0));
-        ctx.fillStyle=ag;ctx.beginPath();ctx.arc(holdCX,holdCY,br*.4,0,Math.PI*2);ctx.fill();
+
+    // Baren press visual
+    if (isHolding && holdProgress > 0) {
+      const br = getRad(holdProgress * 35);
+      const bg = ctx.createRadialGradient(holdCX, holdCY, 0, holdCX, holdCY, br);
+      bg.addColorStop(0, cAlpha(INK, .55 * holdProgress));
+      bg.addColorStop(.5, cAlpha(INK, .2 * holdProgress));
+      bg.addColorStop(1, cAlpha(INK, 0));
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.arc(holdCX, holdCY, br, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Vermilion appears at 60%+ depth
+      if (holdProgress > .6) {
+        const ao = (holdProgress - .6) / .4 * .12;
+        const ag = ctx.createRadialGradient(holdCX, holdCY, 0, holdCX, holdCY, br * .4);
+        ag.addColorStop(0, cAlpha(VERM, ao));
+        ag.addColorStop(1, cAlpha(VERM, 0));
+        ctx.fillStyle = ag;
+        ctx.beginPath();
+        ctx.arc(holdCX, holdCY, br * .4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Baren press ring — subtle circle expanding outward
+      if (holdProgress > .3) {
+        const ringR = br * (0.3 + holdProgress * 0.8);
+        const ringOp = (holdProgress - .3) / .7 * .15;
+        ctx.strokeStyle = cAlpha(INK, ringOp);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(holdCX, holdCY, ringR, 0, Math.PI * 2);
+        ctx.stroke();
       }
     }
-    // progress
-    if(inkMarks.length){
-      progress.textContent=inkMarks.length+' stroke'+(inkMarks.length>1?'s':'')+' · '+(saturationLevel>.3?'紙飽和—paper saturated':'紙は白く—paper white');
+
+    // Progress
+    if (inkMarks.length) {
+      const markCount = inkMarks.length;
+      const lang = markCount > 1 ? ' strokes' : ' stroke';
+      const satText = saturationLevel > .3 ? '紙飽和 — paper saturated' : '紙は白く — paper white';
+      progress.textContent = markCount + lang + ' · ' + satText;
       progress.classList.add('show');
     }
+
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
 
   /* ── Input ───────────────────────────────────────────────── */
-  function placeInk(cx,cy){
-    let color=INK;
-    const h=(cx/W+cy/H)%3;
-    if(h>1.4&&saturationLevel<.55)color=INDIGO;
-    if(h>2.2&&saturationLevel<.35)color=VERM;
-    const br=getRad(16+Math.random()*20), bo=getOp(.35+Math.random()*.28);
-    blooms.push({x:cx,y:cy,r:br,op:bo,c:color,t:0,dur:350+Math.random()*350});
-    registerMark({type:'bloom',x:cx,y:cy,radius:br,opacity:bo,color:color});
-    lastInteract=Date.now();playBrushSound();
+  function placeInk(cx, cy) {
+    let color = INK;
+    const h = (cx / W + cy / H) % 3;
+    if (h > 1.4 && saturationLevel < .55) color = INDIGO;
+    if (h > 2.2 && saturationLevel < .35) color = VERM;
+    const br = getRad(16 + Math.random() * 20);
+    const bo = getOp(.35 + Math.random() * .28);
+    blooms.push({ x: cx, y: cy, r: br, op: bo, c: color, t: 0, dur: 350 + Math.random() * 350 });
+    registerMark({ type: 'bloom', x: cx, y: cy, radius: br, opacity: bo, color: color });
+    lastInteract = Date.now();
+    playBrushSound();
   }
 
-  canvas.addEventListener('pointerdown',e=>{
-    e.preventDefault();canvas.setPointerCapture(e.pointerId);
-    overlay.classList.add('hidden');hint.classList.add('fade');
-    const p=pos(e),now=Date.now(),d=now-lastClickTime;
-    if(d<500){rapidClickCount++;if(rapidClickCount>5)saturationLevel=Math.min(1,saturationLevel+.04*(rapidClickCount-5));}
-    else rapidClickCount=0;
-    lastClickTime=now;
-    // start stroke or hold
-    isDrawing=true;isHolding=true;holdT0=now;holdCX=p.x;holdCY=p.y;holdProgress=0;
-    strokePts=[{x:p.x,y:p.y}];
-    // hold interval for baren
-    if(holdInterval)clearInterval(holdInterval);
-    holdInterval=setInterval(()=>{
-      if(isHolding){
-        holdProgress=Math.min(1,(now-holdT0)/2000);
-        if(holdProgress>.15&&holdProgress<.3)playBarenTouch();
-        if(holdProgress>.5&&Math.random()<.25)placeInk(holdCX,holdCY);
-      }
-    },80);
-  });
+  let pointerDownTime = 0;
 
-  canvas.addEventListener('pointermove',e=>{
-    if(!isDrawing)return;e.preventDefault();
-    const p=pos(e);strokePts.push({x:p.x,y:p.y});holdCX=p.x;holdCY=p.y;
-  });
-
-  canvas.addEventListener('pointerup',e=>{
-    e.preventDefault();if(holdInterval)clearInterval(holdInterval);holdInterval=null;
-    if(isDrawing&&strokePts.length>2){
-      const br=getRad(12),bo=getOp(.3);
-      registerMark({type:'stroke',x:strokePts[strokePts.length-1].x,y:strokePts[strokePts.length-1].y,
-        radius:br,opacity:bo,color:INK,pts:strokePts});
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    overlay.classList.add('hidden');
+    hint.classList.add('fade');
+    const p = pos(e);
+    const now = Date.now();
+    const d = now - lastClickTime;
+    if (d < 500) {
+      rapidClickCount++;
+      if (rapidClickCount > 5) saturationLevel = Math.min(1, saturationLevel + .04 * (rapidClickCount - 5));
+    } else {
+      rapidClickCount = 0;
     }
-    isDrawing=false;isHolding=false;strokePts=[];holdProgress=0;
-    lastInteract=Date.now();
+    lastClickTime = now;
+
+    // Start stroke and hold
+    isDrawing = true;
+    isHolding = true;
+    holdT0 = now;
+    strokeHoldTime = now;
+    holdCX = p.x;
+    holdCY = p.y;
+    holdProgress = 0;
+    strokePts = [{ x: p.x, y: p.y }];
+
+    // Hold interval for baren press
+    if (holdInterval) clearInterval(holdInterval);
+    holdInterval = setInterval(() => {
+      if (isHolding) {
+        holdProgress = Math.min(1, (now - holdT0) / 2000);
+        if (holdProgress > .15 && holdProgress < .3) playBarenTouch();
+        if (holdProgress > .5 && Math.random() < .25) placeInk(holdCX, holdCY);
+      }
+    }, 80);
   });
 
-  canvas.addEventListener('pointerleave',e=>{
-    if(holdInterval)clearInterval(holdInterval);holdInterval=null;
-    if(isDrawing){
-      if(strokePts.length>2){
-        const br=getRad(12),bo=getOp(.3);
-        registerMark({type:'stroke',x:strokePts[strokePts.length-1].x,y:strokePts[strokePts.length-1].y,
-          radius:br,opacity:bo,color:INK,pts:strokePts});
-      }
-      isDrawing=false;isHolding=false;strokePts=[];holdProgress=0;
+  canvas.addEventListener('pointermove', e => {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const p = pos(e);
+    strokePts.push({ x: p.x, y: p.y });
+    holdCX = p.x;
+    holdCY = p.y;
+  });
+
+  canvas.addEventListener('pointerup', e => {
+    e.preventDefault();
+    if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+    // Register stroke with hold duration
+    const holdDur = isHolding ? (Date.now() - strokeHoldTime) : 0;
+    if (isDrawing && strokePts.length > 2) {
+      const br = getRad(12);
+      const bo = getOp(.3);
+      registerMark({
+        type: 'stroke',
+        x: strokePts[strokePts.length - 1].x,
+        y: strokePts[strokePts.length - 1].y,
+        radius: br,
+        opacity: bo,
+        color: INK,
+        pts: strokePts,
+        holdDuration: holdDur,
+      });
     }
-    lastInteract=Date.now();
+    isDrawing = false;
+    isHolding = false;
+    strokePts = [];
+    holdProgress = 0;
+    lastInteract = Date.now();
+  });
+
+  canvas.addEventListener('pointerleave', e => {
+    if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+    const holdDur = isHolding ? (Date.now() - strokeHoldTime) : 0;
+    if (isDrawing) {
+      if (strokePts.length > 2) {
+        const br = getRad(12);
+        const bo = getOp(.3);
+        registerMark({
+          type: 'stroke',
+          x: strokePts[strokePts.length - 1].x,
+          y: strokePts[strokePts.length - 1].y,
+          radius: br,
+          opacity: bo,
+          color: INK,
+          pts: strokePts,
+          holdDuration: holdDur,
+        });
+      }
+      isDrawing = false;
+      isHolding = false;
+      strokePts = [];
+      holdProgress = 0;
+    }
+    lastInteract = Date.now();
   });
 
   /* ── Audio ───────────────────────────────────────────────── */
-  let audioCtx=null, soundOn=false, ambientGain=null, ambientNode=null, ambientStarted=false;
+  let audioCtx = null, soundOn = false, ambientGain = null, ambientNode = null, ambientStarted = false;
 
-  function initAudio(){
-    if(audioCtx)return;
-    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    ambientGain=audioCtx.createGain();ambientGain.gain.value=0;ambientGain.connect(audioCtx.destination);
-    // wind: filtered noise
-    const bs=audioCtx.sampleRate*4,bf=audioCtx.createBuffer(2,bs,audioCtx.sampleRate);
-    for(let ch=0;ch<2;ch++){const d=bf.getChannelData(ch);let l=0;
-      for(let i=0;i<bs;i++){const w=Math.random()*2-1;d[i]=(l+.018*w)/1.018;l=d[i];d[i]*=3.5;}}
-    ambientNode=audioCtx.createBufferSource();ambientNode.buffer=bf;ambientNode.loop=true;
-    const bp=audioCtx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=380;bp.Q.value=.4;
-    ambientNode.connect(bp);bp.connect(ambientGain);ambientNode.start();
-    // drone
-    const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=82;
-    const og=audioCtx.createGain();og.gain.value=0;
-    o.connect(og);og.connect(ambientGain);o.start();
-    // second drone
-    const o2=audioCtx.createOscillator();o2.type='sine';o2.frequency.value=123.5;
-    const og2=audioCtx.createGain();og2.gain.value=0;
-    o2.connect(og2);og2.connect(ambientGain);o2.start();
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    ambientGain = audioCtx.createGain();
+    ambientGain.gain.value = 0;
+    ambientGain.connect(audioCtx.destination);
+
+    // Wind: filtered noise
+    const bs = audioCtx.sampleRate * 4;
+    const bf = audioCtx.createBuffer(2, bs, audioCtx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = bf.getChannelData(ch);
+      let l = 0;
+      for (let i = 0; i < bs; i++) {
+        const w = Math.random() * 2 - 1;
+        d[i] = (l + .018 * w) / 1.018;
+        l = d[i];
+        d[i] *= 3.5;
+      }
+    }
+    ambientNode = audioCtx.createBufferSource();
+    ambientNode.buffer = bf;
+    ambientNode.loop = true;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 380;
+    bp.Q.value = .4;
+    ambientNode.connect(bp);
+    bp.connect(ambientGain);
+    ambientNode.start();
+
+    // Drone 1
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = 82;
+    const og = audioCtx.createGain();
+    og.gain.value = 0;
+    o.connect(og);
+    og.connect(ambientGain);
+    o.start();
+
+    // Drone 2
+    const o2 = audioCtx.createOscillator();
+    o2.type = 'sine';
+    o2.frequency.value = 123.5;
+    const og2 = audioCtx.createGain();
+    og2.gain.value = 0;
+    o2.connect(og2);
+    og2.connect(ambientGain);
+    o2.start();
   }
 
-  function playBrushSound(){
-    if(!audioCtx||!soundOn)return;
-    const t=audioCtx.currentTime;
-    const bs=audioCtx.sampleRate*.12,bf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate);
-    const d=bf.getChannelData(0);
-    for(let i=0;i<bs;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/bs,2.5);
-    const s=audioCtx.createBufferSource();s.buffer=bf;
-    const hp=audioCtx.createBiquadFilter();hp.type='highpass';hp.frequency.value=600;
-    const g=audioCtx.createGain();g.gain.value=.06+Math.random()*.04;
-    s.connect(hp);hp.connect(g);g.connect(audioCtx.destination);s.start(t);
-    const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=170+Math.random()*100;
-    const og=audioCtx.createGain();og.gain.setValueAtTime(.02,t);
-    og.gain.exponentialRampToValueAtTime(.001,t+.35);
-    o.connect(og);og.connect(audioCtx.destination);o.start(t);o.stop(t+.35);
+  function playBrushSound() {
+    if (!audioCtx || !soundOn) return;
+    const t = audioCtx.currentTime;
+    const bs = audioCtx.sampleRate * .12;
+    const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
+    const d = bf.getChannelData(0);
+    for (let i = 0; i < bs; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bs, 2.5);
+    const s = audioCtx.createBufferSource();
+    s.buffer = bf;
+    const hp = audioCtx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 600;
+    const g = audioCtx.createGain();
+    g.gain.value = .06 + Math.random() * .04;
+    s.connect(hp);
+    hp.connect(g);
+    g.connect(audioCtx.destination);
+    s.start(t);
+
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = 170 + Math.random() * 100;
+    const og = audioCtx.createGain();
+    og.gain.setValueAtTime(.02, t);
+    og.gain.exponentialRampToValueAtTime(.001, t + .35);
+    o.connect(og);
+    og.connect(audioCtx.destination);
+    o.start(t);
+    o.stop(t + .35);
   }
 
-  function playBarenTouch(){
-    if(!audioCtx||!soundOn)return;
-    const t=audioCtx.currentTime;
-    const o=audioCtx.createOscillator();o.type='sine';
-    o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(35,t+.25);
-    const g=audioCtx.createGain();g.gain.setValueAtTime(.04,t);
-    g.gain.exponentialRampToValueAtTime(.001,t+.35);
-    o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.35);
+  function playBarenTouch() {
+    if (!audioCtx || !soundOn) return;
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(90, t);
+    o.frequency.exponentialRampToValueAtTime(35, t + .25);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(.04, t);
+    g.gain.exponentialRampToValueAtTime(.001, t + .35);
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    o.start(t);
+    o.stop(t + .35);
   }
 
-  soundBtn.addEventListener('click',()=>{
-    if(!audioCtx)initAudio();
-    if(audioCtx.state==='suspended')audioCtx.resume();
-    soundOn=!soundOn;soundBtn.textContent=soundOn?'♫':'♪';soundBtn.classList.toggle('muted',!soundOn);
-    if(ambientGain)ambientGain.gain.linearRampToValueAtTime(soundOn?.1:.0,audioCtx.currentTime+.5);
+  soundBtn.addEventListener('click', () => {
+    if (!audioCtx) initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    soundOn = !soundOn;
+    soundBtn.textContent = soundOn ? '♫' : '♪';
+    soundBtn.classList.toggle('muted', !soundOn);
+    if (ambientGain) ambientGain.gain.linearRampToValueAtTime(soundOn ? .1 : .0, audioCtx.currentTime + .5);
   });
 
   /* ── Controls ────────────────────────────────────────────── */
-  resetBtn.addEventListener('click',()=>{
-    inkMarks.length=0;blooms.length=0;densityMap.fill(0);
-    saturationLevel=0;rapidClickCount=0;progress.textContent='';progress.classList.remove('show');
+  resetBtn.addEventListener('click', () => {
+    inkMarks.length = 0;
+    blooms.length = 0;
+    densityMap.fill(0);
+    saturationLevel = 0;
+    rapidClickCount = 0;
+    progress.textContent = '';
+    progress.classList.remove('show');
+    playBrushSound(); // subtle feedback on reset
   });
 
-  finishBtn.addEventListener('click',()=>{
-    if(inkMarks.length===0)return;
-    // draw seal stamp
-    const sc=document.createElement('canvas');sc.width=W;sc.height=H;
-    const sX=sc.getContext('2d');sX.drawImage(canvas,0,0);
-    const sx=W-80+(Math.random()-.5)*12, sy=H-80+(Math.random()-.5)*12, sr=(Math.random()-.5)*.04;
-    sX.save();sX.translate(sx,sy);sX.rotate(sr);
-    sX.fillStyle=VERM;sX.fillRect(-17,-22,34,44);
-    sX.fillStyle=PAPER;sX.font='bold 26px serif';sX.textAlign='center';sX.textBaseline='middle';
-    sX.fillText('印',0,2);sX.restore();
-    // add title stamp at top left
+  finishBtn.addEventListener('click', () => {
+    if (inkMarks.length === 0) return;
+
+    const sc = document.createElement('canvas');
+    sc.width = W; sc.height = H;
+    const sX = sc.getContext('2d');
+    sX.drawImage(canvas, 0, 0);
+
+    // Seal stamp (印) — bottom right with slight randomization
+    const sx = W - 80 + (Math.random() - .5) * 12;
+    const sy = H - 80 + (Math.random() - .5) * 12;
+    const sr = (Math.random() - .5) * .04;
     sX.save();
-    sX.fillStyle=INK;sX.globalAlpha=.55;
-    sX.font='11px serif';sX.textAlign='left';sX.textBaseline='top';
-    sX.fillText('浮世絵 — Ukiyo-e',20,18);
+    sX.translate(sx, sy);
+    sX.rotate(sr);
+    sX.fillStyle = VERM;
+    // Rounded rectangle seal
+    const rw = 34, rh = 44, rr = 4;
+    sX.beginPath();
+    sX.moveTo(-rw/2 + rr, -rh/2);
+    sX.lineTo(rw/2 - rr, -rh/2);
+    sX.quadraticCurveTo(rw/2, -rh/2, rw/2, -rh/2 + rr);
+    sX.lineTo(rw/2, rh/2 - rr);
+    sX.quadraticCurveTo(rw/2, rh/2, rw/2 - rr, rh/2);
+    sX.lineTo(-rw/2 + rr, rh/2);
+    sX.quadraticCurveTo(-rw/2, rh/2, -rw/2, rh/2 - rr);
+    sX.lineTo(-rw/2, -rh/2 + rr);
+    sX.quadraticCurveTo(-rw/2, -rh/2, -rw/2 + rr, -rh/2);
+    sX.closePath();
+    sX.fill();
+    sX.fillStyle = PAPER;
+    sX.font = 'bold 26px serif';
+    sX.textAlign = 'center';
+    sX.textBaseline = 'middle';
+    sX.fillText('印', 0, 2);
     sX.restore();
-    sc.toBlob(blob=>{
-      const url=URL.createObjectURL(blob),a=document.createElement('a');
-      a.href=url;a.download='ukiyo-e-'+Date.now()+'.png';a.click();
+
+    // Title stamp at top left
+    sX.save();
+    sX.fillStyle = INK;
+    sX.globalAlpha = .55;
+    sX.font = '11px serif';
+    sX.textAlign = 'left';
+    sX.textBaseline = 'top';
+    sX.fillText('浮世絵 — Ukiyo-e', 20, 18);
+    sX.restore();
+
+    sc.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ukiyo-e-' + Date.now() + '.png';
+      a.click();
       URL.revokeObjectURL(url);
-    },'image/png');
+    }, 'image/png');
   });
 
   /* ── Keyboard ────────────────────────────────────────────── */
-  addEventListener('keydown',e=>{
-    if(e.key==='r'||e.key==='R')resetBtn.click();
-    if(e.key==='s'||e.key==='S')finishBtn.click();
+  addEventListener('keydown', e => {
+    if (e.key === 'r' || e.key === 'R') resetBtn.click();
+    if (e.key === 's' || e.key === 'S') finishBtn.click();
+    if (e.key === 'j' || e.key === 'J') soundBtn.click();
   });
 
+  // Make buttons focusable and accessible
+  soundBtn.setAttribute('aria-label', 'Toggle ambient sound');
+  resetBtn.setAttribute('aria-label', 'Clear the print');
+  finishBtn.setAttribute('aria-label', 'Finish and download your print');
+
   /* ── Ambient audio on first interaction ──────────────────── */
-  let firstInteraction=false;
-  canvas.addEventListener('pointerdown',()=>{
-    if(!firstInteraction){firstInteraction=true;
-      // hint fade
-      setTimeout(()=>hint.classList.remove('show'),2000);
-      setTimeout(()=>hint.classList.add('fade'),3000);
+  let firstInteraction = false;
+  canvas.addEventListener('pointerdown', () => {
+    if (!firstInteraction) {
+      firstInteraction = true;
+      setTimeout(() => hint.classList.remove('show'), 2000);
+      setTimeout(() => hint.classList.add('fade'), 3000);
     }
-  },{once:false});
+  }, { once: false });
 
 })();
 </script>
