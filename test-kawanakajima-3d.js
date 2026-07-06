@@ -65,7 +65,13 @@ async function main() {
   try {
     browser = await chromium.launch({
       headless: true,
-      args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
+      args: [
+        '--use-angle=swiftshader',
+        '--enable-unsafe-swiftshader',
+        '--no-sandbox',
+        '--enable-webgl',
+        '--ignore-gpu-blocklist',
+      ],
     });
     const page = await browser.newPage({ viewport: { width: 900, height: 640 } });
     const browserProblems = [];
