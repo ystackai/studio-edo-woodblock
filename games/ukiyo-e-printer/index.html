@@ -738,6 +738,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   let frame = 0, lastInteract = Date.now();
   let lastTime = performance.now();
   let paperMemory = 0;
+  let breathMist = 0;
 
    /* ── Context-independent draw functions for finish canvas ── */
   function drawBloomOn(ctx, cx, cy, radius, op, color) {
@@ -804,6 +805,33 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     ctx.globalAlpha = 1;
      }
 
+  function drawBreathVapor(cx, cy, amount) {
+    if (amount <= 0.01) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.28, amount * 0.32);
+    ctx.strokeStyle = 'rgba(248,244,235,0.86)';
+    ctx.lineWidth = 1.2;
+    for (let i = 0; i < 5; i++) {
+      const phase = frame * 0.018 + i * 1.37;
+      const lift = 22 + i * 7 + amount * 18;
+      const spread = 18 + amount * 34;
+      const sx = cx + Math.sin(phase) * spread * 0.35;
+      const sy = cy - 8 - i * 3;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.bezierCurveTo(
+        sx - spread * 0.35,
+        sy - lift * 0.35,
+        sx + spread * 0.5,
+        sy - lift * 0.72,
+        sx + Math.sin(phase + 1.1) * spread,
+        sy - lift
+      );
+      ctx.stroke();
+    }
+    ctx.restore();
+     }
+
   function render(now) {
     const dt = now - lastTime;
     lastTime = now;
@@ -813,6 +841,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     const decayRate = saturationLevel > 0 ? 0.00015 : 0;
     saturationLevel = Math.max(0, saturationLevel - decayRate);
     paperMemory = Math.max(0, paperMemory - 0.00008 * dt);
+    breathMist = Math.max(0, breathMist - 0.00018 * dt);
     lastInteract = Math.max(lastInteract, Date.now() - 3000);
      // Sync saturation to scene and lake blocks
     sceneBlock.saturationLevel = saturationLevel;
@@ -889,6 +918,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         ctx.arc(holdCX, holdCY, ringR, 0, Math.PI * 2);
         ctx.stroke();
        }
+      drawBreathVapor(holdCX, holdCY, Math.max(breathMist, holdProgress * 0.55));
      }
 
      // Density meter
@@ -897,7 +927,8 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       const lang = markCount > 1 ? ' strokes' : ' stroke';
       const satText = saturationLevel > .3 ? '紙飽和 — paper saturated' : '紙は白く — paper white';
       const pressureText = paperMemory > .35 ? 'baren memory deepening' : 'press patiently';
-      progress.textContent = markCount + lang + ' · ' + satText + ' · ' + pressureText;
+      const breathText = breathMist > .35 ? 'wet ink breathing' : pressureText;
+      progress.textContent = markCount + lang + ' · ' + satText + ' · ' + breathText;
       progress.classList.add('show');
       const meterPct = Math.min(100, (saturationLevel / 0.35) * 100);
       densityFill.style.width = meterPct + '%';
@@ -916,6 +947,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     if (h > 2.2 && saturationLevel < .35) color = VERM;
     const pressure = Math.max(0, Math.min(1, force));
     paperMemory = Math.min(1, paperMemory + 0.025 + pressure * 0.08);
+    breathMist = Math.min(1, breathMist + pressure * 0.12);
     const br = getRad(14 + Math.random() * 16 + pressure * 20);
     const bo = getOp(.26 + Math.random() * .2 + pressure * .36 + paperMemory * .14);
     blooms.push({ x: cx, y: cy, r: br, op: bo, c: color, t: 0, dur: 350 + Math.random() * 350 });
@@ -972,6 +1004,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         holdRing.style.width = pressSize + 'px';
         holdRing.style.height = pressSize + 'px';
         holdRing.style.opacity = String(0.58 * (1 - holdProgress * 0.42));
+        if (holdProgress > .32) breathMist = Math.min(1, breathMist + 0.012 + holdProgress * 0.018);
         if (holdProgress > .15 && holdProgress < .3) playBarenFriction(holdProgress);
         if (holdProgress > .5 && Math.random() < .25) placeInk(holdCX, holdCY, holdProgress);
        }
@@ -1341,6 +1374,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     saturationLevel = 0;
     rapidClickCount = 0;
     paperMemory = 0;
+    breathMist = 0;
     printComplete = false;
     completeOverlay.classList.remove('show');
     progress.textContent = '';
