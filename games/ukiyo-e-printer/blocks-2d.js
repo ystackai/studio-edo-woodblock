@@ -741,5 +741,25 @@ const Blocks2D = (() => {
     }
   };
 
-  return { Block, BlockList, blocks: BlockList, frameCount: () => frameCount };
+  return {
+    Block,
+    BlockList,
+    blocks: BlockList,
+    PaperBlock,
+    SceneBlock,
+    InkBloomBlock,
+    InkStrokeBlock,
+    MistBlock,
+    FigureBlock,
+    MountainBlock,
+    SunBlock,
+    PineTreeBlock,
+    LakeBlock,
+    JapaneseCloudBlock,
+    DeckleEdgeBlock,
+    VignetteBlock,
+    RockBlock,
+    GrassBlock,
+    frameCount: () => frameCount
+  };
 })();
