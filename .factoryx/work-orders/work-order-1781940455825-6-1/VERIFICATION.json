@@ -1,0 +1,41 @@
+{
+  "workOrderId": "work-order-1781940455825-6-1",
+  "verifiedAt": "2026-06-20T12:45:31.000Z",
+  "unityAvailable": true,
+  "unityBuildProduced": true,
+  "passedUnityGate": true,
+  "localMacUnity": {
+    "machine": "Mac Studio Apple Silicon",
+    "memoryGB": 256,
+    "editorVersion": "2023.2.20f1",
+    "editorPath": "/Users/marcus/Applications/Unity/Hub/Editor/2023.2.20f1/Unity.app/Contents/MacOS/Unity",
+    "projectPath": "unity/kawanakajima-samurai",
+    "scenePath": "Assets/Kawanakajima/Scenes/Kawanakajima.unity",
+    "sceneGenerationMethod": "KawanakajimaUnityBuild.CreateOrRefreshScene",
+    "buildMethod": "KawanakajimaUnityBuild.BuildMac",
+    "buildExitCode": 0,
+    "buildResult": "succeeded",
+    "buildOutput": "unity/kawanakajima-samurai/Builds/Mac/KawanakajimaSamurai.app",
+    "bundleSizeMB": 120
+  },
+  "unityMcp": {
+    "package": "com.ivanmurzak.unity.mcp",
+    "packageVersion": "0.81.1",
+    "listenerUrl": "http://localhost:25666",
+    "waitForReady": "success",
+    "status": "success",
+    "verifiedTools": [
+      "editor-application-get-state",
+      "scene-list-opened",
+      "assets-find"
+    ]
+  },
+  "browserProofPresent": true,
+  "unitySourceHandoffPresent": true,
+  "assetManifestPresent": true,
+  "actorCountFromManifest": 20,
+  "takedaCount": 10,
+  "uesugiCount": 10,
+  "generatedAssetsEvidence": "foundry jobs asset-1781935845583-91a9fdbe (pack), asset-1781913507610-bf69e595 plus v5 repair (character), asset-1781916330853-f7d831d9 (audio); real .glb .png .wav files present and verified",
+  "notes": "Local Mac Studio route produced the Unity Mac app and verified Unity-MCP listener/tool calls. Earlier remote worker capacity notes remain historical."
+}

@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Kawanakajima — 20 Samurai Countryside</title>
+   <style>
+     :root { --ink:#0f0d0a; --paper:#d8cfbb; --accent:#3a2f22; }
+     html, body { margin:0; height:100%; overflow:hidden; background:#0a0806; color:#c8b8a0; font-family: ui-monospace, 'IBM Plex Mono', monospace; }
+     #c { display:block; width:100vw; height:100vh; }
+     .ui { position:absolute; z-index:10; pointer-events:none; font-size:11px; letter-spacing:0.06em; }
+     .ui.top { top:10px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; }
+     .ui.bottom { bottom:8px; left:12px; right:12px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+     .badge { pointer-events:auto; padding:3px 9px; border:1px solid rgba(200,184,160,0.35); background:rgba(10,8,6,0.72); color:#c8b8a0; border-radius:1px; text-transform:uppercase; }
+     button { pointer-events:auto; font-size:10px; letter-spacing:0.08em; padding:4px 9px; border:1px solid rgba(200,184,160,0.35); background:rgba(10,8,6,0.72); color:#c8b8a0; cursor:pointer; border-radius:1px; }
+     button:hover { background:#c8b8a0; color:#0a0806; }
+     button.active { background:rgba(200,184,160,0.3); color:#e8e4d8; }
+     .label { font-size:9px; opacity:0.6; margin:0 4px; }
+     .state { min-width:78px; text-align:center; }
+     #load { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(10,8,6,0.82); z-index:20; font-size:12px; letter-spacing:0.1em; }
+     .hidden { display:none !important; }
+     .review-panel { position:absolute; right:12px; top:52px; width:340px; max-height:480px; background:rgba(10,8,6,0.92); border:1px solid rgba(200,184,160,0.3); padding:8px; z-index:30; display:none; overflow-y:auto; }
+     .review-panel.open { display:block; }
+     .review-panel img { width:100%; height:auto; display:block; border:1px solid rgba(200,184,160,0.2); }
+     .review-label { font-size:9px; opacity:0.7; margin:4px 2px 2px; }
+     .cam-btn { font-size:9px; padding:3px 6px; }
+     .info-row { display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px solid rgba(200,184,160,0.1); font-size:10px; }
+     .info-row .k { opacity:0.5; }
+     .takeda { color:#c46050; }
+     .uesugi { color:#6080b8; }
+     #info-content { font-size:10px; line-height:1.5; }
+   </style>
+</head>
+<body>
+   <canvas id="c"></canvas>
+
+   <div class="ui top">
+     <div>
+       <div class="badge">Kawanakajima — 1561</div>
+       <div class="label">20 samurai · 10 Takeda vs 10 Uesugi · Foundry asset · browser proof</div>
+     </div>
+     <div class="badge state" id="status">LOADING…</div>
+   </div>
+
+   <div class="ui bottom">
+     <button id="btn-overview" class="cam-btn">OVERVIEW</button>
+     <button id="btn-red" class="cam-btn">RED CLOSE</button>
+     <button id="btn-blue" class="cam-btn">BLUE CLOSE</button>
+     <button id="btn-profile" class="cam-btn">SIDE</button>
+     <button id="btn-top" class="cam-btn">TOP</button>
+     <button id="btn-inspect" class="cam-btn">INSPECT</button>
+     <span class="label">·</span>
+     <button id="btn-charge">CHARGE</button>
+     <button id="btn-reform">REFORM</button>
+     <button id="btn-audio">AUDIO</button>
+     <button id="btn-clash">CLASH</button>
+     <button id="btn-pack">PACK GLB</button>
+     <button id="btn-contact">CONTACT</button>
+     <span class="label hint">drag orbit · wheel zoom · click samurai · 1-6 keys · P pack · A audio</span>
+   </div>
+
+   <div id="load">preparing kawanakajima tableau from foundry glb…</div>
+
+   <div id="review-panel" class="review-panel">
+     <div class="review-label">FOUNDRY CONTACT SHEET (visual comparison)</div>
+     <img id="contact-img" src="assets/samurai_character_contact_sheet.png" alt="Foundry contact sheet">
+     <div style="margin-top:6px; border-top:1px solid rgba(200,184,160,0.15); padding-top:6px;">
+       <div class="review-label">HERO ASSET INSPECTION</div>
+       <div id="info-content">Click a samurai to inspect. Compare silhouette, lamellar, mempo, sashimono, kabuto crest, tabi, katana.</div>
+       <div style="margin-top:6px;">
+         <div class="review-label" style="margin-bottom:2px;">Hero reference:</div>
+         <img id="hero-thumb" src="assets/samurai_character_hero.png" style="max-height:92px;width:auto;vertical-align:middle;border:none" alt="hero">
+       </div>
+       <div style="margin-top:8px;">
+         <div class="review-label" style="margin-bottom:2px;">20-samurai Foundry battlefield pack contact:</div>
+         <img id="pack-contact-img" src="assets/generated/foundry/samurai-battlefield-pack/asset-1782152407992-cc920f4b/samurai_battlefield_contact_sheet.png" alt="Foundry 20-samurai battlefield pack contact sheet">
+       </div>
+     </div>
+   </div>
+
+   <script src="three.min.js"></script>
+   <script src="GLTFLoader.js"></script>
+   <script>
+   (function(){
+    const canvas = document.getElementById('c');
+    const statusEl = document.getElementById('status');
+    const loadEl = document.getElementById('load');
+    const reviewPanel = document.getElementById('review-panel');
+    const infoContent = document.getElementById('info-content');
+    const AUDIO_PATHS = {
+      loop: 'assets/audio/battlefield_loop.wav',
+      charge: 'assets/audio/charge_cue.wav',
+      clash: 'assets/audio/clash_accent.wav',
+      confirm: 'assets/audio/ui_confirm.wav',
+      step: 'assets/audio/formation_step.wav'
+     };
+    const audio = { ready: false, enabled: false, loop: null, sfx: {} };
+    const PACK_URL = 'assets/generated/foundry/samurai-battlefield-pack/asset-1782152407992-cc920f4b/samurai_battlefield_pack.glb';
+    const foundryPack = { loaded: false, visible: false, group: null, error: null };
+
+    window.addEventListener('error', (e) => {
+      console.error('PAGE_ERROR', e.message, e.filename + ':' + e.lineno);
+      if (statusEl) statusEl.textContent = 'ERR';
+      document.body.setAttribute('data-error', (e.message || 'error').slice(0,60));
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('UNHANDLED', e.reason);
+      if (statusEl) statusEl.textContent = 'ERR';
+    });
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false, preserveDrawingBuffer:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    const scene = new THREE.Scene();
+     // Kawanakajima misty atmosphere — paper-ink fog gradient
+    scene.background = new THREE.Color(0x1a160f);
+    scene.fog = new THREE.FogExp2(0x1a160f, 0.0055);
+
+    const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.2, 600);
+    camera.position.set(-11.5, 4.6, 14.2);
+    camera.lookAt(-2.8, 1.8, -1.5);
+
+     // Lighting: cool near-white key + rim/kicker. Color from materials.
+    const keyLight = new THREE.DirectionalLight(0xe8eef4, 2.1);
+    keyLight.position.set(12, 28, -11);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x9fb3c8, 2.05);
+    rimLight.position.set(-22, 11, 19);
+    scene.add(rimLight);
+
+    const fillLow = new THREE.DirectionalLight(0x8a7a64, 0.55);
+    fillLow.position.set(3, 4, 22);
+    scene.add(fillLow);
+
+    const blueFill = new THREE.DirectionalLight(0xaab8c8, 0.7);
+    blueFill.position.set(18, 8, -4);
+    scene.add(blueFill);
+
+    const rearRim = new THREE.DirectionalLight(0xb8c4d0, 1.35);
+    rearRim.position.set(8, 9, -29);
+    scene.add(rearRim);
+
+    scene.add(new THREE.AmbientLight(0x3f372a, 1.25));
+
+     // Ground fog — soft horizontal band at character feet
+    const fogGeo = new THREE.PlaneGeometry(100, 20, 1, 1);
+    const fogMat = new THREE.MeshBasicMaterial({
+      color: 0x6a6050,
+      transparent: true,
+      opacity: 0.06,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const groundFog = new THREE.Mesh(fogGeo, fogMat);
+    groundFog.rotation.x = -Math.PI * 0.5;
+    groundFog.position.y = 0.15;
+    scene.add(groundFog);
+
+     // === TERRAIN ===
+    // Rolling ground with height variation — Japanese countryside
+    const groundGeo = new THREE.PlaneGeometry(110, 88, 64, 52);
+    const groundVerts = groundGeo.attributes.position;
+    for (let i = 0; i < groundVerts.count; i++) {
+      const x = groundVerts.getX(i);
+      const z = groundVerts.getY(i);
+      const noise = Math.sin(x*0.08 + z*0.06)*0.18 + Math.sin(x*0.15 + 1.2)*Math.cos(z*0.12)*0.12 + Math.sin(x*0.04 + z*0.03)*0.25;
+      groundVerts.setZ(i, noise);
+    }
+    groundGeo.computeVertexNormals();
+    const ground = new THREE.Mesh(groundGeo, new THREE.MeshLambertMaterial({ color: 0x524a3d, flatShading: false }));
+    ground.rotation.x = -Math.PI * 0.5;
+    ground.position.y = -0.01;
+    scene.add(ground);
+
+    // Central path — field division
+    const pathGeo = new THREE.PlaneGeometry(4.8, 72, 16, 8);
+    const pathVerts = pathGeo.attributes.position;
+    for (let i = 0; i < pathVerts.count; i++) {
+      const z = pathVerts.getY(i);
+      pathVerts.setZ(i, Math.sin(z*0.15)*0.08);
+    }
+    pathGeo.computeVertexNormals();
+    const path = new THREE.Mesh(pathGeo, new THREE.MeshLambertMaterial({ color: 0x3f362a }));
+    path.rotation.x = -Math.PI * 0.5;
+    path.position.set(0, 0.01, -3.8);
+    scene.add(path);
+
+    // Distant hill layers — layered ukiyo-e countryside depth
+    const hillColors = [0x423c30, 0x3a342a, 0x332d24, 0x2c2620, 0x25201a, 0x1e1a16];
+    for (let k = 0; k < 8; k++) {
+      const hillGeo = new THREE.PlaneGeometry(92 + k * 10, 32, 24, 16);
+      const hVerts = hillGeo.attributes.position;
+      for (let i = 0; i < hVerts.count; i++) {
+        const x = hVerts.getX(i);
+        hVerts.setZ(i, Math.sin(x*0.12+k)*0.4 + Math.cos(x*0.08+k*0.5)*0.25);
+      }
+      hillGeo.computeVertexNormals();
+      const h = new THREE.Mesh(hillGeo, new THREE.MeshLambertMaterial({
+        color: hillColors[k],
+        transparent: true,
+        opacity: 0.52 - k * 0.035,
+        side: THREE.DoubleSide
+      }));
+      h.rotation.x = -Math.PI * 0.5;
+      h.position.set((k % 2 ? 1.5 : -2.2) + k * 0.6, 0.05 + k * 0.015, -28 - k * 6);
+      scene.add(h);
+    }
+
+    // === PINE TREES — ink-style silhouettes ===
+    function addPine(x, z, s, rot) {
+      const group = new THREE.Group();
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.09*s, 0.13*s, 1.7*s, 5),
+        new THREE.MeshLambertMaterial({ color: 0x2a241c })
+      );
+      trunk.position.set(0, 0.85*s, 0);
+      group.add(trunk);
+      const f1 = new THREE.Mesh(
+        new THREE.ConeGeometry(1.35*s, 2.2*s, 6),
+        new THREE.MeshLambertMaterial({ color: 0x1f271f })
+      );
+      f1.position.set(0, 2.0*s, 0);
+      group.add(f1);
+      const f2 = new THREE.Mesh(
+        new THREE.ConeGeometry(1.0*s, 1.6*s, 6),
+        new THREE.MeshLambertMaterial({ color: 0x242d22 })
+      );
+      f2.position.set(0, 2.9*s, 0);
+      group.add(f2);
+      const f3 = new THREE.Mesh(
+        new THREE.ConeGeometry(0.65*s, 1.1*s, 5),
+        new THREE.MeshLambertMaterial({ color: 0x1a2419 })
+      );
+      f3.position.set(0, 3.6*s, 0);
+      group.add(f3);
+      group.position.set(x, 0, z);
+      group.rotation.y = rot || 0;
+      scene.add(group);
+    }
+    addPine(-19, -21, 0.82, 0.4);
+    addPine(17, -23, 0.76, -0.6);
+    addPine(-24, 7, 0.68, 1.1);
+    addPine(22, 5, 0.71, -0.9);
+    addPine(-9, -27, 0.6, 0.2);
+    addPine(11, 19, 0.65, -1.3);
+    addPine(-27, -11, 0.55, 0.9);
+    addPine(26, -14, 0.58, -1.0);
+    addPine(-15, -15, 0.5, 0.7);
+    addPine(20, 10, 0.48, -0.5);
+
+    // === LOW STONES ===
+    for (let i = 0; i < 14; i++) {
+      const r = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.2 + Math.random()*0.15),
+        new THREE.MeshLambertMaterial({ color: 0x35302a })
+      );
+      const angle = (i/14)*Math.PI*2 + Math.random()*0.3;
+      const dist = 2 + Math.random()*6;
+      r.position.set(
+        Math.cos(angle)*dist*0.3 + (Math.random()-0.5)*3,
+        0.12 + Math.random()*0.08,
+        -3.5 + Math.sin(angle)*dist*0.4
+      );
+      r.rotation.set(Math.random()*0.6, i*0.7, Math.random()*0.4);
+      scene.add(r);
+    }
+
+    // === WAR BANNERS ===
+    function addWarBanner(name, x, z, clothColor, monColor) {
+      const group = new THREE.Group();
+      group.name = name;
+      const poleMat = new THREE.MeshLambertMaterial({ color: 0x2b2118 });
+      const clothMat = new THREE.MeshLambertMaterial({ color: clothColor });
+      const monMat = new THREE.MeshLambertMaterial({ color: monColor });
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 3.2, 6), poleMat);
+      pole.position.set(0, 1.6, 0);
+      group.add(pole);
+      const cross = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.15, 6), poleMat);
+      cross.rotation.z = Math.PI * 0.5;
+      cross.position.set(0.34, 2.85, 0);
+      group.add(cross);
+      const cloth = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.25, 0.035), clothMat);
+      cloth.position.set(0.52, 2.16, 0);
+      group.add(cloth);
+      const mon = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.04, 32), monMat);
+      mon.rotation.x = Math.PI * 0.5;
+      mon.position.set(0.52, 2.24, -0.035);
+      group.add(mon);
+      group.position.set(x, 0, z);
+      group.rotation.y = x < 0 ? -0.18 : 0.18;
+      scene.add(group);
+    }
+    // Field standards — front line
+    addWarBanner('takeda field standard', -9.4, -7.1, 0x7d1f18, 0xd6be78);
+    addWarBanner('uesugi field standard', 9.4, -4.3, 0x1e365c, 0xd8d0bd);
+    // Line standards — second line
+    addWarBanner('takeda line standard', -7.8, -2.5, 0x7d1f18, 0xd6be78);
+    addWarBanner('uesugi line standard', 7.8, -2.0, 0x1e365c, 0xd8d0bd);
+    // Rear standards — command position
+    addWarBanner('takeda command standard', -10.5, -9.5, 0x8b2018, 0xe0c880);
+    addWarBanner('uesugi command standard', 10.5, -6.5, 0x223d68, 0xe0d8c0);
+
+    // First paint — ground + terrain visible before GLB loads
+    renderer.render(scene, camera);
+
+    // === GROUPS & ACTORS ===
+    const takedaGroup = new THREE.Group();
+    const uesugiGroup = new THREE.Group();
+    scene.add(takedaGroup);
+    scene.add(uesugiGroup);
+
+    const ACTOR_COUNT = 20;
+    const actors = [];
+    const loader = new THREE.GLTFLoader();
+    let loaded = 0;
+    let chargePhase = 0;
+    let originalState = [];
+    let urlCamApplied = false;
+
+    // Camera orbit state
+    let isDragging = false;
+    let prevX = 0, prevY = 0;
+    let yaw = -1.82, pitch = 0.36, dist = 15.2;
+    let target = new THREE.Vector3(-2.8, 1.8, -1.5);
+
+    function updateCameraFromOrbit() {
+      const x = target.x + dist * Math.cos(pitch) * Math.sin(yaw);
+      const y = target.y + dist * Math.sin(pitch);
+      const z = target.z + dist * Math.cos(pitch) * Math.cos(yaw);
+      camera.position.set(x, y, z);
+      camera.lookAt(target);
+    }
+
+    // === CAMERA PRESETS ===
+    const camPresets = {
+      overview: () => {
+        target.set(-0.6, 1.65, -4.2);
+        yaw = -1.63; pitch = 0.32; dist = 16.2;
+        updateCameraFromOrbit();
+      },
+      redClose: () => {
+        const a = actors[8];
+        if (a) {
+          const wp = a.mesh.getWorldPosition(new THREE.Vector3());
+          target.set(wp.x + 0.25, wp.y + 1.55, wp.z + 0.25);
+        } else { target.set(-4.2, 1.85, -5.6); }
+        yaw = -0.72; pitch = 0.27; dist = 5.3;
+        updateCameraFromOrbit();
+      },
+      blueClose: () => {
+        const a = actors[12];
+        if (a) {
+          const wp = a.mesh.getWorldPosition(new THREE.Vector3());
+          target.set(wp.x - 0.15, wp.y + 1.48, wp.z + 0.35);
+        } else { target.set(4.2, 1.72, -2.6); }
+        yaw = -1.62; pitch = 0.26; dist = 4.6;
+        updateCameraFromOrbit();
+      },
+      sideProfile: () => {
+        target.set(-0.6, 1.7, -0.8);
+        yaw = -3.02; pitch = 0.22; dist = 13.8;
+        updateCameraFromOrbit();
+      },
+      topFormation: () => {
+        target.set(-1.2, 1.4, -3.8);
+        yaw = -1.55; pitch = 1.22; dist = 18.5;
+        updateCameraFromOrbit();
+      },
+      assetInspect: () => {
+        if (actors.length > 0) {
+          const a = actors[8];
+          const wp = a.mesh.getWorldPosition(new THREE.Vector3());
+          target.set(wp.x - 0.05, wp.y + 1.42, wp.z + 0.22);
+          dist = 4.1; yaw = -0.68; pitch = 0.29;
+          updateCameraFromOrbit();
+        } else {
+          target.set(-4.6, 1.95, -1.5);
+          yaw = -0.68; pitch = 0.29; dist = 4.1;
+          updateCameraFromOrbit();
+        }
+      }
+    };
+
+    function applyPreset(name) {
+      if (camPresets[name]) {
+        camPresets[name]();
+        statusEl.textContent = name === 'assetInspect' ? 'INSPECT' : (chargePhase ? 'CHARGING' : 'FORMATION');
+        if (name !== 'assetInspect') reviewPanel.classList.remove('open');
+        if (name === 'assetInspect') {
+          setTimeout(() => {
+            if (statusEl.textContent === 'INSPECT') statusEl.textContent = chargePhase ? 'CHARGING' : 'FORMATION';
+          }, 1600);
+        }
+      }
+    }
+
+    function frameDefault() { camPresets.overview(); }
+
+    function setFormationActorsVisible(visible) {
+      takedaGroup.visible = visible;
+      uesugiGroup.visible = visible;
+    }
+
+    function setFoundryPackVisible(visible) {
+      foundryPack.visible = visible;
+      if (foundryPack.group) foundryPack.group.visible = visible;
+      setFormationActorsVisible(!visible);
+      const packButton = document.getElementById('btn-pack');
+      if (packButton) packButton.classList.toggle('active', visible);
+      document.body.dataset.foundryPackVisible = visible ? 'true' : 'false';
+      statusEl.textContent = visible ? 'PACK GLB' : 'FORMATION';
+    }
+
+    function loadFoundryBattlefieldPack() {
+      if (foundryPack.loaded && foundryPack.group) {
+        setFoundryPackVisible(!foundryPack.visible);
+        if (foundryPack.visible) {
+          reviewPanel.classList.add('open');
+          applyPreset('overview');
+        }
+        return;
+      }
+      if (foundryPack.error) {
+        statusEl.textContent = 'PACK ERR';
+        return;
+      }
+      statusEl.textContent = 'LOADING PACK';
+      loader.load(PACK_URL, (gltf) => {
+        const pack = gltf.scene;
+        pack.name = 'foundry-authored-20-samurai-battlefield-pack';
+        pack.traverse((o) => {
+          if (o.isMesh) {
+            o.castShadow = false;
+            o.receiveShadow = true;
+          }
+        });
+        pack.position.set(0, 0.02, -3.8);
+        pack.rotation.y = 0;
+        pack.visible = false;
+        scene.add(pack);
+        foundryPack.group = pack;
+        foundryPack.loaded = true;
+        setFoundryPackVisible(true);
+        reviewPanel.classList.add('open');
+        applyPreset('overview');
+      }, undefined, (err) => {
+        console.error('Foundry battlefield pack load failed', err);
+        foundryPack.error = err;
+        statusEl.textContent = 'PACK ERR';
+      });
+    }
+
+    // === AUDIO ===
+    function initAudio() {
+      if (audio.ready) return;
+      audio.loop = new Audio(AUDIO_PATHS.loop);
+      audio.loop.loop = true;
+      audio.loop.preload = 'auto';
+      audio.loop.volume = 0.38;
+      for (const [key, path] of Object.entries(AUDIO_PATHS)) {
+        if (key === 'loop') continue;
+        const item = new Audio(path);
+        item.preload = 'auto';
+        item.volume = key === 'clash' ? 0.7 : 0.55;
+        audio.sfx[key] = item;
+      }
+      audio.ready = true;
+    }
+
+    function playSfx(name) {
+      initAudio();
+      const src = audio.sfx[name];
+      if (!src) return;
+      const item = src.cloneNode(true);
+      item.volume = src.volume;
+      item.play().catch(() => {});
+    }
+
+    function toggleAudio() {
+      initAudio();
+      audio.enabled = !audio.enabled;
+      if (audio.enabled) {
+        audio.loop.play().then(() => {
+          statusEl.textContent = 'AUDIO ON';
+          playSfx('confirm');
+        }).catch(() => {
+          audio.enabled = false;
+          statusEl.textContent = 'AUDIO BLOCKED';
+        });
+      } else {
+        audio.loop.pause();
+        statusEl.textContent = 'AUDIO OFF';
+      }
+    }
+
+    // === POSE VARIANTS ===
+    function applyVariantPose(root, variantIndex, isTakeda) {
+      const parts = {};
+      root.traverse((o) => { if (o && o.name) parts[o.name] = o; });
+
+      const v = variantIndex % 10;
+      const lean = isTakeda ? 1 : -1;
+      const sc = 0.96 + (v % 3) * 0.018;
+      root.scale.setScalar(sc);
+
+      root.rotation.y = (isTakeda ? 0.08 : -0.09) + (v - 4.5) * 0.012 * lean;
+      root.rotation.x = (v % 3 === 0 ? 0.035 : 0) * lean;
+
+      const la = parts['left armored upper arm'];
+      const ra = parts['right armored upper arm'];
+      const lh = parts['left gloved hand'];
+      const rh = parts['right gloved hand'];
+      const lf = parts['left kote forearm guard'];
+      const rf = parts['right kote forearm guard'];
+
+      if (ra) ra.rotation.x = (-0.35 + (v % 4) * 0.22) * lean;
+      if (rf) rf.rotation.x = (-0.2 + ((v + 1) % 3) * 0.15) * lean;
+      if (la) la.rotation.x = (0.15 + (v % 5) * -0.07);
+      if (lf) lf.rotation.x = 0.05 + ((v + 2) % 3) * 0.06;
+
+      const head = parts['segmented kabuto helmet bowl'] || parts['neck guard cloth'];
+      if (head) {
+        head.rotation.y = (v % 2 ? 0.06 : -0.05) * lean;
+        head.rotation.x = (v % 4 === 1 ? 0.03 : 0);
+      }
+
+      const pole = parts['bamboo sashimono back pole'];
+      const cloth = parts['cloth sashimono banner panel'];
+      const bar = parts['small lacquered sashimono crossbar'];
+      if (pole) pole.rotation.z = (v % 3 - 1) * 0.035 * lean;
+      if (cloth) cloth.rotation.z = Math.sin(v) * 0.04 + (v % 2 ? 0.025 : -0.02);
+      if (bar) bar.rotation.z = (pole ? pole.rotation.z : 0) * 0.6;
+
+      if (v % 3 === 0 && !root.userData.propAdded) {
+        const spear = new THREE.Group();
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.023, 2.4, 4), new THREE.MeshLambertMaterial({ color: 0x2c251d }));
+        shaft.position.y = 1.2;
+        spear.add(shaft);
+        const spearHead = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.28, 4), new THREE.MeshLambertMaterial({ color: 0x3a3630 }));
+        spearHead.position.y = 2.48;
+        spear.add(spearHead);
+        const handRef = parts['left gloved hand'] || parts['left kote forearm guard'];
+        if (handRef) {
+          const p = handRef.getWorldPosition(new THREE.Vector3());
+          spear.position.copy(p);
+          spear.position.x += 0.35 * lean;
+          spear.position.y += 0.65;
+          spear.position.z += -0.2;
+        } else {
+          spear.position.set(0.6 * lean, 1.6, 0.1);
+        }
+        spear.rotation.z = 0.6 * lean;
+        spear.name = 'variant-spear-' + v;
+        root.add(spear);
+        root.userData.propAdded = true;
+      }
+
+      root.userData.idlePhase = (v * 0.9) + (isTakeda ? 0 : 3.2);
+      root.userData.team = isTakeda ? 'takeda' : 'uesugi';
+      root.userData.variant = v;
+      root.userData.actorIdx = variantIndex;
+    }
+
+    // === LOAD 20 SAMURAI ===
+    function loadAll() {
+      const BASE_URL = 'assets/samurai_character.glb';
+
+      loader.load(BASE_URL, (gltf) => {
+        const baseScene = gltf.scene;
+        for (let i = 0; i < ACTOR_COUNT; i++) {
+          const isTakeda = i < 10;
+          const clone = baseScene.clone(true);
+          clone.traverse((o) => {
+            if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; }
+          });
+          applyVariantPose(clone, i, isTakeda);
+          const actor = { mesh: clone, team: isTakeda ? 'takeda' : 'uesugi', idx: i };
+          actors.push(actor);
+          (isTakeda ? takedaGroup : uesugiGroup).add(clone);
+          loaded++;
+          statusEl.textContent = `LOADING ${loaded}/${ACTOR_COUNT}`;
+        }
+        onAllLoaded();
+      }, undefined, (err) => {
+        console.error('Foundry GLB load failed', err);
+        statusEl.textContent = 'LOAD ERR';
+      });
+    }
+
+    // === PLACE ACTORS IN FORMATION ===
+    function placeActors() {
+      const spacing = 1.22;
+      const startZ = -5.8;
+      actors.forEach((a, i) => {
+        const isT = a.team === 'takeda';
+        const col = i % 10;
+        const row = Math.floor(i / 10);
+        const x = (isT ? -7.4 : 7.4) + (col - 4.5) * spacing * 0.86;
+        const z = startZ + row * 2.65 + (col % 3 - 1) * 0.18;
+        a.mesh.position.set(x, 0, z);
+        a.basePos = a.mesh.position.clone();
+        a.baseRot = a.mesh.rotation.clone();
+      });
+      originalState = actors.map(a => ({
+        pos: a.mesh.position.clone(),
+        rot: a.mesh.rotation.clone(),
+        scale: a.mesh.scale.clone()
+      }));
+    }
+
+    // === INSPECT ACTOR with faction info ===
+    function inspectActor(actor) {
+      const wp = actor.mesh.getWorldPosition(new THREE.Vector3());
+      const isTakeda = actor.team === 'takeda';
+      target.set(wp.x + (isTakeda ? -0.10 : -0.22), wp.y + 1.48, wp.z + 0.18);
+      dist = 4.35;
+      yaw = isTakeda ? -0.72 : -1.56;
+      pitch = 0.31;
+      updateCameraFromOrbit();
+      statusEl.textContent = 'INSPECT';
+
+      // Update info panel with faction details
+      const factionClass = isTakeda ? 'takeda' : 'uesugi';
+      const factionName = isTakeda ? 'Takeda-shi' : 'Uesugi-shi';
+      const formationRow = Math.floor(actor.idx / 10) + 1;
+      const formationCol = (actor.idx % 10) + 1;
+      infoContent.innerHTML =
+        `<div class="info-row"><span class="k">Faction:</span><span class="${factionClass}">${factionName}</span></div>` +
+        `<div class="info-row"><span class="k">Actor ID:</span><span>${factionClass === 'takeda' ? 'TKD' : 'UES'}-${String(actor.idx+1).padStart(2,'0')}</span></div>` +
+        `<div class="info-row"><span class="k">Formation:</span><span>Row ${formationRow}, Col ${formationCol}</span></div>` +
+        `<div class="info-row"><span class="k">Pose variant:</span><span>${(actor.idx % 10)}</span></div>` +
+        `<div class="info-row"><span class="k">Scale:</span><span>${(0.96 + ((actor.idx%3)*0.018)).toFixed(3)}x</span></div>` +
+        `<div class="info-row"><span class="k">Position:</span><span>${wp.x.toFixed(2)}, ${wp.z.toFixed(2)}</span></div>` +
+        `<div class="review-label" style="margin-top:6px;">Compare silhouette, lamellar, mempo, sashimono, kabuto crest, tabi, katana.</div>` +
+        `<div style="margin-top:4px;"><img id="hero-thumb" src="assets/samurai_character_hero.png" style="max-height:80px;width:auto;" alt="hero"></div>`;
+
+      reviewPanel.classList.add('open');
+      setTimeout(() => {
+        if (statusEl.textContent === 'INSPECT') statusEl.textContent = chargePhase ? 'CHARGING' : 'FORMATION';
+      }, 1800);
+    }
+
+    // === CHARGE / REFORM ===
+    function charge() {
+      chargePhase = 1;
+      statusEl.textContent = 'CHARGING';
+      actors.forEach((a) => {
+        const dir = a.team === 'takeda' ? 1 : -1;
+        const dest = a.basePos.clone();
+        dest.x += dir * 3.9;
+        dest.z += (Math.random() - 0.5) * 0.7;
+        a.chargeDest = dest;
+      });
+      if (audio.enabled) {
+        playSfx('charge');
+        setTimeout(() => playSfx('clash'), 720);
+      }
+    }
+
+    function reform() {
+      chargePhase = 0;
+      statusEl.textContent = 'REFORM';
+      actors.forEach((a, i) => {
+        a.chargeDest = null;
+        if (originalState[i]) {
+          a.mesh.position.copy(originalState[i].pos);
+          a.mesh.rotation.copy(originalState[i].rot);
+          a.mesh.scale.copy(originalState[i].scale);
+        }
+      });
+      if (audio.enabled) playSfx('step');
+      setTimeout(() => { statusEl.textContent = 'FORMATION'; }, 220);
+    }
+
+    // === ON ALL LOADED ===
+    function onAllLoaded() {
+      placeActors();
+      // Complete loading bar
+      const loadBar = document.getElementById('load-bar');
+      const loadEl = document.getElementById('load');
+      if (loadBar) loadBar.style.width = '100%';
+      if (loadEl) {
+        setTimeout(() => {
+          loadEl.classList.add('hidden');
+          frameDefault();
+        }, 400);
+      }
+      frameDefault();
+      loadEl.classList.add('hidden');
+      statusEl.textContent = 'FORMATION';
+      document.body.dataset.actors = actors.length;
+      document.title = 'KAWANAKAJIMA_LOADED_20';
+      onResize();
+      renderer.render(scene, camera);
+
+      window.KAWANAKAJIMA_FOUNDRY = {
+        actorCount: actors.length,
+        getActorCount: () => actors.length,
+        isCharging: () => chargePhase === 1,
+        doCharge: charge,
+        doReform: reform,
+        applyCam: applyPreset,
+        getCanvas: () => canvas,
+        getActors: () => actors,
+        packUrl: PACK_URL,
+        loadFoundryBattlefieldPack,
+        isFoundryPackLoaded: () => foundryPack.loaded,
+        isFoundryPackVisible: () => foundryPack.visible,
+        audioPaths: AUDIO_PATHS,
+        hasFileBackedAudio: true,
+        isAudioEnabled: () => audio.enabled
+      };
+      applyUrlCamIfReady();
+      if (!requestedUrlCam()) markCaptureReady('overview');
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', onResize);
+
+    // === ATMOSPHERIC DUST PARTICLES ===
+    const dustCount = 120;
+    const dustGeo = new THREE.BufferGeometry();
+    const dustPositions = new Float32Array(dustCount * 3);
+    const dustSpeeds = new Float32Array(dustCount);
+    for (let i = 0; i < dustCount; i++) {
+      dustPositions[i*3] = (Math.random()-0.5)*60;
+      dustPositions[i*3+1] = Math.random()*3;
+      dustPositions[i*3+2] = (Math.random()-0.5)*40 - 5;
+      dustSpeeds[i] = 0.1 + Math.random()*0.3;
+    }
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+    const dustMat = new THREE.PointsMaterial({
+      color: 0x8a7a64,
+      size: 0.06,
+      transparent: true,
+      opacity: 0.25,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const dustParticles = new THREE.Points(dustGeo, dustMat);
+    scene.add(dustParticles);
+
+    // === INPUT ===
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true; prevX = e.clientX; prevY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = (e.clientX - prevX) * 0.0036;
+      const dy = (e.clientY - prevY) * 0.0034;
+      yaw -= dx;
+      pitch = Math.max(0.04, Math.min(1.38, pitch + dy));
+      prevX = e.clientX; prevY = e.clientY;
+      updateCameraFromOrbit();
+    });
+    canvas.addEventListener('wheel', (e) => {
+      dist = Math.max(2.6, Math.min(52, dist + e.deltaY * 0.016));
+      updateCameraFromOrbit();
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Click to inspect
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hitMeshes = [];
+      actors.forEach(a => { a.mesh.traverse(o => { if (o.isMesh) hitMeshes.push(o); }); });
+      const hits = raycaster.intersectObjects(hitMeshes, true);
+      if (hits.length > 0) {
+        let obj = hits[0].object;
+        let found = null;
+        while (obj && !found) {
+          found = actors.find(a => a.mesh === obj || a.mesh.children.includes(obj) || obj.parent === a.mesh);
+          obj = obj.parent;
+        }
+        if (found) inspectActor(found);
+      }
+    });
+
+    // === BUTTON WIRING ===
+    document.getElementById('btn-overview').addEventListener('click', () => applyPreset('overview'));
+    document.getElementById('btn-red').addEventListener('click', () => applyPreset('redClose'));
+    document.getElementById('btn-blue').addEventListener('click', () => applyPreset('blueClose'));
+    document.getElementById('btn-profile').addEventListener('click', () => applyPreset('sideProfile'));
+    document.getElementById('btn-top').addEventListener('click', () => applyPreset('topFormation'));
+    document.getElementById('btn-inspect').addEventListener('click', () => { applyPreset('assetInspect'); reviewPanel.classList.toggle('open'); });
+    document.getElementById('btn-charge').addEventListener('click', charge);
+    document.getElementById('btn-reform').addEventListener('click', reform);
+    document.getElementById('btn-audio').addEventListener('click', toggleAudio);
+    document.getElementById('btn-clash').addEventListener('click', () => playSfx('clash'));
+    document.getElementById('btn-pack').addEventListener('click', loadFoundryBattlefieldPack);
+    document.getElementById('btn-contact').addEventListener('click', () => reviewPanel.classList.toggle('open'));
+
+    // === KEYBOARD ===
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === '1') applyPreset('overview');
+      if (k === '2') applyPreset('redClose');
+      if (k === '3') applyPreset('blueClose');
+      if (k === '4') applyPreset('sideProfile');
+      if (k === '5') applyPreset('topFormation');
+      if (k === '6') { applyPreset('assetInspect'); reviewPanel.classList.add('open'); }
+      if (k === 'c') charge();
+      if (k === 'r') reform();
+      if (k === 'a') toggleAudio();
+      if (k === 'x') playSfx('clash');
+      if (k === 'p') loadFoundryBattlefieldPack();
+      if (k === 'i' && actors.length) inspectActor(actors[Math.floor(Math.random() * actors.length)]);
+      if (k === 'f' || e.key === ' ') { e.preventDefault(); applyPreset('overview'); }
+      if (k === 't') reviewPanel.classList.toggle('open');
+    });
+
+    // === ANIMATION LOOP ===
+    let t = 0;
+    function tick() {
+      requestAnimationFrame(tick);
+      t += 0.016;
+
+      // Animate dust particles — gentle drift
+      const pos = dustParticles.geometry.attributes.position;
+      for (let i = 0; i < dustCount; i++) {
+        let x = pos.getX(i);
+        let y = pos.getY(i);
+        let z = pos.getZ(i);
+        x += dustSpeeds[i] * 0.008;
+        y += Math.sin(t * 0.5 + i) * 0.002;
+        z += dustSpeeds[i] * 0.004;
+        if (x > 30) x = -30;
+        if (x < -30) x = 30;
+        if (y > 4) y = 0;
+        if (y < 0) y = 4;
+        pos.setX(i, x);
+        pos.setY(i, y);
+        pos.setZ(i, z);
+      }
+      pos.needsUpdate = true;
+
+      // Actor animation
+      actors.forEach((a) => {
+        if (!a.mesh) return;
+        const baseY = a.basePos ? a.basePos.y : 0;
+        const ph = a.mesh.userData.idlePhase || a.idx || 0;
+        a.mesh.position.y = baseY + Math.sin(t * 1.55 + ph) * 0.011;
+
+        if (chargePhase && a.chargeDest) {
+          const p = a.mesh.position;
+          p.x = p.x * 0.90 + a.chargeDest.x * 0.10;
+          p.z = p.z * 0.90 + a.chargeDest.z * 0.10;
+          a.mesh.rotation.x = (a.team === 'takeda' ? 0.11 : -0.11) * 0.8;
+          a.mesh.rotation.z = (a.team === 'takeda' ? 0.02 : -0.02);
+        } else {
+          a.mesh.rotation.x *= 0.88;
+          a.mesh.rotation.z *= 0.88;
+        }
+
+        // Wind on banner cloth
+        a.mesh.traverse((o) => {
+          if (o.name && o.name.toLowerCase().includes('banner')) {
+            o.rotation.z = Math.sin(t * 1.35 + (a.idx || 0)) * 0.018;
+          }
+        });
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    function start() {
+      updateCameraFromOrbit();
+      loadAll();
+      tick();
+      setTimeout(() => {
+        if (!loadEl.classList.contains('hidden')) statusEl.textContent = 'PREPARING…';
+      }, 140);
+    }
+
+    function requestedUrlCam() {
+      try {
+        const p = new URLSearchParams(location.search);
+        const c = p.get('cam') || p.get('preset');
+        return c && camPresets[c] ? c : null;
+      } catch (e) {}
+      return null;
+    }
+
+    function markCaptureReady(name) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          renderer.render(scene, camera);
+          window.__KAWANAKAJIMA_CAPTURE_READY = {
+            camera: name,
+            actorCount: actors.length,
+            readyAt: Date.now()
+          };
+          document.body.dataset.captureReady = name;
+          document.title = 'CAPTURE_READY:' + name;
+          console.log('CAPTURE_READY:' + name);
+        });
+      });
+    }
+
+    function applyUrlCamIfReady() {
+      const c = requestedUrlCam();
+      if (!c || urlCamApplied || actors.length !== ACTOR_COUNT) return;
+      urlCamApplied = true;
+      applyPreset(c);
+      markCaptureReady(c);
+    }
+
+    window.addEventListener('load', () => {
+      setTimeout(() => { start(); }, 40);
+    });
+
+    setTimeout(onResize, 80);
+  })();
+   </script>
+</body>
+</html>

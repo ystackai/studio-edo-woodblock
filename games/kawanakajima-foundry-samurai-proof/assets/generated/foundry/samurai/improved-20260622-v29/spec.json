@@ -1,0 +1,47 @@
+{
+  "asset_name": "kawanakajima-realistic-samurai-character-v29",
+  "constraints": [],
+  "created_at_ms": 1782104227756,
+  "job_id": "asset-1782104227755-0ef02798",
+  "params": {
+    "faction": "takeda",
+    "pose": "guard",
+    "variant_index": 9
+  },
+  "prompt": "/goal Create the most realistic playable samurai character asset you can using Blender for the Kawanakajima game world. Use the same self-verifying loop: preserve the best version, render stable hero/front/left/rear/top/three-quarter cameras after each significant change, identify the least realistic visible issue, improve it, and stop only when no visible blocky/Minecraft-like issue remains worth fixing for a Unity playable world. Produce a GLB, source blend, turntable, contact sheet, stable renders, provenance, and summary. The asset must read as an adult armored Sengoku samurai from game camera distance, not a toy soldier or grey primitive stack.",
+  "provenance": {
+    "creative_provider": "unspecified",
+    "execution_backend": "local",
+    "recipe_runner": "python",
+    "recipe_source": "/Users/marcus/Documents/Github/asset-foundry/recipes/samurai_character.py"
+  },
+  "recipe": "samurai_character",
+  "references": [],
+  "requested_by": "asset-foundry-local",
+  "review_contract": {
+    "iteration_policy": "After each significant recipe change, render the same stable cameras, identify the least realistic visible issue, preserve the best prior version, and continue until no visible issue remains worth fixing for the requested game use.",
+    "prompt_format": "/goal",
+    "required_outputs": [
+      "samurai_character.glb",
+      "samurai_character_source.blend",
+      "samurai_character_contact_sheet.png",
+      "samurai_character_turntable.gif",
+      "hero/front/left/rear/top/three_quarter stable renders"
+    ],
+    "stable_cameras": [
+      "hero",
+      "front",
+      "left",
+      "rear",
+      "top",
+      "three_quarter"
+    ],
+    "visual_acceptance": [
+      "adult armored samurai silhouette reads immediately from hero and front cameras",
+      "kabuto, mempo, layered lamellar do, sode, kusazuri, kote, greaves, waraji, katana, saya, lacing, rivets, and sashimono are visible",
+      "asset is not Minecraft-like, not grey primitives, not slab-bodied, and not a single generic mannequin",
+      "materials show blackened iron, lacquer, cloth, leather, brass, and steel rather than one flat color"
+    ]
+  },
+  "style": "higher-fidelity stylized realism; adult human proportions; blackened iron kabuto and mempo; layered lamellar do; sode shoulder plates; kusazuri skirt plates; kote forearm guards; hakama cloth; greaves; waraji sandals; katana and saya; sashimono banner; visible lacing, rivets, worn lacquer edges; no Minecraft blocks, no slab torso, no round billiard-ball helmet, no grey primitives"
+}

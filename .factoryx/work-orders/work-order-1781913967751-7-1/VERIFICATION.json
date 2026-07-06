@@ -1,0 +1,24 @@
+{
+  "verifiedAt": "2026-06-20T06:21:42.665Z",
+  "assetFoundryJob": "asset-1781913507610-bf69e595",
+  "actorCount": 20,
+  "glbSize": 1285892,
+  "battlefieldPack": {
+    "assetFoundryJob": "asset-1781935845583-91a9fdbe",
+    "warriorCount": 20,
+    "takedaCount": 10,
+    "uesugiCount": 10,
+    "glbSize": 6873392,
+    "manifest": "assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_manifest.json",
+    "contactSheet": "assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_contact_sheet.png",
+    "objectCount": 2142,
+    "meshCount": 1425,
+    "stableCameraViews": 5,
+    "unityMirror": true
+  },
+  "audioFoundryJob": "asset-1781916330853-f7d831d9",
+  "audioLoopSize": 2651370,
+  "unityHandoff": true,
+  "checks": "structure, paths, sizes, exposure, file-backed audio, no fake audio, Unity handoff, 20-samurai battlefield pack handoff",
+  "passed": true
+}

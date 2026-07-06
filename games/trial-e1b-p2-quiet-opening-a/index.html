@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiet Opening</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #b0b7b0; cursor: none;
+  }
+  #scene { display: block; width: 100%; height: 100%; }
+  #fog-canvas {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 5; mix-blend-mode: multiply;
+  }
+  #grain {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 10;
+    opacity: 0.06; mix-blend-mode: multiply;
+  }
+  #vignette {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 11;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(50,55,50,0.4) 100%);
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<canvas id="fog-canvas"></canvas>
+<canvas id="grain"></canvas>
+<div id="vignette"></div>
+<script>
+(function() {
+  "use strict";
+
+  const scene = document.getElementById("scene");
+  const sctx = scene.getContext("2d");
+  const fogCanvas = document.getElementById("fog-canvas");
+  const fctx = fogCanvas.getContext("2d");
+  const grainCanvas = document.getElementById("grain");
+  const gctx = grainCanvas.getContext("2d");
+
+  let W, H, dpr;
+  let mouseX = 0, mouseY = 0;
+  let targetMouseX = 0, targetMouseY = 0;
+  let hasMoved = false;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    scene.width = W * dpr;
+    scene.height = H * dpr;
+    fogCanvas.width = W * dpr;
+    fogCanvas.height = H * dpr;
+    grainCanvas.width = Math.min(W, 512);
+    grainCanvas.height = Math.min(H, 512);
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    generateGrain();
+  }
+  window.addEventListener("resize", resize);
+
+  window.addEventListener("pointermove", function(e) {
+    targetMouseX = e.clientX;
+    targetMouseY = e.clientY;
+    if (!hasMoved) { hasMoved = true; }
+  });
+  window.addEventListener("pointerleave", function() {
+    targetMouseX = -200;
+    targetMouseY = -200;
+  });
+
+  // Paper grain
+  function generateGrain() {
+    const img = gctx.createImageData(grainCanvas.width, grainCanvas.height);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.random() * 255;
+      d[i] = d[i + 1] = d[i + 2] = v;
+      d[i + 3] = 255;
+    }
+    gctx.putImageData(img, 0, 0);
+  }
+
+  // Seeded PRNG
+  function mkRng(seed) {
+    let s = seed | 0;
+    return function() {
+      s = (s * 1664525 + 1013904223) | 0;
+      return (s >>> 0) / 4294967296;
+    };
+  }
+
+  // ── Fog system ──
+  const fogDensity = new Float32Array(Math.ceil(W) * Math.ceil(H));
+  const fogCanvasData = fctx.createImageData(W, H);
+  const fogPixels = fogCanvasData.data;
+
+  function initFog() {
+    const total = fogDensity.length;
+    for (let i = 0; i < total; i++) {
+      fogDensity[i] = 0.5 + Math.random() * 0.3;
+    }
+  }
+
+  function partFog(px, py, radius, strength) {
+    const r2 = radius * radius;
+    const x0 = Math.max(0, px - radius | 0);
+    const y0 = Math.max(0, py - radius | 0);
+    const x1 = Math.min(W - 1, (px + radius) | 0);
+    const y1 = Math.min(H - 1, (py + radius) | 0);
+    for (let y = y0; y <= y1; y++) {
+      const dy = y - py;
+      const dy2 = dy * dy;
+      for (let x = x0; x <= x1; x++) {
+        const dx = x - px;
+        if (dx * dx + dy2 > r2) continue;
+        const dist = Math.sqrt(dx * dx + dy2);
+        const falloff = 1 - dist / radius;
+        const erode = strength * falloff * falloff;
+        const idx = y * W + x;
+        fogDensity[idx] = Math.max(0, fogDensity[idx] - erode);
+      }
+    }
+  }
+
+  function regenFog() {
+    const total = fogDensity.length;
+    for (let i = 0; i < total; i++) {
+      fogDensity[i] = Math.min(0.85, fogDensity[i] + 0.0003);
+    }
+  }
+
+  function updateFog() {
+    for (let i = 0; i < fogDensity.length; i++) {
+      const v = fogDensity[i];
+      fogPixels[i * 4] = 195 + (v * 15) | 0;
+      fogPixels[i * 4 + 1] = 202 + (v * 5) | 0;
+      fogPixels[i * 4 + 2] = 195 + (v * 10) | 0;
+      fogPixels[i * 4 + 3] = (v * 255) | 0;
+    }
+    fctx.putImageData(fogCanvasData, 0, 0);
+  }
+
+  // ── Drawing primitives ──
+
+  function drawSky() {
+    const grad = sctx.createLinearGradient(0, 0, 0, H * 0.65);
+    grad.addColorStop(0, "#c2c9c2");
+    grad.addColorStop(0.5, "#ccd5cc");
+    grad.addColorStop(1, "#d8dfd8");
+    sctx.fillStyle = grad;
+    sctx.fillRect(0, 0, W, H);
+  }
+
+  function drawSea() {
+    const seaY = H * 0.54;
+    const grad = sctx.createLinearGradient(0, seaY, 0, H);
+    grad.addColorStop(0, "#9ea8a0");
+    grad.addColorStop(0.15, "#93a096");
+    grad.addColorStop(0.5, "#8a978d");
+    grad.addColorStop(1, "#7e8a82");
+    sctx.fillStyle = grad;
+    sctx.fillRect(0, seaY, W, H - seaY);
+
+    // Subtle wave shimmer
+    const t = performance.now() * 0.00025;
+    sctx.save();
+    sctx.globalAlpha = 0.12;
+    sctx.strokeStyle = "#b8c4b8";
+    sctx.lineWidth = 1.2;
+    for (let i = 0; i < 18; i++) {
+      const y = seaY + 15 + i * (H - seaY - 15) / 18;
+      sctx.beginPath();
+      for (let x = 0; x <= W; x += 6) {
+        const wave = Math.sin(x * 0.006 + t + i * 0.9) * 2.5
+                   + Math.sin(x * 0.015 + t * 1.3 + i * 0.4) * 1;
+        if (x === 0) sctx.moveTo(x, y + wave);
+        else sctx.lineTo(x, y + wave);
+      }
+      sctx.stroke();
+    }
+    sctx.restore();
+  }
+
+  function drawCliff() {
+    const cx = W * 0.22;
+    const topY = H * 0.48;
+    const r = W * 0.28;
+
+    sctx.save();
+    // Main cliff body
+    const cliffGrad = sctx.createLinearGradient(cx, topY, cx + r, H);
+    cliffGrad.addColorStop(0, "#3e4239");
+    cliffGrad.addColorStop(0.3, "#363a33");
+    cliffGrad.addColorStop(1, "#2c2f28");
+
+    sctx.fillStyle = cliffGrad;
+    sctx.beginPath();
+    sctx.moveTo(cx - 20, H);
+    sctx.lineTo(cx - 20, topY + 60);
+
+    // Jagged cliff top
+    const segs = 25;
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs;
+      const x = cx - 20 + t * r;
+      const y = topY + Math.sin(t * 14) * 10 + Math.sin(t * 6.7 + 2) * 6
+                + Math.sin(t * 27 + 0.5) * 3;
+      sctx.lineTo(x, y);
+    }
+    sctx.lineTo(cx + r + 10, H);
+    sctx.closePath();
+    sctx.fill();
+
+    // Cliff face shadow
+    sctx.fillStyle = "rgba(30,33,28,0.4)";
+    sctx.beginPath();
+    sctx.moveTo(cx - 15, H);
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs;
+      const x = cx - 15 + t * r;
+      const y = topY + Math.sin(t * 14) * 10 + Math.sin(t * 6.7 + 2) * 6
+                + Math.sin(t * 27 + 0.5) * 3;
+      sctx.lineTo(x, y);
+    }
+    sctx.lineTo(cx + 10, H);
+    sctx.closePath();
+    sctx.fill();
+
+    // Rock texture lines
+    sctx.strokeStyle = "rgba(60,65,58,0.3)";
+    sctx.lineWidth = 0.8;
+    for (let i = 0; i < 15; i++) {
+      const rx = cx + Math.random() * r * 0.7;
+      const ry = topY + 30 + Math.random() * (H - topY - 50);
+      sctx.beginPath();
+      sctx.moveTo(rx, ry);
+      sctx.lineTo(rx + (Math.random() - 0.5) * 30, ry + 10 + Math.random() * 20);
+      sctx.stroke();
+    }
+
+    sctx.restore();
+  }
+
+  function drawPineTree(cx, cy, scale) {
+    sctx.save();
+
+    // Trunk
+    const trunkW = 5 * scale;
+    const trunkH = 90 * scale;
+    sctx.fillStyle = "#262a23";
+    sctx.fillRect(cx - trunkW / 2, cy - trunkH, trunkW, trunkH);
+
+    // Branch layers - traditional Japanese pine shape
+    const layers = 8;
+    for (let i = 0; i < layers; i++) {
+      const layerT = i / (layers - 1);
+      const baseY = cy - trunkH * 0.15 - layerT * trunkH * 0.8;
+      const width = (1 - layerT * 0.6) * 55 * scale;
+      const height = 18 * scale;
+      const darkness = i % 2 === 0 ? 0.15 : 0;
+
+      // Main layer
+      sctx.fillStyle = i % 2 === 0 ? "#2a2e26" : "#32362e";
+      sctx.beginPath();
+      sctx.moveTo(cx, baseY - height);
+      sctx.quadraticCurveTo(cx + width + 5, baseY - height * 0.3,
+                            cx + width, baseY + height * 0.2);
+      sctx.quadraticCurveTo(cx + width * 0.5, baseY + height * 0.1,
+                            cx, baseY);
+      sctx.quadraticCurveTo(cx - width * 0.5, baseY + height * 0.1,
+                            cx - width, baseY + height * 0.2);
+      sctx.quadraticCurveTo(cx - width - 5, baseY - height * 0.3,
+                            cx, baseY - height);
+      sctx.fill();
+
+      // Sub-layer for depth
+      sctx.fillStyle = "rgba(42,46,38,0.5)";
+      sctx.beginPath();
+      const subOffset = (i % 2 === 0) ? 8 : -8;
+      sctx.moveTo(cx + subOffset, baseY - height * 0.7);
+      sctx.quadraticCurveTo(cx + subOffset + width * 0.6, baseY - height * 0.3,
+                            cx + subOffset + width * 0.7, baseY);
+      sctx.quadraticCurveTo(cx + subOffset, baseY - height * 0.1,
+                            cx + subOffset, baseY - height * 0.7);
+      sctx.fill();
+    }
+
+    // Top
+    sctx.fillStyle = "#2a2e26";
+    sctx.beginPath();
+    const tipY = cy - trunkH - 8 * scale;
+    sctx.moveTo(cx, tipY - 12 * scale);
+    sctx.quadraticCurveTo(cx + 6 * scale, tipY - 4 * scale,
+                          cx + 3 * scale, tipY + 2 * scale);
+    sctx.lineTo(cx - 3 * scale, tipY + 2 * scale);
+    sctx.quadraticCurveTo(cx - 6 * scale, tipY - 4 * scale,
+                          cx, tipY - 12 * scale);
+    sctx.fill();
+
+    // Weeping branch (Japanese pine characteristic)
+    sctx.strokeStyle = "#2a2e26";
+    sctx.lineWidth = 2.5 * scale;
+    sctx.lineCap = "round";
+    sctx.beginPath();
+    const branchStartY = cy - trunkH * 0.5;
+    const branchLen = 40 * scale;
+    sctx.moveTo(cx + 5 * scale, branchStartY);
+    sctx.quadraticCurveTo(
+      cx + branchLen * 0.7, branchStartY + 5 * scale,
+      cx + branchLen, branchStartY + branchLen * 0.6
+    );
+    sctx.stroke();
+
+    sctx.restore();
+  }
+
+  function drawMotes(time) {
+    sctx.save();
+    const t = time * 0.0004;
+    for (let i = 0; i < 60; i++) {
+      const rng = mkRng(i * 131071 + 73);
+      const baseX = rng() * W;
+      const baseY = rng() * H;
+      const x = baseX + Math.sin(t + i) * 20;
+      const y = baseY + Math.cos(t * 0.7 + i * 0.5) * 15 - (t * 10 + i * 2) % H;
+      const opacity = 0.03 + Math.sin(t * 2 + i * 1.3) * 0.02;
+      const size = 1 + rng() * 2;
+      sctx.fillStyle = "rgba(215,220,215," + opacity.toFixed(3) + ")";
+      sctx.beginPath();
+      sctx.arc(x, ((y % H) + H) % H, size, 0, Math.PI * 2);
+      sctx.fill();
+    }
+    sctx.restore();
+  }
+
+  // ── Main render ──
+  let lastTime = 0;
+
+  function render(time) {
+    const dt = Math.min(time - lastTime, 50);
+    lastTime = time;
+
+    // Smooth mouse follow
+    mouseX += (targetMouseX - mouseX) * 0.03;
+    mouseY += (targetMouseY - mouseY) * 0.03;
+
+    // Part fog around mouse when moved
+    if (hasMoved && mouseX > -50 && mouseX < W + 50 && mouseY > -50 && mouseY < H + 50) {
+      partFog(mouseX, mouseY, 120, 0.008);
+    }
+
+    // Slow fog regeneration
+    regenFog();
+
+    // Update fog canvas
+    updateFog();
+
+    // Draw scene
+    sctx.clearRect(0, 0, W, H);
+    drawSky();
+    drawSea();
+    drawCliff();
+
+    // Position tree on cliff edge
+    const treeX = W * 0.23;
+    const treeY = H * 0.46;
+    const treeScale = Math.min(W, H) / 650;
+    drawPineTree(treeX, treeY, treeScale);
+
+    drawMotes(time);
+
+    requestAnimationFrame(render);
+  }
+
+  resize();
+  initFog();
+  requestAnimationFrame(render);
+
+})();
+</script>
+</body>
+</html>

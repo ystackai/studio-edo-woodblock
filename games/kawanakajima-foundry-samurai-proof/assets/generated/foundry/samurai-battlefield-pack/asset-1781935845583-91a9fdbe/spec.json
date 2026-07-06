@@ -1,0 +1,30 @@
+{
+  "asset_name": "kawanakajima_samurai_battlefield_pack_v3",
+  "constraints": [
+    "exactly 20 warriors",
+    "10 Takeda and 10 Uesugi",
+    "single GLB scene export",
+    "source blend retained",
+    "manifest with warrior ids, factions, poses, positions",
+    "stable evidence camera renders and contact sheet"
+  ],
+  "created_at_ms": 1781935845587,
+  "job_id": "asset-1781935845583-91a9fdbe",
+  "params": {
+    "quality_pass": "v3_matte_helmet_shikoro_fix",
+    "takeda_count": 10,
+    "uesugi_count": 10,
+    "warrior_count": 20
+  },
+  "prompt": "/goal Create the best current Kawanakajima samurai battlefield pack in Blender using the Asset Foundry API. Produce exactly 20 warring samurai: 10 Takeda and 10 Uesugi, meeting on a Japanese countryside battlefield. Use a self-verifiable system: preserve the source blend, export a single GLB scene, write a manifest proving every warrior id/faction/pose/position, and render the same stable cameras after generation: wide clash, overhead layout, Takeda line, Uesugi line, and center meeting. Prioritize visible realism over blocky placeholders: non-spherical human silhouettes, layered lamellar armor plates, kabuto helmets that do not read as black billiard balls, mempo masks, sashimono cloth, katana/yari silhouettes, muddy road, river, rice paddies, grass tufts, stones, cedars, hills, dawn lighting, and contact-sheet review evidence. Stop only when the result is visibly better than the earlier toy-board pack and no missing-count issue remains.",
+  "provenance": {
+    "creative_provider": "asset-foundry-blender",
+    "execution_backend": "local",
+    "recipe_runner": "python",
+    "recipe_source": "/asset-foundry/recipes/samurai_battlefield_pack.py"
+  },
+  "recipe": "samurai_battlefield_pack",
+  "references": [],
+  "requested_by": "codex-samurai-goal-followup",
+  "style": "higher fidelity stylized realism, matte blackened iron, layered lamellar armor, less toy-like silhouettes"
+}

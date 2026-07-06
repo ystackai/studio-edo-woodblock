@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidence — Mist settles on one carved horizon (work-order-1781665243422-followup)</title>
+<style>
+body { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#0f172a; color:#e2e8f0; margin:0; padding:24px; }
+h1 { font-size:14px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin:0 0 12px; }
+.grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap:18px; }
+.card { background:#1e2937; border:1px solid #334155; border-radius:4px; overflow:hidden; }
+.card img { width:100%; height:auto; display:block; background:#111827; }
+.meta { padding:8px 12px; font-size:11px; color:#94a3b8; }
+.note { margin:12px 0 24px; font-size:12px; line-height:1.5; color:#cbd5e1; max-width:860px; }
+</style>
+</head>
+<body>
+<h1>Browser runtime verification evidence — Mist settles on one carved horizon (rework follow-up)</h1>
+<p class="note">Direct entrypoint: <code>games/mist-settles-on-one-carved-horizon-5ca8e144/index.html</code> (via <code>.factoryx/preview-entrypoint</code>).<br>
+Ready = idle first paint (no gesture). Post = <code>?verify=1</code> forced sustained baren + cumulative settling + FOLLOWUP-LIVE-OK marker (gated harness, does not affect normal play or first screen).<br>
+Rebased onto main (2026-06-20) to clear GitHub merge conflict report; pushed to canonical WO branch; PR #156 head updated.<br>
+Fresh chromium run 2026-06-20 (re-verified on current branch head f1f40fe): direct entrypoint confirmed (no factory home chrome). Only dbus noise; zero game errors. Non-blank captures (ready 950298 bytes, post-interact 956139 bytes). DOM dump on entrypoint shows &lt;title&gt;Mist settles on one carved horizon&lt;/title&gt; + &lt;canvas&gt; and zero home markers (crew/demos/board etc). CI preview logic simulation (exact .factoryx read + file check) confirms entrypoint resolves and would write redirect to games/.../ not leave root home. Root contrast serves full factory home as expected. Latest run executed in this session on HEAD f1f40fe (in sync with remote canonical ref); fresh assets+DOM evidence captured directly from the mist entrypoint. Re-verif + evidence refresh addresses any stale deploy state from prior "problem deploying" runs.
+<div class="grid">
+  <div class="card">
+    <img src="ready.png" alt="Ready / idle first screen — paper grain, authored horizon base, drifting mist as primary material, single wave horizon visible, no chrome, complete on first sight">
+    <div class="meta">ready.png — 950298 bytes — idle load, mist drifting, wave present, assets composited or fallback graceful. Fresh chromium 2026-06-20 re-verif on f1f40fe.</div>
+  </div>
+  <div class="card">
+    <img src="ready-fresh.png" alt="Ready-fresh / idle first screen (new capture) — direct entrypoint, full composition with moving mist on first sight">
+    <div class="meta">ready-fresh.png — 955243 bytes — new capture 2026-06-20 on current head. Direct file:// load of mist game. No factory home.</div>
+  </div>
+  <div class="card">
+    <img src="post-interact.png" alt="Post-interact (verify) — FOLLOWUP-LIVE-OK marker, forced high pressDepth + cumulative, local bleeds + mist reaction, deeper settled ink on horizon">
+    <div class="meta">post-interact.png — 956139 bytes — ?verify=1 exercised: marker visible, state forced resolved, bleeds present, mist thinned under baren zone. Fresh chromium 2026-06-20 re-verif on f1f40fe.</div>
+  </div>
+  <div class="card">
+    <img src="post-fresh.png" alt="Post-fresh (verify new capture) — marker + interaction state">
+    <div class="meta">post-fresh.png — 953464 bytes — new ?verify=1 capture 2026-06-20. DOM clean of home chrome.</div>
+  </div>
+</div>
+<p class="note" style="margin-top:18px">Work Order: work-order-1781665243422-followup<br>Deliverable: mist-settles-on-one-carved-horizon-5ca8e144<br>Verification date: 2026-06-20 (fresh chromium re-run on direct entrypoint f1f40fe; confirmed NOT serving factory home; sizes 950k/956k)</p>
+</body>
+</html>

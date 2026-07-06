@@ -1,0 +1,252 @@
+{
+  "factions": {
+    "takeda": [
+      "takeda-samurai-01",
+      "takeda-samurai-02",
+      "takeda-samurai-03",
+      "takeda-samurai-04",
+      "takeda-samurai-05",
+      "takeda-samurai-06",
+      "takeda-samurai-07",
+      "takeda-samurai-08",
+      "takeda-samurai-09",
+      "takeda-samurai-10"
+    ],
+    "uesugi": [
+      "uesugi-samurai-01",
+      "uesugi-samurai-02",
+      "uesugi-samurai-03",
+      "uesugi-samurai-04",
+      "uesugi-samurai-05",
+      "uesugi-samurai-06",
+      "uesugi-samurai-07",
+      "uesugi-samurai-08",
+      "uesugi-samurai-09",
+      "uesugi-samurai-10"
+    ]
+  },
+  "scene": "kawanakajima-samurai-battlefield-pack",
+  "warrior_count": 20,
+  "warriors": [
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-01",
+      "pose": "guard",
+      "position": [
+        -1.3,
+        -1.4,
+        0
+      ],
+      "yaw_degrees": 84.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-02",
+      "pose": "spear",
+      "position": [
+        -1.3800000000000001,
+        -0.7,
+        0
+      ],
+      "yaw_degrees": 87.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-03",
+      "pose": "raised",
+      "position": [
+        -1.3,
+        0.0,
+        0
+      ],
+      "yaw_degrees": 90.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-04",
+      "pose": "guard",
+      "position": [
+        -1.3800000000000001,
+        0.7,
+        0
+      ],
+      "yaw_degrees": 93.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-05",
+      "pose": "spear",
+      "position": [
+        -1.3,
+        1.4,
+        0
+      ],
+      "yaw_degrees": 96.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-06",
+      "pose": "guard",
+      "position": [
+        -1.92,
+        -1.24,
+        0
+      ],
+      "yaw_degrees": 84.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-07",
+      "pose": "spear",
+      "position": [
+        -2.0,
+        -0.5399999999999999,
+        0
+      ],
+      "yaw_degrees": 87.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-08",
+      "pose": "raised",
+      "position": [
+        -1.92,
+        0.16,
+        0
+      ],
+      "yaw_degrees": 90.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-09",
+      "pose": "guard",
+      "position": [
+        -2.0,
+        0.86,
+        0
+      ],
+      "yaw_degrees": 93.0
+    },
+    {
+      "faction": "takeda",
+      "id": "takeda-samurai-10",
+      "pose": "spear",
+      "position": [
+        -1.92,
+        1.5599999999999998,
+        0
+      ],
+      "yaw_degrees": 96.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-01",
+      "pose": "raised",
+      "position": [
+        1.3,
+        -1.4,
+        0
+      ],
+      "yaw_degrees": -96.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-02",
+      "pose": "guard",
+      "position": [
+        1.3800000000000001,
+        -0.7,
+        0
+      ],
+      "yaw_degrees": -93.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-03",
+      "pose": "spear",
+      "position": [
+        1.3,
+        0.0,
+        0
+      ],
+      "yaw_degrees": -90.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-04",
+      "pose": "guard",
+      "position": [
+        1.3800000000000001,
+        0.7,
+        0
+      ],
+      "yaw_degrees": -87.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-05",
+      "pose": "spear",
+      "position": [
+        1.3,
+        1.4,
+        0
+      ],
+      "yaw_degrees": -84.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-06",
+      "pose": "raised",
+      "position": [
+        1.92,
+        -1.24,
+        0
+      ],
+      "yaw_degrees": -96.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-07",
+      "pose": "guard",
+      "position": [
+        2.0,
+        -0.5399999999999999,
+        0
+      ],
+      "yaw_degrees": -93.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-08",
+      "pose": "spear",
+      "position": [
+        1.92,
+        0.16,
+        0
+      ],
+      "yaw_degrees": -90.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-09",
+      "pose": "guard",
+      "position": [
+        2.0,
+        0.86,
+        0
+      ],
+      "yaw_degrees": -87.0
+    },
+    {
+      "faction": "uesugi",
+      "id": "uesugi-samurai-10",
+      "pose": "spear",
+      "position": [
+        1.92,
+        1.5599999999999998,
+        0
+      ],
+      "yaw_degrees": -84.0
+    }
+  ]
+}

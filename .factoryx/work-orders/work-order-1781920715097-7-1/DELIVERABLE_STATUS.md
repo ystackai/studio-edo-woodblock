@@ -1,0 +1,44 @@
+# DELIVERABLE_STATUS - Kawanakajima Foundry Samurai Proof
+
+**Updated:** 2026-06-20
+**Work Order:** work-order-1781920715097-7-1 (retry on canonical 1781913967751-7-1)
+**PR:** https://github.com/ystackai/studio-edo-woodblock/pull/161
+**Public preview:** https://www.ystackai.com/factoryx/previews/edo-woodblock/work-order-1781913967751-7-1/games/kawanakajima-foundry-samurai-proof/
+**Preview entrypoint:** `games/kawanakajima-foundry-samurai-proof/index.html`
+
+## What Exists
+
+- **Samurai asset:** live Asset Foundry provenance + Blender v5 repair pass after the v4 block/slab visual failure. Base job asset-1781913507610-bf69e595, v5 20260620.
+  - Primary runtime asset: `assets/samurai_character.glb` (1.23 MB).
+  - Source/evidence retained under `assets/generated/foundry/samurai/improved-20260620-v5/`.
+  - Contact sheet and hero render (v5) embedded in the in-game inspection panel.
+- **20-samurai battlefield pack:** live Asset Foundry Blender/GLB job `asset-1781935845583-91a9fdbe` (v3 fidelity pass; supersedes earlier `asset-1781933644954-6853e6a2` pack while preserving it in history).
+  - Preserved under `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/`.
+  - Contains `samurai_battlefield_pack.glb`, source `.blend`, manifest, contact sheet, and five stable evidence camera renders.
+  - Manifest proves 20 named warriors: 10 Takeda and 10 Uesugi, with pose/position/yaw metadata.
+- **20-warrior game proof:** browser/Three.js scene with 10 Takeda and 10 Uesugi samurai in a Japanese countryside battle tableau.
+  - Uses the Foundry GLB as the visible character base.
+  - Variants come from pose transforms, scale, formation, faction standards, and small additive props.
+  - Includes CHARGE, REFORM, camera presets, click-to-inspect, and contact-sheet review.
+- **Music/audio:** live Asset Foundry audio job `asset-1781916330853-f7d831d9`.
+  - Playable mirrored files are under `assets/audio/`.
+  - AUDIO toggles `battlefield_loop.wav`; CHARGE/REFORM/CLASH play file-backed cues.
+  - Raw Foundry outputs and provenance are preserved under `assets/generated/foundry/audio/asset-1781916330853-f7d831d9/`.
+- **Unity handoff project:** `unity/kawanakajima-samurai/`.
+  - Copies the Foundry GLB into Unity `StreamingAssets`.
+  - Copies the Foundry 20-samurai battlefield pack GLB and manifest into Unity `StreamingAssets`.
+  - Copies the Foundry WAVs into Unity `Resources`.
+  - Includes a runtime bootstrap that builds the countryside tableau, loads the GLB with Unity glTFast, creates 20 actors, and wires camera/audio/charge/reform controls.
+  - Includes a `P`/PACK toggle for loading and inspecting the Foundry-authored 20-samurai battlefield scene pack when Unity is available.
+  - Includes Editor build hooks for WebGL and Linux.
+- **Verification evidence:** `VERIFICATION.json`, `verify.js`, `ASSET_MANIFEST.md`, six committed review screenshots under `screenshots/`, and hosted preview runtime checks.
+
+## What Is Not Done
+
+- **Unity playable build:** not created. A Unity source handoff now exists, but the worker has Unity CLI/MCP binaries only; no Unity Editor install and no Unity-side MCP listener.
+- **Unity blocker:** `/cache` only has about 2.1 GB free on the runtime host; the install helper requires at least 18 GB before attempting a Unity Editor install.
+- **Autonomous completion:** not proven end-to-end. The retry loop produced useful artifacts, but the v5 repair and the later 20-samurai battlefield-pack handoff required manual intervention after earlier visuals still looked blocky/unusable.
+
+## Current Review Verdict
+
+This is a coherent browser-reviewable proof with file-backed assets from Foundry+Blender, file-backed audio, repeatable 6-camera evidence, in-game contact comparison, charge/reform interaction, a Foundry-authored 20-samurai battlefield pack, and Unity source handoff. v5 supersedes the bad v4 single-character visual pass with a cleaner stylized samurai asset and refreshed Blender evidence; v3 of the battlefield pack adds denser plate armor, matte blackened iron, cloth sashimono, less flat terrain, 20 named warriors, and countryside evidence. Browser/Three.js proof verified (node verify PASS, nonblank screenshots). Unity playable build not claimed: no Editor/listener available (see UNITY_BLOCKER.md). PR: https://github.com/ystackai/studio-edo-woodblock/pull/161 (only canonical used).

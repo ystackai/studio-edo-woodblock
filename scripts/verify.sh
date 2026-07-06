@@ -16,3 +16,11 @@ fi
 if [ -f verify.js ]; then
   node verify.js
 fi
+
+if [ -f games/kawanakajima-foundry-samurai-proof/verify.js ]; then
+  node games/kawanakajima-foundry-samurai-proof/verify.js
+fi
+
+if [ -f unity/kawanakajima-samurai/verify-unity-handoff.js ]; then
+  node unity/kawanakajima-samurai/verify-unity-handoff.js
+fi

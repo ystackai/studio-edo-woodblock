@@ -149,10 +149,28 @@
       border-radius: 50%;
       transform: translate(-50%, -50%);
     }
-  </style>
+  
+    #generated-bg {
+     position: absolute;
+     top: 0;
+     left: 0;
+     width: 100%;
+     height: 100%;
+     background-image: url('../../public/assets/flux-bg-wave.png');
+     background-size: cover;
+     background-position: center;
+     background-repeat: no-repeat;
+     opacity: 0.25;
+     pointer-events: none;
+     z-index: 1;
+    }
+
+   </style>
 </head>
 <body>
   <div id="start-button">START</div>
+
+   <div id="generated-bg"></div>
 
   <div id="water-container">
     <div id="water"></div>
@@ -175,6 +193,13 @@
     let heartbeatOscillator;
     let wetDropOscillator;
     let dissolveTimeouts = [];
+    let ambientAudio;
+    let wetDropBuffer;
+
+    // Pre-load generated audio assets
+    function preloadAudio(src, ctx) {
+      return fetch(src).then(r => r.arrayBuffer()).then(buf => ctx.decodeAudioData(buf));
+    }
 
     // List of hateful things
     const hatefulThings = [
@@ -245,18 +270,19 @@
     function playWetDrop() {
       initAudio();
       wetDropOscillator = audioContext.createBufferSource();
-      const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 3, audioContext.sampleRate);
-      const data = buffer.getChannelData(0);
-      
-      // Generate noise burst with low-pass filtering
-      for (let i = 0; i < buffer.length; i++) {
-        const t = i / buffer.sampleRate;
-        data[i] = Math.random() * 2 - 1;
-        if (t > 0.5) {
-          data[i] *= (1 - (t - 0.5) * 2);
+      if (wetDropBuffer) {
+        wetDropOscillator.buffer = wetDropBuffer;
+        } else {
+         // Fallback: procedural noise if generated asset unavailable
+        const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 3, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < buffer.length; i++) {
+          const t = i / buffer.sampleRate;
+          data[i] = (Math.random() * 2 - 1) * (t > 0.5 ? (1 - (t - 0.5) * 2) : 1);
+          }
+        wetDropOscillator.buffer = buffer;
         }
-      }
-      
+
       const filter = audioContext.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(800, audioContext.currentTime);
@@ -265,7 +291,6 @@
       gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 3);
       
-      wetDropOscillator.buffer = buffer;
       wetDropOscillator.connect(filter);
       filter.connect(gainNode);
       gainNode.connect(audioContext.destination);
@@ -281,6 +306,18 @@
       
       // Play the fake chime
       playChime();
+
+       // Start generated ambient audio (user-gesture safe)
+      try {
+        ambientAudio = new Audio('../../public/assets/heartmula-ambient.wav');
+        ambientAudio.volume = 0.15;
+        ambientAudio.loop = true;
+        ambientAudio.play().catch(() => {});
+         // Pre-load generated wet-drop sound
+        preloadAudio('../../public/assets/mmaudio-waterdrop.wav', audioContext)
+           .then(b => { wetDropBuffer = b; })
+           .catch(() => {});
+        } catch(e) {}
 
       // Show water container and list
       waterContainer.style.opacity = 1;
