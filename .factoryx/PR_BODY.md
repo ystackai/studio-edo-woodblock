@@ -23,7 +23,7 @@ Touch feels like pressing a baren or breathing on wet ink. Input response is phy
   - Finish button captures the canvas as PNG with a hand-seal (印) overlay, triggers download
   - Responsive canvas sizing, touch-friendly controls (≥44px targets)
 
-- **`.factoryx/preview-entrypoint`** — Updated to point to `games/ukiyo-e-printer/index.html`
+- **Work-order preview entry** — Review `games/ukiyo-e-printer/index.html`; the repo-level `.factoryx/preview-entrypoint` remains on the existing Samurai proof for full-repo verification
 
 - **`verify.js`** — Updated ukiyo-e-printer checks from block-button style to match actual implementation (canvas, baren hold, strokes, saturation, audio, seal stamp, mist)
 

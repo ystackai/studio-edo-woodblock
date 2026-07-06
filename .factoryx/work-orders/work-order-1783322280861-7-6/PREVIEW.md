@@ -5,7 +5,7 @@
 
 ## How to Review
 
-1. Open the preview URL for this work order — the preview root should resolve to `games/ukiyo-e-printer/index.html`.
+1. Open the preview URL for this work order — the work-order preview entry resolves to `games/ukiyo-e-printer/index.html`.
 
 ## Interaction Guide
 
