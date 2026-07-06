@@ -483,7 +483,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   let saturationLevel = 0;
   let rapidClickCount = 0;
   let strokePts = [];
-  let isDrawing = false, isHolding = false, holdT0 = 0, holdCX = 0, holdCY = 0, holdProgress = 0;
+  let isDrawing = false, isHolding = false, holdT0 = 0, holdCX = 0, holdCY = 0, holdProgress = 0, holdRingX = 0, holdRingY = 0;
   let holdInterval = null;
   let lastStrokeTime = 0;
   let strokeHoldTime = 0;
@@ -812,6 +812,9 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     const decayRate = saturationLevel > 0 ? 0.00006 : 0;
     saturationLevel = Math.max(0, saturationLevel - decayRate);
     lastInteract = Math.max(lastInteract, Date.now() - 3000);
+    // Sync saturation to scene and lake blocks.
+    sceneBlock.saturationLevel = saturationLevel;
+    lakeBlock.saturationLevel = saturationLevel;
 
      // Clear canvas
     ctx.fillStyle = PAPER;
