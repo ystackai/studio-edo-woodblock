@@ -20,3 +20,15 @@ Rewrote `games/ukiyo-e-printer/index.html` (51KB, 1413 lines) to create a rich a
 - JavaScript syntax validated (node -c passes)
 - Headless browser screenshot unavailable in runtime (environment limitation)
 - Manual play test documented in VERIFICATION.md
+
+### 2026-07-06 — Runtime fix pass
+
+#### Issues found and fixed
+1. **Undeclared `holdRingX`/`holdRingY`** — These variables were used as implicit globals in the pointer event handlers. Fixed by declaring them with `let` alongside the other hold-related variables.
+2. **Saturation not synced to SceneBlock/LakeBlock** — The scene and lake blocks were initialized with `saturationLevel: 0` and never updated, so the visual scene never responded to ink density. Fixed by adding `saturationLevel` assignment in the render loop.
+3. **Saturation decay too slow** — Rate was 0.00006/frame (~280s full recovery). Adjusted to 0.00015/frame (~110s), giving more responsive paper recovery while maintaining meditative quality.
+
+#### Verification
+- JS syntax: OK for both index.html and blocks-2d.js
+- Blocks2D exports verified: all 15 block types exported and used
+- Branch pushed to `factoryx/factory-edo-woodblock/work-order` (commit 5ab1f19)
