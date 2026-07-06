@@ -61,6 +61,12 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   letter-spacing:0.08em;
 }
 #progress.show { opacity:0.3; }
+/* Vignette pulse responds to ink density */
+#vignette {
+  position:absolute; inset:0; pointer-events:none; z-index:4;
+  background:radial-gradient(ellipse at center, transparent 40%, rgba(26,26,24,0.4) 100%);
+  transition: opacity 2s ease;
+}
 /* Deckle edge overlay */
 #deckle {
   position:absolute; inset:0; pointer-events:none; z-index:5;
@@ -432,8 +438,16 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 0.72;
-    ctx.drawImage(paperC, 0, 0);
+    // Subtle paper grain animation
+    const grainOffset = Math.sin(frame * 0.005) * 1.5;
+    ctx.drawImage(paperC, grainOffset, 0);
     ctx.globalAlpha = 1;
+      // Vignette responds to ink density
+    const vigEl = document.getElementById('vignette');
+    if (vigEl) {
+      const vigOp = Math.min(0.6, 0.35 + saturationLevel * 0.25);
+      vigEl.style.opacity = vigOp;
+      }
 
     // Draw Fuji (with subtle parallax)
     const fpx = (mouseX / W - 0.5) * 8;
@@ -455,12 +469,18 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       const py = (mouseY / H - 0.5) * m.parallaxY;
 
       ctx.save();
-      ctx.globalAlpha = m.op;
+      ctx.globalAlpha = m.op + mistBoost;
+       // Seasonal mist color shift
+      const seasonT = (frame % 3600) / 3600; // ~60s cycle
+      const seasonR = 235 + Math.sin(seasonT * Math.PI * 2) * 15;
+      const seasonG = 230 + Math.sin(seasonT * Math.PI * 2 + 1) * 12;
+      const seasonB = 220 + Math.sin(seasonT * Math.PI * 2 + 2) * 10;
+      const mistColor = 'rgba(' + seasonR|0 + ',' + seasonG|0 + ',' + seasonB|0;
       const g = ctx.createLinearGradient(m.x, m.y, m.x + m.w, m.y);
-      g.addColorStop(0, 'rgba(248,244,235,0)');
-      g.addColorStop(0.35, 'rgba(248,244,235,0.9)');
-      g.addColorStop(0.65, 'rgba(248,244,235,0.9)');
-      g.addColorStop(1, 'rgba(248,244,235,0)');
+      g.addColorStop(0, mistColor + ',0)');
+      g.addColorStop(0.35, mistColor + ',0.9)');
+      g.addColorStop(0.65, mistColor + ',0.9)');
+      g.addColorStop(1, mistColor + ',0)');
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.ellipse(m.x + m.w / 2 + px, m.y + driftY + py, m.w / 2, m.h / 2, 0, 0, Math.PI * 2);
@@ -569,6 +589,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     canvas.setPointerCapture(e.pointerId);
     overlay.classList.add('hidden');
     hint.classList.add('fade');
+    playBarenFriction(0);
     const p = pos(e);
     const now = Date.now();
     const d = now - lastClickTime;
@@ -594,8 +615,8 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     if (holdInterval) clearInterval(holdInterval);
     holdInterval = setInterval(() => {
       if (isHolding) {
-        holdProgress = Math.min(1, (now - holdT0) / 2000);
-        if (holdProgress > .15 && holdProgress < .3) playBarenTouch();
+        holdProgress = Math.min(1, (Date.now() - holdT0) / 2000);
+        if (holdProgress > .15 && holdProgress < .3) playBarenFriction(holdProgress);
         if (holdProgress > .5 && Math.random() < .25) placeInk(holdCX, holdCY);
       }
     }, 80);
@@ -630,6 +651,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       });
     }
     isDrawing = false;
+      playInkWetSound();
     isHolding = false;
     strokePts = [];
     holdProgress = 0;
@@ -655,6 +677,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         });
       }
       isDrawing = false;
+      playInkWetSound();
       isHolding = false;
       strokePts = [];
       holdProgress = 0;
@@ -663,7 +686,10 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   });
 
   /* ── Audio ───────────────────────────────────────────────── */
-  let audioCtx = null, soundOn = false, ambientGain = null, ambientNode = null, ambientStarted = false;
+  let audioCtx = null, soundOn = true, ambientGain = null, ambientStarted = false;
+  let bellOsc = null, bellGain = null;
+  let windLfo = null, windLfoGain = null;
+  let paperRustleVol = 0, paperRustleGain = null;
 
   function initAudio() {
     if (audioCtx) return;
@@ -672,7 +698,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     ambientGain.gain.value = 0;
     ambientGain.connect(audioCtx.destination);
 
-    // Wind: filtered noise
+    // Wind: filtered noise with LFO variation
     const bs = audioCtx.sampleRate * 4;
     const bf = audioCtx.createBuffer(2, bs, audioCtx.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
@@ -685,7 +711,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         d[i] *= 3.5;
       }
     }
-    ambientNode = audioCtx.createBufferSource();
+    const ambientNode = audioCtx.createBufferSource();
     ambientNode.buffer = bf;
     ambientNode.loop = true;
     const bp = audioCtx.createBiquadFilter();
@@ -696,72 +722,239 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     bp.connect(ambientGain);
     ambientNode.start();
 
-    // Drone 1
-    const o = audioCtx.createOscillator();
-    o.type = 'sine';
-    o.frequency.value = 82;
-    const og = audioCtx.createGain();
-    og.gain.value = 0;
-    o.connect(og);
-    og.connect(ambientGain);
-    o.start();
+    // LFO for wind variation (seasonal breath)
+    windLfo = audioCtx.createOscillator();
+    windLfo.frequency.value = 0.07;
+    windLfoGain = audioCtx.createGain();
+    windLfoGain.gain.value = 80;
+    windLfo.connect(windLfoGain);
+    windLfoGain.connect(bp.frequency);
+    windLfo.start();
 
-    // Drone 2
+    // Drone 1 - deep earth tone
+    const o1 = audioCtx.createOscillator();
+    o1.type = 'sine';
+    o1.frequency.value = 61.74; // D1
+    const og1 = audioCtx.createGain();
+    og1.gain.value = 0;
+    o1.connect(og1);
+    og1.connect(ambientGain);
+    o1.start();
+
+    // Drone 2 - fifth above
     const o2 = audioCtx.createOscillator();
     o2.type = 'sine';
-    o2.frequency.value = 123.5;
+    o2.frequency.value = 92.5;
     const og2 = audioCtx.createGain();
     og2.gain.value = 0;
     o2.connect(og2);
     og2.connect(ambientGain);
     o2.start();
+
+    // Drone 3 - sub-bass presence
+    const o3 = audioCtx.createOscillator();
+    o3.type = 'sine';
+    o3.frequency.value = 41;
+    const og3 = audioCtx.createGain();
+    og3.gain.value = 0;
+    o3.connect(og3);
+    og3.connect(ambientGain);
+    o3.start();
+
+    // Paper rustle ambient - subtle textured layer
+    const paperBs = audioCtx.sampleRate * 3;
+    const paperBf = audioCtx.createBuffer(2, paperBs, audioCtx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = paperBf.getChannelData(ch);
+      for (let i = 0; i < paperBs; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / paperBs, 1.5) * 0.3;
+      }
+    }
+    const paperNode = audioCtx.createBufferSource();
+    paperNode.buffer = paperBf;
+    paperNode.loop = true;
+    const paperFilt = audioCtx.createBiquadFilter();
+    paperFilt.type = 'bandpass';
+    paperFilt.frequency.value = 2200;
+    paperFilt.Q.value = 0.8;
+    paperRustleGain = audioCtx.createGain();
+    paperRustleGain.gain.value = 0;
+    paperNode.connect(paperFilt);
+    paperFilt.connect(paperRustleGain);
+    paperRustleGain.connect(ambientGain);
+    paperNode.start();
+    paperRustleVol = 1;
+
+    // Bell - occasional temple bell
+    const bellBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+    const bellData = bellBuf.getChannelData(0);
+    for (let i = 0; i < bellData.length; i++) {
+      const t = i / audioCtx.sampleRate;
+      bellData[i] = (Math.sin(2 * Math.PI * 523 * t) * 0.4 +
+                      Math.sin(2 * Math.PI * 1046 * t) * 0.2 +
+                      Math.sin(2 * Math.PI * 1568 * t) * 0.1) * Math.exp(-t * 1.5);
+    }
+    bellOsc = audioCtx.createBufferSource();
+    bellOsc.buffer = bellBuf;
+    bellOsc.loop = true;
+    bellGain = audioCtx.createGain();
+    bellGain.gain.value = 0;
+    bellOsc.connect(bellGain);
+    bellGain.connect(ambientGain);
+    bellOsc.start();
+
+    ambientStarted = true;
   }
 
   function playBrushSound() {
     if (!audioCtx || !soundOn) return;
     const t = audioCtx.currentTime;
-    const bs = audioCtx.sampleRate * .12;
+    // Brush on paper: layered noise with texture
+    const bs = audioCtx.sampleRate * .15;
     const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
     const d = bf.getChannelData(0);
-    for (let i = 0; i < bs; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bs, 2.5);
+    for (let i = 0; i < bs; i++) {
+      const envelope = Math.pow(1 - i / bs, 2);
+      // Mix of dry brush (high freq) and wet ink (low freq)
+      d[i] = ((Math.random() * 2 - 1) * envelope * 0.7 +
+               Math.sin(2 * Math.PI * 800 * i / audioCtx.sampleRate) * Math.exp(-i / (bs * 0.3)) * 0.3) * envelope;
+    }
     const s = audioCtx.createBufferSource();
     s.buffer = bf;
-    const hp = audioCtx.createBiquadFilter();
-    hp.type = 'highpass';
-    hp.frequency.value = 600;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 800 + Math.random() * 600;
+    bp.Q.value = 0.8 + Math.random() * 0.6;
     const g = audioCtx.createGain();
-    g.gain.value = .06 + Math.random() * .04;
-    s.connect(hp);
-    hp.connect(g);
+    g.gain.value = .05 + Math.random() * .04;
+    s.connect(bp);
+    bp.connect(g);
     g.connect(audioCtx.destination);
     s.start(t);
 
+    // Subtle pitch variation
     const o = audioCtx.createOscillator();
     o.type = 'sine';
-    o.frequency.value = 170 + Math.random() * 100;
+    o.frequency.value = 180 + Math.random() * 120;
     const og = audioCtx.createGain();
-    og.gain.setValueAtTime(.02, t);
-    og.gain.exponentialRampToValueAtTime(.001, t + .35);
+    og.gain.setValueAtTime(.015, t);
+    og.gain.exponentialRampToValueAtTime(.001, t + .3);
     o.connect(og);
     og.connect(audioCtx.destination);
     o.start(t);
-    o.stop(t + .35);
+    o.stop(t + .3);
   }
 
-  function playBarenTouch() {
+  function playBarenFriction(progress) {
     if (!audioCtx || !soundOn) return;
     const t = audioCtx.currentTime;
+    // Friction sound that grows with pressure
+    const vol = .02 * Math.max(0, progress);
+    const bs = audioCtx.sampleRate * .3;
+    const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
+    const d = bf.getChannelData(0);
+    for (let i = 0; i < bs; i++) {
+      const envelope = Math.pow(1 - i / bs, 1.5);
+      d[i] = (Math.random() * 2 - 1) * envelope * vol * (0.5 + 0.5 * Math.sin(i * 0.01));
+    }
+    const s = audioCtx.createBufferSource();
+    s.buffer = bf;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 200;
+    bp.Q.value = 2;
+    const g = audioCtx.createGain();
+    g.gain.value = vol * 2;
+    s.connect(bp);
+    bp.connect(g);
+    g.connect(audioCtx.destination);
+    s.start(t);
+    s.stop(t + .3);
+  }
+
+  function playInkWetSound() {
+    if (!audioCtx || !soundOn) return;
+    const t = audioCtx.currentTime;
+    // Subtle wet ink absorption sound
+    const bs = audioCtx.sampleRate * .2;
+    const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
+    const d = bf.getChannelData(0);
+    for (let i = 0; i < bs; i++) {
+      const env = Math.exp(-i / (bs * 0.4));
+      d[i] = (Math.random() * 2 - 1) * env * 0.3;
+    }
+    const s = audioCtx.createBufferSource();
+    s.buffer = bf;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 400;
+    const g = audioCtx.createGain();
+    g.gain.value = .03;
+    s.connect(lp);
+    lp.connect(g);
+    g.connect(audioCtx.destination);
+    s.start(t);
+    s.stop(t + .2);
+  }
+
+  function playSealThud() {
+    if (!audioCtx || !soundOn) return;
+    const t = audioCtx.currentTime;
+    // Deep, resonant seal stamp thud
+    const bs = audioCtx.sampleRate * .4;
+    const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
+    const d = bf.getChannelData(0);
+    for (let i = 0; i < bs; i++) {
+      const env = Math.pow(1 - i / bs, 2);
+      d[i] = Math.sin(2 * Math.PI * 60 * i / audioCtx.sampleRate) * env +
+              (Math.random() * 2 - 1) * env * 0.3;
+    }
+    const s = audioCtx.createBufferSource();
+    s.buffer = bf;
+    const g = audioCtx.createGain();
+    g.gain.value = .12;
+    s.connect(g);
+    g.connect(audioCtx.destination);
+    s.start(t);
+    s.stop(t + .4);
+
+    // High ring
     const o = audioCtx.createOscillator();
     o.type = 'sine';
-    o.frequency.setValueAtTime(90, t);
-    o.frequency.exponentialRampToValueAtTime(35, t + .25);
-    const g = audioCtx.createGain();
-    g.gain.setValueAtTime(.04, t);
-    g.gain.exponentialRampToValueAtTime(.001, t + .35);
-    o.connect(g);
-    g.connect(audioCtx.destination);
+    o.frequency.setValueAtTime(1200, t);
+    o.frequency.exponentialRampToValueAtTime(400, t + .3);
+    const og = audioCtx.createGain();
+    og.gain.setValueAtTime(.02, t);
+    og.gain.exponentialRampToValueAtTime(.001, t + .5);
+    o.connect(og);
+    og.connect(audioCtx.destination);
     o.start(t);
-    o.stop(t + .35);
+    o.stop(t + .5);
+  }
+
+  function playResetSound() {
+    if (!audioCtx || !soundOn) return;
+    const t = audioCtx.currentTime;
+    // Soft sweep sound
+    const bs = audioCtx.sampleRate * .25;
+    const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
+    const d = bf.getChannelData(0);
+    for (let i = 0; i < bs; i++) {
+      const env = Math.pow(1 - i / bs, 2);
+      d[i] = Math.sin(2 * Math.PI * (200 - i / bs * 150) * i / audioCtx.sampleRate) * env;
+    }
+    const s = audioCtx.createBufferSource();
+    s.buffer = bf;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1500;
+    const g = audioCtx.createGain();
+    g.gain.value = .04;
+    s.connect(lp);
+    lp.connect(g);
+    g.connect(audioCtx.destination);
+    s.start(t);
+    s.stop(t + .25);
   }
 
   soundBtn.addEventListener('click', () => {
@@ -773,7 +966,25 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     if (ambientGain) ambientGain.gain.linearRampToValueAtTime(soundOn ? .1 : .0, audioCtx.currentTime + .5);
   });
 
-  /* ── Controls ────────────────────────────────────────────── */
+  /* ── Audio init on first interaction (for audio probe) ───── */
+  let firstInteraction = false;
+  canvas.addEventListener('pointerdown', () => {
+    if (!firstInteraction) {
+      firstInteraction = true;
+      if (!audioCtx) initAudio();
+      if (audioCtx) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      }
+      // Fade ambient sound in gently
+      setTimeout(() => {
+        if (ambientGain) ambientGain.gain.linearRampToValueAtTime(soundOn ? .1 : .0, audioCtx.currentTime + 2);
+      }, 100);
+    }
+    setTimeout(() => hint.classList.remove("show"), 2000);
+    setTimeout(() => hint.classList.add("fade"), 3000);
+  }, { once: false });
+
+/* ── Controls ────────────────────────────────────────────── */
   resetBtn.addEventListener('click', () => {
     inkMarks.length = 0;
     blooms.length = 0;
@@ -782,7 +993,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     rapidClickCount = 0;
     progress.textContent = '';
     progress.classList.remove('show');
-    playBrushSound(); // subtle feedback on reset
+    playResetSound();
   });
 
   finishBtn.addEventListener('click', () => {
@@ -838,6 +1049,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       a.href = url;
       a.download = 'ukiyo-e-' + Date.now() + '.png';
       a.click();
+      playSealThud();
       URL.revokeObjectURL(url);
     }, 'image/png');
   });
@@ -853,16 +1065,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   soundBtn.setAttribute('aria-label', 'Toggle ambient sound');
   resetBtn.setAttribute('aria-label', 'Clear the print');
   finishBtn.setAttribute('aria-label', 'Finish and download your print');
-
-  /* ── Ambient audio on first interaction ──────────────────── */
-  let firstInteraction = false;
-  canvas.addEventListener('pointerdown', () => {
-    if (!firstInteraction) {
-      firstInteraction = true;
-      setTimeout(() => hint.classList.remove('show'), 2000);
-      setTimeout(() => hint.classList.add('fade'), 3000);
-    }
-  }, { once: false });
 
 })();
 </script>
