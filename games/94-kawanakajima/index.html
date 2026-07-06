@@ -3,760 +3,402 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Kawanakajima Courtyard — The Instant • Edo Woodblock</title>
+<title>浮世絵 — Press the Baren · Pictures of the Floating World</title>
 <style>
-  :root { --paper:#f8f4eb; --ink:#0f172a; --vermilion:#c2410f; --indigo:#2c3a5f; --gold:#b38b3f; }
-  html,body { margin:0; padding:0; background:#111; height:100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { display:flex; align-items:center; justify-content:center; min-height:100dvh; padding:8px; box-sizing:border-box; overflow:auto; }
-  #wrap { position:relative; width:1020px; height:680px; max-width:none; box-shadow:0 10px 40px rgba(0,0,0,0.6); background:#222; border:1px solid #333; overflow:hidden; zoom:var(--stage-scale,1); }
-  canvas { display:block; image-rendering:crisp-edges; touch-action:none; }
-  #game { width:1020px; height:680px; }
-  .hud { position:absolute; top:10px; left:14px; color:#f8f4eb; font-size:12px; font-weight:600; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.6); pointer-events:none; }
-  .hud .title { font-size:15px; font-weight:800; letter-spacing:1.5px; }
-  .ctrl { position:absolute; top:10px; right:12px; display:flex; gap:8px; z-index:20; }
-  .btn { background:var(--paper); color:var(--ink); border:2px solid var(--ink); font-weight:700; font-size:12px; padding:7px 13px; border-radius:3px; cursor:pointer; user-select:none; min-height:40px; min-width:40px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 1px 0 rgba(0,0,0,0.2); }
-  .btn:active { transform:translateY(1px); }
-  .btn.mute { font-size:16px; line-height:1; padding:5px 11px; }
-  .stage-hint { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#d8c6ac; font-size:11px; font-weight:600; letter-spacing:0.8px; text-shadow:0 1px 2px rgba(0,0,0,0.5); pointer-events:none; opacity:0.9; z-index:10; }
-  .review-note { position:absolute; left:50%; top:14px; transform:translateX(-50%); z-index:30; max-width:440px; padding:7px 10px; background:rgba(15,23,42,0.88); border:1px solid rgba(179,139,63,0.7); color:#f8f4eb; font-size:11px; line-height:1.35; font-weight:700; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.35); }
-  .review-note a { color:#f2d18b; text-decoration:underline; text-underline-offset:2px; }
-  #startPrompt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; background:rgba(15,23,42,0.12); color:#f8f4eb; font-size:13px; font-weight:700; letter-spacing:1px; pointer-events:none; z-index:15; }
-  #startPrompt .big { font-size:18px; letter-spacing:3px; margin-bottom:2px; }
-  .roster { position:absolute; z-index:12; display:flex; gap:6px; flex-wrap:wrap; }
-  .roster.left { left:18px; }
-  .roster.right { right:18px; }
-  .roster .item { width:52px; height:68px; background:#111; border:1px solid #555; cursor:pointer; overflow:hidden; position:relative; box-shadow:0 1px 2px rgba(0,0,0,0.4); }
-  .roster .item img { width:100%; height:100%; object-fit:contain; opacity:0.9; display:block; image-rendering:crisp-edges; }
-  .roster .item.sel { outline:2px solid var(--vermilion); outline-offset:-1px; }
-  .roster .item.u.sel { outline-color: var(--indigo); }
-  .roster .label { position:absolute; bottom:0; left:0; right:0; font-size:8px; text-align:center; background:rgba(15,23,42,0.6); color:#d8c6ac; pointer-events:none; }
-  .view-label { position:absolute; color:#c9b89a; font-size:10px; font-weight:600; letter-spacing:1px; text-shadow:0 1px 1px rgba(0,0,0,0.5); z-index:12; pointer-events:none; }
-  .view3d { border:1px solid rgba(200,180,140,0.25); background:#0a0a0a; }
+:root {
+   --paper: #f8f4eb; --ink: #0f172a; --vermilion: #c2410f;
+   --indigo: #2c3a5f; --gold: #b38b3f;
+}
+html, body { margin:0; padding:0; background:#1a1a18; height:100%; overflow:hidden;
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",Georgia,serif; }
+#stage { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+canvas { display:block; cursor:crosshair; touch-action:none;
+  image-rendering:auto; box-shadow:0 4px 30px rgba(0,0,0,0.5); }
+#overlay { position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; pointer-events:none; z-index:10;
+  transition:opacity 0.8s ease; }
+#overlay.hidden { opacity:0; pointer-events:none; }
+#title { color:var(--paper); font-size:clamp(1.2rem,3vw,1.8rem); font-weight:300;
+  letter-spacing:0.35em; text-align:center; text-shadow:0 2px 12px rgba(0,0,0,0.6);
+  opacity:0.9; }
+#subtitle { color:var(--gold); font-size:clamp(0.7rem,1.5vw,0.9rem);
+  font-weight:400; letter-spacing:0.15em; margin-top:10px; opacity:0.7; }
+#hint { position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
+  color:var(--paper); font-size:clamp(0.65rem,1.2vw,0.8rem);
+  letter-spacing:0.1em; opacity:0; text-align:center; z-index:10;
+  pointer-events:none; transition:opacity 1.5s ease; }
+#hint.show { opacity:0.45; }
+#hint.fade { opacity:0; }
+#controls { position:absolute; top:14px; right:14px; display:flex; gap:8px; z-index:20; }
+#controls button { background:var(--paper); color:var(--ink); border:1px solid rgba(15,23,42,0.3);
+  font-family:inherit; font-size:12px; font-weight:600; letter-spacing:0.05em;
+  padding:7px 14px; border-radius:2px; cursor:pointer; user-select:none;
+  min-height:40px; transition:all 0.15s ease; box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+#controls button:hover { background:#fff; transform:translateY(-1px); }
+#controls button:active { transform:translateY(1px); box-shadow:0 0 2px rgba(0,0,0,0.3); }
+#controls button.muted { opacity:0.4; }
+#progress { position:absolute; bottom:14px; right:14px; color:var(--paper); font-size:10px;
+  opacity:0; z-index:20; pointer-events:none; transition:opacity 0.5s; }
+#progress.show { opacity:0.35; }
+/* Touch target min 44px */
+@media (pointer:coarse) { #controls button { min-height:48px; min-width:48px; padding:8px 16px; } }
 </style>
 </head>
 <body>
-<div id="wrap">
-  <canvas id="game" width="1020" height="680"></canvas>
-  <div class="hud">
-    <div class="title">BATTLES OF KAWANAKAJIMA</div>
-    <div style="opacity:0.85;margin-top:1px">Takeda &nbsp;·&nbsp; Uesugi — twenty carved blocks</div>
+<div id="stage">
+  <canvas id="canvas"></canvas>
+  <div id="overlay">
+    <div id="title">浮世絵 — Press the Baren</div>
+    <div id="subtitle">Touch the paper. Breathe upon it. The floating world accumulates.</div>
   </div>
-  <div class="review-note">
-    REVIEW: these GLBs are rejected as the character baseline.
-    Use the <a href="assets/reference/foundry-samurai-baseline/realistic_samurai_contact_sheet.png">Asset Foundry samurai reference</a>.
+  <div id="hint" class="show">touch the paper to leave ink</div>
+  <div id="controls">
+    <button id="soundBtn" title="Toggle sound">♪</button>
+    <button id="resetBtn" title="Clear print (R)">RESET</button>
+    <button id="finishBtn" title="Finish and download (S)">FINISH</button>
   </div>
-  <div class="ctrl">
-    <button class="btn mute" id="soundBtn" title="Toggle sound (off by default)">♪</button>
-    <button class="btn" id="resetBtn" title="Reset stage (R)">RESET</button>
-    <button class="btn" id="instantBtn" title="Stage the instant (Space)">THE INSTANT</button>
-    <button class="btn" id="viewBtn" title="Cycle preset views (V)">VIEW</button>
-  </div>
-  <div class="stage-hint" id="stageHint">drag to turn the prints · pick one from each side · space to stage the courtyard clash</div>
-  <div id="startPrompt">
-    <div class="big">TWO PRINTS IN THE COURTYARD</div>
-    <div style="font-size:11px;opacity:0.8">choose champions · drag to orbit · space to clash</div>
-  </div>
-
-  <!-- left (Takeda) roster -->
-  <div class="roster left" id="rosterT" style="top:78px;"></div>
-  <!-- right (Uesugi) roster -->
-  <div class="roster right" id="rosterU" style="top:78px;"></div>
-
-  <!-- view labels -->
-  <div class="view-label" style="left:38px; top:58px;">TAKEDA</div>
-  <div class="view-label" style="right:38px; top:58px; text-align:right;">UESUGI</div>
+  <div id="progress"></div>
 </div>
-
 <script>
 (() => {
-  const canvas = document.getElementById('game');
+  /* ── Canvas ──────────────────────────────────────────────── */
+  const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d', { alpha: true });
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  canvas.width = 1020 * DPR;
-  canvas.height = 680 * DPR;
+  const W = 1024, H = 768;
+  canvas.width = W * DPR; canvas.height = H * DPR;
   ctx.scale(DPR, DPR);
-  const W = 1020, H = 680;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  const wrap = document.getElementById('wrap');
-  function fitStageToViewport() {
-    const scale = Math.min(1, (window.innerWidth - 16) / W, (window.innerHeight - 16) / H);
-    wrap.style.setProperty('--stage-scale', String(Math.max(0.42, scale)));
-  }
-  fitStageToViewport();
-  window.addEventListener('resize', fitStageToViewport);
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 
+  const overlay  = document.getElementById('overlay');
+  const hint     = document.getElementById('hint');
+  const progress = document.getElementById('progress');
   const soundBtn = document.getElementById('soundBtn');
   const resetBtn = document.getElementById('resetBtn');
-  const instantBtn = document.getElementById('instantBtn');
-  const viewBtn = document.getElementById('viewBtn');
-  const startPrompt = document.getElementById('startPrompt');
-  const stageHint = document.getElementById('stageHint');
+  const finishBtn= document.getElementById('finishBtn');
 
-  // House palette
-  const PAPER = '#f8f4eb';
-  const INK = '#0f172a';
-  const VERMILION = '#c2410f';
-  const INDIGO = '#2c3a5f';
-  const GOLD = '#b38b3f';
-
-  // 20 file-backed 3D assets (the deliverable)
-  const MODELS = {
-    t: Array.from({length:10}, (_,i) => `assets/models/takeda-${String(i+1).padStart(2,'0')}.glb`),
-    u: Array.from({length:10}, (_,i) => `assets/models/uesugi-${String(i+1).padStart(2,'0')}.glb`)
-  };
-
-  // Keep the prior generated JPGs as roster thumbnails (supporting identification, not the 3D deliverable)
-  const THUMBS = {
-    t: Array.from({length:10}, (_,i) => `assets/takeda-${String(i+1).padStart(2,'0')}.jpg`),
-    u: Array.from({length:10}, (_,i) => `assets/uesugi-${String(i+1).padStart(2,'0')}.jpg`)
-  };
-
-  const portraits = {}; // 2D thumbs only
-  let thumbsLoaded = 0;
-  const TOTAL_THUMBS = 20;
-
-  function loadThumb(src, key) {
-    const img = new Image();
-    img.onload = () => { thumbsLoaded++; if (thumbsLoaded === TOTAL_THUMBS) { /* ready */ } };
-    img.onerror = () => { thumbsLoaded++; };
-    img.src = src;
-    portraits[key] = img;
+  function fit() {
+    const s = Math.min(1, (innerWidth-16)/W, (innerHeight-16)/H);
+    canvas.style.width  = (W*s|0)+'px';
+    canvas.style.height = (H*s|0)+'px';
   }
-  for (let i=1;i<=10;i++) { loadThumb(THUMBS.t[i-1], 't'+i); loadThumb(THUMBS.u[i-1], 'u'+i); }
+  fit(); addEventListener('resize', fit);
 
-  // === 3D: minimal GLB + WebGL (self-contained, no external deps) ===
-  const glCanvases = { left: null, right: null };
-  let glLeft = null, glRight = null;
-  const glPrograms = new WeakMap();
-  let modelCache = {}; // key -> {pos, norm, col, idx, min, max}
-  let loadedModels = { left: null, right: null };
-  let camLeft = { yaw: 0.6, pitch: 0.08, dist: 3.0, baseDist: 3.0, target: [0, 0.5, 0] };
-  let camRight = { yaw: -0.6, pitch: 0.08, dist: 3.0, baseDist: 3.0, target: [0, 0.5, 0] };
-  let drag = { active:false, which:null, sx:0, sy:0, y0:0, p0:0 };
-  let viewPreset = 0; // 0 front-ish, 1 three-quarter, 2 profile
-  let clashT = 0;
-  let lastClash = null;
-
-  function createGLCanvas(w, h) {
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    c.className = 'view3d';
-    return c;
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x:(t.clientX-r.left)*(W/r.width), y:(t.clientY-r.top)*(H/r.height) };
   }
 
-  const glW = 340, glH = 320;
-  const leftGLC = createGLCanvas(glW, glH);
-  const rightGLC = createGLCanvas(glW, glH);
-  // position the two 3D views inside the paper frame area
-  leftGLC.style.position = 'absolute';
-  leftGLC.style.left = '42px';
-  leftGLC.style.top = '154px';
-  leftGLC.style.zIndex = '8';
-  rightGLC.style.position = 'absolute';
-  rightGLC.style.right = '42px';
-  rightGLC.style.top = '154px';
-  rightGLC.style.zIndex = '8';
-  document.getElementById('wrap').appendChild(leftGLC);
-  document.getElementById('wrap').appendChild(rightGLC);
-  glLeft = leftGLC.getContext('webgl', { antialias: true, alpha: true, preserveDrawingBuffer: true });
-  glRight = rightGLC.getContext('webgl', { antialias: true, alpha: true, preserveDrawingBuffer: true });
+  /* ── Palette ─────────────────────────────────────────────── */
+  const PAPER='#f8f4eb', INK='#0f172a', VERM='#c2410f', INDIGO='#2c3a5f', GOLD='#b38b3f';
+  function hexA(a){ return (Math.min(1,Math.max(0,a))*255|0).toString(16).padStart(2,'0'); }
+  function cAlpha(c,a){ return c+hexA(a); }
 
-  function compileShader(gl, type, src) {
-    const s = gl.createShader(type);
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error('shader err', gl.getShaderInfoLog(s)); }
-    return s;
-  }
-  function makeProgram(gl) {
-    const vs = compileShader(gl, gl.VERTEX_SHADER, `
-      attribute vec3 aPos; attribute vec3 aNorm; attribute vec3 aCol;
-      uniform mat4 uMVP; uniform mat4 uMV; uniform mat3 uN;
-      varying vec3 vCol; varying vec3 vN; varying vec3 vP;
-      void main() {
-        vec4 p = uMVP * vec4(aPos,1.0);
-        gl_Position = p;
-        vCol = aCol;
-        vN = uN * aNorm;
-        vP = (uMV * vec4(aPos,1.0)).xyz;
-      }
-    `);
-    const fs = compileShader(gl, gl.FRAGMENT_SHADER, `
-      precision mediump float;
-      varying vec3 vCol; varying vec3 vN; varying vec3 vP;
-      void main() {
-        vec3 n = normalize(vN);
-        vec3 l = normalize(vec3(0.4, 0.9, 0.5));
-        float diff = max(0.35, dot(n, l));
-        vec3 col = vCol * (diff * 0.9 + 0.18);
-        // slight paper-ink desat
-        col = mix(col, vec3(0.94,0.91,0.86), 0.08);
-        gl_FragColor = vec4(col, 1.0);
-      }
-    `);
-    const p = gl.createProgram();
-    gl.attachShader(p, vs); gl.attachShader(p, fs); gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error('program link');
-    p.aPos = gl.getAttribLocation(p, 'aPos');
-    p.aNorm = gl.getAttribLocation(p, 'aNorm');
-    p.aCol = gl.getAttribLocation(p, 'aCol');
-    p.uMVP = gl.getUniformLocation(p, 'uMVP');
-    p.uMV = gl.getUniformLocation(p, 'uMV');
-    p.uN = gl.getUniformLocation(p, 'uN');
-    return p;
+  /* ── Paper texture (procedural washi) ────────────────────── */
+  const paperC = document.createElement('canvas');
+  paperC.width=W; paperC.height=H;
+  const pX=paperC.getContext('2d');
+  pX.fillStyle=PAPER; pX.fillRect(0,0,W,H);
+  const pd=pX.getImageData(0,0,W,H).data;
+  for(let i=0;i<pd.length;i+=4){const n=(Math.random()-.5)*10;pd[i]=Math.min(255,Math.max(0,pd[i]+n));pd[i+1]=Math.min(255,Math.max(0,pd[i+1]+n));pd[i+2]=Math.min(255,Math.max(0,pd[i+2]+n));}
+  pX.putImageData(pd,0,0);
+  pX.strokeStyle='rgba(180,165,140,0.05)';pX.lineWidth=1;
+  for(let y=0;y<H;y+=3+Math.random()*4){pX.beginPath();pX.moveTo(0,y+Math.random()*2);for(let x=0;x<W;x+=20)pX.lineTo(x,y+Math.sin(x*.02)*2+Math.random());pX.stroke();}
+
+  /* ── Mt. Fuji background layer ───────────────────────────── */
+  const fujiC=document.createElement('canvas'); fujiC.width=W; fujiC.height=H;
+  const fX=fujiC.getContext('2d');
+  fX.fillStyle='rgba(15,23,42,0.07)';fX.beginPath();
+  fX.moveTo(W*.12,H*.73);fX.quadraticCurveTo(W*.34,H*.34,W*.5,H*.28);
+  fX.quadraticCurveTo(W*.56,H*.275,W*.62,H*.33);fX.quadraticCurveTo(W*.78,H*.52,W*.88,H*.73);
+  fX.closePath();fX.fill();
+  fX.fillStyle='rgba(248,244,235,0.13)';fX.beginPath();
+  fX.moveTo(W*.43,H*.38);fX.quadraticCurveTo(W*.5,H*.24,W*.57,H*.39);
+  fX.quadraticCurveTo(W*.54,H*.36,W*.5,H*.33);fX.quadraticCurveTo(W*.46,H*.36,W*.43,H*.38);
+  fX.closePath();fX.fill();
+  fX.fillStyle='rgba(248,244,235,0.09)';
+  for(let i=0;i<6;i++){const cx=W*(.25+Math.random()*.5),cy=H*(.3+Math.random()*.15);fX.beginPath();fX.ellipse(cx,cy,70+Math.random()*90,12+Math.random()*22,0,0,Math.PI*2);fX.fill();}
+
+  /* ── Ink state ───────────────────────────────────────────── */
+  const inkMarks=[]; // permanent marks
+  const blooms=[];   // animated bloom overlays
+  const densityMap=new Float32Array(W*H);
+  const DENSITY_MAX=4;
+  let saturationLevel=0, lastClickTime=0, rapidClickCount=0;
+  let strokePts=[];
+  let isDrawing=false, isHolding=false, holdT0=0, holdCX=0, holdCY=0, holdProgress=0;
+  let holdInterval=null;
+
+  function getOp(b){ return Math.max(0.06, b*(1-saturationLevel*.65)); }
+  function getRad(b){ return b*(1-saturationLevel*.3); }
+
+  function drawBloom(cx,cy,radius,op,color){
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,radius);
+    g.addColorStop(0,cAlpha(color,.85*op));g.addColorStop(.4,cAlpha(color,.45*op));
+    g.addColorStop(.7,cAlpha(color,.12*op));g.addColorStop(1,cAlpha(color,0));
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.fill();
+    ctx.save();ctx.globalAlpha=.15*op;ctx.strokeStyle=color;ctx.lineWidth=1;ctx.beginPath();
+    for(let i=0;i<=48;i++){const a=(i/48)*Math.PI*2,r=radius+(Math.random()-.5)*radius*.22;
+      const px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+    ctx.closePath();ctx.stroke();ctx.restore();
   }
 
-  function getProgram(gl) {
-    if (!glPrograms.has(gl)) glPrograms.set(gl, makeProgram(gl));
-    return glPrograms.get(gl);
+  function accumulateDensity(cx,cy,radius,op){
+    const sr=Math.round(radius),sx=Math.max(0,cx-sr|0),sy=Math.max(0,cy-sr|0),
+          ex=Math.min(W-1,cx+sr|0),ey=Math.min(H-1,cy+sr|0);
+    for(let py=sy;py<=ey;py++)for(let px=sx;px<=ex;px++){
+      const dx=px-cx,dy=py-cy,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<=sr)densityMap[py*W+px]=Math.min(DENSITY_MAX,densityMap[py*W+px]+op*(1-d/sr));}
+    let tot=0,cnt=0;
+    for(let py=sy;py<=ey;py++)for(let px=sx;px<=ex;px++){tot+=densityMap[py*W+px];cnt++;}
+    if(cnt>0)saturationLevel=Math.min(1,saturationLevel+(tot/cnt)*.018);
   }
 
-  function parseGLB(ab) {
-    const u8 = new Uint8Array(ab);
-    const dv = new DataView(ab);
-    if (dv.getUint32(0, true) !== 0x46546C67) throw new Error('bad glb magic');
-    const ver = dv.getUint32(4, true);
-    const total = dv.getUint32(8, true);
-    let off = 12;
-    let json = null, bin = null;
-    while (off < total) {
-      const clen = dv.getUint32(off, true); off += 4;
-      const ctyp = dv.getUint32(off, true); off += 4;
-      if (ctyp === 0x4E4F534A) {
-        json = JSON.parse(new TextDecoder().decode(u8.slice(off, off+clen)));
-      } else if (ctyp === 0x004E4942) {
-        bin = u8.slice(off, off+clen).buffer;
-      }
-      off += clen;
+  function registerMark(m){ inkMarks.push(m); accumulateDensity(m.x,m.y,m.radius,m.opacity); }
+
+  /* ── Mist layers ─────────────────────────────────────────── */
+  const mist=[];
+  for(let i=0;i<8;i++)mist.push({x:Math.random()*W,y:H*(.32+Math.random()*.32),
+    w:250+Math.random()*350,h:25+Math.random()*50,speed:.12+Math.random()*.35,op:.025+Math.random()*.055});
+
+  /* ── Render loop ─────────────────────────────────────────── */
+  let frame=0, lastInteract=Date.now();
+  function render(){
+    frame++; lastInteract=Math.max(lastInteract,Date.now()-3000);
+    ctx.fillStyle=PAPER;ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=.75;ctx.drawImage(paperC,0,0);ctx.globalAlpha=1;
+    ctx.drawImage(fujiC,0,0);
+    // mist
+    for(const m of mist){
+      m.x+=m.speed;if(m.x>W+m.w)m.x=-m.w;
+      ctx.save();ctx.globalAlpha=m.op;
+      const g=ctx.createLinearGradient(m.x,m.y,m.x+m.w,m.y);
+      g.addColorStop(0,'rgba(248,244,235,0)');g.addColorStop(.35,'rgba(248,244,235,1)');
+      g.addColorStop(.65,'rgba(248,244,235,1)');g.addColorStop(1,'rgba(248,244,235,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(m.x+m.w/2,m.y,m.w/2,m.h/2,0,0,Math.PI*2);ctx.fill();
+      ctx.restore();
     }
-    if (!json || !bin) throw new Error('missing glb chunks');
-    const mesh = json.meshes[0].primitives[0];
-    const posAcc = json.accessors[mesh.attributes.POSITION];
-    const normAcc = json.accessors[mesh.attributes.NORMAL];
-    const colAcc = json.accessors[mesh.attributes.COLOR_0];
-    const idxAcc = json.accessors[mesh.indices];
-    const bvPos = json.bufferViews[posAcc.bufferView];
-    const bvN = json.bufferViews[normAcc.bufferView];
-    const bvC = json.bufferViews[colAcc.bufferView];
-    const bvI = json.bufferViews[idxAcc.bufferView];
-    const pos = new Float32Array(bin, bvPos.byteOffset || 0, posAcc.count * 3);
-    const norm = new Float32Array(bin, bvN.byteOffset || 0, normAcc.count * 3);
-    const col = new Float32Array(bin, bvC.byteOffset || 0, colAcc.count * 3);
-    const idx = new Uint16Array(bin, bvI.byteOffset || 0, idxAcc.count);
-    const min = posAcc.min || [-1,-1,-1];
-    const max = posAcc.max || [1,1,1];
-    return { pos, norm, col, idx, min, max, tri: idx.length/3 };
-  }
-
-  async function loadModel(key, url) {
-    if (modelCache[key]) return modelCache[key];
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('model 404 ' + url);
-    const ab = await res.arrayBuffer();
-    const data = parseGLB(ab);
-    modelCache[key] = data;
-    return data;
-  }
-
-  function mat4Perspective(fovy, aspect, near, far) {
-    const f = 1.0 / Math.tan(fovy / 2);
-    const m = new Float32Array(16);
-    m[0] = f / aspect; m[5] = f; m[10] = (far+near)/(near-far); m[11]=-1;
-    m[14] = (2*far*near)/(near-far);
-    return m;
-  }
-  function mat4LookAt(eye, center, up) {
-    const z = norm3(sub3(eye, center)); const x = norm3(cross3(up, z)); const y = cross3(z, x);
-    const m = new Float32Array(16);
-    m[0]=x[0]; m[4]=x[1]; m[8]=x[2];
-    m[1]=y[0]; m[5]=y[1]; m[9]=y[2];
-    m[2]=z[0]; m[6]=z[1]; m[10]=z[2];
-    m[12] = -dot3(x,eye); m[13]=-dot3(y,eye); m[14]=-dot3(z,eye); m[15]=1;
-    return m;
-  }
-  function mat4Mul(a, b) {
-    const o = new Float32Array(16);
-    for (let col=0; col<4; col++) {
-      for (let row=0; row<4; row++) {
-        o[col*4+row] =
-          a[0*4+row] * b[col*4+0] +
-          a[1*4+row] * b[col*4+1] +
-          a[2*4+row] * b[col*4+2] +
-          a[3*4+row] * b[col*4+3];
-      }
+    // animated blooms
+    for(let i=blooms.length-1;i>=0;i--){
+      const b=blooms[i];b.t+=16;const t=Math.min(1,b.t/b.dur);
+      const e=1-Math.pow(1-t,3);
+      ctx.save();drawBloom(b.x,b.y,b.r*(.45+e*.75),b.op*e,b.c);ctx.restore();
+      if(t>=1)blooms.splice(i,1);
     }
-    return o;
-  }
-  function mat4RotY(yaw) { const c=Math.cos(yaw),s=Math.sin(yaw); const m=new Float32Array(16); m[0]=c;m[2]=s;m[5]=1;m[8]=-s;m[10]=c;m[15]=1; return m; }
-  function mat4RotX(p) { const c=Math.cos(p),s=Math.sin(p); const m=new Float32Array(16); m[0]=1;m[5]=c;m[6]=-s;m[9]=s;m[10]=c;m[15]=1; return m; }
-  function mat4Trans(x,y,z){ const m=new Float32Array(16); m[0]=m[5]=m[10]=m[15]=1; m[12]=x;m[13]=y;m[14]=z; return m; }
-  function mat4Scale(s){ const m=new Float32Array(16); m[0]=m[5]=m[10]=s; m[15]=1; return m; }
-  function norm3(v){ const l=Math.hypot(v[0],v[1],v[2])||1; return [v[0]/l,v[1]/l,v[2]/l]; }
-  function sub3(a,b){ return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
-  function cross3(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
-  function dot3(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
-
-  function makeMVPMatrices(cam, aspect) {
-    const center = cam.target || [0, 0.5, 0];
-    const eye = [
-      center[0] + Math.sin(cam.yaw)*cam.dist*Math.cos(cam.pitch),
-      center[1] + Math.sin(cam.pitch)*cam.dist*0.55,
-      center[2] + Math.cos(cam.yaw)*cam.dist*Math.cos(cam.pitch)
-    ];
-    const up = [0,1,0];
-    const view = mat4LookAt(eye, center, up);
-    const proj = mat4Perspective(0.9, aspect, 0.1, 20);
-    const vp = mat4Mul(proj, view);
-    const mv = view;
-    const nrm = new Float32Array(9);
-    nrm[0]=mv[0];nrm[1]=mv[1];nrm[2]=mv[2];
-    nrm[3]=mv[4];nrm[4]=mv[5];nrm[5]=mv[6];
-    nrm[6]=mv[8];nrm[7]=mv[9];nrm[8]=mv[10];
-    return { mvp: vp, mv, nrm };
-  }
-
-  function uploadModel(gl, data) {
-    const posB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, posB); gl.bufferData(gl.ARRAY_BUFFER, data.pos, gl.STATIC_DRAW);
-    const nrmB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, nrmB); gl.bufferData(gl.ARRAY_BUFFER, data.norm, gl.STATIC_DRAW);
-    const colB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, colB); gl.bufferData(gl.ARRAY_BUFFER, data.col, gl.STATIC_DRAW);
-    const idxB = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxB); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.idx, gl.STATIC_DRAW);
-    return { posB, nrmB, colB, idxB, count: data.idx.length, min: data.min, max: data.max };
-  }
-
-  async function setModel(which, key) { // which 'left'|'right'
-    const clan = key[0];
-    const url = MODELS[clan]?.[parseInt(key.slice(1), 10)-1];
-    if (!url) throw new Error("unknown model key " + key + " for " + which);
-    const data = await loadModel(key, url);
-    const gl = (which === 'left' ? glLeft : glRight);
-    const buf = uploadModel(gl, data);
-    loadedModels[which] = { key, buf, data };
-    // auto frame
-    const cam = (which==='left'? camLeft : camRight);
-    const span = Math.max(data.max[0]-data.min[0], data.max[1]-data.min[1], data.max[2]-data.min[2]);
-    cam.target = [
-      (data.min[0] + data.max[0]) / 2,
-      (data.min[1] + data.max[1]) / 2,
-      (data.min[2] + data.max[2]) / 2
-    ];
-    cam.baseDist = Math.max(3.0, span * 2.0);
-    cam.dist = cam.baseDist;
-    render3D();
-    return key;
-  }
-
-  function drawModel(gl, prog, buf) {
-    gl.useProgram(prog);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf.posB);
-    gl.enableVertexAttribArray(prog.aPos); gl.vertexAttribPointer(prog.aPos, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf.nrmB);
-    gl.enableVertexAttribArray(prog.aNorm); gl.vertexAttribPointer(prog.aNorm, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf.colB);
-    gl.enableVertexAttribArray(prog.aCol); gl.vertexAttribPointer(prog.aCol, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf.idxB);
-    gl.drawElements(gl.TRIANGLES, buf.count, gl.UNSIGNED_SHORT, 0);
-  }
-
-  function render3D() {
-    const aspect = glW / glH;
-    const clashPush = (clashT > 0) ? (clashT * 0.18) : 0;
-    [ ['left', glLeft, camLeft], ['right', glRight, camRight] ].forEach(([side, gl, cam]) => {
-      if (!gl) return;
-      gl.viewport(0,0,glW,glH);
-      gl.clearColor(0.08, 0.07, 0.06, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.enable(gl.DEPTH_TEST);
-      gl.disable(gl.CULL_FACE);
-      const prog = getProgram(gl);
-      // temp forward nudge during clash for encounter feel (models step in)
-      const saveTarget = cam.target ? cam.target.slice() : null;
-      if (clashPush > 0 && cam.target) {
-        cam.target = [cam.target[0], cam.target[1], cam.target[2] - clashPush * (side==='left' ? 0.6 : -0.6)];
-      }
-      const m = makeMVPMatrices(cam, aspect);
-      if (saveTarget) cam.target = saveTarget;
-      gl.useProgram(prog);
-      gl.uniformMatrix4fv(prog.uMVP, false, m.mvp);
-      gl.uniformMatrix4fv(prog.uMV, false, m.mv);
-      gl.uniformMatrix3fv(prog.uN, false, m.nrm);
-      const lm = loadedModels[side];
-      if (lm && lm.buf) {
-        drawModel(gl, prog, lm.buf);
-      } else {
-        // empty silhouette hint
-        gl.clearColor(0.06,0.05,0.04,1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-      }
-    });
-    // composite ink frame + labels on 2D ctx later
-  }
-
-  function setViewPreset(p) {
-    viewPreset = p % 3;
-    const offs = [[0.6,0.15,1.0], [1.05,0.35,0.95], [1.57,0.0,1.05]];
-    const o = offs[viewPreset];
-    camLeft.yaw = o[0]; camLeft.pitch = o[1]; camLeft.dist = (camLeft.baseDist || 3.0) * o[2];
-    camRight.yaw = -o[0]; camRight.pitch = o[1]; camRight.dist = (camRight.baseDist || 3.0) * o[2];
-    render3D();
-  }
-
-  // Build roster UI (click loads real GLB into 3D viewport)
-  function buildRoster(clan, container, which) {
-    container.innerHTML = '';
-    for (let i=1; i<=10; i++) {
-      const k = clan + i;
-      const div = document.createElement('div');
-      div.className = 'item' + (clan==='u' ? ' u' : '');
-      div.title = (clan==='t'?'Takeda':'Uesugi') + ' ' + i;
-      const img = document.createElement('img');
-      img.src = THUMBS[clan][i-1];
-      div.appendChild(img);
-      const lab = document.createElement('div'); lab.className='label'; lab.textContent = String(i).padStart(2,'0');
-      div.appendChild(lab);
-      div.addEventListener('click', async () => {
-        ensureAudio();
-        started = true; startPrompt.style.display = 'none';
-        await setModel(which, k);
-        // visual selection
-        [...container.children].forEach(c => c.classList.remove('sel'));
-        div.classList.add('sel');
-        if (soundOn && audioCtx) sfxStamp();
-      });
-      container.appendChild(div);
-    }
-  }
-  buildRoster('t', document.getElementById('rosterT'), 'left');
-  buildRoster('u', document.getElementById('rosterU'), 'right');
-
-  // 2D paper drawing layer (frame + overlays + ink feel around the 3D)
-  function drawPaperGrain(x, y, w, h, seed=1) {
+    // permanent ink
     ctx.save();
-    ctx.fillStyle = PAPER;
-    ctx.fillRect(x, y, w, h);
-    ctx.globalAlpha = 0.028;
-    ctx.fillStyle = '#0f172a';
-    for (let i=0; i<220; i++) {
-      const fx = x + ((i*19+seed*11)%w);
-      const fy = y + ((i*31+seed*7)%h);
-      ctx.fillRect(fx, fy, 1.1, 1.1);
+    for(const mk of inkMarks){
+      if(mk.type==='bloom'){drawBloom(mk.x,mk.y,mk.radius,mk.opacity,mk.color);}
+      else if(mk.type==='stroke'){
+        const bo=getOp(mk.op),br=getRad(mk.r);
+        ctx.strokeStyle=mk.color+cAlpha('',bo);ctx.lineWidth=br*2;
+        ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();
+        if(mk.pts&&mk.pts.length){ctx.moveTo(mk.pts[0].x,mk.pts[0].y);
+          for(let j=1;j<mk.pts.length;j++)ctx.lineTo(mk.pts[j].x,mk.pts[j].y);
+        }ctx.stroke();
+        // bleed
+        ctx.globalAlpha=bo*.25;ctx.lineWidth=br*4.5;ctx.stroke();
+        ctx.globalAlpha=1;
+      }
     }
-    ctx.globalAlpha = 0.018;
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 0.5;
-    for (let i=0; i<9; i++) {
-      ctx.beginPath();
-      ctx.moveTo(x, y + h*0.08 + i*13);
-      ctx.quadraticCurveTo(x + w*0.5, y + h*0.07 + i*15, x+w, y + h*0.11 + i*11);
+    ctx.restore();
+    // current stroke preview
+    if(isDrawing&&strokePts.length>1){
+      const bo=getOp(.32),br=getRad(12);
+      ctx.strokeStyle=INK+cAlpha('',bo);ctx.lineWidth=br*2;ctx.lineCap='round';ctx.beginPath();
+      ctx.moveTo(strokePts[0].x,strokePts[0].y);
+      for(let j=1;j<strokePts.length;j++)ctx.lineTo(strokePts[j].x,strokePts[j].y);
       ctx.stroke();
+      ctx.globalAlpha=bo*.2;ctx.lineWidth=br*4;ctx.stroke();ctx.globalAlpha=1;
     }
-    ctx.restore();
-  }
-
-  function drawInkFrame(x, y, w, h) {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(15,23,42,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(x+0.5, y+0.5, w-1, h-1);
-    ctx.lineWidth = 0.6;
-    ctx.strokeRect(x+3.5, y+3.5, w-7, h-7);
-    ctx.restore();
-  }
-
-  function draw() {
-    ctx.fillStyle = '#e9e2d4';
-    ctx.fillRect(0, 0, W, H);
-    drawPaperGrain(8, 8, W-16, H-16, 11);
-
-    // frame around the two 3D views (paper blocks)
-    const frameW = glW + 16, frameH = glH + 18;
-    drawPaperGrain(28, 78, frameW, frameH, 21);
-    drawInkFrame(28, 78, frameW, frameH);
-    drawPaperGrain(W-28-frameW, 78, frameW, frameH, 31);
-    drawInkFrame(W-28-frameW, 78, frameW, frameH);
-
-    // subtle divider mist
-    ctx.save();
-    ctx.globalAlpha = 0.07;
-    ctx.fillStyle = INK;
-    ctx.fillRect(W/2-1, 86, 2, glH-6);
-    ctx.restore();
-
-    // stage band at bottom (the charged space between prints) — courtyard floor suggestion
-    const sy = 78 + glH + 22;
-    const sh = 148;
-    drawPaperGrain(38, sy, W-76, sh, 47);
-    ctx.save();
-    ctx.strokeStyle = 'rgba(15,23,42,0.16)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(38.5, sy+0.5, W-77, sh-1);
-    // tatami / stone courtyard lines (set dressing, ink on paper)
-    ctx.strokeStyle = 'rgba(15,23,42,0.09)';
-    ctx.lineWidth = 0.7;
-    for (let i=0; i<5; i++) {
-      const ly = sy + 18 + i*24;
-      ctx.beginPath(); ctx.moveTo(48, ly); ctx.lineTo(W-48, ly); ctx.stroke();
-    }
-    // simple ink lantern silhouettes (dressing, left + right of clash zone)
-    ctx.fillStyle = 'rgba(15,23,42,0.25)';
-    ctx.fillRect(68, sy+32, 7, 18); ctx.fillRect(65, sy+28, 13, 5); // left lantern
-    ctx.fillRect(W-75, sy+32, 7, 18); ctx.fillRect(W-78, sy+28, 13, 5); // right
-    ctx.restore();
-
-    ctx.fillStyle = INK;
-    ctx.font = '600 11px system-ui';
-    ctx.fillText('COURTYARD CLASH', 52, sy + 16);
-
-    // small 3D state badges in stage
-    const figY = sy + 22;
-    ctx.fillStyle = '#6f5b44';
-    ctx.font = '10px system-ui';
-    if (loadedModels.left) {
-      ctx.fillText(loadedModels.left.key.toUpperCase(), 60, figY + 18);
-    } else {
-      ctx.fillText('select takeda block', 60, figY + 18);
-    }
-    if (loadedModels.right) {
-      ctx.fillText(loadedModels.right.key.toUpperCase(), W-120, figY + 18);
-    } else {
-      ctx.fillText('select uesugi block', W-130, figY + 18);
-    }
-
-    // ink clash burst when triggered
-    if (clashT > 0 && loadedModels.left && loadedModels.right) {
-      const intensity = Math.max(0, 1 - clashT / 0.85);
-      ctx.save();
-      ctx.globalAlpha = 0.5 * intensity;
-      ctx.fillStyle = INK;
-      const cx = W/2, cy = figY + 52;
-      for (let i=0; i<9; i++) {
-        const a = i * 0.85 + clashT * 7.5;
-        const r = 7 + i*2.8 + Math.sin(clashT*28 + i)*2.5;
-        ctx.beginPath();
-        ctx.arc(cx + Math.cos(a)*r*0.55, cy + Math.sin(a*1.25)*r*0.3, 1.6 + intensity*2, 0, Math.PI*2);
-        ctx.fill();
+    // baren press visual
+    if(isHolding&&holdProgress>0){
+      const br=getRad(holdProgress*35);
+      const bg=ctx.createRadialGradient(holdCX,holdCY,0,holdCX,holdCY,br);
+      bg.addColorStop(0,cAlpha(INK,.55*holdProgress));bg.addColorStop(.5,cAlpha(INK,.2*holdProgress));
+      bg.addColorStop(1,cAlpha(INK,0));ctx.fillStyle=bg;ctx.beginPath();
+      ctx.arc(holdCX,holdCY,br,0,Math.PI*2);ctx.fill();
+      if(holdProgress>.6){
+        const ao=(holdProgress-.6)/.4*.12;
+        const ag=ctx.createRadialGradient(holdCX,holdCY,0,holdCX,holdCY,br*.4);
+        ag.addColorStop(0,cAlpha(VERM,ao));ag.addColorStop(1,cAlpha(VERM,0));
+        ctx.fillStyle=ag;ctx.beginPath();ctx.arc(holdCX,holdCY,br*.4,0,Math.PI*2);ctx.fill();
       }
-      if (clashT > 0.3 && clashT < 0.8) {
-        ctx.globalAlpha = 0.85 * (0.8 - clashT) / 0.5;
-        ctx.fillStyle = VERMILION;
-        ctx.beginPath(); ctx.arc(cx, cy + 14, 6, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = PAPER; ctx.fillRect(cx-3, cy+11, 6, 1.4);
+    }
+    // progress
+    if(inkMarks.length){
+      progress.textContent=inkMarks.length+' stroke'+(inkMarks.length>1?'s':'')+' · '+(saturationLevel>.3?'紙飽和—paper saturated':'紙は白く—paper white');
+      progress.classList.add('show');
+    }
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+
+  /* ── Input ───────────────────────────────────────────────── */
+  function placeInk(cx,cy){
+    let color=INK;
+    const h=(cx/W+cy/H)%3;
+    if(h>1.4&&saturationLevel<.55)color=INDIGO;
+    if(h>2.2&&saturationLevel<.35)color=VERM;
+    const br=getRad(16+Math.random()*20), bo=getOp(.35+Math.random()*.28);
+    blooms.push({x:cx,y:cy,r:br,op:bo,c:color,t:0,dur:350+Math.random()*350});
+    registerMark({type:'bloom',x:cx,y:cy,radius:br,opacity:bo,color:color});
+    lastInteract=Date.now();playBrushSound();
+  }
+
+  canvas.addEventListener('pointerdown',e=>{
+    e.preventDefault();canvas.setPointerCapture(e.pointerId);
+    overlay.classList.add('hidden');hint.classList.add('fade');
+    const p=pos(e),now=Date.now(),d=now-lastClickTime;
+    if(d<500){rapidClickCount++;if(rapidClickCount>5)saturationLevel=Math.min(1,saturationLevel+.04*(rapidClickCount-5));}
+    else rapidClickCount=0;
+    lastClickTime=now;
+    // start stroke or hold
+    isDrawing=true;isHolding=true;holdT0=now;holdCX=p.x;holdCY=p.y;holdProgress=0;
+    strokePts=[{x:p.x,y:p.y}];
+    // hold interval for baren
+    if(holdInterval)clearInterval(holdInterval);
+    holdInterval=setInterval(()=>{
+      if(isHolding){
+        holdProgress=Math.min(1,(now-holdT0)/2000);
+        if(holdProgress>.15&&holdProgress<.3)playBarenTouch();
+        if(holdProgress>.5&&Math.random()<.25)placeInk(holdCX,holdCY);
       }
-      ctx.restore();
-    }
-
-    // post-clash encounter note (clear without extra instruction)
-    if (lastClash && clashT < 0.15) {
-      ctx.save();
-      ctx.fillStyle = 'rgba(15,23,42,0.65)';
-      ctx.font = '600 9px system-ui';
-      ctx.fillText('the prints remember the clash', W/2 - 68, sy + 108);
-      ctx.restore();
-    }
-
-    // bottom margin
-    ctx.save();
-    ctx.fillStyle = '#6f5b44';
-    ctx.font = '10px system-ui';
-    ctx.fillText('ukiyo-e that can be touched — two carved samurai, one courtyard, the instant before blades cross', 38, H - 14);
-    ctx.fillText('20 GLB + 4 props', W - 140, H - 14);
-    ctx.restore();
-  }
-
-  // === State + interaction ===
-  let time = 0, lastT = 0;
-  let audioCtx = null;
-  let soundOn = false;
-  let started = false;
-  let selT = null, selU = null;
-
-  function update(dt) {
-    time += dt;
-    if (clashT > 0) clashT = Math.max(0, clashT - dt * 1.2);
-    if (started && stageHint.style.opacity !== '0') {
-      if (loadedModels.left || loadedModels.right) { stageHint.style.transition='opacity 420ms'; stageHint.style.opacity='0'; }
-    }
-    // gentle auto demo for verification (first load shows two real GLBs)
-    if (!started && time > 0.6 && !loadedModels.left && !loadedModels.right && Object.keys(modelCache).length === 0) {
-      // will be seeded after first render
-    }
-  }
-
-  function triggerInstant() {
-    if (!loadedModels.left || !loadedModels.right) return;
-    clashT = 0.9;
-    lastClash = { l: loadedModels.left.key, r: loadedModels.right.key };
-    if (soundOn && audioCtx) sfxClash();
-    // camera push + forward for courtyard clash encounter
-    camLeft.yaw -= 0.10; camLeft.pitch += 0.03; camLeft.dist = Math.max(1.8, (camLeft.baseDist||3)*0.92);
-    camRight.yaw += 0.10; camRight.pitch += 0.03; camRight.dist = Math.max(1.8, (camRight.baseDist||3)*0.92);
-    render3D();
-  }
-
-  function resetStage() {
-    // keep loaded models, clear clash only
-    clashT = 0;
-  }
-
-  function cycleView() {
-    setViewPreset(viewPreset + 1);
-    if (soundOn && audioCtx) sfxStamp();
-  }
-
-  // Sparse physical SFX
-  function ensureAudio() {
-    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  }
-  function sfxStamp() {
-    if (!audioCtx) return;
-    const t = audioCtx.currentTime;
-    const o = audioCtx.createOscillator(); o.type='sawtooth'; o.frequency.value=72;
-    const n = audioCtx.createBufferSource(); const b=audioCtx.createBuffer(1,audioCtx.sampleRate*0.08,audioCtx.sampleRate);
-    const d=b.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; n.buffer=b;
-    const lp=audioCtx.createBiquadFilter(); lp.type='lowpass';lp.frequency.value=380;
-    const g=audioCtx.createGain(); g.gain.value=0.55;
-    o.connect(g); n.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
-    o.start(t); n.start(t);
-    g.gain.setValueAtTime(0.55,t); g.gain.linearRampToValueAtTime(0.0001,t+0.16);
-    setTimeout(()=>{try{o.stop();n.stop();}catch(e){}},220);
-  }
-  function sfxClash() {
-    if (!audioCtx) return;
-    const t = audioCtx.currentTime;
-    [58,66].forEach((f,i)=>{
-      const o=audioCtx.createOscillator(); o.type='sine'; o.frequency.value=f;
-      const g=audioCtx.createGain(); g.gain.value=0.18-i*0.03;
-      const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=340;
-      o.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
-      o.start(t+i*0.01); g.gain.setValueAtTime(g.gain.value,t+i*0.01);
-      g.gain.linearRampToValueAtTime(0.0001,t+0.48+i*0.08);
-      setTimeout(()=>{try{o.stop();}catch(e){}},580);
-    });
-  }
-  function toggleSound() {
-    ensureAudio();
-    soundOn = !soundOn;
-    soundBtn.style.borderColor = soundOn ? VERMILION : INK;
-    soundBtn.style.color = soundOn ? VERMILION : INK;
-    if (soundOn) sfxStamp();
-  }
-
-  // Pointer for 3D orbit on the embedded canvases
-  function attachOrbit(c, which) {
-    const cam = (which==='left'?camLeft:camRight);
-    c.addEventListener('pointerdown', (e) => {
-      if (!started) { started=true; startPrompt.style.display='none'; }
-      ensureAudio();
-      drag.active = true; drag.which = which;
-      drag.sx = e.clientX; drag.sy = e.clientY;
-      drag.y0 = cam.yaw; drag.p0 = cam.pitch;
-      c.setPointerCapture(e.pointerId);
-    });
-    c.addEventListener('pointermove', (e) => {
-      if (!drag.active || drag.which !== which) return;
-      const dx = (e.clientX - drag.sx) * 0.0075;
-      const dy = (e.clientY - drag.sy) * 0.0075;
-      cam.yaw = drag.y0 - dx;
-      cam.pitch = Math.max(-1.2, Math.min(1.2, drag.p0 + dy));
-      render3D();
-    });
-    window.addEventListener('pointerup', (e) => {
-      if (drag.active) { drag.active=false; drag.which=null; }
-    });
-    c.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      cam.dist = Math.max(1.1, Math.min(6.5, cam.dist + (e.deltaY>0 ? 0.18 : -0.18)));
-      render3D();
-    }, { passive: false });
-    // touch friendly tap to focus
-    c.addEventListener('click', () => { ensureAudio(); started=true; startPrompt.style.display='none'; });
-  }
-  attachOrbit(leftGLC, 'left');
-  attachOrbit(rightGLC, 'right');
-
-  // Keyboard
-  window.addEventListener('keydown', (e) => {
-    if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); ensureAudio(); if (!started) started=true; startPrompt.style.display='none'; if (loadedModels.left && loadedModels.right) triggerInstant(); }
-    if (e.key.toLowerCase() === 'r') { resetStage(); render3D(); }
-    if (e.key.toLowerCase() === 'v') { cycleView(); }
-    if (e.key === 's' || e.key === 'S') { toggleSound(); }
-    const n = parseInt(e.key, 10);
-    if (n >= 1 && n <= 5) {
-      ensureAudio(); started = true; startPrompt.style.display = 'none';
-      const kt = 't'+n, ku = 'u'+n;
-      setModel('left', kt); setModel('right', ku);
-    }
+    },80);
   });
 
-  // Buttons
-  soundBtn.addEventListener('click', toggleSound);
-  resetBtn.addEventListener('click', () => { resetStage(); render3D(); });
-  instantBtn.addEventListener('click', () => { ensureAudio(); started=true; startPrompt.style.display='none'; triggerInstant(); });
-  viewBtn.addEventListener('click', cycleView);
+  canvas.addEventListener('pointermove',e=>{
+    if(!isDrawing)return;e.preventDefault();
+    const p=pos(e);strokePts.push({x:p.x,y:p.y});holdCX=p.x;holdCY=p.y;
+  });
 
-  // First gesture
-  function firstGesture() { ensureAudio(); if (!started) started = true; startPrompt.style.display = 'none'; }
-  canvas.addEventListener('pointerdown', firstGesture, {once:true});
-  leftGLC.addEventListener('pointerdown', firstGesture, {once:true});
-  rightGLC.addEventListener('pointerdown', firstGesture, {once:true});
-  window.addEventListener('keydown', firstGesture, {once:true});
-
-  // Main loop
-  function frame(now) {
-    if (!lastT) lastT = now;
-    const dt = Math.min(0.05, (now-lastT)/1000);
-    lastT = now;
-    update(dt);
-    draw();
-    // re-render 3D each frame for any anim (clash nudge etc)
-    if (clashT > 0.01) {
-      const t = clashT * 0.6;
-      camLeft.yaw += Math.sin(time*18)*0.001 * (clashT);
-      camRight.yaw -= Math.sin(time*19+1)*0.001 * (clashT);
+  canvas.addEventListener('pointerup',e=>{
+    e.preventDefault();if(holdInterval)clearInterval(holdInterval);holdInterval=null;
+    if(isDrawing&&strokePts.length>2){
+      const br=getRad(12),bo=getOp(.3);
+      registerMark({type:'stroke',x:strokePts[strokePts.length-1].x,y:strokePts[strokePts.length-1].y,
+        radius:br,opacity:bo,color:INK,pts:strokePts});
     }
-    render3D();
+    isDrawing=false;isHolding=false;strokePts=[];holdProgress=0;
+    lastInteract=Date.now();
+  });
 
-    // verification surface (real 3D state)
-    window.__KAWANAKAJIMA_3D_STATE = {
-      modelsLoaded: Object.keys(modelCache),
-      left: loadedModels.left ? loadedModels.left.key : null,
-      right: loadedModels.right ? loadedModels.right.key : null,
-      clashT,
-      lastClash,
-      viewPreset,
-      assets: 20
-    };
-    requestAnimationFrame(frame);
-  }
-
-  async function boot() {
-    draw();
-    // Seed two real models immediately so first screen shows actual 3D assets (no explanation needed)
-    try {
-      await setModel('left', 't1');
-      await setModel('right', 'u1');
-      // mark roster selection
-      const rT = document.getElementById('rosterT'); if (rT && rT.children[0]) rT.children[0].classList.add('sel');
-      const rU = document.getElementById('rosterU'); if (rU && rU.children[0]) rU.children[0].classList.add('sel');
-    } catch (e) { console.warn('seed model load', e); }
-    render3D();
-    requestAnimationFrame(frame);
-    // auto clash once for verif capture after short settle
-    setTimeout(() => {
-      if (!clashT && loadedModels.left && loadedModels.right && time < 3) {
-        clashT = 0.82; lastClash = {l:'t1',r:'u1'};
-        render3D();
+  canvas.addEventListener('pointerleave',e=>{
+    if(holdInterval)clearInterval(holdInterval);holdInterval=null;
+    if(isDrawing){
+      if(strokePts.length>2){
+        const br=getRad(12),bo=getOp(.3);
+        registerMark({type:'stroke',x:strokePts[strokePts.length-1].x,y:strokePts[strokePts.length-1].y,
+          radius:br,opacity:bo,color:INK,pts:strokePts});
       }
-    }, 1350);
-    console.log('%c[Kawanakajima] 20 file-backed GLB samurai models. Drag to orbit. 1-5 quick pairs. Space = instant.', 'color:#6f5b44');
+      isDrawing=false;isHolding=false;strokePts=[];holdProgress=0;
+    }
+    lastInteract=Date.now();
+  });
+
+  /* ── Audio ───────────────────────────────────────────────── */
+  let audioCtx=null, soundOn=false, ambientGain=null, ambientNode=null, ambientStarted=false;
+
+  function initAudio(){
+    if(audioCtx)return;
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    ambientGain=audioCtx.createGain();ambientGain.gain.value=0;ambientGain.connect(audioCtx.destination);
+    // wind: filtered noise
+    const bs=audioCtx.sampleRate*4,bf=audioCtx.createBuffer(2,bs,audioCtx.sampleRate);
+    for(let ch=0;ch<2;ch++){const d=bf.getChannelData(ch);let l=0;
+      for(let i=0;i<bs;i++){const w=Math.random()*2-1;d[i]=(l+.018*w)/1.018;l=d[i];d[i]*=3.5;}}
+    ambientNode=audioCtx.createBufferSource();ambientNode.buffer=bf;ambientNode.loop=true;
+    const bp=audioCtx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=380;bp.Q.value=.4;
+    ambientNode.connect(bp);bp.connect(ambientGain);ambientNode.start();
+    // drone
+    const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=82;
+    const og=audioCtx.createGain();og.gain.value=0;
+    o.connect(og);og.connect(ambientGain);o.start();
+    // second drone
+    const o2=audioCtx.createOscillator();o2.type='sine';o2.frequency.value=123.5;
+    const og2=audioCtx.createGain();og2.gain.value=0;
+    o2.connect(og2);og2.connect(ambientGain);o2.start();
   }
-  setTimeout(boot, 60);
 
-  setTimeout(() => { if (startPrompt.style.display !== 'none') startPrompt.style.display = 'none'; }, 2400);
+  function playBrushSound(){
+    if(!audioCtx||!soundOn)return;
+    const t=audioCtx.currentTime;
+    const bs=audioCtx.sampleRate*.12,bf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate);
+    const d=bf.getChannelData(0);
+    for(let i=0;i<bs;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/bs,2.5);
+    const s=audioCtx.createBufferSource();s.buffer=bf;
+    const hp=audioCtx.createBiquadFilter();hp.type='highpass';hp.frequency.value=600;
+    const g=audioCtx.createGain();g.gain.value=.06+Math.random()*.04;
+    s.connect(hp);hp.connect(g);g.connect(audioCtx.destination);s.start(t);
+    const o=audioCtx.createOscillator();o.type='sine';o.frequency.value=170+Math.random()*100;
+    const og=audioCtx.createGain();og.gain.setValueAtTime(.02,t);
+    og.gain.exponentialRampToValueAtTime(.001,t+.35);
+    o.connect(og);og.connect(audioCtx.destination);o.start(t);o.stop(t+.35);
+  }
 
-  // expose for harness
-  window.__KAWANAKAJIMA_LOAD_MODEL = setModel;
+  function playBarenTouch(){
+    if(!audioCtx||!soundOn)return;
+    const t=audioCtx.currentTime;
+    const o=audioCtx.createOscillator();o.type='sine';
+    o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(35,t+.25);
+    const g=audioCtx.createGain();g.gain.setValueAtTime(.04,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+.35);
+    o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.35);
+  }
+
+  soundBtn.addEventListener('click',()=>{
+    if(!audioCtx)initAudio();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    soundOn=!soundOn;soundBtn.textContent=soundOn?'♫':'♪';soundBtn.classList.toggle('muted',!soundOn);
+    if(ambientGain)ambientGain.gain.linearRampToValueAtTime(soundOn?.1:.0,audioCtx.currentTime+.5);
+  });
+
+  /* ── Controls ────────────────────────────────────────────── */
+  resetBtn.addEventListener('click',()=>{
+    inkMarks.length=0;blooms.length=0;densityMap.fill(0);
+    saturationLevel=0;rapidClickCount=0;progress.textContent='';progress.classList.remove('show');
+  });
+
+  finishBtn.addEventListener('click',()=>{
+    if(inkMarks.length===0)return;
+    // draw seal stamp
+    const sc=document.createElement('canvas');sc.width=W;sc.height=H;
+    const sX=sc.getContext('2d');sX.drawImage(canvas,0,0);
+    const sx=W-80+(Math.random()-.5)*12, sy=H-80+(Math.random()-.5)*12, sr=(Math.random()-.5)*.04;
+    sX.save();sX.translate(sx,sy);sX.rotate(sr);
+    sX.fillStyle=VERM;sX.fillRect(-17,-22,34,44);
+    sX.fillStyle=PAPER;sX.font='bold 26px serif';sX.textAlign='center';sX.textBaseline='middle';
+    sX.fillText('印',0,2);sX.restore();
+    // add title stamp at top left
+    sX.save();
+    sX.fillStyle=INK;sX.globalAlpha=.55;
+    sX.font='11px serif';sX.textAlign='left';sX.textBaseline='top';
+    sX.fillText('浮世絵 — Ukiyo-e',20,18);
+    sX.restore();
+    sc.toBlob(blob=>{
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download='ukiyo-e-'+Date.now()+'.png';a.click();
+      URL.revokeObjectURL(url);
+    },'image/png');
+  });
+
+  /* ── Keyboard ────────────────────────────────────────────── */
+  addEventListener('keydown',e=>{
+    if(e.key==='r'||e.key==='R')resetBtn.click();
+    if(e.key==='s'||e.key==='S')finishBtn.click();
+  });
+
+  /* ── Ambient audio on first interaction ──────────────────── */
+  let firstInteraction=false;
+  canvas.addEventListener('pointerdown',()=>{
+    if(!firstInteraction){firstInteraction=true;
+      // hint fade
+      setTimeout(()=>hint.classList.remove('show'),2000);
+      setTimeout(()=>hint.classList.add('fade'),3000);
+    }
+  },{once:false});
+
 })();
 </script>
 </body>
