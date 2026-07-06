@@ -739,6 +739,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   let lastTime = performance.now();
   let paperMemory = 0;
   let breathMist = 0;
+  let fiberLift = 0;
 
    /* ── Context-independent draw functions for finish canvas ── */
   function drawBloomOn(ctx, cx, cy, radius, op, color) {
@@ -832,6 +833,32 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     ctx.restore();
      }
 
+  function drawLiftedFibers(cx, cy, amount) {
+    if (amount <= 0.015) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.2, amount * 0.24);
+    ctx.strokeStyle = cAlpha('#5c4a32', 0.75);
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 14; i++) {
+      const phase = frame * 0.012 + i * 0.73;
+      const base = 12 + i * 3.2 + amount * 18;
+      const a = phase + i * 1.91;
+      const sx = cx + Math.cos(a) * base;
+      const sy = cy + Math.sin(a) * base * 0.48;
+      const len = 8 + amount * 18 + (i % 4) * 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo(
+        sx + Math.cos(a + 1.4) * len * 0.45,
+        sy + Math.sin(a + 1.4) * len * 0.35 - amount * 5,
+        sx + Math.cos(a + 0.35) * len,
+        sy + Math.sin(a + 0.35) * len * 0.42
+      );
+      ctx.stroke();
+    }
+    ctx.restore();
+     }
+
   function render(now) {
     const dt = now - lastTime;
     lastTime = now;
@@ -842,6 +869,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     saturationLevel = Math.max(0, saturationLevel - decayRate);
     paperMemory = Math.max(0, paperMemory - 0.00008 * dt);
     breathMist = Math.max(0, breathMist - 0.00018 * dt);
+    fiberLift = Math.max(0, fiberLift - 0.00022 * dt);
     lastInteract = Math.max(lastInteract, Date.now() - 3000);
      // Sync saturation to scene and lake blocks
     sceneBlock.saturationLevel = saturationLevel;
@@ -918,6 +946,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         ctx.arc(holdCX, holdCY, ringR, 0, Math.PI * 2);
         ctx.stroke();
        }
+      drawLiftedFibers(holdCX, holdCY, Math.max(fiberLift, holdProgress * 0.45));
       drawBreathVapor(holdCX, holdCY, Math.max(breathMist, holdProgress * 0.55));
      }
 
@@ -927,7 +956,8 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       const lang = markCount > 1 ? ' strokes' : ' stroke';
       const satText = saturationLevel > .3 ? '紙飽和 — paper saturated' : '紙は白く — paper white';
       const pressureText = paperMemory > .35 ? 'baren memory deepening' : 'press patiently';
-      const breathText = breathMist > .35 ? 'wet ink breathing' : pressureText;
+      const fiberText = fiberLift > .38 ? 'paper fibers lifting' : pressureText;
+      const breathText = breathMist > .35 ? 'wet ink breathing' : fiberText;
       progress.textContent = markCount + lang + ' · ' + satText + ' · ' + breathText;
       progress.classList.add('show');
       const meterPct = Math.min(100, (saturationLevel / 0.35) * 100);
@@ -948,6 +978,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     const pressure = Math.max(0, Math.min(1, force));
     paperMemory = Math.min(1, paperMemory + 0.025 + pressure * 0.08);
     breathMist = Math.min(1, breathMist + pressure * 0.12);
+    fiberLift = Math.min(1, fiberLift + 0.018 + pressure * 0.1);
     const br = getRad(14 + Math.random() * 16 + pressure * 20);
     const bo = getOp(.26 + Math.random() * .2 + pressure * .36 + paperMemory * .14);
     blooms.push({ x: cx, y: cy, r: br, op: bo, c: color, t: 0, dur: 350 + Math.random() * 350 });
@@ -1004,6 +1035,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         holdRing.style.width = pressSize + 'px';
         holdRing.style.height = pressSize + 'px';
         holdRing.style.opacity = String(0.58 * (1 - holdProgress * 0.42));
+        if (holdProgress > .22) fiberLift = Math.min(1, fiberLift + 0.01 + holdProgress * 0.012);
         if (holdProgress > .32) breathMist = Math.min(1, breathMist + 0.012 + holdProgress * 0.018);
         if (holdProgress > .15 && holdProgress < .3) playBarenFriction(holdProgress);
         if (holdProgress > .5 && Math.random() < .25) placeInk(holdCX, holdCY, holdProgress);
@@ -1022,6 +1054,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     const travel = Math.hypot(resistedX - lastPt.x, resistedY - lastPt.y);
     if (travel > 2.5) {
       strokePts.push({ x: resistedX, y: resistedY });
+      fiberLift = Math.min(1, fiberLift + 0.006 + holdProgress * 0.014);
     }
     holdCX = resistedX;
     holdCY = resistedY;
@@ -1375,6 +1408,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     rapidClickCount = 0;
     paperMemory = 0;
     breathMist = 0;
+    fiberLift = 0;
     printComplete = false;
     completeOverlay.classList.remove('show');
     progress.textContent = '';
