@@ -29,6 +29,7 @@
 - ✅ **Fixed**: `holdRingX`/`holdRingY` now properly declared as `let` variables (was implicit globals)
 - ✅ **Fixed**: SceneBlock and LakeBlock now synced to game `saturationLevel` in render loop (scene/lake now darken with ink density)
 - ✅ **Fixed**: Saturation decay rate adjusted from 0.00006→0.00015 for more responsive paper recovery
+- ✅ **Fixed**: LakeBlock reflections/ripples no longer reference page-global `W`; the block now uses its own logical width
 
 ## Runtime Verification
 

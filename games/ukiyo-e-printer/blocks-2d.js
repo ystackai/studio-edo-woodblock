@@ -483,6 +483,7 @@ const Blocks2D = (() => {
     }
     _draw(ctx) {
       ctx.save();
+      const lakeW = this.w || ctx.canvas.width;
       // Water gradient
       const lakeGrad = ctx.createLinearGradient(0, this.y, 0, ctx.canvas.height);
       lakeGrad.addColorStop(0, 'rgba(120,135,160,0.3)');
@@ -499,9 +500,9 @@ const Blocks2D = (() => {
       for (let ly = this.y + 8; ly < ctx.canvas.height - 10; ly += 3 + Math.random() * 4) {
         const wobble = Math.sin(ly * 0.05) * 8;
         ctx.beginPath();
-        ctx.moveTo(W * 0.35 + wobble, ly);
-        ctx.bezierCurveTo(W * 0.42, ly + Math.sin(ly * 0.1) * 3, W * 0.48, ly - Math.sin(ly * 0.08) * 4, W * 0.52 + wobble, ly);
-        ctx.bezierCurveTo(W * 0.56, ly + Math.sin(ly * 0.06) * 3, W * 0.62, ly - Math.sin(ly * 0.05) * 4, W * 0.68 + wobble, ly);
+        ctx.moveTo(lakeW * 0.35 + wobble, ly);
+        ctx.bezierCurveTo(lakeW * 0.42, ly + Math.sin(ly * 0.1) * 3, lakeW * 0.48, ly - Math.sin(ly * 0.08) * 4, lakeW * 0.52 + wobble, ly);
+        ctx.bezierCurveTo(lakeW * 0.56, ly + Math.sin(ly * 0.06) * 3, lakeW * 0.62, ly - Math.sin(ly * 0.05) * 4, lakeW * 0.68 + wobble, ly);
         ctx.stroke();
       }
       ctx.restore();
@@ -516,8 +517,8 @@ const Blocks2D = (() => {
           ctx.strokeStyle = 'rgba(248,244,235,0.5)';
           ctx.lineWidth = 0.5;
           ctx.beginPath();
-          ctx.moveTo(W * 0.3, ly);
-          for (let rx = W * 0.3; rx < W * 0.7; rx += 10) {
+          ctx.moveTo(lakeW * 0.3, ly);
+          for (let rx = lakeW * 0.3; rx < lakeW * 0.7; rx += 10) {
             ctx.lineTo(rx + rippleW, ly + Math.sin(rx * 0.02 + this.ripplePhase) * 1);
           }
           ctx.stroke();

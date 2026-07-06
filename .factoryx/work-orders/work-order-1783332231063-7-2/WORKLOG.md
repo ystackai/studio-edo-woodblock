@@ -52,3 +52,20 @@ Rewrote `games/ukiyo-e-printer/index.html` (51KB, 1413 lines) to create a rich a
 - Confirmed the drop redirect points at `../../games/ukiyo-e-printer/`.
 - `node -c games/ukiyo-e-printer/blocks-2d.js`
 - Extracted and syntax-checked the inline game script with `new Function(...)`.
+
+### 2026-07-06 — LakeBlock runtime fix
+
+#### Issue found and fixed
+- FactoryX browser verification rejected PR head `ddc31c3` because
+  `LakeBlock._draw` referenced `W`, a page-script constant that is not in
+  scope inside `blocks-2d.js`.
+- Replaced those reflection/ripple references with the block's own logical
+  width (`this.w`, falling back to `ctx.canvas.width`) so the module remains
+  self-contained and matches the 1024-wide page coordinate system.
+
+#### Verification
+- `node -c games/ukiyo-e-printer/blocks-2d.js`
+- Extracted and syntax-checked the inline game script with `new Function(...)`.
+- Parsed `studio.json` and `.ystack/current/asset-manifest.json`; confirmed
+  `.factoryx/preview-entrypoint` and the drop redirect still point at the
+  current game artifact.
