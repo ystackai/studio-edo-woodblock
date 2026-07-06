@@ -2,26 +2,34 @@
 
 **Game:** Ukiyo-e Printer (`games/ukiyo-e-printer/index.html`)
 **Date:** 2026-07-06
+**Module:** `blocks-2d.js` (self-contained, 1411-line project)
 
 ## Modules adopted
 
-| Module | Used? | Rationale |
+| Module / Class          | Used? | Rationale |
 |---|---|---|
-| `game-loop.js` | No | The piece runs at native `requestAnimationFrame` with its own slow decay loop; a fixed-timestep loop would add unnecessary complexity to a contemplative experience. |
-| `scenes.js` | No | There is a single interactive scene with a completion overlay — no scene transitions or enter/exit hooks are needed. |
-| `input.js` | No | Pointer events (`pointerdown`, `pointermove`, `pointerup`) with direct canvas binding are more appropriate for a freeform drawing interaction than action-mapped input. |
-| `tween.js` | Partially | The easing philosophy (exponential decay `1 - (1-t)³` for bloom expansion) is applied inline to match the organic ink-bloom aesthetic; a tween engine was deemed unnecessary for just 3–4 eased properties. |
-| `particles.js` | No | Ink blooms are rendered as radial gradients with organic edge darkening — a more authentic ukiyo-e effect than pooled particles, and avoids GC churn on repeated presses. |
-| `screen-shake.js` | No | The meditation on patience explicitly disallows screen shake; adding mechanical shake would contradict the piece's core interaction principle. |
-| `rng.js` | No | Seeded determinism is desirable for reproducibility but the current runs are short enough that `Math.random()` suffices; a seeded RNG can be added later if a tester needs reproducible prints. |
+| `Blocks2D.BlockList`    | ✅ Yes | Central scene manager — all visual elements registered as blocks, sorted by layer, rendered via `B.render(ctx)` and updated via `B.update(dt)` each frame |
+| `PaperBlock`           | ✅ Yes | Procedural washi paper texture with subtle grain animation |
+| `SceneBlock`           | ✅ Yes | Wraps the static scene canvas (sky, mountains, lake) with saturation-based darkening |
+| `MistBlock` (×12)      | ✅ Yes | 12 animated mist layers with parallax mouse response and seasonal color shift |
+| `FigureBlock` (×3)     | ✅ Yes | **Embodied subjects** — three robed figures with conical hats walking on mountain paths (Hokusai-style travelers) |
+| `MountainBlock`        | ✅ Yes | Layered mountain rendering with parallax and bezier curves |
+| `JapaneseCloudBlock` (×6) | ✅ Yes | Traditional horizontal streak clouds drifting slowly |
+| `LakeBlock`            | ✅ Yes | Lake with water reflections and ink-density ripple effects |
+| `PineTreeBlock`        | ✅ Yes | Procedural pine tree with recursive branching and needle clusters |
+| `RockBlock`            | ✅ Yes | Rocky outcrop on the right side of the scene |
+| `GrassBlock`           | ✅ Yes | Foreground grasses with wind sway animation |
+| `DeckleEdgeBlock`      | ✅ Yes | Paper edge deckle effect with fiber edge lines |
+| `VignetteBlock`        | ✅ Yes | Radial vignette that responds to ink saturation |
 
 ## Key design decisions
 
-- **No fixed timestep:** The slow saturation decay, mist drift, and water ripple are intentionally frame-rate dependent to maintain an organic, breathing feel. The game runs at ~60 fps on modern hardware.
-- **Direct pointer input:** Freeform drawing benefits from raw pointer coordinates rather than action mapping. Each stroke's position, speed, and hold duration directly shape the visual output.
-- **Ink blooms over particles:** Canvas radial gradients with capillary edge darkening simulate actual ink bleeding into washi paper more convincingly than square particles. This is a deliberate aesthetic choice aligned with the ukiyo-e subject matter.
-- **Easing inline:** A few easing curves (`1-(1-t)³`, exponential decay) are applied directly where needed rather than going through a tween engine. This keeps the single-file structure and lets each effect tune its own curve.
+- **BlockList as render loop**: Instead of raw canvas calls per frame, all visual elements register as blocks. The render loop calls `B.update(dt)` then `B.render(ctx)`, with sorting by layer for correct z-ordering.
+- **Embodied subjects**: Three `FigureBlock` instances (walking robed figures) provide the focal subject the previous iteration lacked. Each has unique walk phase, facing direction, scale, and robe color.
+- **No fixed timestep**: Saturation decay, mist drift, and water ripple are intentionally frame-rate dependent for organic feel.
+- **Direct pointer input**: Freeform drawing with pointer events matches the physical "baren press" metaphor.
+- **Canvas gradients over particles**: Ink blooms use radial gradients with capillary edge darkening, simulating ink bleeding into washi paper.
 
 ## Conclusion
 
-Blocks-2d provides excellent patterns for fast-paced, action-oriented games. This piece is a meditative, atmospheric interaction where the slowness *is* the mechanic — patience and repeated gentle engagement make the print more beautiful. A fixed timestep, tween engine, and particle system would introduce unnecessary abstraction layers and friction against the tactile, organic feel. The piece instead uses canvas gradients, procedural paper textures, and direct pointer events to simulate the physical act of pressing a baren on wet ink.
+blocks-2d provides the structural abstraction needed for a layered, multi-element composition. The BlockList pattern manages z-ordering of paper, scene, mist, figures, lake, and foreground elements. The `update/render` loop decouples simulation from rendering, and layer-based sorting ensures correct visual composition. The addition of walking figures (FigureBlock) transforms the scene from a landscape into an inhabited floating world.
