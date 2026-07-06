@@ -809,10 +809,10 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     frame++;
 
      // Saturation decay
-    const decayRate = saturationLevel > 0 ? 0.00006 : 0;
+    const decayRate = saturationLevel > 0 ? 0.00015 : 0;
     saturationLevel = Math.max(0, saturationLevel - decayRate);
     lastInteract = Math.max(lastInteract, Date.now() - 3000);
-    // Sync saturation to scene and lake blocks.
+     // Sync saturation to scene and lake blocks
     sceneBlock.saturationLevel = saturationLevel;
     lakeBlock.saturationLevel = saturationLevel;
 

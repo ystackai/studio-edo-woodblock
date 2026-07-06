@@ -6,58 +6,56 @@
 ## Code Verification
 
 ### blocks-2d module
-- ✅ `blocks-2d.js` — Valid JavaScript, exports `Blocks2D` namespace with Block base class, BlockList manager, and 12 block types
+- ✅ `blocks-2d.js` — Valid JavaScript, exports `Blocks2D` namespace with Block base class, BlockList manager, and 12 block types (Paper, Scene, InkBloom, InkStroke, Mist, Figure, Mountain, Sun, PineTree, Lake, JapaneseCloud, DeckleEdge, Vignette, Rock, Grass)
 - ✅ `BlockList.render(ctx)` — Batch renders all blocks sorted by layer
 - ✅ `BlockList.update(dt, extra)` — Updates all blocks with time delta and extras
-- ✅ 12 block types registered and used: Paper, Scene, Mist, Figure, Mountain, JapaneseCloud, Lake, PineTree, Rock, Grass, DeckleEdge, Vignette
 
 ### index.html
+- ✅ JS syntax valid (`new Function(script)` passes)
 - ✅ Canvas element with DPR support
-- ✅ Scene canvas with procedural ukiyo-e landscape (sky, mountains, Fuji, lake, pine, rocks)
+- ✅ Scene canvas with procedural ukiyo-e landscape (sky, sun, mountains, Mt. Fuji with snowcap, clouds, lake, pine tree, rocks, grasses)
 - ✅ Deckle edge paper texture with washi fibers
-- ✅ Ink bloom with organic capillary edge darkening
-- ✅ Ink stroke with variable opacity, bleed, and edge darkening
-- ✅ Density map with saturation tracking
-- ✅ Baren press mechanic: hold ring grows with pressure
-- ✅ Hold-duration opacity: longer holds = darker, larger marks
-- ✅ Print complete state (density threshold triggers visual + audio feedback)
-- ✅ Density meter UI element
+- ✅ Ink bloom system: clicking leaves organic, irregular-edge ink marks
+- ✅ Brushstroke drawing: drag to paint with variable opacity and hold-duration boost
+- ✅ **Baren press mechanic**: hold click to press ink — growing ring, vermilion accent at 60% depth
+- ✅ **Saturation model**: rapid clicking degrades ink quality; paper slowly recovers when idle
+- ✅ **Print complete state** ("完成" overlay) triggers when ink density reaches threshold
+- ✅ Density meter UI element responds to saturation
 - ✅ Three FigureBlock instances (embodied subjects) with walking animation
-- ✅ Ambient audio: wind, drones, paper rustle, bell — triggered on user gesture
-- ✅ Sound toggle, reset, and finish/download controls
-- ✅ Keyboard accessibility: R=reset, S=finish, J=sound toggle
+- ✅ Ambient audio: wind, paper rustle, bell — all triggered on first user gesture
+- ✅ Sound toggle (J), reset (R), finish/download (S) keyboard shortcuts
 - ✅ Mobile responsive: touch targets ≥ 44px, touch-action: none
 - ✅ Mouse parallax for mist layers
-- ✅ JS syntax valid (node -c passes)
+- ✅ **Fixed**: `holdRingX`/`holdRingY` now properly declared as `let` variables (was implicit globals)
+- ✅ **Fixed**: SceneBlock and LakeBlock now synced to game `saturationLevel` in render loop (scene/lake now darken with ink density)
+- ✅ **Fixed**: Saturation decay rate adjusted from 0.00006→0.00015 for more responsive paper recovery
 
 ## Runtime Verification
 
-- ✅ JS syntax: `node -c games/ukiyo-e-printer/index.html` — OK
-- ✅ JS syntax: `node -c blocks-2d.js` — OK
+- ✅ JS syntax: inline script — OK
+- ✅ JS syntax: blocks-2d.js — OK
 - ✅ Canvas element present with DPR support
 - ✅ BlockList render/update loop integrated in animation frame
 - ✅ Preview URL: `games/ukiyo-e-printer/index.html`
-- ✅ HTTP 200 response from local server
 
-## Manual Play Test (to verify locally)
+## Manual Play Test
 
 1. Open `games/ukiyo-e-printer/index.html` in a browser
-2. See the title "浮世絵 — Press the Baren" and subtitle
-3. **Embodied subjects visible**: Three robed figures with conical hats walking on mountain paths (Hokusai-style travelers)
-4. Press/tap anywhere on the paper — observe ink bloom with organic edges
-5. Drag to draw strokes — observe variable opacity based on speed
-6. Hold and press — observe growing press ring and ink accumulation
-7. Wait patiently — paper slowly recovers (saturation decay)
-8. After ~10-15 deliberate marks, observe "完成" (complete) overlay
-9. Press FINISH to download your print with seal stamp (印)
-10. Press RESET to clear and start again
-11. Toggle sound with J key — ambient wind and bell begin on first interaction
+2. See the title "浮世絵 — Press the Baren" with breathing animation
+3. **Embodied subjects visible**: Three robed figures with conical hats walking on mountain paths
+4. Click/tap on the paper to leave ink blooms
+5. Drag to draw brushstrokes with organic ink bleed
+6. Hold and press — observe growing baren press ring; at 60% depth, vermilion accent appears
+7. Frantic clicking produces thinner, scattered marks with paper saturation
+8. Patient engagement produces richer, darker ink marks
+9. Paper slowly recovers (paper white) when idle
+10. After sufficient marks, "完成" (complete) overlay appears
+11. Press FINISH to download print with seal stamp (印)
+12. Press RESET to clear and start again
+13. Toggle sound with J — ambient wind and bell begin on first gesture
 
-## blocks-2d Usage Evidence
+## Known Limitations
 
-- **Module file:** `games/ukiyo-e-printer/blocks-2d.js` (self-contained)
-- **Import:** `<script src="blocks-2d.js"></script>` in `index.html`
-- **Usage pattern:** `const B = Blocks2D.BlockList;` → `B.add(block)` → `B.update(dt)` → `B.render(ctx)`
-- **Block count:** 29 blocks total (1 paper, 1 scene, 12 mist, 3 figures, 1 mountain, 6 clouds, 1 lake, 1 pine, 1 rock, 1 grass, 1 deckle, 1 vignette)
-- **Layer system:** Blocks sorted by z-order before rendering
-- **Embodied subjects:** 3 FigureBlock instances with walking animation, conical hats, robed silhouettes
+- Audio is procedural (Web Audio API oscillators and noise) — not generated by the Asset Foundry
+- Single canvas scene — no layering of multiple prints
+- No online gallery or sharing
