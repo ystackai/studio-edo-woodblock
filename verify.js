@@ -20,13 +20,15 @@ function check(filePath, ...checks) {
 }
 
 // Core drop — Ukiyo-e Printer
-check('drops/ukiyo-e-printer/index.html',
-  { name: 'contains canvas element', test: c => c.includes('<canvas') },
-  { name: 'contains block buttons', test: c => c.includes('block-btn') },
-  { name: 'contains all 4 color blocks', test: c => (c.match(/block-btn/g) || []).length >= 4 },
-  { name: 'contains key block label', test: c => c.includes('key') },
-  { name: 'contains red block label', test: c => c.includes('red') },
-  { name: 'contains blue block label', test: c => c.includes('blue') },
+check('games/ukiyo-e-printer/index.html',
+   { name: 'contains canvas element', test: c => c.includes('<canvas') },
+   { name: 'contains baren hold mechanic', test: c => c.includes('isHolding') },
+   { name: 'contains ink stroke drawing', test: c => c.includes('strokePts') },
+   { name: 'contains paper saturation mechanic', test: c => c.includes('saturationLevel') },
+   { name: 'contains ambient audio init', test: c => c.includes('AudioContext') },
+   { name: 'contains sound toggle', test: c => c.includes('soundBtn') },
+   { name: 'contains finish with seal stamp', test: c => c.includes('印') },
+    { name: 'contains mist layers', test: c => c.includes('mist') },
 );
 
 // Core drop — Floating World
