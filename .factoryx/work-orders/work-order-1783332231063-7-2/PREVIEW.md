@@ -1,78 +1,35 @@
-# Preview — Pictures of the Floating World
+# Preview — Pictures of the Floating World (work-order-1783332231063-7-2)
 
-**Work Order:** `work-order-1783332231063-7-2`  
-**Preview URL:** `games/ukiyo-e-printer/index.html`
+**Preview URL:** `games/ukiyo-e-printer/index.html`  
+**Entry point:** `.factoryx/preview-entrypoint` (points to `games/ukiyo-e-printer/index.html`)
 
-## How to Review
+## What Changed
 
-1. Open the preview URL in any modern browser.
-2. You'll see a paper-textured canvas with Mt. Fuji silhouette and drifting mist.
-3. Click/tap on the paper to leave ink blooms — they spread with organic, irregular edges.
-4. Drag to draw brushstrokes with variable opacity (slower = darker).
-5. Hold a click for 1–2 seconds to "press the baren" — feel the friction sound, see the paper depress and vermilion bleed through.
-6. Press FINISH (or S) to download your print with a red seal stamp.
+Replaced the previous placeholder ink-drawing canvas (generic mountain silhouette with ink dots) with a rich, atmospheric ukiyo-e scene:
 
-## Controls
-| Input | Action |
-|-------|--------|
-| Click/tap | Ink bloom at point |
-| Click + drag | Brushstroke (variable opacity based on speed) |
-| Hold 1–2s | Baren press (paper depression, friction sound, vermilion accent) |
-| Fast stroke | Ink splatter (small droplets at stroke edges) |
-| Sound button (♪) | Toggle ambient audio |
-| J | Toggle ambient audio |
-| R or ♻️ | Clear print (paper sweep fade) |
-| S or FINISH | Download PNG with seal stamp (woodblock thud) |
+1. **Sky with sun/moon** — warm dawn gradient with a glowing sun halo behind Fuji's peak
+2. **Layered mountains** — 3 mountain layers with atmospheric perspective (far → mid → near)
+3. **Mt. Fuji** — dominant compositional form with snowcap and flowing snow tendrils
+4. **Japanese clouds** — traditional horizontal streak clouds around the mountain
+5. **Lake with reflections** — horizontal ripple lines mirroring the mountain shapes
+6. **Foreground pine tree** — detailed procedural pine on the left side (classic ukiyo-e framing device)
+7. **Foreground rocks and grasses** — right-side rock formation and wispy grasses at the bottom
+8. **Baren press mechanic enhanced** — growing ring during hold, deeper marks with longer holds
+9. **Print complete state** — "完成" overlay with glow when ink density threshold is reached
+10. **Density meter** — visual feedback showing paper saturation level
 
-## What Changed in This Polish
+## Core Interaction
 
-### Paper Texture
-- Multi-scale noise: coarse grain + fine texture + warm tonal variation across the paper surface.
-- Variable fiber thickness: some fibers thicker than others for realistic washi.
-- Warm paper gradient: slightly warmer at edges, cooler center.
+- **Press and hold** on the paper to press the baren — a ring grows as you press deeper
+- **Drag** to draw brushstrokes — ink blooms with organic edges
+- **Longer holds** create darker, larger ink marks (patient engagement rewarded)
+- **Rapid clicking** creates thinner, scattered marks (frantic clicking produces messy results)
+- **Saturation** builds as you add ink — the paper darkens, and marks become lighter
+- **The paper slowly recovers** when you stop — patience is rewarded with a cleaner canvas
+- **FINISH** downloads your print with a seal stamp (印)
+- **Sound** toggles with J — ambient wind, drone, and bell begin on first gesture
 
-### Ink Behavior
-- Organic bloom shapes: 64-point irregular edges, not perfect circles.
-- Velocity-aware opacity: slow strokes are darker (more ink absorbed).
-- Smooth stroke interpolation: quadratic curves for natural brush feel.
-- Ink splatter: small droplets appear during fast strokes.
-- Brush-end fade: stroke terminus fades softly.
-- Ink accumulation: dense areas darken the paper slightly.
+## Known Limitations
 
-### Baren Press
-- Paper depression: radial gradient simulates the baren pressing into paper.
-- Continuous friction sound: plays throughout the hold, not just at thresholds.
-- Resistance ring: animated dashed ring that grows with pressure.
-- Vernilion accent: red seal color bleeds through at 60%+ hold.
-- Physical shake: marks subtly spread under heavy pressure.
-
-### Atmosphere
-- 16 mist layers with per-layer seasonal color phase offsets.
-- 90-second seasonal color cycle.
-- Mist thickens near dense ink areas.
-- Fuji base veiled with atmospheric gradient.
-- Paper slowly recovers saturation — patient play is rewarded.
-- Occasional temple bell chime during quiet moments.
-
-### UI Polish
-- Hand-carved button aesthetic with subtle inner borders.
-- Breathing animation on title/subtitle.
-- Poetic Japanese labels for ink mark count.
-- Paper sweep fade on reset.
-
-### Audio
-- Brush: dry bristle + wet ink layers with amplitude modulation.
-- Baren friction: two-layer sound, frequency rises with pressure.
-- Seal thud: woodblock texture with harmonics.
-- Ambient bell chime: random temple bell during quiet periods.
-
-## Previous Run Issues Addressed
-- **Audio probe failure**: ✅ Resolved (soundOn = true)
-- **Stale hold variable**: ✅ Resolved (Date.now() in hold interval)
-- **Friction sound not playing**: ✅ Resolved (continuous friction during hold)
-
-## Verification Status
-- Static checks: ✅ All pass
-- Audio probe: ✅ Resolved
-- JS syntax: ✅ Valid (node --check passes)
-- Browser smoke test: ⚠️ Screenshot capture unavailable (container limitation)
+- Headless browser screenshot capture unavailable in this runtime environment
+- Mobile touch testing should be done in a real browser

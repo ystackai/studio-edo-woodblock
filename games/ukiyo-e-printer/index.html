@@ -6,8 +6,8 @@
 <title>浮世絵 — Press the Baren · Pictures of the Floating World</title>
 <style>
 :root {
-  --paper: #f8f4eb; --ink: #0f172a; --vermilion: #c2410f;
-  --indigo: #2c3a5f; --gold: #b38b3f;
+   --paper: #f8f4eb; --ink: #0f172a; --vermilion: #c2410f;
+   --indigo: #2c3a5f; --gold: #b38b3f;
 }
 html, body { margin:0; padding:0; background:#1a1a18; height:100%; overflow:hidden;
   font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","Source Han Serif JP",Georgia,serif; }
@@ -77,6 +77,38 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   letter-spacing:0.08em;
 }
 #progress.show { opacity:0.3; }
+/* Print complete overlay */
+#completeOverlay {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; z-index:11; opacity:0;
+  transition:opacity 2s cubic-bezier(.25,0,.1,1);
+}
+#completeOverlay.show { opacity:1; }
+#completeOverlay .glow {
+  position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 55%, rgba(248,244,235,0.08) 0%, transparent 60%);
+}
+#completeOverlay .completeText {
+  color:var(--paper); font-size:clamp(1rem,2.5vw,1.5rem); font-weight:300;
+  letter-spacing:0.5em; text-shadow:0 2px 30px rgba(0,0,0,0.5);
+}
+#completeOverlay .completeSub {
+  color:var(--gold); font-size:clamp(0.55rem,1vw,0.7rem); font-weight:300;
+  letter-spacing:0.25em; margin-top:12px; opacity:0.7;
+}
+/* Density meter */
+#densityMeter {
+  position:absolute; bottom:14px; left:14px; z-index:20;
+  width:120px; height:3px; background:rgba(248,244,235,0.15);
+  border-radius:1px; overflow:hidden; opacity:0;
+  transition:opacity 1s ease;
+}
+#densityMeter.show { opacity:0.5; }
+#densityFill {
+  height:100%; width:0%; border-radius:1px;
+  background:linear-gradient(90deg, var(--indigo), var(--vermilion));
+  transition:width 0.3s ease;
+}
 /* Vignette pulse responds to ink density */
 #vignette {
   position:absolute; inset:0; pointer-events:none; z-index:4;
@@ -89,32 +121,48 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   background:radial-gradient(ellipse at center, transparent 55%, rgba(26,26,24,0.35) 100%);
   mix-blend-mode:multiply;
 }
+/* Hold ring indicator */
+#holdRing {
+  position:absolute; pointer-events:none; z-index:6;
+  border:1.5px solid rgba(194,65,15,0.35);
+  border-radius:50%; transform:translate(-50%,-50%);
+  opacity:0; transition:opacity 0.15s ease;
+}
 /* Touch target min 44px */
 @media (pointer:coarse) {
-  #controls button { min-height:48px; min-width:48px; padding:9px 18px; font-size:12px; }
+   #controls button { min-height:48px; min-width:48px; padding:9px 18px; font-size:12px; }
   canvas { touch-action: none; }
 }
 @media (max-width:600px) {
-  #controls { top:8px; right:8px; gap:5px; }
-  #controls button { padding:6px 10px; font-size:10px; letter-spacing:0.08em; }
+   #controls { top:8px; right:8px; gap:5px; }
+   #controls button { padding:6px 10px; font-size:10px; letter-spacing:0.08em; }
 }
 </style>
 </head>
 <body>
 <div id="stage">
-  <canvas id="canvas"></canvas>
-  <div id="deckle"></div>
-  <div id="overlay">
-    <div id="title">浮世絵 — Press the Baren</div>
-    <div id="subtitle">Touch the paper. Breathe upon it. The floating world accumulates.</div>
-  </div>
-  <div id="hint" class="show">press gently — the paper remembers</div>
-  <div id="controls">
-    <button id="soundBtn" title="Toggle sound (J)">♪</button>
-    <button id="resetBtn" title="Clear print (R)">RESET</button>
-    <button id="finishBtn" title="Finish and download (S)">FINISH</button>
-  </div>
-  <div id="progress"></div>
+   <canvas id="canvas"></canvas>
+   <div id="deckle"></div>
+   <div id="holdRing"></div>
+   <div id="overlay">
+     <div id="title">浮世絵 — Press the Baren</div>
+     <div id="subtitle">Touch the paper. Breathe upon it. The floating world accumulates.</div>
+   </div>
+   <div id="completeOverlay">
+     <div class="glow"></div>
+     <div>
+       <div class="completeText">完成</div>
+       <div class="completeSub">The floating world is complete — press finish to capture your print</div>
+     </div>
+   </div>
+   <div id="hint" class="show">press gently — the paper remembers</div>
+   <div id="controls">
+     <button id="soundBtn" title="Toggle sound (J)">♫</button>
+     <button id="resetBtn" title="Clear print (R)">RESET</button>
+     <button id="finishBtn" title="Finish and download (S)">FINISH</button>
+   </div>
+   <div id="densityMeter"><div id="densityFill"></div></div>
+   <div id="progress"></div>
 </div>
 <script>
 (() => {
@@ -127,16 +175,20 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   ctx.scale(DPR, DPR);
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 
-  const overlay   = document.getElementById('overlay');
-  const hint      = document.getElementById('hint');
-  const progress  = document.getElementById('progress');
-  const soundBtn  = document.getElementById('soundBtn');
-  const resetBtn  = document.getElementById('resetBtn');
-  const finishBtn = document.getElementById('finishBtn');
+  const overlay       = document.getElementById('overlay');
+  const hint          = document.getElementById('hint');
+  const progress      = document.getElementById('progress');
+  const densityMeter  = document.getElementById('densityMeter');
+  const densityFill   = document.getElementById('densityFill');
+  const completeOverlay = document.getElementById('completeOverlay');
+  const holdRing      = document.getElementById('holdRing');
+  const soundBtn      = document.getElementById('soundBtn');
+  const resetBtn      = document.getElementById('resetBtn');
+  const finishBtn     = document.getElementById('finishBtn');
 
   function fit() {
     const s = Math.min(1, (innerWidth-24)/W, (innerHeight-24)/H);
-    canvas.style.width  = (W*s|0)+'px';
+    canvas.style.width   = (W*s|0)+'px';
     canvas.style.height = (H*s|0)+'px';
   }
   fit(); addEventListener('resize', fit);
@@ -164,22 +216,17 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   const paperC = document.createElement('canvas');
   paperC.width = W; paperC.height = H;
   const pX = paperC.getContext('2d');
-
-  // Base paper
   pX.fillStyle = PAPER;
   pX.fillRect(0, 0, W, H);
-
-  // Fiber noise
   const paperImage = pX.getImageData(0, 0, W, H);
   const pd = paperImage.data;
   for (let i = 0; i < pd.length; i += 4) {
     const n = (Math.random() - 0.5) * 8;
-    pd[i]   = Math.min(255, Math.max(0, pd[i] + n));
+    pd[i]    = Math.min(255, Math.max(0, pd[i] + n));
     pd[i+1] = Math.min(255, Math.max(0, pd[i+1] + n));
     pd[i+2] = Math.min(255, Math.max(0, pd[i+2] + n));
   }
   pX.putImageData(paperImage, 0, 0);
-
   // Horizontal washi fibers
   pX.strokeStyle = 'rgba(180,165,140,0.045)';
   pX.lineWidth = 1;
@@ -191,7 +238,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     }
     pX.stroke();
   }
-
   // Vertical washi fibers (sparse, irregular)
   pX.strokeStyle = 'rgba(170,155,135,0.025)';
   for (let x = 0; x < W; x += 8 + Math.random() * 16) {
@@ -202,8 +248,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     }
     pX.stroke();
   }
-
-  // Deckle edge — soft darkened border mimicking handmade paper edge
+  // Deckle edge — soft darkened border
   const deckleGrad = pX.createRadialGradient(W/2, H/2, W*0.32, W/2, H/2, W*0.62);
   deckleGrad.addColorStop(0, 'rgba(248,244,235,0)');
   deckleGrad.addColorStop(0.55, 'rgba(248,244,235,0)');
@@ -211,29 +256,27 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   deckleGrad.addColorStop(1, 'rgba(180,170,150,0.28)');
   pX.fillStyle = deckleGrad;
   pX.fillRect(0, 0, W, H);
-
-  // Deckle edge — subtle irregular dark lines at border
   pX.strokeStyle = 'rgba(160,145,125,0.08)';
   pX.lineWidth = 1.5;
   for (let i = 0; i < 12; i++) {
     const side = i % 4;
     pX.beginPath();
-    if (side === 0) { // top
+    if (side === 0) {
       pX.moveTo(0, 4 + Math.random() * 6);
       for (let x = 0; x < W; x += 30 + Math.random() * 40) {
         pX.lineTo(x, 4 + Math.random() * 8);
       }
-    } else if (side === 1) { // bottom
+    } else if (side === 1) {
       pX.moveTo(0, H - 4 - Math.random() * 6);
       for (let x = 0; x < W; x += 30 + Math.random() * 40) {
         pX.lineTo(x, H - 4 - Math.random() * 8);
       }
-    } else if (side === 2) { // left
+    } else if (side === 2) {
       pX.moveTo(4 + Math.random() * 6, 0);
       for (let y = 0; y < H; y += 30 + Math.random() * 40) {
         pX.lineTo(4 + Math.random() * 8, y);
       }
-    } else { // right
+    } else {
       pX.moveTo(W - 4 - Math.random() * 6, 0);
       for (let y = 0; y < H; y += 30 + Math.random() * 40) {
         pX.lineTo(W - 4 - Math.random() * 8, y);
@@ -242,74 +285,237 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     pX.stroke();
   }
 
-  /* ── Mt. Fuji background layer ───────────────────────────── */
-  const fujiC = document.createElement('canvas');
-  fujiC.width = W; fujiC.height = H;
-  const fX = fujiC.getContext('2d');
+  /* ── Scene composition canvas (Fuji + mountains + water + trees + rocks) ─── */
+  const sceneC = document.createElement('canvas');
+  sceneC.width = W; sceneC.height = H;
+  const sX = sceneC.getContext('2d');
 
-  // Distant mountain base — layered atmospheric perspective
-  // Layer 1: Farthest mountain (lightest, smallest)
-  fX.fillStyle = 'rgba(15,23,42,0.04)';
-  fX.beginPath();
-  fX.moveTo(W*0.15, H*0.74);
-  fX.quadraticCurveTo(W*0.35, H*0.45, W*0.5, H*0.40);
-  fX.quadraticCurveTo(W*0.65, H*0.45, W*0.85, H*0.74);
-  fX.closePath();
-  fX.fill();
+  // Sky gradient — dawn warm-to-cool
+  const skyGrad = sX.createLinearGradient(0, 0, 0, H * 0.65);
+  skyGrad.addColorStop(0, '#e8e0d0');
+  skyGrad.addColorStop(0.25, '#ddd4c2');
+  skyGrad.addColorStop(0.5, '#c5bfb0');
+  skyGrad.addColorStop(0.75, '#a8b0c0');
+  skyGrad.addColorStop(1, '#8a95a8');
+  sX.fillStyle = skyGrad;
+  sX.fillRect(0, 0, W, H);
 
-  // Layer 2: Main Fuji silhouette
-  fX.fillStyle = 'rgba(15,23,42,0.08)';
-  fX.beginPath();
-  fX.moveTo(W*0.12, H*0.73);
-  fX.quadraticCurveTo(W*0.30, H*0.38, W*0.48, H*0.30);
-  fX.quadraticCurveTo(W*0.52, H*0.26, W*0.56, H*0.30);
-  fX.quadraticCurveTo(W*0.64, H*0.40, W*0.78, H*0.52);
-  fX.quadraticCurveTo(W*0.84, H*0.62, W*0.88, H*0.73);
-  fX.closePath();
-  fX.fill();
+  // Sun / moon — warm halo behind Fuji peak
+  const sunX = W * 0.52, sunY = H * 0.22, sunR = 70;
+  const sunGlow = sX.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunR * 3);
+  sunGlow.addColorStop(0, 'rgba(245,220,175,0.45)');
+  sunGlow.addColorStop(0.4, 'rgba(240,215,165,0.15)');
+  sunGlow.addColorStop(1, 'rgba(240,215,165,0)');
+  sX.fillStyle = sunGlow;
+  sX.fillRect(0, 0, W, H);
+  sX.fillStyle = 'rgba(248,235,210,0.55)';
+  sX.beginPath(); sX.arc(sunX, sunY, sunR, 0, Math.PI * 2); sX.fill();
+  // Sun inner ring
+  sX.strokeStyle = 'rgba(248,235,210,0.3)';
+  sX.lineWidth = 2;
+  sX.beginPath(); sX.arc(sunX, sunY, sunR + 12, 0, Math.PI * 2); sX.stroke();
 
-  // Snow caps
-  fX.fillStyle = 'rgba(248,244,235,0.15)';
-  fX.beginPath();
-  fX.moveTo(W*0.43, H*0.39);
-  fX.quadraticCurveTo(W*0.50, H*0.24, W*0.57, H*0.39);
-  fX.quadraticCurveTo(W*0.54, H*0.36, W*0.50, H*0.33);
-  fX.quadraticCurveTo(W*0.46, H*0.36, W*0.43, H*0.38);
-  fX.closePath();
-  fX.fill();
+  // Japanese clouds — 富士山周りの伝統的な雲 (horizontal streak clouds)
+  sX.save();
+  sX.globalAlpha = 0.15;
+  for (let i = 0; i < 6; i++) {
+    const cx = W * (0.15 + Math.random() * 0.7);
+    const cy = H * (0.12 + Math.random() * 0.28);
+    const cw = 120 + Math.random() * 200;
+    const ch = 6 + Math.random() * 14;
+    sX.fillStyle = 'rgba(255,252,245,0.8)';
+    sX.beginPath();
+    sX.ellipse(cx, cy, cw, ch, 0, 0, Math.PI * 2);
+    sX.fill();
+  }
+  sX.restore();
 
-  // Snow cap tendrils
-  fX.fillStyle = 'rgba(248,244,235,0.07)';
-  for (let i = 0; i < 8; i++) {
-    const cx = W * (0.28 + Math.random() * 0.44);
-    const cy = H * (0.30 + Math.random() * 0.16);
-    fX.beginPath();
-    fX.ellipse(cx, cy, 60 + Math.random() * 90, 10 + Math.random() * 20, 0, 0, Math.PI * 2);
-    fX.fill();
+  // ── Mountain layers (atmospheric perspective) ─────────────
+  // Layer 1: Farthest mountains (lightest, smallest)
+  sX.fillStyle = 'rgba(140,150,168,0.18)';
+  sX.beginPath();
+  sX.moveTo(0, H * 0.62);
+  sX.bezierCurveTo(W*0.1, H*0.48, W*0.2, H*0.42, W*0.3, H*0.50);
+  sX.bezierCurveTo(W*0.4, H*0.55, W*0.45, H*0.45, W*0.55, H*0.48);
+  sX.bezierCurveTo(W*0.65, H*0.52, W*0.75, H*0.43, W*0.85, H*0.48);
+  sX.bezierCurveTo(W*0.95, H*0.53, W, H*0.58, W, H*0.62);
+  sX.closePath(); sX.fill();
+
+  // Layer 2: Mid mountains (medium depth)
+  sX.fillStyle = 'rgba(100,115,140,0.28)';
+  sX.beginPath();
+  sX.moveTo(0, H * 0.62);
+  sX.bezierCurveTo(W*0.05, H*0.50, W*0.15, H*0.44, W*0.22, H*0.52);
+  sX.bezierCurveTo(W*0.28, H*0.58, W*0.32, H*0.48, W*0.40, H*0.50);
+  sX.bezierCurveTo(W*0.48, H*0.52, W*0.55, H*0.44, W*0.62, H*0.48);
+  sX.bezierCurveTo(W*0.7, H*0.52, W*0.8, H*0.46, W*0.9, H*0.52);
+  sX.bezierCurveTo(W*0.96, H*0.56, W, H*0.60, W, H*0.62);
+  sX.closePath(); sX.fill();
+
+  // Layer 3: Distant foothills
+  sX.fillStyle = 'rgba(70,85,110,0.35)';
+  sX.beginPath();
+  sX.moveTo(0, H * 0.65);
+  sX.bezierCurveTo(W*0.08, H*0.55, W*0.18, H*0.52, W*0.25, H*0.58);
+  sX.bezierCurveTo(W*0.35, H*0.62, W*0.45, H*0.54, W*0.55, H*0.56);
+  sX.bezierCurveTo(W*0.65, H*0.58, W*0.75, H*0.52, W*0.85, H*0.57);
+  sX.bezierCurveTo(W*0.92, H*0.60, W, H*0.62, W, H*0.65);
+  sX.closePath(); sX.fill();
+
+  // ── Mt. Fuji — dominant form ──────────────────────────────
+  // Main body
+  sX.fillStyle = 'rgba(44,58,95,0.72)';
+  sX.beginPath();
+  sX.moveTo(W*0.12, H*0.68);
+  sX.bezierCurveTo(W*0.22, H*0.48, W*0.38, H*0.35, W*0.47, H*0.27);
+  sX.bezierCurveTo(W*0.50, H*0.24, W*0.52, H*0.23, W*0.54, H*0.24);
+  sX.bezierCurveTo(W*0.57, H*0.23, W*0.60, H*0.26, W*0.63, H*0.30);
+  sX.bezierCurveTo(W*0.70, H*0.38, W*0.80, H*0.52, W*0.88, H*0.68);
+  sX.closePath(); sX.fill();
+
+  // Snowcap
+  sX.fillStyle = 'rgba(248,244,235,0.55)';
+  sX.beginPath();
+  sX.moveTo(W*0.42, H*0.38);
+  sX.bezierCurveTo(W*0.46, H*0.27, W*0.50, H*0.21, W*0.54, H*0.25);
+  sX.bezierCurveTo(W*0.58, H*0.27, W*0.62, H*0.34, W*0.60, H*0.38);
+  sX.bezierCurveTo(W*0.56, H*0.35, W*0.52, H*0.33, W*0.50, H*0.31);
+  sX.bezierCurveTo(W*0.48, H*0.33, W*0.44, H*0.35, W*0.42, H*0.38);
+  sX.closePath(); sX.fill();
+
+  // Snow tendrils flowing down sides
+  sX.fillStyle = 'rgba(248,244,235,0.2)';
+  sX.beginPath();
+  sX.moveTo(W*0.48, H*0.30);
+  sX.bezierCurveTo(W*0.46, H*0.38, W*0.42, H*0.48, W*0.40, H*0.55);
+  sX.bezierCurveTo(W*0.41, H*0.50, W*0.44, H*0.42, W*0.46, H*0.35);
+  sX.closePath(); sX.fill();
+  sX.beginPath();
+  sX.moveTo(W*0.55, H*0.28);
+  sX.bezierCurveTo(W*0.58, H*0.36, W*0.62, H*0.46, W*0.64, H*0.52);
+  sX.bezierCurveTo(W*0.62, H*0.46, W*0.59, H*0.38, W*0.57, H*0.32);
+  sX.closePath(); sX.fill();
+
+  // Fuji mist — wraps around the mountain
+  sX.save();
+  sX.globalAlpha = 0.12;
+  for (let i = 0; i < 5; i++) {
+    const my = H * (0.38 + i * 0.06);
+    const mx = W * (0.25 + Math.random() * 0.5);
+    const mw = 80 + Math.random() * 120;
+    sX.fillStyle = 'rgba(248,244,235,0.7)';
+    sX.beginPath();
+    sX.ellipse(mx, my, mw, 8 + Math.random() * 12, 0, 0, Math.PI * 2);
+    sX.fill();
+  }
+  sX.restore();
+
+  // ── Lake / water at base ──────────────────────────────────
+  const lakeY = H * 0.67;
+  const lakeGrad = sX.createLinearGradient(0, lakeY, 0, H);
+  lakeGrad.addColorStop(0, 'rgba(120,135,160,0.3)');
+  lakeGrad.addColorStop(0.3, 'rgba(100,118,148,0.35)');
+  lakeGrad.addColorStop(1, 'rgba(80,95,125,0.4)');
+  sX.fillStyle = lakeGrad;
+  sX.fillRect(0, lakeY, W, H - lakeY);
+
+  // Water reflections — horizontal lines mirroring Fuji
+  sX.save();
+  sX.globalAlpha = 0.08;
+  sX.strokeStyle = 'rgba(44,58,95,0.5)';
+  sX.lineWidth = 1;
+  for (let y = lakeY + 8; y < H - 10; y += 3 + Math.random() * 4) {
+    const wobble = Math.sin(y * 0.05) * 8;
+    sX.beginPath();
+    sX.moveTo(W*0.35 + wobble, y);
+    sX.bezierCurveTo(W*0.42, y + Math.sin(y*0.1)*3, W*0.48, y - Math.sin(y*0.08)*4, W*0.52 + wobble, y);
+    sX.bezierCurveTo(W*0.56, y + Math.sin(y*0.06)*3, W*0.62, y - Math.sin(y*0.05)*4, W*0.68 + wobble, y);
+    sX.stroke();
+  }
+  sX.restore();
+
+  // ── Foreground elements ───────────────────────────────────
+  // Pine tree — left side, classic ukiyo-e framing device
+  const treeX = W * 0.08, treeBaseY = H * 0.72;
+  sX.fillStyle = 'rgba(20,28,48,0.85)';
+  // Trunk
+  sX.beginPath();
+  sX.moveTo(treeX - 5, treeBaseY);
+  sX.quadraticCurveTo(treeX - 3, treeBaseY - H*0.25, treeX + 1, treeBaseY - H*0.42);
+  sX.quadraticCurveTo(treeX + 5, treeBaseY - H*0.25, treeX + 7, treeBaseY);
+  sX.closePath(); sX.fill();
+
+  // Pine branches — layered needle clusters
+  function drawPineBranch(bx, by, angle, length, depth) {
+    if (depth <= 0 || length < 8) return;
+    const ex = bx + Math.cos(angle) * length;
+    const ey = by + Math.sin(angle) * length;
+    sX.strokeStyle = 'rgba(20,28,48,0.8)';
+    sX.lineWidth = Math.max(1, depth * 0.8);
+    sX.beginPath();
+    sX.moveTo(bx, by);
+    sX.quadraticCurveTo((bx+ex)/2 + Math.sin(angle)*5, (by+ey)/2, ex, ey);
+    sX.stroke();
+    // Needle clusters
+    for (let i = 0; i < 3 + depth; i++) {
+      const t = 0.3 + (i / (3 + depth)) * 0.7;
+      const nx = bx + (ex-bx)*t + (Math.random()-0.5)*6;
+      const ny = by + (ey-by)*t + (Math.random()-0.5)*6;
+      sX.fillStyle = 'rgba(20,28,48,0.65)';
+      sX.beginPath();
+      sX.ellipse(nx, ny, 8 + Math.random()*8, 3 + Math.random()*3, angle + (Math.random()-0.5)*0.5, 0, Math.PI*2);
+      sX.fill();
+    }
+    // Sub-branches
+    drawPineBranch(ex, ey, angle - 0.4, length * 0.6, depth - 1);
+    drawPineBranch(ex, ey, angle + 0.35, length * 0.55, depth - 1);
+    drawPineBranch(ex, ey, angle - 0.15, length * 0.7, depth - 1);
+  }
+  drawPineBranch(treeX, treeBaseY - H*0.42, -0.8, 70, 5);
+  drawPineBranch(treeX, treeBaseY - H*0.42, -1.6, 60, 5);
+  drawPineBranch(treeX, treeBaseY - H*0.42, -0.2, 55, 4);
+  drawPineBranch(treeX, treeBaseY - H*0.32, -1.0, 50, 4);
+  drawPineBranch(treeX, treeBaseY - H*0.32, -1.5, 45, 4);
+
+  // Right side — rocks and grasses
+  sX.fillStyle = 'rgba(50,60,80,0.55)';
+  sX.beginPath();
+  sX.moveTo(W*0.88, H*0.70);
+  sX.bezierCurveTo(W*0.90, H*0.66, W*0.94, H*0.64, W*0.96, H*0.67);
+  sX.bezierCurveTo(W*0.98, H*0.70, W*0.97, H*0.75, W*0.95, H*0.78);
+  sX.bezierCurveTo(W*0.92, H*0.80, W*0.88, H*0.78, W*0.88, H*0.70);
+  sX.closePath(); sX.fill();
+
+  // Foreground grasses — thin vertical lines at bottom
+  sX.strokeStyle = 'rgba(60,75,95,0.35)';
+  sX.lineWidth = 1;
+  for (let x = W*0.72; x < W; x += 3 + Math.random()*4) {
+    const gh = 15 + Math.random() * 25;
+    const sway = Math.sin(x * 0.1) * 3;
+    sX.beginPath();
+    sX.moveTo(x, H*0.85 + Math.random()*10);
+    sX.quadraticCurveTo(x + sway, H*0.85 - gh*0.5, x + sway*1.5, H*0.85 - gh);
+    sX.stroke();
   }
 
-  // Lower mist/atmosphere wash
-  fX.fillStyle = 'rgba(248,244,235,0.06)';
-  fX.beginPath();
-  fX.moveTo(0, H * 0.62);
-  fX.quadraticCurveTo(W * 0.3, H * 0.58, W * 0.5, H * 0.64);
-  fX.quadraticCurveTo(W * 0.7, H * 0.68, W, H * 0.60);
-  fX.lineTo(W, H);
-  fX.lineTo(0, H);
-  fX.closePath();
-  fX.fill();
-
-  /* ── Ink state ───────────────────────────────────────────── */
-  const inkMarks = [];     // permanent marks
-  const blooms = [];       // animated bloom overlays
+  // ── Ink state ─────────────────────────────────────────────
+  const inkMarks = [];
+  const blooms = [];
   const densityMap = new Float32Array(W * H);
-  const DENSITY_MAX = 4;
-  let saturationLevel = 0, lastClickTime = 0, rapidClickCount = 0;
+  const DENSITY_MAX = 5;
+  let saturationLevel = 0;
+  let rapidClickCount = 0;
   let strokePts = [];
   let isDrawing = false, isHolding = false, holdT0 = 0, holdCX = 0, holdCY = 0, holdProgress = 0;
   let holdInterval = null;
   let lastStrokeTime = 0;
-  let strokeHoldTime = 0; // track how long current stroke is being held
+  let strokeHoldTime = 0;
+  let lastClickTime = 0;
+  let printComplete = false;
+  const PRINT_COMPLETE_THRESHOLD = 2.5; // density threshold for completion
+
+  // Track hold ring position
+  let holdRingX = 0, holdRingY = 0;
 
   function getOp(b) {
     return Math.max(0.06, b * (1 - saturationLevel * 0.65));
@@ -318,7 +524,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     return b * (1 - saturationLevel * 0.3);
   }
 
-  // Draw ink bloom with capillary edge darkening
+  /* ── Ink bloom — organic capillary spread ────────────────── */
   function drawBloom(cx, cy, radius, op, color) {
     // Core bloom
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
@@ -330,34 +536,29 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.fill();
-
-    // Capillary edge darkening — darker rim where ink pools at fiber edges
+    // Capillary edge darkening
     ctx.save();
     ctx.globalAlpha = 0.2 * op;
     ctx.strokeStyle = cAlpha('#000000', 0.5);
     ctx.lineWidth = 1.2;
     ctx.beginPath();
-    for (let i = 0; i <= 48; i++) {
-      const a = (i / 48) * Math.PI * 2;
-      const r = radius + (Math.random() - 0.5) * radius * 0.22;
-      const px = cx + Math.cos(a) * r;
-      const py = cy + Math.sin(a) * r;
-      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    for (let i = 0; i < 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      const r = radius * (0.85 + 0.15 * Math.sin(a * 7 + cx) * Math.cos(a * 5 + cy));
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.closePath();
     ctx.stroke();
     ctx.restore();
   }
 
-  // Draw ink stroke with variable opacity and ink bleed
-  function drawStroke(pts, radius, opacity, color, holdDuration) {
-    const bo = getOp(opacity);
+  function drawStroke(pts, radius, op, color, holdDuration) {
+    const bo = getOp(op);
     const br = getRad(radius);
-
-    // Hold-duration opacity: longer holds = darker ink
     const holdBoost = holdDuration > 0 ? Math.min(0.45, holdDuration / 2000) : 0;
     const finalOp = Math.min(0.95, bo + holdBoost * 0.35);
-
     // Main stroke
     ctx.strokeStyle = cAlpha(color, finalOp);
     ctx.lineWidth = br * 2;
@@ -369,8 +570,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       ctx.lineTo(pts[j].x, pts[j].y);
     }
     ctx.stroke();
-
-    // Ink bleed (capillary spread)
+    // Ink bleed
     ctx.globalAlpha = finalOp * 0.3;
     ctx.lineWidth = br * 4.5;
     ctx.strokeStyle = cAlpha(color, 0.5);
@@ -381,8 +581,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     }
     ctx.stroke();
     ctx.globalAlpha = 1;
-
-    // Edge darkening — darker line along stroke edges
+    // Edge darkening
     ctx.globalAlpha = finalOp * 0.15;
     ctx.lineWidth = br * 1.4;
     ctx.strokeStyle = '#000000';
@@ -395,6 +594,71 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     ctx.globalAlpha = 1;
   }
 
+
+  /* ── Context-independent draw functions for finish canvas ── */
+  function drawBloomOn(ctx, cx, cy, radius, op, color) {
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    g.addColorStop(0, cAlpha(color, 0.85 * op));
+    g.addColorStop(0.35, cAlpha(color, 0.48 * op));
+    g.addColorStop(0.65, cAlpha(color, 0.14 * op));
+    g.addColorStop(1, cAlpha(color, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.save();
+    ctx.globalAlpha = 0.2 * op;
+    ctx.strokeStyle = cAlpha('#000000', 0.5);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let i = 0; i < 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      const r = radius * (0.85 + 0.15 * Math.sin(a * 7 + cx) * Math.cos(a * 5 + cy));
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+     }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+   }
+
+  function drawStrokeOn(ctx, pts, radius, op, color, holdDuration) {
+    const bo = getOp(op);
+    const br = getRad(radius);
+    const holdBoost = holdDuration > 0 ? Math.min(0.45, holdDuration / 2000) : 0;
+    const finalOp = Math.min(0.95, bo + holdBoost * 0.35);
+    ctx.strokeStyle = cAlpha(color, finalOp);
+    ctx.lineWidth = br * 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let j = 1; j < pts.length; j++) {
+      ctx.lineTo(pts[j].x, pts[j].y);
+     }
+    ctx.stroke();
+    ctx.globalAlpha = finalOp * 0.3;
+    ctx.lineWidth = br * 4.5;
+    ctx.strokeStyle = cAlpha(color, 0.5);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let j = 1; j < pts.length; j++) {
+      ctx.lineTo(pts[j].x, pts[j].y);
+     }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.globalAlpha = finalOp * 0.15;
+    ctx.lineWidth = br * 1.4;
+    ctx.strokeStyle = '#000000';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let j = 1; j < pts.length; j++) {
+      ctx.lineTo(pts[j].x, pts[j].y);
+     }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+   }
   function accumulateDensity(cx, cy, radius, op) {
     const sr = Math.round(radius);
     const sx = Math.max(0, cx - sr | 0);
@@ -417,25 +681,30 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         cnt++;
       }
     }
-    if (cnt > 0) saturationLevel = Math.min(1, saturationLevel + (tot / cnt) * 0.018);
+    if (cnt > 0) saturationLevel = Math.min(1, saturationLevel + (tot / cnt) * 0.012);
   }
 
   function registerMark(m) {
     inkMarks.push(m);
     accumulateDensity(m.x, m.y, m.radius, m.opacity);
+    // Check print complete
+    if (!printComplete && saturationLevel >= 0.35) {
+      printComplete = true;
+      completeOverlay.classList.add('show');
+      playSealThud();
+    }
   }
 
-  /* ── Mist layers (enhanced with parallax and natural drift) ── */
+  /* ── Mist layers ─────────────────────────────────────────── */
   const mist = [];
   for (let i = 0; i < 12; i++) {
     mist.push({
       x: Math.random() * W,
-      y: H * (0.28 + Math.random() * 0.38),
+      y: H * (0.28 + Math.random() * 0.35),
       w: 220 + Math.random() * 400,
       h: 22 + Math.random() * 55,
       speed: 0.08 + Math.random() * 0.3,
       op: 0.02 + Math.random() * 0.06,
-      // Parallax offset and sine drift
       parallaxX: (Math.random() - 0.5) * 30,
       parallaxY: (Math.random() - 0.5) * 12,
       driftPhase: Math.random() * Math.PI * 2,
@@ -448,8 +717,8 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   let frame = 0, lastInteract = Date.now();
   function render() {
     frame++;
-     // Slow saturation decay: paper slowly recovers (patient play rewards lighter paper)
-    const decayRate = saturationLevel > 0 ? 0.00008 : 0;
+    // Slow saturation decay
+    const decayRate = saturationLevel > 0 ? 0.00006 : 0;
     saturationLevel = Math.max(0, saturationLevel - decayRate);
     lastInteract = Math.max(lastInteract, Date.now() - 3000);
 
@@ -457,31 +726,38 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 0.72;
-    // Subtle paper grain animation
     const grainOffset = Math.sin(frame * 0.005) * 1.5;
     ctx.drawImage(paperC, grainOffset, 0);
     ctx.globalAlpha = 1;
-      // Vignette responds to ink density
+
+    // Draw scene (sky, mountains, lake, trees)
+    ctx.drawImage(sceneC, 0, 0);
+
+    // Density-based scene darkening (ink saturates the paper)
+    if (saturationLevel > 0.1) {
+      ctx.globalAlpha = saturationLevel * 0.08;
+      ctx.fillStyle = INK;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+
+    // Vignette responds to ink density
     const vigEl = document.getElementById('vignette');
     if (vigEl) {
       const vigOp = Math.min(0.6, 0.35 + saturationLevel * 0.25);
       vigEl.style.opacity = vigOp;
-      }
+    }
 
-    // Draw Fuji (with subtle parallax and atmospheric depth)
-    const fpx = (mouseX / W - 0.5) * 10;
-    const fpy = (mouseY / H - 0.5) * 5;
+    // Fuji atmospheric mist — breathes over the mountain
+    const fujiMistOp = 0.08 + Math.sin(frame * 0.008) * 0.03;
     ctx.save();
-    ctx.translate(fpx, fpy);
-     // Subtle mist veil over Fuji base
-    ctx.globalAlpha = 0.12;
-    const fujiMist = ctx.createLinearGradient(0, H * 0.55, 0, H * 0.74);
+    ctx.globalAlpha = fujiMistOp;
+    const fujiMist = ctx.createLinearGradient(0, H * 0.50, 0, H * 0.68);
     fujiMist.addColorStop(0, 'rgba(248,244,235,0)');
-    fujiMist.addColorStop(1, 'rgba(248,244,235,0.6)');
+    fujiMist.addColorStop(0.5, 'rgba(248,244,235,0.35)');
+    fujiMist.addColorStop(1, 'rgba(248,244,235,0.15)');
     ctx.fillStyle = fujiMist;
-    ctx.fillRect(0, H * 0.55, W, H * 0.19);
-    ctx.globalAlpha = 1;
-    ctx.drawImage(fujiC, 0, 0);
+    ctx.fillRect(0, H * 0.50, W, H * 0.18);
     ctx.restore();
 
     // Mist layers with parallax and sine drift
@@ -489,17 +765,12 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     for (const m of mist) {
       m.x += m.speed;
       if (m.x > W + m.w) m.x = -m.w;
-
-      // Sine wave vertical drift for natural movement
       const driftY = Math.sin(frame * m.driftFreq + m.driftPhase) * m.driftAmp;
-      // Parallax offset
       const px = (mouseX / W - 0.5) * m.parallaxX;
       const py = (mouseY / H - 0.5) * m.parallaxY;
-
       ctx.save();
       ctx.globalAlpha = m.op + mistBoost;
-       // Seasonal mist color shift
-      const seasonT = (frame % 3600) / 3600; // ~60s cycle
+      const seasonT = (frame % 3600) / 3600;
       const seasonR = 235 + Math.sin(seasonT * Math.PI * 2) * 15;
       const seasonG = 230 + Math.sin(seasonT * Math.PI * 2 + 1) * 12;
       const seasonB = 220 + Math.sin(seasonT * Math.PI * 2 + 2) * 10;
@@ -513,6 +784,25 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       ctx.beginPath();
       ctx.ellipse(m.x + m.w / 2 + px, m.y + driftY + py, m.w / 2, m.h / 2, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+    }
+
+    // Water ripple effect on lake — responds to ink density
+    if (saturationLevel > 0.05) {
+      ctx.save();
+      ctx.globalAlpha = saturationLevel * 0.06;
+      for (let y = lakeY + 5; y < H - 5; y += 4) {
+        const ripplePhase = frame * 0.02 + y * 0.05;
+        const rippleW = Math.sin(ripplePhase) * 3;
+        ctx.strokeStyle = 'rgba(248,244,235,0.5)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(W * 0.3, y);
+        for (let x = W * 0.3; x < W * 0.7; x += 10) {
+          ctx.lineTo(x + rippleW, y + Math.sin(x * 0.02 + ripplePhase) * 1);
+        }
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -547,9 +837,10 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       drawStroke(strokePts, br, .32, INK, holdDur);
     }
 
-    // Baren press visual
+    // Baren press visual — growing ring during hold
     if (isHolding && holdProgress > 0) {
       const br = getRad(holdProgress * 35);
+      // Inner glow
       const bg = ctx.createRadialGradient(holdCX, holdCY, 0, holdCX, holdCY, br);
       bg.addColorStop(0, cAlpha(INK, .55 * holdProgress));
       bg.addColorStop(.5, cAlpha(INK, .2 * holdProgress));
@@ -558,7 +849,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       ctx.beginPath();
       ctx.arc(holdCX, holdCY, br, 0, Math.PI * 2);
       ctx.fill();
-
       // Vermilion appears at 60%+ depth
       if (holdProgress > .6) {
         const ao = (holdProgress - .6) / .4 * .12;
@@ -570,33 +860,36 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         ctx.arc(holdCX, holdCY, br * .4, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      // Baren press ring — subtle circle expanding outward
-      if (holdProgress > .3) {
+      // Baren press ring
+      if (holdProgress > .25) {
         const ringR = br * (0.3 + holdProgress * 0.8);
-        const ringOp = (holdProgress - .3) / .7 * .15;
+        const ringOp = (holdProgress - .25) / .75 * .2;
         ctx.strokeStyle = cAlpha(INK, ringOp);
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(holdCX, holdCY, ringR, 0, Math.PI * 2);
         ctx.stroke();
       }
     }
 
-    // Progress
-    if (inkMarks.length) {
+    // Density meter update
+    if (inkMarks.length > 0) {
       const markCount = inkMarks.length;
       const lang = markCount > 1 ? ' strokes' : ' stroke';
       const satText = saturationLevel > .3 ? '紙飽和 — paper saturated' : '紙は白く — paper white';
       progress.textContent = markCount + lang + ' · ' + satText;
       progress.classList.add('show');
+      // Update density meter
+      const meterPct = Math.min(100, (saturationLevel / 0.35) * 100);
+      densityFill.style.width = meterPct + '%';
+      densityMeter.classList.add('show');
     }
 
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
 
-  /* ── Input ───────────────────────────────────────────────── */
+  /* ── Interaction ─────────────────────────────────────────── */
   function placeInk(cx, cy) {
     let color = INK;
     const h = (cx / W + cy / H) % 3;
@@ -617,7 +910,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     canvas.setPointerCapture(e.pointerId);
     overlay.classList.add('hidden');
     hint.classList.add('fade');
-       // Paper darkens slightly on first touch — ink has weight
+    // Paper darkens slightly on first touch
     ctx.save();
     ctx.globalAlpha = 0.02;
     ctx.fillStyle = INK;
@@ -635,7 +928,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     }
     lastClickTime = now;
 
-    // Start stroke and hold
     isDrawing = true;
     isHolding = true;
     holdT0 = now;
@@ -644,12 +936,22 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     holdCY = p.y;
     holdProgress = 0;
     strokePts = [{ x: p.x, y: p.y }];
+    // Show hold ring
+    holdRingX = p.x * (canvas.getBoundingClientRect().width / W);
+    holdRingY = p.y * (canvas.getBoundingClientRect().height / H);
+    holdRing.style.left = holdRingX + 'px';
+    holdRing.style.top = holdRingY + 'px';
+    holdRing.style.width = '40px';
+    holdRing.style.height = '40px';
+    holdRing.style.opacity = '0.5';
 
-    // Hold interval for baren press
     if (holdInterval) clearInterval(holdInterval);
     holdInterval = setInterval(() => {
       if (isHolding) {
-        holdProgress = Math.min(1, (Date.now() - holdT0) / 2000);
+        holdProgress = Math.min(1, (Date.now() - holdT0) / 2500);
+        holdRing.style.width = (30 + holdProgress * 60) + 'px';
+        holdRing.style.height = (30 + holdProgress * 60) + 'px';
+        holdRing.style.opacity = String(0.5 * (1 - holdProgress * 0.5));
         if (holdProgress > .15 && holdProgress < .3) playBarenFriction(holdProgress);
         if (holdProgress > .5 && Math.random() < .25) placeInk(holdCX, holdCY);
       }
@@ -663,13 +965,17 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     strokePts.push({ x: p.x, y: p.y });
     holdCX = p.x;
     holdCY = p.y;
+    holdRingX = p.x * (canvas.getBoundingClientRect().width / W);
+    holdRingY = p.y * (canvas.getBoundingClientRect().height / H);
+    holdRing.style.left = holdRingX + 'px';
+    holdRing.style.top = holdRingY + 'px';
   });
 
   canvas.addEventListener('pointerup', e => {
     e.preventDefault();
     if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
-    // Register stroke with hold duration
     const holdDur = isHolding ? (Date.now() - strokeHoldTime) : 0;
+    holdRing.style.opacity = '0';
     if (isDrawing && strokePts.length > 2) {
       const br = getRad(12);
       const bo = getOp(.3);
@@ -683,9 +989,12 @@ canvas { display:block; cursor:crosshair; touch-action:none;
         pts: strokePts,
         holdDuration: holdDur,
       });
+    } else if (strokePts.length <= 2 && holdDur > 200) {
+      // Just a press — place a bloom at the hold location
+      placeInk(holdCX, holdCY);
     }
     isDrawing = false;
-      playInkWetSound();
+    playInkWetSound();
     isHolding = false;
     strokePts = [];
     holdProgress = 0;
@@ -695,6 +1004,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   canvas.addEventListener('pointerleave', e => {
     if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
     const holdDur = isHolding ? (Date.now() - strokeHoldTime) : 0;
+    holdRing.style.opacity = '0';
     if (isDrawing) {
       if (strokePts.length > 2) {
         const br = getRad(12);
@@ -709,6 +1019,8 @@ canvas { display:block; cursor:crosshair; touch-action:none;
           pts: strokePts,
           holdDuration: holdDur,
         });
+      } else if (holdDur > 200) {
+        placeInk(holdCX, holdCY);
       }
       isDrawing = false;
       playInkWetSound();
@@ -756,7 +1068,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     bp.connect(ambientGain);
     ambientNode.start();
 
-    // LFO for wind variation (seasonal breath)
     windLfo = audioCtx.createOscillator();
     windLfo.frequency.value = 0.07;
     windLfoGain = audioCtx.createGain();
@@ -768,7 +1079,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     // Drone 1 - deep earth tone
     const o1 = audioCtx.createOscillator();
     o1.type = 'sine';
-    o1.frequency.value = 61.74; // D1
+    o1.frequency.value = 61.74;
     const og1 = audioCtx.createGain();
     og1.gain.value = 0;
     o1.connect(og1);
@@ -795,7 +1106,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     og3.connect(ambientGain);
     o3.start();
 
-    // Paper rustle ambient - subtle textured layer
+    // Paper rustle ambient
     const paperBs = audioCtx.sampleRate * 3;
     const paperBf = audioCtx.createBuffer(2, paperBs, audioCtx.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
@@ -819,7 +1130,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     paperNode.start();
     paperRustleVol = 1;
 
-    // Bell - occasional temple bell
+    // Bell
     const bellBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
     const bellData = bellBuf.getChannelData(0);
     for (let i = 0; i < bellData.length; i++) {
@@ -843,13 +1154,11 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   function playBrushSound() {
     if (!audioCtx || !soundOn) return;
     const t = audioCtx.currentTime;
-    // Brush on paper: layered noise with texture
     const bs = audioCtx.sampleRate * .15;
     const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
     const d = bf.getChannelData(0);
     for (let i = 0; i < bs; i++) {
       const envelope = Math.pow(1 - i / bs, 2);
-      // Mix of dry brush (high freq) and wet ink (low freq)
       d[i] = ((Math.random() * 2 - 1) * envelope * 0.7 +
                Math.sin(2 * Math.PI * 800 * i / audioCtx.sampleRate) * Math.exp(-i / (bs * 0.3)) * 0.3) * envelope;
     }
@@ -866,7 +1175,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     g.connect(audioCtx.destination);
     s.start(t);
 
-    // Subtle pitch variation
     const o = audioCtx.createOscillator();
     o.type = 'sine';
     o.frequency.value = 180 + Math.random() * 120;
@@ -882,7 +1190,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   function playBarenFriction(progress) {
     if (!audioCtx || !soundOn) return;
     const t = audioCtx.currentTime;
-    // Friction sound that grows with pressure
     const vol = .02 * Math.max(0, progress);
     const bs = audioCtx.sampleRate * .3;
     const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
@@ -909,7 +1216,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   function playInkWetSound() {
     if (!audioCtx || !soundOn) return;
     const t = audioCtx.currentTime;
-    // Subtle wet ink absorption sound
     const bs = audioCtx.sampleRate * .2;
     const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
     const d = bf.getChannelData(0);
@@ -934,42 +1240,32 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   function playSealThud() {
     if (!audioCtx || !soundOn) return;
     const t = audioCtx.currentTime;
-    // Deep, resonant seal stamp thud
     const bs = audioCtx.sampleRate * .4;
     const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
     const d = bf.getChannelData(0);
     for (let i = 0; i < bs; i++) {
       const env = Math.pow(1 - i / bs, 2);
-      d[i] = Math.sin(2 * Math.PI * 60 * i / audioCtx.sampleRate) * env +
-              (Math.random() * 2 - 1) * env * 0.3;
+      d[i] = Math.sin(2 * Math.PI * (1200 - i / bs * 800) * i / audioCtx.sampleRate) * env * 0.4;
     }
     const s = audioCtx.createBufferSource();
     s.buffer = bf;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1200;
+    lp.frequency.exponentialRampToValueAtTime(400, t + .3);
     const g = audioCtx.createGain();
-    g.gain.value = .12;
-    s.connect(g);
+    g.gain.value = .02;
+    g.gain.exponentialRampToValueAtTime(.001, t + .5);
+    s.connect(lp);
+    lp.connect(g);
     g.connect(audioCtx.destination);
     s.start(t);
-    s.stop(t + .4);
-
-    // High ring
-    const o = audioCtx.createOscillator();
-    o.type = 'sine';
-    o.frequency.setValueAtTime(1200, t);
-    o.frequency.exponentialRampToValueAtTime(400, t + .3);
-    const og = audioCtx.createGain();
-    og.gain.setValueAtTime(.02, t);
-    og.gain.exponentialRampToValueAtTime(.001, t + .5);
-    o.connect(og);
-    og.connect(audioCtx.destination);
-    o.start(t);
-    o.stop(t + .5);
+    s.stop(t + .5);
   }
 
   function playResetSound() {
     if (!audioCtx || !soundOn) return;
     const t = audioCtx.currentTime;
-    // Soft sweep sound
     const bs = audioCtx.sampleRate * .25;
     const bf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
     const d = bf.getChannelData(0);
@@ -1000,7 +1296,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     if (ambientGain) ambientGain.gain.linearRampToValueAtTime(soundOn ? .1 : .0, audioCtx.currentTime + .5);
   });
 
-  /* ── Audio init on first interaction (for audio probe) ───── */
+  /* ── Audio init on first interaction ────────────────────── */
   let firstInteraction = false;
   canvas.addEventListener('pointerdown', () => {
     if (!firstInteraction) {
@@ -1009,7 +1305,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       if (audioCtx) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
       }
-      // Fade ambient sound in gently
       setTimeout(() => {
         if (ambientGain) ambientGain.gain.linearRampToValueAtTime(soundOn ? .1 : .0, audioCtx.currentTime + 2);
       }, 100);
@@ -1025,8 +1320,12 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     densityMap.fill(0);
     saturationLevel = 0;
     rapidClickCount = 0;
+    printComplete = false;
+    completeOverlay.classList.remove('show');
     progress.textContent = '';
     progress.classList.remove('show');
+    densityMeter.classList.remove('show');
+    densityFill.style.width = '0%';
     playResetSound();
   });
 
@@ -1036,9 +1335,20 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     const sc = document.createElement('canvas');
     sc.width = W; sc.height = H;
     const sX = sc.getContext('2d');
-    sX.drawImage(canvas, 0, 0);
+    // Draw paper
+    sX.drawImage(paperC, 0, 0);
+    // Draw scene
+    sX.drawImage(sceneC, 0, 0);
+    // Draw ink marks
+    for (const mk of inkMarks) {
+      if (mk.type === 'bloom') {
+        drawBloomOn(sX, mk.x, mk.y, mk.radius, mk.opacity, mk.color);
+      } else if (mk.type === 'stroke') {
+        drawStrokeOn(sX, mk.pts, mk.radius, mk.opacity, mk.color, mk.holdDuration || 0);
+      }
+    }
 
-    // Seal stamp (印) — bottom right with slight randomization
+    // Seal stamp (印) — bottom right
     const sx = W - 80 + (Math.random() - .5) * 12;
     const sy = H - 80 + (Math.random() - .5) * 12;
     const sr = (Math.random() - .5) * .04;
@@ -1046,7 +1356,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     sX.translate(sx, sy);
     sX.rotate(sr);
     sX.fillStyle = VERM;
-    // Rounded rectangle seal
     const rw = 34, rh = 44, rr = 4;
     sX.beginPath();
     sX.moveTo(-rw/2 + rr, -rh/2);
@@ -1055,7 +1364,7 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     sX.lineTo(rw/2, rh/2 - rr);
     sX.quadraticCurveTo(rw/2, rh/2, rw/2 - rr, rh/2);
     sX.lineTo(-rw/2 + rr, rh/2);
-    sX.quadraticCurveTo(-rw/2, rh/2, -rw/2, rh/2 - rr);
+    sX.quadraticCurveTo(-rw/2, rh/2, -rw/2 + rr, rh/2 - rr);
     sX.lineTo(-rw/2, -rh/2 + rr);
     sX.quadraticCurveTo(-rw/2, -rh/2, -rw/2 + rr, -rh/2);
     sX.closePath();
@@ -1083,7 +1392,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       a.href = url;
       a.download = 'ukiyo-e-' + Date.now() + '.png';
       a.click();
-      playSealThud();
       URL.revokeObjectURL(url);
     }, 'image/png');
   });
@@ -1095,7 +1403,6 @@ canvas { display:block; cursor:crosshair; touch-action:none;
     if (e.key === 'j' || e.key === 'J') soundBtn.click();
   });
 
-  // Make buttons focusable and accessible
   soundBtn.setAttribute('aria-label', 'Toggle ambient sound');
   resetBtn.setAttribute('aria-label', 'Clear the print');
   finishBtn.setAttribute('aria-label', 'Finish and download your print');

@@ -1,48 +1,44 @@
-# Verification — Pictures of the Floating World
+# Verification — Pictures of the Floating World (work-order-1783332231063-7-2)
 
-**Work Order:** `work-order-1783332231063-7-2`  
 **Artifact:** `games/ukiyo-e-printer/index.html`  
 **Last Updated:** 2026-07-06
 
-## Static Verification
+## Code Verification
 
-All checks pass:
+- ✅ JavaScript syntax: Valid (node -c passes)
+- ✅ Canvas element present with DPR support
+- ✅ Scene canvas (`sceneC`) with procedural ukiyo-e landscape: sky gradient, sun/moon, layered mountains (3 layers with atmospheric perspective), Mt. Fuji with snowcap and tendrils, Japanese clouds, lake with reflections, pine tree foreground, rocks, grasses
+- ✅ Deckle edge paper texture with washi fibers
+- ✅ Ink bloom with organic capillary edge darkening
+- ✅ Ink stroke with variable opacity, bleed, and edge darkening
+- ✅ Density map with saturation tracking
+- ✅ Baren press mechanic: hold ring grows with pressure, ink accumulates
+- ✅ Hold-duration opacity: longer holds = darker, larger marks
+- ✅ Print complete state (density threshold triggers visual + audio feedback)
+- ✅ Density meter UI element
+- ✅ Ambient audio: wind, drones, paper rustle, triggered on user gesture
+- ✅ Sound toggle, reset, and finish/download controls
+- ✅ Keyboard accessibility: R=reset, S=finish, J=sound toggle
+- ✅ Mobile responsive: touch targets ≥ 44px, touch-action: none
+- ✅ Mouse parallax for mist layers
 
-- ✅ Canvas element present
-- ✅ Baren hold mechanic (`isHolding`, `holdProgress`)
-- ✅ Ink stroke drawing with variable opacity (`strokePts`, `drawStroke`)
-- ✅ Velocity-aware ink opacity (`calcStrokeVelocityOp`)
-- ✅ Ink splatter on fast strokes
-- ✅ Paper saturation mechanic (`saturationLevel`, rapid-click penalty)
-- ✅ Ambient audio init (`AudioContext`, wind, drones with LFO modulation)
-- ✅ Sound toggle (`soundBtn`, `soundOn` flag, default = on)
-- ✅ Finish with seal stamp (`印`, download PNG)
-- ✅ Mist layers (16 drifting ellipses with seasonal color shifts)
-- ✅ Deckle edge (paper texture border)
-- ✅ Mouse parallax (Fuji and mist respond to cursor)
-- ✅ Keyboard accessibility (`aria-label` on all buttons, `focus-visible`)
-- ✅ Mobile touch (`touch-action: none`, 44px+ touch targets)
-- ✅ Ink bleed (capillary spread on strokes)
-- ✅ Hold-duration opacity (longer holds = darker ink)
-- ✅ Saturation decay (paper recovers over time)
-- ✅ Paper darkening at dense ink areas
-- ✅ Random bell chime during quiet moments
-- ✅ JS syntax: ✅ Valid (node --check passes)
+## Browser Runtime Verification
 
-## Browser Smoke Test
+- ⚠️ Headless chromium screenshot unavailable in this runtime environment
+- ✅ Syntax validation: node -c passes for embedded JavaScript
+- ✅ HTML structure valid: complete page with canvas, overlay, controls
+- ✅ Preview URL: `games/ukiyo-e-printer/index.html`
+- ✅ HTTP 200 response from local server
 
-**Preview URL:** `games/ukiyo-e-printer/index.html` (also at `.factoryx/preview-entrypoint`)
+## Manual Play Test (to verify locally)
 
-### Verification Steps (Manual)
-1. Open the preview URL.
-2. Click on the paper — observe organic ink bloom with irregular edges.
-3. Drag to draw a stroke — observe variable opacity based on stroke speed.
-4. Hold on the paper — observe paper depression, friction sound, and vermilion at 60%+.
-5. Click FINISH — observe seal stamp download with woodblock thud sound.
-6. Wait 15+ seconds without interaction — observe temple bell chime.
-7. Click RESET — observe paper sweep fade effect.
-
-### Known Limitations
-- Headless Chromium screenshot capture unavailable in container (X11/display server missing).
-- Audio testing requires a real browser with user gesture.
-- Mobile/touch testing requires physical device.
+1. Open `games/ukiyo-e-printer/index.html` in a browser
+2. See the title "浮世絵 — Press the Baren" and subtitle
+3. Press/tap anywhere on the paper — observe ink bloom with organic edges
+4. Drag to draw strokes — observe variable opacity based on speed
+5. Hold and press — observe growing press ring and ink accumulation
+6. Wait patiently — paper slowly recovers (saturation decay)
+7. After ~10-15 deliberate marks, observe "完成" (complete) overlay
+8. Press FINISH to download your print with seal stamp (印)
+9. Press RESET to clear and start again
+10. Toggle sound with J key — ambient wind and bell begin on first interaction
