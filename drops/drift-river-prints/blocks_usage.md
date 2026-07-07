@@ -10,10 +10,10 @@
 | `tween.js` | Reused | `backOut` for snap-into-place, `sineInOut` for drift-back |
 | `particles.js` | Reused | Burst on successful placement (colored to match element) |
 | `rng.js` | Reused | Seeded with 'drift-river-prints' for flow lines, washi texture, piece positions |
+| `screen-shake.js` | Reused | Trauma-based shake on piece snap (FoundryShake)
 
 ## Key changes
 - None — all modules reused as-is from `.factoryx/foundry/blocks-2d/`
-- FoundryShake (screen-shake.js) also copied and used for subtle snap feedback
 
 ## Not used
-- `screen-shake.js` — actually used via FoundryShake for snap feedback
+- None — all blocks used.
