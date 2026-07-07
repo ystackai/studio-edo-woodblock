@@ -1,45 +1,23 @@
-# Verification — Drifting River Prints
+# Verification — Drifting River Prints (Take 3)
 
-## Browser Runtime
-- **URL:** `http://localhost:8899/index.html` (served via `python3 -m http.server`)
-- **Chromium:** v149, headless, no-sandbox — screenshot captured OK (25KB PNG)
-- **Console errors:** None (no pageerror, no console.error, no uncaught exceptions)
-- **Assets:** All self-contained; no external network dependencies; no 404s
+## Browser Runtime Fix
+**Previous blocker:** `Uncaught ReferenceError: FoundryShake is not defined` at line 368 of the runtime check HTML.
 
-## Screenshots
-- Title screen: `/tmp/screenshot_title.png` — washi background, Japanese text, scroll border, prompt visible
-- Active play: `/tmp/screenshot_active.png` — same title screen (game is in title state without interaction)
+**Root cause:** `screen-shake.js` was used in the game logic (line 159: `FoundryShake.create()`) but the script tag was missing from `index.html`. The file existed in the foundry blocks (`.factoryx/foundry/blocks-2d/screen-shake.js`) but was never copied to the game directory.
 
-## Primary Verb
-- **Touch/click to start** → transitions from title to play scene, elements drift in
-- **Drag elements** → pick up koi/waterweed by touching, drag to target zone
-- **Snap to lock** → within 80px of target, element snaps with `backOut` easing, particle burst, wooden clack SFX, subtle screen shake
-- **Complete** → all 5 locked → 1.5s pause → dissolve → temple bell → debrief overlay → touch to restart
+**Fix:**
+1. Copied `screen-shake.js` from foundry blocks to `drops/drift-river-prints/screen-shake.js`
+2. Added `<script src="screen-shake.js"></script>` after `rng.js` in index.html
+3. Fixed `blocks_usage.md` to accurately list all 7 foundry blocks used
 
-## Audio
-- Paper rustle on pickup (filtered noise burst)
-- Wooden clack on snap (sine + triangle transient)
-- Temple bell on completion (5-harmonic long decay)
-- Water ambience during play (looping lowpass noise)
-- All audio starts only after user gesture (title screen click)
+## Smoke Test Results
+- **Tool:** Chromium headless, window 1024×768
+- **URL:** `http://localhost:8765/index.html`
+- **Result:** PASS — no JavaScript errors, no pageerror events
+- **Screenshot:** `/tmp/drift_verify_screenshot.png` (25K)
+- **Canvas renders:** Title screen with "流れ川" (flowing river) Japanese text, "DRIFTING RIVER PRINTS" title, washi paper background with scroll border and water current lines
 
-## Foundry Blocks
-- game-loop.js, scenes.js, input.js, tween.js, particles.js, rng.js, screen-shake.js all copied from `.factoryx/foundry/blocks-2d/`
-- `blocks_usage.md` written in game directory
-
-## Asset Foundry
-- This launch opted out of generated assets per `generated_assets_required: false`
-- Audio is procedurally generated via WebAudio API (oscillators + noise)
-- Visuals are canvas-drawn in ukiyo-e woodblock style
-
-## Checklist
-- [x] Core verb in first 30 seconds — touch to start, drag pieces immediately
-- [x] Input response < 100ms — pointer/touch directly moves pieces
-- [x] Easing on all motion — backOut for snap, sineInOut for drift
-- [x] Hit/score feedback — particle burst, shake, clack sound on snap
-- [x] Audio only after gesture — audioCtx created on first click
-- [x] Active play readable — elements high-contrast on washi background
-- [x] Outcome coherent — debrief shows "THE SCENE IS COMPLETE" only after all 5 placed
-- [x] Touch targets ≥ 44px — elements are 55-200px wide
-- [x] No external network — all self-contained
-- [x] No JS errors in browser runtime
+## Preview
+- **Preview path:** `drops/drift-river-prints/index.html`
+- **`.factoryx/preview-entrypoint`:** `drops/drift-river-prints/index.html` ✓
+- **PR:** #202 on `factoryx/factory-edo-woodblock/work-order-1783462106093-8-3`
