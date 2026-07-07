@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Drifting River Prints</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#1a1410;font-family:'Noto Serif JP','Georgia',serif;-webkit-user-select:none;user-select:none;touch-action:none;color:#e8e0d8}
+canvas{display:block;width:100%;height:100%}
+#title-overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:10}
+#title-overlay h1{font-size:1.3rem;color:rgba(232,224,216,0.7);font-weight:400;letter-spacing:.18em;text-align:center}
+#title-overlay .jp{font-size:1.6rem;color:rgba(232,224,216,0.4);margin-bottom:8px;letter-spacing:.3em}
+#title-overlay .sub{font-size:.65rem;color:rgba(232,224,216,0.25);margin-top:10px;letter-spacing:.1em}
+#title-overlay .prompt{font-size:.7rem;color:rgba(232,224,216,0.35);margin-top:30px;letter-spacing:.08em;opacity:0;transition:opacity 2s ease}
+#title-overlay .prompt.visible{opacity:1}
+#scroll-progress{position:absolute;top:14px;right:18px;z-index:10;font-size:.55rem;color:rgba(232,224,216,0.3);letter-spacing:.08em;pointer-events:none}
+#debrief-overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:10;opacity:0;transition:opacity 3s ease}
+#debrief-overlay.visible{opacity:1}
+#debrief-overlay h2{font-size:1.1rem;color:rgba(232,224,216,0.6);font-weight:400;letter-spacing:.15em}
+#debrief-overlay .jp{font-size:1.4rem;color:rgba(232,224,216,0.3);margin-bottom:6px;letter-spacing:.25em}
+#debrief-overlay .sub{font-size:.6rem;color:rgba(232,224,216,0.2);margin-top:8px;letter-spacing:.08em}
+#debrief-overlay .restart-prompt{font-size:.6rem;color:rgba(232,224,216,0.3);margin-top:24px;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title-overlay">
+   <div class="jp">流れ川</div>
+   <h1>DRIFTING RIVER PRINTS</h1>
+   <div class="sub">compose a fleeting river scene</div>
+   <div class="prompt" id="start-prompt">touch the scroll to begin</div>
+</div>
+<div id="scroll-progress"></div>
+<div id="debrief-overlay">
+   <div class="jp">完成</div>
+   <h2>THE SCENE IS COMPLETE</h2>
+   <div class="sub">the river carries new elements…</div>
+   <div class="restart-prompt">touch to compose again</div>
+</div>
+<script src="game-loop.js"></script>
+<script src="scenes.js"></script>
+<script src="input.js"></script>
+<script src="tween.js"></script>
+<script src="particles.js"></script>
+<script src="rng.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   DRIFTING RIVER PRINTS — ukiyo-e composition game
+   Creative intent: "This should feel like quietly arranging pieces
+   of a river scene by candlelight — each koi and waterweed finds
+   its place with a satisfying click, and when the scroll is complete,
+   there's a moment of stillness before the temple bell sounds and
+   the scene dissolves."
+   ============================================================ */
+
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var W = 1024, H = 768;
+canvas.width = W; canvas.height = H;
+
+var rng = FoundryRng.create('drift-river-prints');
+
+/* ---- Audio ---- */
+var audioCtx = null;
+var audioStarted = false;
+
+function ensureAudio() {
+  if (!audioStarted) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioStarted = true;
+   }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playRustle() {
+  if (!audioCtx) return;
+  var dur = 0.25;
+  var buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) {
+    var t = i / audioCtx.sampleRate;
+    d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 12) * 0.3;
+   }
+  var src = audioCtx.createBufferSource(); src.buffer = buf;
+  var bp = audioCtx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = 2800; bp.Q.value = 0.7;
+  var hp = audioCtx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 800;
+  src.connect(bp); bp.connect(hp); hp.connect(audioCtx.destination);
+  src.start();
+}
+
+function playClack() {
+  if (!audioCtx) return;
+  var now = audioCtx.currentTime;
+  var o1 = audioCtx.createOscillator();
+  var g1 = audioCtx.createGain();
+  o1.type = 'sine'; o1.frequency.value = 85;
+  g1.gain.setValueAtTime(0.35, now);
+  g1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+  o1.connect(g1); g1.connect(audioCtx.destination);
+  o1.start(now); o1.stop(now + 0.25);
+  var o2 = audioCtx.createOscillator();
+  var g2 = audioCtx.createGain();
+  o2.type = 'triangle'; o2.frequency.value = 420;
+  g2.gain.setValueAtTime(0.12, now);
+  g2.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  o2.connect(g2); g2.connect(audioCtx.destination);
+  o2.start(now); o2.stop(now + 0.06);
+}
+
+function playTempleBell() {
+  if (!audioCtx) return;
+  var now = audioCtx.currentTime;
+  var freqs = [136.1, 272.2, 408.3, 544.4, 680.5];
+  var amps  = [0.25, 0.12, 0.07, 0.03, 0.015];
+  var decay = [4.0, 3.0, 2.0, 1.5, 1.0];
+  for (var i = 0; i < freqs.length; i++) {
+    var o = audioCtx.createOscillator();
+    var g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = freqs[i];
+    g.gain.setValueAtTime(amps[i], now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + decay[i]);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(now); o.stop(now + decay[i] + 0.1);
+   }
+}
+
+function playWaterAmbience() {
+  if (!audioCtx) return null;
+  var dur = 4;
+  var buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) {
+    var t = i / audioCtx.sampleRate;
+    d[i] = (Math.random() * 2 - 1) * 0.04 * (0.5 + 0.5 * Math.sin(t * 0.7));
+   }
+  var src = audioCtx.createBufferSource(); src.buffer = buf; src.loop = true;
+  var lp = audioCtx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 400;
+  src.connect(lp); lp.connect(audioCtx.destination);
+  src.start();
+  return src;
+}
+
+/* ---- Particles ---- */
+var gParticles = null;
+function resetParticles() {
+  gParticles = FoundryParticles.create({ max: 128, rng: rng });
+}
+resetParticles();
+
+/* ---- Screen shake ---- */
+var shake = FoundryShake.create({ rng: rng, maxOffset: 5 });
+
+/* ---- Composition element definitions ---- */
+var ELEMENT_DEFS = [
+  { type:'koi_large',   tx:512, ty:420, w:180, h:80,  driftSpeed:40, color:'#c84030' },
+  { type:'koi_small',   tx:300, ty:520, w:120, h:55,  driftSpeed:50, color:'#d4703a' },
+  { type:'waterweed_a', tx:720, ty:580, w:140, h:100, driftSpeed:30, color:'#3a6b4a' },
+  { type:'waterweed_b', tx:180, ty:350, w:100, h:130, driftSpeed:35, color:'#2d5a3a' },
+  { type:'wave_crest',  tx:580, ty:300, w:200, h:60,  driftSpeed:45, color:'#2a4a7a' }
+];
+var SNAP_DIST = 80;
+
+/* ---- Game state ---- */
+var pieces = [];
+var lockedCount = 0;
+var totalPieces = ELEMENT_DEFS.length;
+var waterAmbienceNode = null;
+var dissolveProgress = 0;
+var dissolveActive = false;
+var compositionLocked = false;
+var dragging = null;
+var dragOffsetX = 0, dragOffsetY = 0;
+
+/* ---- Flow lines for water current ---- */
+var flowLines = [];
+for (var fl = 0; fl < 18; fl++) {
+  flowLines.push({
+    y: rng.range(80, H - 80),
+    speed: rng.range(20, 60),
+    phase: rng.range(0, Math.PI * 2),
+    length: rng.range(40, 120),
+    alpha: rng.range(0.04, 0.1)
+  });
+}
+
+/* ---- Washi texture ---- */
+var washiCanvas = null;
+function generateWashiTexture() {
+  washiCanvas = document.createElement('canvas');
+  washiCanvas.width = W; washiCanvas.height = H;
+  var wctx = washiCanvas.getContext('2d');
+  wctx.fillStyle = '#e8dcc8';
+  wctx.fillRect(0, 0, W, H);
+  var imgData = wctx.getImageData(0, 0, W, H);
+  var px = imgData.data;
+  for (var i = 0; i < px.length; i += 4) {
+    var n = (Math.random() - 0.5) * 12;
+    px[i] = Math.min(255, Math.max(0, px[i] + n));
+    px[i+1] = Math.min(255, Math.max(0, px[i+1] + n * 0.9));
+    px[i+2] = Math.min(255, Math.max(0, px[i+2] + n * 0.7));
+  }
+  wctx.putImageData(imgData, 0, 0);
+  for (var fy = 0; fy < 60; fy++) {
+    var y = rng.range(0, H);
+    wctx.strokeStyle = 'rgba(180,170,155,' + rng.range(0.03, 0.08) + ')';
+    wctx.lineWidth = rng.range(0.3, 1);
+    wctx.beginPath();
+    wctx.moveTo(rng.range(0, 100), y);
+    wctx.lineTo(rng.range(W - 100, W), y + rng.range(-3, 3));
+    wctx.stroke();
+  }
+}
+generateWashiTexture();
+
+/* ---- Drawing helpers ---- */
+function drawScrollBorder(ctx) {
+  var m = 30;
+  ctx.strokeStyle = 'rgba(80,60,40,0.35)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(m, m, W - 2*m, H - 2*m);
+  ctx.strokeStyle = 'rgba(80,60,40,0.12)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(m+8, m+8, W-2*(m+8), H-2*(m+8));
+}
+
+function drawWaterCurrent(ctx, time) {
+  for (var i = 0; i < flowLines.length; i++) {
+    var fl = flowLines[i];
+    var ox = ((time * fl.speed + fl.phase * 100) % (W + fl.length * 2)) - fl.length;
+    ctx.save();
+    ctx.globalAlpha = fl.alpha;
+    ctx.strokeStyle = '#8a7a6a';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(ox, fl.y);
+    ctx.quadraticCurveTo(ox + fl.length*0.5, fl.y + Math.sin(time*2+fl.phase)*4, ox + fl.length, fl.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawGrainOverlay(ctx, a) {
+  ctx.save();
+  ctx.globalAlpha = a;
+  var step = 12;
+  for (var x = 0; x < W; x += step) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0); ctx.lineTo(x + rng.range(-1,1), H);
+    ctx.strokeStyle = 'rgba(60,45,30,' + rng.range(0.01,0.03) + ')';
+    ctx.lineWidth = 0.5; ctx.stroke();
+  }
+  for (var y = 0; y < H; y += step) {
+    ctx.beginPath();
+    ctx.moveTo(0, y); ctx.lineTo(W, y + rng.range(-1,1));
+    ctx.strokeStyle = 'rgba(60,45,30,' + rng.range(0.005,0.015) + ')';
+    ctx.lineWidth = 0.3; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---- Element drawing ---- */
+function drawKoi(ctx, x, y, w, h, color, alpha, locked) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+
+   // Body
+  ctx.beginPath();
+  ctx.ellipse(0, 0, w*0.45, h*0.4, 0, 0, Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = '#1a1410';
+  ctx.lineWidth = locked ? 2.5 : 1.5;
+  ctx.stroke();
+
+   // Tail fin
+  ctx.beginPath();
+  ctx.moveTo(-w*0.4, -h*0.15);
+  ctx.quadraticCurveTo(-w*0.6, -h*0.35, -w*0.55, -h*0.05);
+  ctx.quadraticCurveTo(-w*0.6, h*0.25, -w*0.4, h*0.15);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = '#1a1410';
+  ctx.lineWidth = locked ? 2 : 1;
+  ctx.stroke();
+
+   // Eye
+  ctx.beginPath();
+  ctx.arc(w*0.28, -h*0.05, h*0.07, 0, Math.PI*2);
+  ctx.fillStyle = '#1a1410'; ctx.fill();
+
+   // Dorsal fin
+  ctx.beginPath();
+  ctx.moveTo(w*0.05, -h*0.38);
+  ctx.quadraticCurveTo(w*0.15, -h*0.55, w*0.0, -h*0.42);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = '#1a1410';
+  ctx.lineWidth = locked ? 1.5 : 1;
+  ctx.stroke();
+
+   // Scale pattern (woodblock style)
+  if (locked) {
+    ctx.globalAlpha = alpha * 0.2;
+    for (var si = 0; si < 4; si++) {
+      ctx.beginPath();
+      ctx.arc(w*0.05 + si*w*0.08, 0, h*0.2, -0.5, 0.5);
+      ctx.strokeStyle = '#1a1410';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+     }
+   }
+  ctx.restore();
+}
+
+function drawWaterweed(ctx, x, y, w, h, color, alpha, locked) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+
+  var stems = 3;
+  for (var s = 0; s < stems; s++) {
+    var sx = (s - (stems-1)/2) * w * 0.25;
+    var segs = 6;
+    ctx.beginPath();
+    ctx.moveTo(sx, h*0.4);
+    for (var seg = 1; seg <= segs; seg++) {
+      var t = seg / segs;
+      var sway = Math.sin(seg*0.8 + s) * w * 0.08;
+      ctx.lineTo(sx + sway, h*0.4 - t*h*0.8);
+     }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = locked ? 5 : 3.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.strokeStyle = '#1a1410';
+    ctx.lineWidth = locked ? 1.5 : 1;
+    ctx.stroke();
+   }
+
+   // Leaves
+  for (var s2 = 0; s2 < stems; s2++) {
+    for (var li = 0; li < 3; li++) {
+      var ly = h*0.2 - li*h*0.2;
+      var lx = (s2-(stems-1)/2)*w*0.25 + Math.sin(li*1.2+s2)*w*0.06;
+      ctx.beginPath();
+      ctx.ellipse(lx, ly, w*0.12, h*0.04, Math.sin(li+s2)*0.5, 0, Math.PI*2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.strokeStyle = '#1a1410';
+      ctx.lineWidth = locked ? 1 : 0.7;
+      ctx.stroke();
+     }
+   }
+
+   // Woodblock grain
+  if (locked) {
+    ctx.globalAlpha = alpha * 0.12;
+    for (var gi = 0; gi < 8; gi++) {
+      ctx.beginPath();
+      ctx.moveTo(rng.range(-w*0.3,w*0.3), rng.range(-h*0.3,h*0.3));
+      ctx.lineTo(rng.range(-w*0.3,w*0.3), rng.range(-h*0.3,h*0.3));
+      ctx.strokeStyle = '#1a1410'; ctx.lineWidth = 0.5; ctx.stroke();
+     }
+   }
+  ctx.restore();
+}
+
+function drawWaveCrest(ctx, x, y, w, h, color, alpha, locked) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+
+   // Main wave
+  ctx.beginPath();
+  ctx.moveTo(-w*0.5, h*0.2);
+  ctx.bezierCurveTo(-w*0.3, -h*0.5, w*0.1, -h*0.3, w*0.3, h*0.1);
+  ctx.bezierCurveTo(w*0.4, h*0.25, w*0.5, h*0.3, w*0.45, h*0.35);
+  ctx.bezierCurveTo(w*0.2, h*0.1, -w*0.2, h*0.05, -w*0.5, h*0.2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = '#1a1410';
+  ctx.lineWidth = locked ? 2.5 : 1.5;
+  ctx.stroke();
+
+   // Spray
+  ctx.beginPath();
+  ctx.moveTo(-w*0.52, h*0.15);
+  ctx.quadraticCurveTo(-w*0.48, -h*0.1, -w*0.45, -h*0.2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = locked ? 3 : 2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.strokeStyle = '#1a1410';
+  ctx.lineWidth = locked ? 1 : 0.7;
+  ctx.stroke();
+
+   // Secondary wave
+  ctx.beginPath();
+  ctx.moveTo(-w*0.35, h*0.3);
+  ctx.quadraticCurveTo(0, h*0.15, w*0.3, h*0.25);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = locked ? 2 : 1.2;
+  ctx.stroke();
+
+   // White foam
+  ctx.globalAlpha = alpha * 0.6;
+  ctx.fillStyle = '#e8dcc8';
+  ctx.beginPath();
+  ctx.ellipse(-w*0.45, h*0.05, w*0.04, h*0.04, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(-w*0.5, h*0.1, w*0.025, h*0.025, 0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(w*0.25, -h*0.05, w*0.03, h*0.03, -0.2, 0, Math.PI*2); ctx.fill();
+
+   // Grain
+  ctx.globalAlpha = alpha * (locked ? 0.15 : 0);
+  for (var gi = 0; gi < 5; gi++) {
+    ctx.beginPath();
+    ctx.moveTo(rng.range(-w*0.45,w*0.45), rng.range(-h*0.4,h*0.4));
+    ctx.lineTo(rng.range(-w*0.45,w*0.45), rng.range(-h*0.4,h*0.4));
+    ctx.strokeStyle = '#1a1410'; ctx.lineWidth = 0.4; ctx.stroke();
+   }
+  ctx.restore();
+}
+
+function drawElement(ctx, p) {
+  switch(p.type) {
+    case 'koi_large': case 'koi_small':
+      drawKoi(ctx, p.x, p.y, p.w, p.h, p.color, p.alpha, p.locked);
+      break;
+    case 'waterweed_a': case 'waterweed_b':
+      drawWaterweed(ctx, p.x, p.y, p.w, p.h, p.color, p.alpha, p.locked);
+      break;
+    case 'wave_crest':
+      drawWaveCrest(ctx, p.x, p.y, p.w, p.h, p.color, p.alpha, p.locked);
+      break;
+   }
+}
+
+function drawTargetGhost(ctx, p) {
+  ctx.save();
+  ctx.globalAlpha = 0.1;
+  ctx.translate(p.tx, p.ty);
+  ctx.strokeStyle = '#1a1410';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 6]);
+  var rx = p.w * 0.45, ry = p.h * 0.4;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+/* ---- Piece management ---- */
+function initPieces() {
+  pieces = [];
+  lockedCount = 0;
+  compositionLocked = false;
+  dissolveActive = false;
+  dissolveProgress = 0;
+  dragging = null;
+  resetParticles();
+
+  for (var i = 0; i < ELEMENT_DEFS.length; i++) {
+    var def = ELEMENT_DEFS[i];
+    pieces.push({
+      type: def.type,
+      x: -def.w * 0.5,
+      y: rng.range(150, H - 200),
+      tx: def.tx, ty: def.ty,
+      w: def.w, h: def.h,
+      color: def.color,
+      driftSpeed: def.driftSpeed,
+      phase: rng.range(0, Math.PI*2),
+      alpha: 0,
+      entering: true,
+      enterDelay: i * 1.2,
+      locked: false,
+      lockedAnim: 0
+     });
+   }
+  document.getElementById('scroll-progress').textContent = lockedCount + ' / ' + totalPieces + ' placed';
+}
+
+function hitTestPiece(mx, my) {
+  for (var i = pieces.length - 1; i >= 0; i--) {
+    var p = pieces[i];
+    if (p.locked || p.entering) continue;
+    if (Math.abs(mx - p.x) < p.w * 0.5 && Math.abs(my - p.y) < p.h * 0.5) return p;
+   }
+  return null;
+}
+
+/* ---- Scenes ---- */
+
+// TITLE
+var titleTime = 0;
+FoundryScenes.add('title', {
+  enter: function() {
+    titleTime = 0;
+    document.getElementById('title-overlay').style.display = 'flex';
+    document.getElementById('debrief-overlay').classList.remove('visible');
+   },
+  exit: function() {
+    document.getElementById('title-overlay').style.display = 'none';
+   },
+  update: function(dt) {
+    titleTime += dt;
+    if (titleTime > 2.5) {
+      document.getElementById('start-prompt').classList.add('visible');
+     }
+    if (FoundryInput.pointer.down || FoundryInput.pointer.justDown) {
+      ensureAudio();
+      playRustle();
+      initPieces();
+      FoundryScenes.go('play');
+     }
+    FoundryInput.update(dt);
+   },
+  render: function(ctx, alpha) {
+    if (washiCanvas) ctx.drawImage(washiCanvas, 0, 0);
+    drawScrollBorder(ctx);
+    drawWaterCurrent(ctx, titleTime);
+    drawGrainOverlay(ctx, 0.4);
+   }
+});
+
+// PLAY
+var playStartTime = 0;
+FoundryScenes.add('play', {
+  enter: function() {
+    playStartTime = FoundryLoop.time();
+    if (waterAmbienceNode) { try { waterAmbienceNode.stop(); } catch(e){} }
+    waterAmbienceNode = playWaterAmbience();
+   },
+  exit: function() {
+    if (waterAmbienceNode) { try { waterAmbienceNode.stop(); } catch(e){} }
+    waterAmbienceNode = null;
+   },
+  update: function(dt) {
+    var t = FoundryLoop.time();
+
+    for (var i = 0; i < pieces.length; i++) {
+      var p = pieces[i];
+      if (p.entering) {
+        var elapsed = t - playStartTime - p.enterDelay;
+        if (elapsed < 0) continue;
+        p.alpha = Math.min(1, elapsed * 1.5);
+        p.x += p.driftSpeed * dt;
+        if (p.x > W + p.w) { p.x = -p.w; p.y = rng.range(150, H-200); }
+        if (elapsed > 0.8 && p.x > 0) p.entering = false;
+       } else if (!p.locked && p !== dragging) {
+        p.x += (p.driftSpeed*0.4 + Math.sin(t*0.5+p.phase)*8) * dt;
+        p.y += Math.sin(t*0.3+p.phase*1.7) * 5 * dt;
+        if (p.x > W + p.w*0.5) { p.x = -p.w*0.5; p.y = rng.range(150, H-200); }
+        if (p.x < -p.w*0.8) { p.x = W+p.w*0.3; p.y = rng.range(150, H-200); }
+       }
+     }
+
+    if (FoundryInput.pointer.justDown && !compositionLocked) {
+      var hit = hitTestPiece(FoundryInput.pointer.x, FoundryInput.pointer.y);
+      if (hit) {
+        dragging = hit;
+        dragOffsetX = FoundryInput.pointer.x - hit.x;
+        dragOffsetY = FoundryInput.pointer.y - hit.y;
+        playRustle();
+        FoundryTween.cancel(hit);
+       }
+     }
+    if (dragging && FoundryInput.pointer.down) {
+      dragging.x = FoundryInput.pointer.x - dragOffsetX;
+      dragging.y = FoundryInput.pointer.y - dragOffsetY;
+     }
+    if (dragging && !FoundryInput.pointer.down) {
+      var dx = dragging.x - dragging.tx;
+      var dy = dragging.y - dragging.ty;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < SNAP_DIST) {
+        FoundryTween.to(dragging, { x: dragging.tx, y: dragging.ty }, 0.3, { ease:'backOut' });
+        dragging.locked = true;
+        dragging.lockedAnim = 1;
+        lockedCount++;
+        playClack();
+        gParticles.burst(dragging.tx, dragging.ty, { count:16, speed:80, life:0.6, size:3, color:dragging.color, gravity:0 });
+        shake.add(0.15);
+        document.getElementById('scroll-progress').textContent = lockedCount + ' / ' + totalPieces + ' placed';
+        if (lockedCount >= totalPieces) {
+          compositionLocked = true;
+          setTimeout(function() { dissolveActive = true; playTempleBell(); }, 1500);
+         }
+       } else {
+        FoundryTween.to(dragging, { x: dragging.x + rng.range(-40,40), y: dragging.y }, 0.6, { ease:'sineInOut' });
+       }
+      dragging = null;
+     }
+
+    if (dissolveActive) {
+      dissolveProgress += dt * 0.3;
+      if (dissolveProgress >= 1) {
+        dissolveProgress = 1;
+        document.getElementById('debrief-overlay').classList.add('visible');
+        FoundryScenes.go('end');
+       }
+     }
+
+    FoundryTween.update(dt);
+    gParticles.update(dt);
+    shake.update(dt);
+    FoundryInput.update(dt);
+   },
+  render: function(ctx, alpha) {
+    ctx.save();
+    if (shake) { ctx.translate(shake.x, shake.y); }
+
+    if (washiCanvas) ctx.drawImage(washiCanvas, 0, 0);
+    drawWaterCurrent(ctx, FoundryLoop.time());
+
+     // Target ghosts
+    for (var i = 0; i < pieces.length; i++) {
+      if (!pieces[i].locked && !pieces[i].entering) {
+        drawTargetGhost(ctx, pieces[i]);
+       }
+     }
+
+     // Elements
+    for (var i = 0; i < pieces.length; i++) {
+      var p = pieces[i];
+      if (dissolveActive) { ctx.save(); ctx.globalAlpha = Math.max(0, p.alpha * (1 - dissolveProgress)); }
+      drawElement(ctx, p);
+      if (dissolveActive) ctx.restore();
+
+       // Snap ring
+      if (p.locked && p.lockedAnim > 0) {
+        p.lockedAnim -= 0.016;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.lockedAnim);
+        ctx.strokeStyle = '#1a1410'; ctx.lineWidth = 2;
+        var rs = 1 + (1-p.lockedAnim)*0.5;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.w*0.5*rs, p.h*0.5*rs, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.restore();
+       }
+     }
+
+    gParticles.draw(ctx);
+    drawScrollBorder(ctx);
+    drawGrainOverlay(ctx, 0.35);
+    ctx.restore();
+   }
+});
+
+// END
+var endTime = 0;
+FoundryScenes.add('end', {
+  enter: function() { endTime = 0; },
+  update: function(dt) {
+    endTime += dt;
+    if (endTime > 2 && (FoundryInput.pointer.justDown || FoundryInput.pointer.down)) {
+      ensureAudio(); playRustle();
+      initPieces();
+      document.getElementById('debrief-overlay').classList.remove('visible');
+      FoundryScenes.go('play');
+     }
+    FoundryInput.update(dt);
+   },
+  render: function(ctx, alpha) {
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    if (washiCanvas) ctx.drawImage(washiCanvas, 0, 0);
+    for (var i = 0; i < pieces.length; i++) drawElement(ctx, pieces[i]);
+    drawScrollBorder(ctx);
+    drawGrainOverlay(ctx, 0.3);
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.6, endTime * 0.15);
+    ctx.fillStyle = '#1a1410';
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+   }
+});
+
+/* ---- Boot ---- */
+FoundryScenes.go('title');
+FoundryLoop.start({
+  update: FoundryScenes.update,
+  render: function(a) { ctx.clearRect(0,0,W,H); FoundryScenes.render(ctx, a); }
+});
+FoundryInput.install(canvas, {});
+
+})();
+</script>
+</body>
+</html>
