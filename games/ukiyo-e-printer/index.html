@@ -12,16 +12,16 @@
 html, body { margin:0; padding:0; background:#1a1a18; height:100%; overflow:hidden;
   font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","Source Han Serif JP",Georgia,serif; }
 #stage { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
-canvas { display:block; cursor:crosshair; touch-action:none;
+canvas { display:block; cursor:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%228%22 fill=%22%230f172a%22 opacity=%220.3%22/%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%223%22 fill=%22%230f172a%22 opacity=%220.5%22/%3E%3C/svg%3E") 12 12,crosshair; touch-action:none;
   image-rendering:auto; box-shadow:0 4px 40px rgba(0,0,0,0.55); }
 #overlay { position:absolute; inset:0; display:flex; flex-direction:column;
   align-items:center; justify-content:center; pointer-events:none; z-index:10;
   transition:opacity 1.2s cubic-bezier(.4,0,.2,1); }
 #overlay.hidden { opacity:0; pointer-events:none; }
 #title {
-  color:var(--paper); font-size:clamp(1.2rem,3.2vw,1.9rem); font-weight:300;
-  letter-spacing:0.35em; text-align:center;
-  text-shadow:0 2px 20px rgba(0,0,0,0.6);
+  color:var(--paper); font-size:clamp(1.1rem,3.2vw,1.8rem); font-weight:300;
+  letter-spacing:0.4em; text-align:center;
+  text-shadow:0 2px 24px rgba(0,0,0,0.6), 0 0 60px rgba(248,244,235,0.08);
   opacity:0; animation:titleFadeIn 2.5s 0.8s cubic-bezier(.25,0,.1,1) forwards;
 }
 @keyframes titleFadeIn { from{opacity:0;transform:translateY(10px);} to{opacity:0.88;transform:translateY(0);} }
@@ -46,12 +46,12 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   position:absolute; top:14px; right:14px; display:flex; gap:8px; z-index:20;
 }
 #controls button {
-  background:rgba(248,244,235,0.82); color:var(--ink);
-  border:1px solid rgba(15,23,42,0.2);
+  background:rgba(248,244,235,0.85); color:var(--ink);
+  border:1px solid rgba(15,23,42,0.25);
   font-family:inherit; font-size:10px; font-weight:400; letter-spacing:0.15em;
   padding:6px 12px; border-radius:1px; cursor:pointer; user-select:none;
-  min-height:40px; transition:all 0.25s ease;
-  box-shadow:0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25);
+  min-height:40px; transition:all 0.3s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 1px 3px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3);
   outline:none; position:relative;
   text-shadow:0 1px 0 rgba(255,255,255,0.5);
 }
@@ -109,17 +109,22 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   background:linear-gradient(90deg, var(--indigo), var(--vermilion));
   transition:width 0.3s ease;
 }
-/* Vignette pulse responds to ink density */
+/* Vignette pulse responds to ink density — deeper, more atmospheric */
 #vignette {
   position:absolute; inset:0; pointer-events:none; z-index:4;
-  background:radial-gradient(ellipse at center, transparent 40%, rgba(26,26,24,0.4) 100%);
-  transition: opacity 2s ease;
+  background:radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(26,26,24,0.45) 100%);
+  transition: opacity 2.5s ease;
 }
-/* Deckle edge overlay */
+/* Deckle edge overlay — gentle breathing pulse */
 #deckle {
   position:absolute; inset:0; pointer-events:none; z-index:5;
-  background:radial-gradient(ellipse at center, transparent 55%, rgba(26,26,24,0.35) 100%);
+  background:radial-gradient(ellipse at center, transparent 50%, rgba(26,26,24,0.32) 100%);
   mix-blend-mode:multiply;
+  animation: deckleBreathe 8s ease-in-out infinite;
+}
+@keyframes deckleBreathe {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
 }
 /* Hold ring indicator */
 #holdRing {
@@ -916,27 +921,73 @@ canvas { display:block; cursor:crosshair; touch-action:none;
       drawStroke(strokePts, br, .32, INK, holdDur);
      }
 
-     // Baren press visual
-    if (isHolding && holdProgress > 0) {
-      const br = getRad(holdProgress * 35);
-      const bg = ctx.createRadialGradient(holdCX, holdCY, 0, holdCX, holdCY, br);
-      bg.addColorStop(0, cAlpha(INK, .55 * holdProgress));
-      bg.addColorStop(.5, cAlpha(INK, .2 * holdProgress));
-      bg.addColorStop(1, cAlpha(INK, 0));
-      ctx.fillStyle = bg;
-      ctx.beginPath();
-      ctx.arc(holdCX, holdCY, br, 0, Math.PI * 2);
-      ctx.fill();
-      if (holdProgress > .6) {
-        const ao = (holdProgress - .6) / .4 * .12;
-        const ag = ctx.createRadialGradient(holdCX, holdCY, 0, holdCX, holdCY, br * .4);
-        ag.addColorStop(0, cAlpha(VERM, ao));
-        ag.addColorStop(1, cAlpha(VERM, 0));
-        ctx.fillStyle = ag;
-        ctx.beginPath();
-        ctx.arc(holdCX, holdCY, br * .4, 0, Math.PI * 2);
-        ctx.fill();
-       }
+      // Baren press visual — deep ink with layered spread
+     if (isHolding && holdProgress > 0) {
+       const br = getRad(holdProgress * 35);
+        // Deep ink core
+       const bg = ctx.createRadialGradient(holdCX, holdCY, 0, holdCX, holdCY, br);
+       bg.addColorStop(0, cAlpha(INK, .6 * holdProgress));
+       bg.addColorStop(.3, cAlpha(INK, .35 * holdProgress));
+       bg.addColorStop(.7, cAlpha(INK, .12 * holdProgress));
+       bg.addColorStop(1, cAlpha(INK, 0));
+       ctx.fillStyle = bg;
+       ctx.beginPath();
+       ctx.arc(holdCX, holdCY, br, 0, Math.PI * 2);
+       ctx.fill();
+        // Ink spread rings — paper absorbs ink outward
+       if (holdProgress > .15) {
+         for (let ring = 1; ring <= 3; ring++) {
+           const ringR = br * (0.55 + ring * 0.22);
+           const ringOp = Math.max(0, (holdProgress - .15 * ring) / (1 - .15 * ring)) * .08 / ring;
+           ctx.save();
+           ctx.globalAlpha = ringOp;
+           ctx.strokeStyle = cAlpha(INK, 0.3);
+           ctx.lineWidth = 0.8;
+           ctx.beginPath();
+           const steps = 48;
+           for (let i = 0; i <= steps; i++) {
+             const a = (i / steps) * Math.PI * 2;
+             const wobble = Math.sin(a * (9 + ring) + frame * 0.02) * (2 + ring);
+             const px = holdCX + Math.cos(a) * (ringR + wobble);
+             const py = holdCY + Math.sin(a) * (ringR + wobble) * 0.95;
+             i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+           ctx.closePath();
+           ctx.stroke();
+           ctx.restore();
+          }
+         }
+        // Vermilion glow at deep press — ink reaching peak saturation
+       if (holdProgress > .6) {
+         const ao = (holdProgress - .6) / .4 * .15;
+         const ag = ctx.createRadialGradient(holdCX, holdCY, 0, holdCX, holdCY, br * .35);
+         ag.addColorStop(0, cAlpha(VERM, ao));
+         ag.addColorStop(.6, cAlpha(VERM, ao * 0.3));
+         ag.addColorStop(1, cAlpha(VERM, 0));
+         ctx.fillStyle = ag;
+         ctx.beginPath();
+         ctx.arc(holdCX, holdCY, br * .35, 0, Math.PI * 2);
+         ctx.fill();
+         // Vermilion bleed ring
+         if (holdProgress > .75) {
+           const bleedR = br * .5;
+           ctx.save();
+           ctx.globalAlpha = (holdProgress - .75) / .25 * .06;
+           ctx.strokeStyle = cAlpha(VERM, 0.4);
+           ctx.lineWidth = 1;
+           ctx.beginPath();
+           for (let i = 0; i <= 40; i++) {
+             const a = (i / 40) * Math.PI * 2;
+             const wobble = Math.sin(a * 11) * 3;
+             const px = holdCX + Math.cos(a) * (bleedR + wobble);
+             const py = holdCY + Math.sin(a) * (bleedR + wobble) * 0.96;
+             i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+           ctx.closePath();
+           ctx.stroke();
+           ctx.restore();
+          }
+         }
       if (holdProgress > .25) {
         const ringR = br * (0.3 + holdProgress * 0.8);
         const ringOp = (holdProgress - .25) / .75 * .2;
@@ -1128,6 +1179,33 @@ canvas { display:block; cursor:crosshair; touch-action:none;
   let bellOsc = null, bellGain = null;
   let windLfo = null, windLfoGain = null;
   let paperRustleVol = 0, paperRustleGain = null;
+   // Foundry audio assets
+  let ambientBuffer = null, impactBuffer = null, sealBuffer = null;
+  let audioAssetsReady = false;
+   // Load Foundry audio assets
+  function loadFoundryAudio() {
+    const base = 'assets/audio/';
+    const urls = [
+      { key: 'ambientBuffer', url: base + 'ambient_loop.wav', type: 'ambient' },
+      { key: 'impactBuffer', url: base + 'soft_impact.wav', type: 'impact' },
+      { key: 'sealBuffer', url: base + 'seal_confirm.wav', type: 'seal' }
+     ];
+    let loaded = 0;
+    urls.forEach(item => {
+      fetch(item.url)
+        .then(r => r.arrayBuffer())
+        .then(buf => {
+          if (audioCtx) {
+            audioCtx.decodeAudioData(buf, decoded => {
+              audioCtx[key] = decoded;
+              loaded++;
+              if (loaded === urls.length) audioAssetsReady = true;
+              }, () => { /* silently skip failed load */ });
+            }
+          })
+        .catch(() => {});
+       });
+     }
 
   function initAudio() {
     if (audioCtx) return;
@@ -1434,31 +1512,69 @@ canvas { display:block; cursor:crosshair; touch-action:none;
        }
      }
 
-    const sx = W - 80 + (Math.random() - .5) * 12;
-    const sy = H - 80 + (Math.random() - .5) * 12;
-    const sr = (Math.random() - .5) * .04;
+    const sx = W - 85 + (Math.random() - .5) * 16;
+    const sy = H - 85 + (Math.random() - .5) * 16;
+    const sr = (Math.random() - .5) * .06;
+     // Stamp slightly irregular — like a hand-carved hanko
     sX.save();
     sX.translate(sx, sy);
     sX.rotate(sr);
+     // Hanko seal — rounded square with slightly irregular edges
+    const rw = 38, rh = 48, rr = 5;
+     // Fill — vermilion stamp ink with slight transparency
     sX.fillStyle = VERM;
-    const rw = 34, rh = 44, rr = 4;
+    sX.globalAlpha = 0.85;
+     // Draw slightly irregular rounded rectangle
     sX.beginPath();
-    sX.moveTo(-rw/2 + rr, -rh/2);
-    sX.lineTo(rw/2 - rr, -rh/2);
-    sX.quadraticCurveTo(rw/2, -rh/2, rw/2, -rh/2 + rr);
-    sX.lineTo(rw/2, rh/2 - rr);
-    sX.quadraticCurveTo(rw/2, rh/2, rw/2 - rr, rh/2);
-    sX.lineTo(-rw/2 + rr, rh/2);
-    sX.quadraticCurveTo(-rw/2, rh/2, -rw/2 + rr, rh/2 - rr);
-    sX.lineTo(-rw/2, -rh/2 + rr);
-    sX.quadraticCurveTo(-rw/2, -rh/2, -rw/2 + rr, -rh/2);
+     // Top edge — slightly wavy
+    const topLift = (Math.random() - .5) * 2;
+    sX.moveTo(-rw/2, -rh/2 + topLift);
+    sX.lineTo(rw/2, -rh/2 - topLift);
+     // Right edge
+    sX.lineTo(rw/2 + (Math.random()-.5)*2, rh/2 + topLift * 0.5);
+     // Bottom edge
+    sX.lineTo(-rw/2 - (Math.random()-.5)*2, rh/2 - topLift * 0.3);
+     // Left edge
     sX.closePath();
     sX.fill();
+     // Border — carved edge effect
+    sX.globalAlpha = 0.95;
+    sX.strokeStyle = cAlpha(VERM, 0.7);
+    sX.lineWidth = 2.5;
+    sX.beginPath();
+    const hw = rw/2, hh = rh/2;
+     // Top-left corner
+    sX.moveTo(-hw + 4, -hh);
+    sX.lineTo(hw - 4, -hh);
+    sX.quadraticCurveTo(hw, -hh, hw, -hh + 4);
+     // Right side
+    sX.lineTo(hw, hh - 4);
+    sX.quadraticCurveTo(hw, hh, hw - 4, hh);
+     // Bottom
+    sX.lineTo(-hw + 4, hh);
+    sX.quadraticCurveTo(-hw, hh, -hw, hh - 4);
+     // Left side
+    sX.lineTo(-hw, -hh + 4);
+    sX.quadraticCurveTo(-hw, -hh, -hw + 4, -hh);
+    sX.closePath();
+    sX.stroke();
+     // Character — 印 (mark/seal)
+    sX.globalAlpha = 0.95;
     sX.fillStyle = PAPER;
-    sX.font = 'bold 26px serif';
+    sX.font = 'bold 24px "Noto Serif JP","Source Han Serif JP",serif';
     sX.textAlign = 'center';
     sX.textBaseline = 'middle';
-    sX.fillText('印', 0, 2);
+    sX.fillText('印', 0, 1);
+    sX.restore();
+     // Stamp ink bleed around edges
+    sX.save();
+    sX.globalAlpha = 0.08;
+    sX.strokeStyle = cAlpha(VERM, 0.4);
+    sX.lineWidth = 4;
+    sX.filter = 'blur(3px)';
+    sX.beginPath();
+    sX.arc(sx + (Math.random()-.5)*3, sy + (Math.random()-.5)*3, 28, 0, Math.PI*2);
+    sX.stroke();
     sX.restore();
 
     sX.save();
