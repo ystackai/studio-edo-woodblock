@@ -30,6 +30,8 @@ A late-period Hiroshige or a Hokusai *okubi-e* that feels complete on the first 
 ## 2. Core Interaction Loop and Progression
 
 ### The Loop (building on the existing `games/ukiyo-e-printer`)
+The current game has **16 block classes** (PaperBlock, SceneBlock, InkBloomBlock, InkStrokeBlock, MistBlock, FigureBlock, MountainBlock, SunBlock, PineTreeBlock, LakeBlock, JapaneseCloudBlock, DeckleEdgeBlock, VignetteBlock, RockBlock, GrassBlock) with a fully functional Canvas 2D rendering pipeline. The core loop:
+
 1. **Breathe** — Player sees paper, Fuji silhouette, drifting mist, and a poetic prompt inviting them to begin.
 2. **Touch** — Click/tap leaves an ink bloom with organic, irregular edges. Drag draws a brushstroke with soft ink bleed.
 3. **Press** — Hold for 1–2 seconds triggers a baren press: ink deepens, vermilion appears at 60%+ saturation.
@@ -64,6 +66,13 @@ Intensity-based, not level-based:
 - **Ambient:** water sounds, wind through pines — never constant, never melodic or "nice."
 - **Interaction sounds:** ink bloom on paper (soft, wet), baren press (deep, resonant, muffled — like hand on wood).
 
+### Current Audio Assets (Foundry `cozy_audio_pack`)
+| Asset | Source | Size | Status |
+|---|---|---|---|
+| `ambient_loop.wav` | Foundry | 5.3 MB | ✅ Present |
+| `soft_impact.wav` | Foundry | 83 KB | ✅ Present |
+| `seal_confirm.wav` | Foundry | 73 KB | ✅ Present |
+
 ### House Style Compliance
 All visual and audio decisions must satisfy the Factory house style:
 - No bright, saturated digital color without historical justification
@@ -78,67 +87,85 @@ All visual and audio decisions must satisfy the Factory house style:
 ### Current State Assessment
 The existing `ukiyo-e-printer` uses **procedurally generated visuals** entirely within Canvas 2D:
 - Paper texture: procedural grain via noise functions
-- Mist: 12 animated layered mist blocks
-- Mountains, lake, pine, figures: all procedurally drawn
-- Audio: Foundry `cozy_audio_pack` (ambient_loop, soft_impact, seal_confirm) + oscillator fallback
+- Mist: animated layered mist blocks (12+ layers)
+- Mountains, lake, pine, figures: all procedurally drawn via block classes
+- Audio: Foundry `cozy_audio_pack` with three audio files totaling ~5.5 MB
 
-### Generated Assets Needed
+### Planned Foundry Assets
 
-| Asset | Source | Status | Priority |
+| Asset | Recipe (from `/api/recipes`) | Source | Priority |
 |---|---|---|---|
-| **Background scene image** | Asset Foundry (Blender) — atmospheric landscape | Planned. Procedural scene exists and is functional. A Foundry-rendered scene with organic depth would add the "pulled from a floating world" quality the house style demands. | High |
-| **Hanko seal stamp image** | Asset Foundry or hand-authored SVG | Planned. Current seal (印) is drawn procedurally. A carved-stamp reference image would deepen the finish moment. | Medium |
-| **Paper texture** | Asset Foundry or hand-authored | Low. Procedural paper grain is acceptable and already reads well as washi. Foundry could add subtle deckle-edge texture variation. | Low |
-| **Ambient soundtrack** | Asset Foundry `cozy_audio_pack` | **Complete.** Three WAV files (ambient_loop 5.3 MB, soft_impact 73 KB, seal_confirm 83 KB) from the previous work order are integrated. | Done |
-
-### Asset Pipeline
-- **Primary:** Asset Foundry at `http://factoryx-edo-woodblock-asset-foundry:18113` (Blender configured; healthz confirmed)
-- **Fallback:** Procedural generation within Canvas 2D (already working)
-- **Process:** Submit recipe → poll job → copy outputs → integrate → document in ASSET_MANIFEST.md
+| **Background scene** | Blender 2D atmospheric landscape | Asset Foundry `POST /api/assets` | High — replaces procedural scene |
+| **Hanko stamp** | Tactical Vector — carved seal | Asset Foundry `POST /api/assets` | Medium — replaces procedural seal |
 
 ### Foundry Integration Plan
-1. Submit a Blender recipe for an atmospheric ukiyo-e landscape scene (Fuji + mountains + lake + pine, misty atmosphere, muted palette).
-2. Submit a second Blender recipe for a hanko seal stamp image (red stamped 印 on paper texture).
-3. Poll both jobs with foreground commands, printing state every 120 seconds.
-4. Copy completed outputs into `games/ukiyo-e-printer/assets/`.
-5. Integrate into Canvas rendering pipeline.
-6. Document all assets, job IDs, and integration points in ASSET_MANIFEST.md.
+1. GET `http://factoryx-edo-woodblock-asset-foundry:18113/healthz` — verify service is alive
+2. GET `http://factoryx-edo-woodblock-asset-foundry:18113/api/recipes` — confirm recipe IDs
+3. POST `http://factoryx-edo-woodblock-asset-foundry:18113/api/assets` with recipe, `asset_name`, `prompt`, `style` for background scene
+4. POST same endpoint for hanko stamp
+5. Poll with `GET /api/assets/<job_id>` at 120-second intervals
+6. Copy outputs from `/outputs/<job_id>/<file>` into `games/ukiyo-e-printer/assets/`
+7. Integrate into Canvas rendering, verify in-context screenshot
 
-### Blender / 3D Considerations
-- Blender 3.x compatibility: use `ShaderNodeBsdfPrincipled` (not `ShaderNodeBsdfPrincipledBSDF`), `poly.use_smooth` (not `poly.smooth`), `bpy.ops.export_scene.gltf` for GLB export.
-- Z-up axis for all 3D models.
-- Repeatable inspection cameras, contact sheets, per-ID naming.
-- If Foundry 2D image generation is not accessible, fall back to hand-authored SVG or Canvas-generated art.
+### Asset Source of Truth
+All asset provenance tracked in `ASSET_MANIFEST.md` in the Work Order context with:
+- Job IDs, recipe IDs, submitted request JSON
+- Copied `/outputs/...` source paths
+- Imported asset paths and integration points
 
 ---
 
 ## 5. Placeholder Retirement Checklist
 
-| Placeholder | Current State | Replacement | Priority |
+| Placeholder | Current Form | Target Replacement | Status |
 |---|---|---|---|
-| Procedural background scene | Canvas-drawn Fuji + mountains + lake + pine | Foundry-rendered atmospheric landscape with organic depth | High |
-| Procedural seal stamp (印) | Canvas-drawn red rounded rect with character | Hand-authored or Foundry hanko stamp image | Medium |
-| Procedural paper grain | Noise function + fiber lines on canvas | Could remain (reads well) or gain Foundry deckle texture | Low |
+| Procedural mountain scene | Canvas 2D procedural drawing | Foundry-generated atmospheric landscape | Planned |
+| Procedural seal stamp | Canvas-drawn 印 character | Foundry-generated hanko stamp image | Planned |
+| Oscillator audio fallback | Web Audio API oscillator | Foundry `cozy_audio_pack` WAV files | ✅ Complete |
+| Generic mist effect | Canvas noise overlay | Enhanced with breath mist interaction | In progress |
 
-**Rule:** Do not replace a working procedural system unless the Foundry output demonstrably improves the experience. The procedural scene is layered and atmospheric; a Foundry scene must add organic depth that procedural generation cannot.
+**Note:** The Foundry-generated assets must actually be **rendered in the main play loop**, not merely copied, hidden, or offscreen. In-game verification screenshots must show the focal assets visibly integrated.
 
 ---
 
 ## 6. Engine, Asset Pipeline, Controls, Verification Implications
 
 ### Engine
-- Pure Canvas 2D, no dependencies, no build step
-- BlockList pattern: all visual elements as registered blocks, sorted by layer
-- Pointer events for input, Web Audio API for sound
-- DPR-aware canvas scaling
+- **Canvas 2D** (no WebGL, no heavy dependencies)
+- 16 block classes with `render(ctx)`, `update(dt)`, `layer`, `visible` contract
+- Single `index.html` entrypoint — no build step, no bundler
 
-### Verification
-- **Browser smoke test:** Open the game, verify no JS errors, no 404s, canvas renders, audio initializes on first interaction
-- **Interaction test:** Click, drag, hold — verify physical feedback (ink bloom, density meter, breath mist, fiber lift)
-- **Active-play screenshot:** Capture a post-interaction screenshot showing ink marks, density meter, and scene elements
-- **Accessibility:** Keyboard controls (R=reset, S=save, J=sound), aria-labels on buttons
-- **Foundry asset verification:** Confirm Foundry assets are actually rendered in the canvas (not just copied or hidden), with at least one in-context screenshot
-- **Performance:** Canvas redraw on each frame, no memory leaks, audio context cleanup on reset
+### Asset Pipeline
+- Foundry: `POST /api/assets` → `GET /api/assets/<job_id>` → `GET /outputs/<job_id>/<file>` → copy to `assets/`
+- Fallback: procedural generation if Foundry unavailable or assets fail quality gate
+- Audio: three Foundry WAV files already present; no additional audio generation planned
+
+### Controls
+- Mouse: click = ink bloom, drag = brush stroke, hold = baren press
+- Touch: same interactions via pointer events
+- Keyboard: R = reset, S = save, J = toggle sound
+- All interactions use `touch-action: none` and pointer events for unified handling
+
+### Verification Plan
+1. **Browser smoke test:** Open `index.html` in headless Chromium; check for `pageerror`, `console.error`, failed asset requests
+2. **Active-play screenshot:** Click/drag/hold to leave ink marks; capture screenshot with visible marks, density meter, and scene
+3. **Foundry asset verification:** If Foundry assets are generated, capture screenshot showing assets in context (not just on title screen)
+4. **Accessibility:** Keyboard controls work, aria-labels present, reduced-motion respected
+5. **Performance:** No memory leaks, no excessive draw calls, audio context cleans up on reset
+
+### 900-Second No-Log Mitigation (Previous Run Fix)
+The previous run failed because Codex had no run-log activity for 900 seconds. This run addresses that by:
+- **Every action is logged:** Every command, file edit, and API call is a visible checkpoint
+- **Time-boxed phases:** Each phase has a hard deadline; if not complete, proceed to fallback and commit
+- **Checkpoint schedule:**
+  - T+0: Read existing code, write strategy, check Foundry health
+  - T+5min: Submit Foundry asset requests, record job IDs in ASSET_MANIFEST
+  - T+25min: First asset poll, integrate if complete
+  - T+45min: Integration smoke test in browser
+  - T+60min: Active-play screenshot captured
+  - T+75min: Polish pass, verification notes written
+  - T+90min: Commit and push branch, close out
+- **If assets not ready:** Proceed with procedural fallback and document the blocker explicitly
 
 ---
 
@@ -151,19 +178,22 @@ The existing `ukiyo-e-printer` uses **procedurally generated visuals** entirely 
 - **No bright, saturated color.** The palette is restrained: ink black, indigo, vermilion, washi white, gold.
 - **No constant, melodic audio.** Sound is sparse and physical.
 - **No replacement of working systems.** Procedural mist, fiber lift, baren press are all functional and must be preserved.
+- **No new build tooling.** No webpack, no TypeScript, no bundler. Pure HTML/CSS/JS.
+- **No separate branches or PRs.** Work on the canonical `factoryx/factory-edo-woodblock/work-order` branch only.
 
 ---
 
 ## 8. Risk Decisions
 
-| Risk | Mitigation |
-|---|---|
-| Foundry assets are low quality | Procedural fallback always in place; Foundry output must meet visual quality gate before replacing anything |
-| Audio autoplay policy blocks ambient sound | All audio starts on user gesture (first pointerdown); ambient fades in over 2s |
-| Mobile/touch friction | touch-action: none; pointer events unify mouse/touch; baren press works with hold duration |
-| Performance on low-end devices | Canvas 2D is lightweight; mist layers capped at 12; fiber bloom decays to reduce draw calls |
-| Deadline pressure | Polish in bounded, targeted patches; committed + pushed evidence is a valid stopping point |
-| Foundry 2D image generation unavailable | Fall back to hand-authored Canvas art; do not block the entire work order on one asset type |
+| Risk | Mitigation | Hard Deadline |
+|---|---|---|
+| Foundry assets low quality | Procedural fallback always in place; Foundry output must meet visual quality gate before replacing anything | T+45min |
+| Audio autoplay policy blocks ambient sound | All audio starts on user gesture (first pointerdown); ambient fades in over 2s | T+0 (already handled) |
+| Mobile/touch friction | touch-action: none; pointer events unify mouse/touch; baren press works with hold duration | T+0 (already handled) |
+| Performance on low-end devices | Canvas 2D is lightweight; mist layers capped at 12; fiber bloom decays to reduce draw calls | T+60min (smoke test) |
+| Deadline pressure | Polish in bounded, targeted patches; committed + pushed evidence is a valid stopping point | T+90min |
+| Foundry 2D image generation unavailable | Fall back to hand-authored Canvas art; do not block the entire work order on one asset type | T+45min |
+| **No-run-log timeout (900s)** | Every action logged; time-boxed phases; explicit checkpoint schedule above | **Always** |
 
 ---
 
@@ -179,26 +209,40 @@ The existing `ukiyo-e-printer` uses **procedurally generated visuals** entirely 
 
 ## 10. Execution Order
 
-1. **Audit existing game** — ✅ Already done. Game is mature and functional with baren press, ink bloom, brush strokes, atmosphere, Foundry audio.
-2. **Check Asset Foundry readiness** — ✅ healthz confirmed; Blender configured.
-3. **Submit Foundry recipes** — Submit background scene + hanko stamp via `POST /api/assets` with appropriate recipes.
-4. **Poll and wait for assets** — Foreground polling every 120 seconds, record job IDs in ASSET_MANIFEST.md.
-5. **Copy and integrate assets** — Once Foundry outputs are ready, copy into `games/ukiyo-e-printer/assets/` and integrate into Canvas rendering.
+1. **Audit existing game** — ✅ Already done. Game is mature with 16 block classes, baren press, ink bloom, brush strokes, atmosphere, Foundry audio.
+2. **Check Asset Foundry readiness** — Verify `healthz`, get recipes, confirm available asset types.
+3. **Submit Foundry asset requests** — Submit background scene + hanko stamp via `POST /api/assets`. Record job IDs in ASSET_MANIFEST.md immediately.
+4. **Poll and wait for assets** — Foreground polling every 120 seconds. If assets don't complete, fall back to procedural.
+5. **Copy and integrate assets** — Once Foundry outputs are ready, copy into `assets/` and integrate into Canvas rendering.
 6. **Polish interaction** — Refine any new asset integration points, ensure foundry visuals read correctly at all screen sizes.
 7. **Verification** — Browser smoke test, active-play screenshot, Foundry asset in-context verification, accessibility check.
 8. **Commit, push, closeout** — Write ASSET_MANIFEST.md, PREVIEW.md, VERIFICATION.md; commit and push the branch.
+
+### Phase Timeline (relative to start)
+| Phase | Duration | Checkpoint Artifact |
+|---|---|---|
+| Audit + Foundry health | 5 min | healthz response, recipe list |
+| Submit asset requests | 5 min | ASSET_MANIFEST.md with job IDs |
+| Poll + first response | 15 min | Asset status updates |
+| Integration + smoke test | 15 min | Browser screenshot of live game |
+| Active-play capture | 10 min | Post-interaction screenshot |
+| Polish pass | 15 min | Updated files, PREVIEW/VERIFICATION |
+| Commit + push | 5 min | Branch pushed, context files written |
+| **Total estimated** | **~70 min** | **Well within 16h budget** |
 
 ---
 
 ## 11. Playtest Feedback Addressed
 
-The primary playtest feedback file (`work-order-1785330240273-7-1/FEEDBACK.md`) contains only boilerplate — no substantive reviewer feedback. This work order proceeds with the creative brief as the primary directive: deepen the physical feel of the baren press and wet ink interaction.
+The primary playtest feedback file (`work-order-1785330240273-7-1/FEEDBACK.md`) was not found on the branch. The current work order's `FEEDBACK.md` is boilerplate (no substantive reviewer feedback). This work order proceeds with the creative brief as the primary directive: deepen the physical feel of the baren press and wet ink interaction.
+
+Any playtest feedback discovered during verification will be recorded in `FEEDBACK.md` for the next run to address.
 
 ---
 
 ## 12. Polishing Priorities (in order)
 
-1. **Foundry background scene** — Replace procedural canvas scene with a Foundry-rendered atmospheric landscape if foundry output is high quality.
+1. **Foundry background scene** — Replace procedural canvas scene with a Foundry-rendered atmospheric landscape if foundry output meets quality gate.
 2. **Foundry hanko stamp** — Replace procedural seal with a carved-stamp reference image.
 3. **Atmospheric polish** — Refine mist, breath, deckle edge, vignette — make them feel more alive and less looped.
 4. **Interaction feel** — Tighten the resistance curve, ensure hold feedback is satisfying without being tedious.
@@ -207,4 +251,20 @@ The primary playtest feedback file (`work-order-1785330240273-7-1/FEEDBACK.md`) 
 
 ---
 
-*This strategy preserves the existing functional game while planning targeted Foundry asset integration and atmospheric polish. The procedural scene, ink system, baren mechanics, and audio foundation are all solid; the next step is to deepening the tactile quality with Foundry-generated assets and refinement of the interaction loop.*
+## 13. Definition of Done Checklist
+
+- [ ] A reviewer can understand the requested scope from the PR body.
+- [ ] The app has a clear first-screen experience and a meaningful interaction loop.
+- [ ] The central visuals, sounds, copy, and interaction details feel intentional for the subject matter.
+- [ ] Visual and audio assets have a concrete file-backed pipeline, ASSET_MANIFEST.md provenance.
+- [ ] At least one screenshot or asset checkpoint exists showing assets in context.
+- [ ] The PR includes verification output and preview instructions.
+- [ ] The implementation is more than scaffolding or cosmetic placeholder work.
+- [ ] Browser smoke test passes: no page errors, no console errors, assets load.
+- [ ] Active-play screenshot captured showing ink marks, density meter, scene elements.
+- [ ] Branch committed and pushed to `factoryx/factory-edo-woodblock/work-order`.
+- [ ] ASSET_MANIFEST.md, PREVIEW.md, VERIFICATION.md written and committed.
+
+---
+
+*This strategy preserves the existing functional game while planning targeted Foundry asset integration and atmospheric polish. The procedural scene, ink system, baren mechanics, and audio foundation are all solid; the next step is deepening the tactile quality with Foundry-generated assets and refinement of the interaction loop.*
