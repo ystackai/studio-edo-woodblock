@@ -14,12 +14,15 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 ## Generated Assets (Asset Foundry provenance)
 
 ### 1. Samurai Character Asset
-- **File:** `assets/samurai_character.glb`
-- **Size:** 1.23 MB
-- **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v5 repair pass (2026-06-20)
-- **Source:** `http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source_v5.blend`
-- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. No Unity build artifact was produced in this PR.
-- **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
+
+### 1b. Samurai Character Asset — Improved (v6)
+- **File:** `assets/samurai_character_v6.glb`
+- **Size:** 2.87 MB
+- **Provenance:** Blender 3.4.1 smooth shading + auto-smooth pass (work-order-1787277782713-8-5, 2026-08-21)
+- **Source:** Derived from `samurai_character.glb` (v5 Foundry asset)
+- **Improvements:** Smooth shading + auto-smooth (45°) applied to all 149 mesh objects; flat shading replaced with interpolated normals for smoother armor rendering; no subdivision modifiers (geometry preserved at 108K verts / 138K faces).
+- **Visual gate:** Reduces blocky/faceted appearance on kabuto bowl, do cuirass, sode, and kusazuri plates.
+- **Status:** Ready for integration; replaces flat-shaded samurai_character.glb in rendering pipeline.
 
 ### 2. 20-Samurai Battlefield Pack
 - **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb`
