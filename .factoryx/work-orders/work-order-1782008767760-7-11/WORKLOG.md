@@ -34,3 +34,20 @@ The v6 samurai shows significantly improved visual quality:
 - Helmet has prominent crescent crest with side flares
 - Feet show proper geta sandal anatomy with ankle straps
 - Overall silhouette is more convincing and less "blocky"
+
+## 2026-08-21 — v7b Pass
+
+- Ran Blender script `improve-samurai-v7b.py` headless with Blender 3.4.1
+- Key changes from v7 (rejected):
+  - Ellipsoid helmet dome replaces box shape (natural kabuto silhouette)
+  - Face mask repositioned closer to front brim, larger face base
+  - Slimmer torso with graduated chest sizing
+  - Kuwagata upgraded to 5-horn gold design with brass base plate
+  - Shikoro expanded to 6 layers with gold edge trims
+  - Kusazuri skirt shortened with visible lacing
+- GLB payload: **842 KB** (under 1 MB target)
+- All integration points updated: game GLB, Unity handoff, contact sheet, hero render
+- Visual inspection: helmet dome is now smooth/curved, face mask clearly visible below brim, proportions look natural
+- VERIFICATION.md updated
+- PREVIEW.md updated
+- ASSET_MANIFEST.md updated with v7b iteration notes
