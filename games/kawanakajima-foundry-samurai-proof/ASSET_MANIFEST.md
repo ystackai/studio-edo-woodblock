@@ -15,11 +15,11 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 
 ### 1. Samurai Character Asset
 - **File:** `assets/samurai_character.glb`
-- **Size:** 1.23 MB
-- **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v5 repair pass (2026-06-20)
-- **Source:** `http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source_v5.blend`
-- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. No Unity build artifact was produced in this PR.
-- **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
+- **Size:** 1.23 MB (v8, 1,251 KB) (v8, 1,251 KB) (v8, 1,251 KB)
+- **Provenance:** Blender v8 improvement pass (2026-06-20) via `/tmp/improve_samurai_v8.py`
+- **Source:** `assets/generated/foundry/samurai/improved-20260620-v8/samurai_character_source_v8.blend`
+- **Description:** Stylized samurai with ellipsoid kabuto helmet dome (5 dome ridges), deepened mempo face mask with nose bridge/cheekbones/brow ridge, tabi socks with split-toe geta sandals, graduated torso armor, 6-layer shikoro with gold trim, 5-horn kuwagata crest, 5-layer sode shoulder plates with lacing. No Unity build artifact was produced in this PR.
+- **Visual gate:** v8 improved over v7b — ellipsoid helmet dome replaces flat dome, face mask has sculpted features (nose, cheeks, brows, moustache curls), geta soles have bevels and split-toe tabi, torso is tapered with graduated sizing, shikoro expanded to 6 layers with gold edge trims. Contact sheet and hero render provided for inspection.
 
 ### 2. 20-Samurai Battlefield Pack
 - **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb`
@@ -81,7 +81,7 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 ## Known Limitations
 
 - **Unity playable build:** Not created in this PR. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac-host Unity MCP listener is reachable from the deployed Edo worker at `http://172.21.0.1:25666` and authenticated `POST /api/system-tools/ping` returns `pong`. The next pass should use that listener for scene insertion and build verification.
-- **Asset fidelity:** Stylized, not photoreal. v5 improved over v4 (no more slab/blocky reads).
+- **Asset fidelity:** Stylized, not photoreal. v8 improved over v7b with ellipsoid helmet dome, sculpted face mask, tabi split-toe geta, and graduated torso armor.
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.
 
@@ -95,5 +95,5 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 | Side profile | sideProfile | screenshots/sideProfile.png | 744 KB |
 | Top formation | topFormation | screenshots/topFormation.png | 796 KB |
 | Asset inspect | assetInspect | screenshots/assetInspect.png | 779 KB |
-| Contact sheet | v5 contact | assets/samurai_character_contact_sheet.png | 1.12 MB |
-| Hero reference | v5 hero | assets/samurai_character_hero.png | 669 KB |
+| Contact sheet | v5 contact | assets/samurai_character_contact_sheet.png | 1.22 MB (v8) |
+| Hero reference | v5 hero | assets/samurai_character_hero.png | 497 KB (v8) |
