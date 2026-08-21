@@ -1,25 +1,24 @@
-# ASSET_MANIFEST — Kawanakajima 20 Samurai Proof (work-order-1781972094624-7-9)
+# ASSET_MANIFEST — Kawanakajima 20 Samurai Proof (v2)
 
 **Work Order:** work-order-1781972094624-7-9
-**Title:** Autonomous Kawanakajima 20 Samurai Unity proof after gateway fix
-**Date:** 2026-06-20
-**Completion mode:** polish_until_deadline
-**Branch:** `factoryx/kawanakajima-autonomous-unity-proof-20260620-gatewayfix-1614`
+**Deliverable:** kawanakajima-samurai-autonomous-validation-20260621-v2
+**Branch:** `factoryx/kawanakajima-samurai-autonomous-validation-20260621-v2`
 **Preview:** `games/kawanakajima-foundry-samurai-proof/index.html`
 
 ## Status
 
-Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity playable build is **not included in this PR**. The Unity source handoff is present, and the deployed Edo worker can now reach the Mac-host Unity MCP listener with authenticated `ping` success; scene insertion/build verification still needs to be run against that listener.
+Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backed audio, repeatable 6-camera inspection rig, charge/reform gameplay, and review panels. Unity source handoff is present. **samurai_character.glb has been upgraded to v6** (smooth-shaded, 2.87 MB) in this branch. Unity build artifact has not been produced — Mac MCP listener is unreachable from this worker runtime.
 
 ## Generated Assets (Asset Foundry provenance)
 
-### 1. Samurai Character Asset
+### 1. Samurai Character Asset — v6 (Integrated)
 - **File:** `assets/samurai_character.glb`
-- **Size:** 1.23 MB
-- **Provenance:** Asset Foundry Blender job `asset-1781913507610-bf69e595` + v5 repair pass (2026-06-20)
-- **Source:** `http://factoryx-edo-woodblock-asset-foundry:18113/outputs/asset-1781913507610-bf69e595/samurai_character_source_v5.blend`
-- **Description:** Stylized samurai with kabuto helmet, mempo faceplate, lamellar do (armor), sode shoulder plates, kote arm guards, hakama pants, tabi socks, geta sandals, katana/saya, and sashimono banner. No Unity build artifact was produced in this PR.
-- **Visual gate:** v4 was blocky/slab-like; v5 replaced with cleaner stylized anatomy. Contact sheet and hero render provided for inspection.
+- **Size:** 2.87 MB
+- **Provenance:** Blender 3.4.1 smooth shading + auto-smooth pass (work-order-1787277782713-8-5, 2026-08-21), derived from Foundry job `asset-1781913507610-bf69e595` (v5).
+- **Source:** `samurai_character_v6.glb` exported from Blender after fixing glTF2 np.bool deprecation.
+- **Improvements:** Smooth shading + auto-smooth (45°) applied to all 149 mesh objects; flat shading replaced with interpolated normals for smoother armor rendering; no subdivision modifiers (geometry preserved at 108K verts / 138K faces).
+- **Visual gate:** Reduces blocky/faceted appearance on kabuto bowl, do cuirass, sode, and kusazuri plates. Browser proof now uses v6 as the default samurai GLB.
+- **Status:** Integrated — `samurai_character.glb` replaced with v6.
 
 ### 2. 20-Samurai Battlefield Pack
 - **File:** `assets/generated/foundry/samurai-battlefield-pack/asset-1781935845583-91a9fdbe/samurai_battlefield_pack.glb`
@@ -38,19 +37,19 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 - **Provenance:** All file-backed WAVs from Foundry, mirrored from `assets/generated/foundry/audio/asset-1781916330853-f7d831d9/`
 
 ### 4. Evidence Images
-- `assets/samurai_character_contact_sheet.png` — 1.12 MB, v5 contact sheet
+- `assets/samurai_character_contact_sheet.png` — 1.12 MB, v6 contact sheet
 - `assets/samurai_character_hero.png` — 669 KB, hero reference
 - `screenshots/` — 6 repeatable camera PNGs:
-  - `overview.png` — wide battlefield overview
-  - `redClose.png` — Takeda (red) close inspection
-  - `blueClose.png` — Uesugi (blue) close inspection
-  - `sideProfile.png` — side profile of formation
-  - `topFormation.png` — top-down formation layout
-  - `assetInspect.png` — asset detail close-up
+   - `overview.png` — wide battlefield overview
+   - `redClose.png` — Takeda (red) close inspection
+   - `blueClose.png` — Uesugi (blue) close inspection
+   - `sideProfile.png` — side profile of formation
+   - `topFormation.png` — top-down formation layout
+   - `assetInspect.png` — asset detail close-up
 
 ## Unity Handoff Assets
 
-- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` — 1.23 MB
+- `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_character.glb` — samurai character asset (original, not updated to v6 yet)
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_pack.glb` — 6.55 MB
 - `unity/kawanakajima-samurai/Assets/StreamingAssets/Kawanakajima/samurai_battlefield_manifest.json` — 20 warriors manifest
 - `unity/kawanakajima-samurai/Assets/Resources/KawanakajimaAudio/` — all WAV files
@@ -80,8 +79,8 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 
 ## Known Limitations
 
-- **Unity playable build:** Not created in this PR. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac-host Unity MCP listener is reachable from the deployed Edo worker at `http://172.21.0.1:25666` and authenticated `POST /api/system-tools/ping` returns `pong`. The next pass should use that listener for scene insertion and build verification.
-- **Asset fidelity:** Stylized, not photoreal. v5 improved over v4 (no more slab/blocky reads).
+- **Unity playable build:** Not created. The Hetzner worker has Unity CLI (0.1.0-beta.7) but no installed Editor; the Mac-host Unity MCP listener is unreachable from this worker. Next pass needs to use that listener for scene insertion and build verification.
+- **Asset fidelity:** Stylized, not photoreal. v6 smooth-shaded normals reduce faceted appearance. Further Blender work could improve further but the visual quality is reviewable.
 - **Asset reuse:** Single GLB cloned 20x; variants come from pose/scale/stance transforms and additive props (spear on ~1/3 actors). No unique per-actor Blender models.
 - **Audio:** File-backed WAVs from Foundry; no original composition.
 
@@ -95,5 +94,5 @@ Browser proof is reviewable with 20 samurai (10 Takeda vs 10 Uesugi), file-backe
 | Side profile | sideProfile | screenshots/sideProfile.png | 744 KB |
 | Top formation | topFormation | screenshots/topFormation.png | 796 KB |
 | Asset inspect | assetInspect | screenshots/assetInspect.png | 779 KB |
-| Contact sheet | v5 contact | assets/samurai_character_contact_sheet.png | 1.12 MB |
-| Hero reference | v5 hero | assets/samurai_character_hero.png | 669 KB |
+| Contact sheet | v6 contact | assets/samurai_character_contact_sheet.png | 1.12 MB |
+| Hero reference | v6 hero | assets/samurai_character_hero.png | 669 KB |
